@@ -603,3 +603,21 @@ Ver historial completo en CHANGELOG.md.
 | 3.5 | Video demostración ≤ 10 minutos | ⬜ |
 | 3.6 | Actas de validación firmadas | ⬜ |
 
+---
+
+## Ciclo de trabajo con Claude IA
+
+Cada tarea sigue este ciclo obligatorio de 6 fases:
+
+| Fase | Responsable | Acción |
+|---|---|---|
+| 1. Diagnóstico | Claude IA genera prompt → Claude Code ejecuta | Solo lectura, sin cambios |
+| 2. Análisis | Claude IA analiza resultados | Plantea opciones si las hay — Jose Luis elige |
+| 3. Implementación | Claude IA genera prompt → Claude Code ejecuta | Aplica cambios |
+| 4. Pruebas | Claude IA sugiere → Jose Luis ejecuta en navegador | Reporta resultados |
+| 5. Commit | Claude IA entrega comandos → Jose Luis ejecuta en CMD | Pega hash de confirmación |
+| 6. Documentación | Claude IA identifica → Claude Code actualiza | Commit separado de docs |
+
+**Regla crítica:** Nunca combinar diagnóstico y modificación en un mismo prompt.
+Si el diagnóstico no revela problemas, Claude IA lo indica explícitamente antes de pasar a Fase 3.
+

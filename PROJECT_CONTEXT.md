@@ -311,23 +311,32 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 ---
 
 ## Flujo de trabajo establecido
-
-```
 Claude IA (chat)          Claude Code              Jose Luis
 ──────────────────────────────────────────────────────────────
 Analiza contexto      →
 Genera prompt         →   Ejecuta en código
-                      ←   Lista archivos creados
-                                                ← Revisa en navegador
-                                                ← git add / commit / push
-Actualiza PROJECT_CONTEXT
-Genera siguiente prompt →
-```
+←   Entrega resultados
+Jose Luis pega resultados acá
+Claude IA analiza y decide →
+Genera prompt         →   Aplica cambios
+←   Entrega resultados
+Jose Luis pega resultados acá
+Claude IA sugiere pruebas
+← Prueba en navegador
+Jose Luis reporta resultados
+Claude IA verifica ✅
+Entrega comandos git  →                         ← git add / commit / push
+Jose Luis pega hash acá
+Claude IA identifica docs a actualizar
+Genera prompt docs    →   Actualiza archivos
+← git add / commit / push
 
 **Reglas:**
 - Claude Code solo ejecuta código. El análisis y los prompts los genera Claude IA.
 - Claude Code nunca hace commits. Jose Luis los hace desde CMD tras revisar.
-- Nunca combinar análisis y modificación en un mismo prompt a Claude Code.
+- SIEMPRE dos prompts separados: Prompt 1 diagnóstico (solo lectura), Prompt 2 modificación.
+- Si el diagnóstico es limpio y no hay opciones que elegir, Claude IA lo indica y pasa directo al Prompt 2.
+- El ciclo completo por cada tarea es: Diagnóstico → Análisis → Implementación → Pruebas → Commit → Documentación.
 
 ---
 
