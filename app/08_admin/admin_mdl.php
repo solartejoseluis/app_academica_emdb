@@ -12,6 +12,7 @@ switch ($accion) {
             $sql = "SELECT u.usua_id, u.usua_email, r.role_nombre, u.usua_activo, u.fechacreacion
                     FROM usuarios u
                     JOIN roles r ON u.role_id = r.role_id
+                    WHERE u.role_id IN (1, 2)
                     ORDER BY u.usua_id";
             $stmt = $pdo->prepare($sql);
             $stmt->execute();
@@ -25,7 +26,7 @@ switch ($accion) {
     case 'listar_roles':
         try {
             $pdo = getConexion();
-            $stmt = $pdo->prepare("SELECT role_id, role_nombre FROM roles ORDER BY role_id");
+            $stmt = $pdo->prepare("SELECT role_id, role_nombre FROM roles WHERE role_id IN (1, 2) ORDER BY role_id");
             $stmt->execute();
             $rows = $stmt->fetchAll();
             echo json_encode(['status' => 'ok', 'data' => $rows]);
