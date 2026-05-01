@@ -580,7 +580,7 @@ Ver historial completo en CHANGELOG.md.
 
 | Ítem | Descripción | Estado |
 |---|---|---|
-| 1.1 | Módulo `03_docentes` — CRUD docentes | ⬜ |
+| 1.1 | Módulo `03_docentes` — CRUD docentes | ✅ 2026-05-01 |
 | 1.2 | Módulo `02_estudiantes` — CRUD + matrícula a programas | ⬜ |
 | 1.3 | Módulo `04_grupos` — cohortes, grupos semestre, grupos módulo | ⬜ |
 

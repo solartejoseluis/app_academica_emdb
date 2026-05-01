@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-05-01
-> Versión: 3 — actualizado al cierre del Sprint 0
+> Versión: 4 — actualizado al cierre del Sprint 0
 
 ---
 
@@ -232,7 +232,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 
 | Item | Descripción | Estado |
 |---|---|---|
-| 1.1 | Módulo `03_docentes` — CRUD | ⬜ |
+| 1.1 | Módulo `03_docentes` — CRUD | ✅ 2026-05-01 |
 | 1.2 | Módulo `02_estudiantes` — CRUD + matrícula | ⬜ |
 | 1.3 | Módulo `04_grupos` — cohortes, grupos | ⬜ |
 
@@ -289,6 +289,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `fa4b330` | Phase 0.1: estructura base y documentación inicial | 2026-05-01 |
 | `c2fdcdc` | Phase 0.3-0.4: estructura MVC + módulo login con autenticación bcrypt | 2026-05-01 |
 | `5fc9f4a` | Phase 0.5: módulo admin completo — CRUD usuarios con roles y DataTables | 2026-05-01 |
+| `5dfd52b` | Phase 1.1: módulo 03_docentes + 08_admin restringido a roles admin y coordinador | 2026-05-01 |
 
 ---
 
@@ -305,6 +306,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `logout.php` en `01_login/` | Centralizado ahí para que todos los navbars apunten al mismo archivo |
 | `abrirEditar()` global en admin_ctrl.js | DataTables render inline no puede llamar funciones dentro de `$(document).ready` |
 | Commits manuales desde CMD | Jose Luis hace git add/commit/push. Claude Code nunca ejecuta git |
+| Separación de dominios por módulo | 08_admin gestiona solo admin y coordinador. Docentes se crean exclusivamente desde 03_docentes. Estudiantes se crearán exclusivamente desde 02_estudiantes. Sin cruces entre módulos. |
 
 ---
 

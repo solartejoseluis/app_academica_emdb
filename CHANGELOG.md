@@ -5,9 +5,19 @@
 ---
 
 ## [Unreleased]
-- Phase 1.1 — CRUD 03_docentes
 - Phase 1.2 — CRUD 02_estudiantes + matrícula (AC-FO-02, AC-FO-09)
 - Phase 1.3 — CRUD 04_grupos (cohortes, grupos semestre, grupos módulo)
+
+---
+
+## [0.4.0] — 2026-05-01
+### Sprint 1 iniciado — Módulo 03_docentes + ajuste 08_admin
+
+#### Phase 1.1 — Módulo docentes (commit: 5dfd52b)
+- `app/03_docentes/doc_view.php`: vista con navbar, DataTables, modal único Nuevo/Editar
+- `app/03_docentes/doc_mdl.php`: acciones listar, guardar (INSERT+UPDATE en transacción PDO), obtener — verificación email duplicado antes de beginTransaction
+- `app/03_docentes/doc_ctrl.js`: DataTables ajax, abrirEditar() global, usua_email readonly en edición, validarFormulario() reutilizable
+- `app/08_admin/admin_mdl.php`: listar y listar_roles filtrados a role_id IN (1,2) — admin solo gestiona administradores y coordinadores
 
 ---
 

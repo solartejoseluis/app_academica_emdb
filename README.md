@@ -223,8 +223,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 | Phase | Descripción | Estado |
 |---|---|---|
-| Phase 0 | Setup: estructura, BD, login, admin | 🔄 En progreso |
-| Phase 1 | Módulos base: estudiantes, docentes, grupos | ⬜ Pendiente |
+| Phase 0 | Setup: estructura, BD, login, admin | ✅ Completado |
+| Phase 1 | Módulos base: estudiantes, docentes, grupos | 🔄 En progreso |
 | Phase 2 | Gestión académica: calificaciones, reportes, coordinador | ⬜ Pendiente |
 | Phase 3 | Validación TRL5 con usuarios reales | ⬜ Pendiente |
 
