@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-04-30
-> Versión: 2 — actualizado al cierre del chat de arranque del proyecto
+> Última actualización: 2026-05-01
+> Versión: 3 — actualizado al cierre del Sprint 0
 
 ---
 
@@ -33,20 +33,21 @@ Estudiantes dependen de WhatsApp para conocer calificaciones. Sin trazabilidad d
 - Arquitectura MVC — 3 archivos por módulo: `_view.php` / `_mdl.php` / `_ctrl.js`
 - Servidor local: XAMPP. BD: `emdb_academica`
 - Generación PDF: dompdf (Composer). Control versiones: Git + GitHub
-- Repositorio GitHub: `app_academica_emdb` — **por crear (Phase 0.1 pendiente)**
+- Repositorio GitHub: `https://github.com/solartejoseluis/app_academica_emdb` (público)
+- Acceso local: `http://localhost/app_academica_emdb`
+- Alias WSL: `academica` → `cd /mnt/c/xampp/htdocs/app_academica_emdb`
 
 ---
 
-## Documentación base del proyecto (generada en este chat)
+## Documentación base del proyecto
 
 | Archivo | Propósito | Estado |
 |---|---|---|
-| `CLAUDE.md` | Convenciones de código para Claude Code (605 líneas) | ✅ Generado |
-| `README.md` | Descripción del sistema para humanos (237 líneas) | ✅ Generado |
-| `CHANGELOG.md` | Historial de cambios — estructura lista | ✅ Generado |
-| `PROJECT_CONTEXT.md` | Este archivo — contexto para Claude IA | ✅ Este archivo |
-
-Los 4 archivos están descargados y listos para poner en la raíz del repositorio GitHub.
+| `CLAUDE.md` | Convenciones de código para Claude Code | ✅ En repo |
+| `README.md` | Descripción del sistema para humanos | ✅ En repo |
+| `CHANGELOG.md` | Historial de cambios — orden descendente | ✅ En repo |
+| `PROJECT_CONTEXT.md` | Este archivo — contexto para Claude IA | ✅ En repo |
+| `database/emdb_academica.sql` | DDL completo 14 tablas + seeds | ✅ En repo |
 
 ---
 
@@ -56,25 +57,23 @@ Los 4 archivos están descargados y listos para poner en la raíz del repositori
 |---|---|---|
 | v01 (Fase 3) | Documento base entregado | ✅ Calificado 75/100 |
 | v02 (Fase 4) | Delimitación §5, OE simplificados, Resultados §12, 21 refs | ✅ |
-| v03 (Fase 4) | + Análisis diagnóstico §7.1.4 + 4 diagramas UML en §11.1 | ✅ Listo |
-| v04 | + Análisis estudiantes §7.1.4.3 + §7.1.4.4 completo | ⬜ Pendiente |
+| v03 (Fase 4) | + Análisis diagnóstico §7.1.4 + 4 diagramas UML en §11.1 | ✅ |
+| v04 (Fase 4) | + §8.2.3 Scrum, numeración corregida, wireframes ok, Anexo 2 eliminado | ✅ Listo para entrega |
 
-**Archivo actual:** `Actividad_4_consolidado_v03.docx`
+**Archivo actual:** `Actividad_4_consolidado_v04.docx`
 **Entrega Fase 4:** 12 de mayo de 2026
-**Secciones pendientes en doc:** §7.1.4.3 estudiantes, §7.1.4.4 diagnóstico completo,
-script DDL en §11, matriz de trazabilidad
+**Estado documento:** Completo — listo para entregar
 
 ---
 
-## Diagramas UML generados e insertados en §11.1
+## Diagramas UML en §11.1 del documento
 
-| Diagrama | Evidencia para | Estado |
-|---|---|---|
-| Casos de uso (4 actores, 18 UC) | OE2.1 | ✅ En documento v03 |
-| Clases (12 entidades, relaciones) | OE2.1 | ✅ En documento v03 |
-| Secuencia (registro calificaciones) | OE2.1 | ✅ En documento v03 |
-| Arquitectura MVC + despliegue | OE2.2 | ✅ En documento v03 |
-| Entidad-Relación (mermaid) | OE2.1 + OE2.3 | ✅ Generado (pendiente insertar) |
+| Diagrama | Estado |
+|---|---|
+| Casos de uso (4 actores, 18 UC) | ✅ En documento v04 |
+| Clases (12 entidades, relaciones) | ✅ En documento v04 |
+| Secuencia (registro calificaciones) | ✅ En documento v04 |
+| Arquitectura MVC + despliegue | ✅ En documento v04 |
 
 ---
 
@@ -106,63 +105,66 @@ script DDL en §11, matriz de trazabilidad
 
 | role_id | Nombre | Destino post-login |
 |---|---|---|
-| 1 | Administrador | `08_admin` |
-| 2 | Coordinador | `07_coordinador` |
-| 3 | Docente | `05_calificaciones` |
-| 4 | Estudiante | `06_reportes` |
+| 1 | Administrador | `08_admin/admin_view.php` |
+| 2 | Coordinador | `07_coordinador/coordinador_view.php` |
+| 3 | Docente | `05_calificaciones/calificaciones_view.php` |
+| 4 | Estudiante | `06_reportes/reportes_view.php` |
 
 **Login:** sin selector de rol en pantalla. El sistema detecta el rol por la BD.
+**Sesión:** role_id se guarda como `(int)` — todos los módulos usan `!==` para comparar.
 
 ---
 
-## Estructura de módulos definida
+## Estructura de módulos
 
 ```
 app_academica_emdb/
   app/
-    00_connect/        — pdo.php (local) / pdo_web.php (producción)
+    00_connect/        — pdo.php (singleton PDO local)
     00_selects/        — SELECTs reutilizables para dropdowns
     00_img/            — logo, iconos
-    01_login/          — Autenticación + check_session.php
-    02_estudiantes/    — CRUD estudiantes + matrícula
+    01_login/          — login_view.php / login_mdl.php / check_session.php / logout.php
+    02_estudiantes/    — CRUD estudiantes + matrícula (AC-FO-02, AC-FO-09)
     03_docentes/       — CRUD docentes
     04_grupos/         — Cohortes, grupos semestre, grupos módulo
-    05_calificaciones/ — Registro notas por docente (módulo crítico)
+    05_calificaciones/ — Registro notas GA-FO-04 (módulo crítico)
     06_reportes/       — Consulta estudiante + PDF/Excel
     07_coordinador/    — Dashboard seguimiento
-    08_admin/          — Gestión usuarios
-  CLAUDE.md / README.md / CHANGELOG.md / PROJECT_CONTEXT.md
+    08_admin/          — Gestión usuarios ✅ IMPLEMENTADO
+  database/
+    emdb_academica.sql — DDL completo
+  CLAUDE.md / README.md / CHANGELOG.md / PROJECT_CONTEXT.md / index.php
 ```
 
 ---
 
-## Tablas de la BD (orden de creación)
+## Tablas de la BD (14 tablas — todas creadas)
 
 ```
-1. roles              — role_id, role_nombre
-2. programas          — prog_id, prog_nombre, prog_sigla, prog_resolucion
-3. cohortes           — coho_id, coho_codigo, fechainicio
-4. periodos           — peri_id, peri_codigo, peri_anio, peri_semestre
-5. usuarios           — usua_id, role_id(FK), usua_email, usua_passwordhash
-6. docentes           — doce_id, usua_id(FK), doce_nombres, doce_sigla
-7. estudiantes        — estu_id, usua_id(FK), coho_id(FK), estu_nombres
-8. modulos            — modu_id, prog_id(FK), modu_nombre, modu_sigla
-9. matriculas         — matr_id, estu_id(FK), prog_id(FK), matr_estado
-10. gruposemestres    — grse_id, prog_id(FK), grse_codigo, fechainicio
-11. grseestudiantes   — grse_id(FK), estu_id(FK)  [tabla puente N:M]
-12. gruposmodulos     — grmo_id, grse_id(FK), modu_id(FK), doce_id(FK)
-13. calificaciones    — cali_id, grmo_id(FK), estu_id(FK), notas N1-N4,
-                        supletorios (N1,N2,N4), definitiva
-14. horariosgrupo     — hora_id, grse_id(FK), hora_diasemana, hora_horainicio
+1.  roles              — role_id, role_nombre
+2.  programas          — prog_id, prog_nombre, prog_sigla, prog_resolucion
+3.  periodos           — peri_id, peri_codigo, peri_anio, peri_semestre
+4.  usuarios           — usua_id, role_id(FK), usua_email, usua_passwordhash, usua_activo
+5.  cohortes           — coho_id, prog_id(FK), coho_codigo, fechainicio
+6.  docentes           — doce_id, usua_id(FK), doce_nombres, doce_apellidos, doce_sigla
+7.  estudiantes        — estu_id, usua_id(FK), coho_id(FK), estu_nombres, estu_apellidos
+8.  modulos            — modu_id, prog_id(FK), modu_nombre, modu_sigla, modu_orden
+9.  matriculas         — matr_id, estu_id(FK), prog_id(FK), peri_id(FK), matr_estado
+10. gruposemestres     — grse_id, prog_id(FK), peri_id(FK), grse_codigo, grse_semestre
+11. grseestudiantes    — grse_id(FK), estu_id(FK)  [tabla puente N:M]
+12. gruposmodulos      — grmo_id, grse_id(FK), modu_id(FK), doce_id(FK)
+13. calificaciones     — cali_id, grmo_id(FK), estu_id(FK), N1-N4, sup_N1/N2/N4, definitiva
+14. horariosgrupo      — hora_id, grse_id(FK), hora_diasemana, hora_horainicio
 ```
 
-Script DDL pendiente de generar: `database/emdb_academica.sql`
+Seeds cargados: 4 roles, 2 programas, 3 períodos, 36 módulos (17 ASO + 19 MD), 1 usuario admin.
+Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en calificaciones.
 
 ---
 
 ## Estado diagnóstico (OE1) — encuestas aplicadas 29-abr-2026
 
-### Coordinadora (n=1) — ✅ Aplicada y analizada en §7.1.4.1
+### Coordinadora (n=1) — ✅ Aplicada y analizada en §8.1.4.1
 
 | Indicador | Estimado | Confirmado |
 |---|---|---|
@@ -173,7 +175,7 @@ Script DDL pendiente de generar: `database/emdb_academica.sql`
 | Necesidad sistema centralizado | Alta | 4/5 |
 | Participación validación TRL5 | — | ✅ Confirmada verbalmente |
 
-### Docentes (n=5) — ✅ Aplicada y analizada en §7.1.4.2
+### Docentes (n=5) — ✅ Aplicada y analizada en §8.1.4.2
 
 | Indicador | Resultado |
 |---|---|
@@ -201,43 +203,46 @@ Script DDL pendiente de generar: `database/emdb_academica.sql`
 | 5 | Cuestionario estudiantes n=25 | ⬜ | Visita presencial EMDB |
 | 6 | Observación participante 2×4h | ⚠️ | Diario de campo escrito |
 | 7 | Tabulación y análisis | 🔄 | Completar con datos estudiantes |
-| 8 | Diagnóstico consolidado | 🔄 | §7.1.4.4 completo tras estudiantes |
+| 8 | Diagnóstico consolidado | 🔄 | §8.1.4.4 completo tras estudiantes |
 
-### OE2 — DISEÑAR (Sprint 0)
+### OE2 — DISEÑAR
 
 | # | Actividad | Estado | Pendiente |
 |---|---|---|---|
-| 1 | Modelado UML (4 diagramas) | ✅ En doc v03 | — |
-| 2 | Arquitectura MVC + despliegue | ✅ En doc v03 | — |
-| 3 | BD MySQL normalizada + DDL | ⚠️ | Script `emdb_academica.sql` |
-| 4 | Wireframes baja fidelidad | ✅ En doc | Acta validación coordinadora |
+| 1 | Modelado UML (4 diagramas) | ✅ En doc v04 | — |
+| 2 | Arquitectura MVC + despliegue | ✅ En doc v04 | — |
+| 3 | BD MySQL normalizada + DDL | ✅ | Script en repo |
+| 4 | Wireframes baja fidelidad | ✅ En doc v04 | Acta validación coordinadora |
 | 5 | Mockups media fidelidad | ⬜ | Capturas sistema real |
 | 6 | Matriz de trazabilidad req→comp | ⬜ | Generar tabla |
 
-### OE3 — IMPLEMENTAR (Sprint 1 + Sprint 2)
+### OE3 — IMPLEMENTAR (Sprint 0 + Sprint 1 + Sprint 2)
 
-**Sprint 1 — Phase 0 + Phase 1 (~1-9 mayo)**
+**Sprint 0 — Infraestructura base ✅ COMPLETADO**
 
 | Item | Descripción | Estado |
 |---|---|---|
-| 0.1 | Repositorio GitHub + estructura + 4 archivos doc | ⬜ |
-| 0.2 | Script DDL + BD `emdb_academica` creada | ⬜ |
-| 0.3 | Seeds: roles, programas, módulos ASO y MD | ⬜ |
-| 0.4 | Módulo `01_login` con bcrypt + check_session | ⬜ |
-| 0.5 | CRUD `08_admin` — gestión usuarios | ⬜ |
+| 0.1 | Repositorio GitHub + estructura + 4 archivos doc | ✅ 2026-05-01 |
+| 0.2 | Script DDL + BD `emdb_academica` creada | ✅ 2026-05-01 |
+| 0.3 | Seeds: roles, programas, módulos ASO y MD | ✅ 2026-05-01 |
+| 0.4 | Módulo `01_login` con bcrypt + check_session | ✅ 2026-05-01 |
+| 0.5 | CRUD `08_admin` — gestión usuarios | ✅ 2026-05-01 |
+
+**Sprint 1 — Gestión de actores**
+
+| Item | Descripción | Estado |
+|---|---|---|
 | 1.1 | Módulo `03_docentes` — CRUD | ⬜ |
 | 1.2 | Módulo `02_estudiantes` — CRUD + matrícula | ⬜ |
 | 1.3 | Módulo `04_grupos` — cohortes, grupos | ⬜ |
 
-**Sprint 2 — Phase 2 (~9-11 mayo)**
+**Sprint 2 — Núcleo académico**
 
 | Item | Descripción | Estado |
 |---|---|---|
 | 2.1 | Módulo `05_calificaciones` — registro notas GA-FO-04 | ⬜ |
 | 2.2 | Módulo `06_reportes` — consulta + PDF/Excel | ⬜ |
 | 2.3 | Módulo `07_coordinador` — dashboard | ⬜ |
-
-**Restricción real:** 2h/noche × ~12 días hábiles restantes ≈ 24h productivas
 
 ### OE4 — VALIDAR TRL5 (Sprint Review)
 
@@ -270,22 +275,20 @@ Script DDL pendiente de generar: `database/emdb_academica.sql`
 
 | Criterio | Peso | Estado |
 |---|---|---|
-| Documento maestro completo | 40 pts | 🔄 v03 listo, pendiente completar |
+| Documento maestro completo | 40 pts | ✅ v04 listo |
 | Participación crítica en foro | 10 pts | ⚠️ Consulta enviada al tutor |
-| Prototipo funcional TRL5 en GitHub + video | 100 pts | ⬜ No iniciado |
+| Prototipo funcional TRL5 en GitHub + video | 100 pts | 🔄 Sprint 0 completo |
 | **Total** | **150 pts** | |
 
 ---
 
-## Próximos pasos inmediatos (en orden de prioridad)
+## Commits en GitHub
 
-1. ⬜ Aplicar encuesta estudiantes n=25 (visita presencial EMDB)
-2. ⬜ Completar §7.1.4.3 y §7.1.4.4 con análisis cruzado → doc v04
-3. ⬜ Generar script DDL `emdb_academica.sql` completo
-4. ⬜ Crear repositorio GitHub `app_academica_emdb`
-5. ⬜ Primer commit: estructura + 4 archivos documentación → Phase 0.1 ✅
-6. ⬜ Primer prompt para Claude Code: Phase 0.2-0.4 (DDL + login)
-7. ⬜ Matriz de trazabilidad requerimientos → componentes
+| Hash | Descripción | Fecha |
+|---|---|---|
+| `fa4b330` | Phase 0.1: estructura base y documentación inicial | 2026-05-01 |
+| `c2fdcdc` | Phase 0.3-0.4: estructura MVC + módulo login con autenticación bcrypt | 2026-05-01 |
+| `5fc9f4a` | Phase 0.5: módulo admin completo — CRUD usuarios con roles y DataTables | 2026-05-01 |
 
 ---
 
@@ -298,25 +301,31 @@ Script DDL pendiente de generar: `database/emdb_academica.sql`
 | `DECIMAL(3,1)` para notas | Escala 0.0-5.0 colombiana — no cambiar a DECIMAL(5,2) |
 | N3 sin supletorio | Regla institucional invariable |
 | 3 formularios separados por rol | Coordinadora, docentes y estudiantes — no uno con lógica condicional |
-| Opción C para el prototipo | Sistema completo para rol Coordinador como núcleo, luego docente y estudiante |
+| cast `(int)` en login_mdl.php para role_id | PDO devuelve strings; todos los módulos usan `!==` para comparar roles |
+| `logout.php` en `01_login/` | Centralizado ahí para que todos los navbars apunten al mismo archivo |
+| `abrirEditar()` global en admin_ctrl.js | DataTables render inline no puede llamar funciones dentro de `$(document).ready` |
+| Commits manuales desde CMD | Jose Luis hace git add/commit/push. Claude Code nunca ejecuta git |
 
 ---
 
 ## Flujo de trabajo establecido
 
 ```
-Claude IA (este archivo)     Claude Code          Jose Luis
-─────────────────────────────────────────────────────────────
-Analiza contexto         →
-Genera prompt            →   Ejecuta en código
-                         ←   Produce archivos/commits
-Analiza resultado        →
-Actualiza PROJECT_CONTEXT →
-Genera siguiente prompt  →   Ejecuta siguiente tarea
+Claude IA (chat)          Claude Code              Jose Luis
+──────────────────────────────────────────────────────────────
+Analiza contexto      →
+Genera prompt         →   Ejecuta en código
+                      ←   Lista archivos creados
+                                                ← Revisa en navegador
+                                                ← git add / commit / push
+Actualiza PROJECT_CONTEXT
+Genera siguiente prompt →
 ```
 
-**Regla:** Claude Code solo ejecuta. El análisis, la secuencia y los prompts
-los genera Claude IA en el chat. Nunca pedirle a Claude Code que analice.
+**Reglas:**
+- Claude Code solo ejecuta código. El análisis y los prompts los genera Claude IA.
+- Claude Code nunca hace commits. Jose Luis los hace desde CMD tras revisar.
+- Nunca combinar análisis y modificación en un mismo prompt a Claude Code.
 
 ---
 
@@ -339,4 +348,3 @@ actualizar también el CLAUDE.md para que Claude Code lo refleje en el código.
 - 🔄 En progreso / parcial
 - ⚠️ Bloqueado / requiere acción
 - ⬜ Pendiente
-

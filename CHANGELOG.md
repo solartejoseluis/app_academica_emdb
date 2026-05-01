@@ -1,32 +1,65 @@
-# Changelog — app_academica_emdb
-
-Todos los cambios significativos del proyecto se documentan en este archivo.
-Sigue el estándar [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
-
-## Formato de cada entrada
-
-```
-## [YYYY-MM-DD] — Descripción breve del cambio
-
-**Commit:** `hash`
-**Archivos modificados:** lista de archivos
-
-### Problema que existía
-Descripción del estado anterior.
-
-### Cambio aplicado
-Descripción de lo que se hizo exactamente.
-
-### Verificado en
-- [ ] Local
-- [ ] Producción
-```
+# CHANGELOG — app_academica_emdb
+> Historial de cambios del Sistema de Gestión Académica EMDB
+> Formato: [Semver] — Fecha | Orden: más reciente arriba
 
 ---
 
-## [Pendiente de primer commit]
+## [Unreleased]
+- Phase 1.1 — CRUD 03_docentes
+- Phase 1.2 — CRUD 02_estudiantes + matrícula (AC-FO-02, AC-FO-09)
+- Phase 1.3 — CRUD 04_grupos (cohortes, grupos semestre, grupos módulo)
 
-> Las entradas del changelog se agregan aquí a partir del primer commit del proyecto.
-> Cada noche de trabajo = una entrada con su commit hash, archivos modificados,
-> descripción del problema anterior y la corrección aplicada.
+---
 
+## [0.3.0] — 2026-05-01
+### Sprint 0 completado — Infraestructura base
+
+#### Phase 0.5 — Módulo admin (commit: 5fc9f4a)
+- `app/08_admin/admin_view.php`: panel con navbar, DataTables 1.13, modales Nuevo/Editar usuario
+- `app/08_admin/admin_mdl.php`: acciones listar, listar_roles, crear, editar, obtener — todas con envelope `['status'=>'ok/error', ...]`
+- `app/08_admin/admin_ctrl.js`: DataTables ajax, CRUD via $.ajax, bridge select↔hidden, `abrirEditar()` declarada global para compatibilidad con render inline de DataTables
+- `app/01_login/logout.php`: session_destroy + redirect a login_view.php — centralizado para que todos los navbars apunten al mismo archivo
+
+#### Phase 0.3-0.4 — Login + estructura MVC (commit: c2fdcdc)
+- `app/00_connect/pdo.php`: singleton PDO con ERRMODE_EXCEPTION, FETCH_ASSOC, EMULATE_PREPARES false
+- `app/01_login/login_view.php`: formulario Bootstrap 5.3 sin selector de rol, alerta de error condicional
+- `app/01_login/login_mdl.php`: autenticación con prepared statements + password_verify, cast `(int)` en role_id de sesión para compatibilidad con comparación estricta `!==`
+- `app/01_login/check_session.php`: guard que protege todas las vistas, session_start condicional
+- `index.php`: redirect a login
+- Stubs `_view.php`, `_mdl.php`, `_ctrl.js` creados para módulos 02–08
+
+#### Phase 0.1-0.2 — Repositorio y base de datos (commit: fa4b330)
+- Repositorio GitHub creado: `solartejoseluis/app_academica_emdb` (público)
+- Alias bash `academica` configurado en WSL Ubuntu → `cd /mnt/c/xampp/htdocs/app_academica_emdb`
+- BD `emdb_academica` creada en XAMPP MySQL 8.0
+- 14 tablas con FK, convenciones de nomenclatura (prefijo 4 letras, minúsculas, plural)
+- Seeds: 4 roles, 2 programas (ASO + MD), 36 módulos (17 ASO + 19 MD), 3 períodos, 1 usuario admin
+- Stored procedure `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en `calificaciones`
+- Archivos de documentación en raíz: CLAUDE.md, README.md, CHANGELOG.md, PROJECT_CONTEXT.md
+
+---
+
+## [0.2.0] — 2026-04-30
+### Sprint 0 preparación — Diseño y planificación
+
+- Documento maestro Actividad_4_consolidado_v04.docx completado
+- Sección §8.2.3 Implementación Scrum insertada (7 subsecciones, 5 tablas APA7)
+- Numeración de secciones corregida: §6 Objetivos, §7 Marco Referencial, §8.1.x, §8.2.x, §11.2.x
+- §14. Referencias renumerada (era segundo §13)
+- Wireframes corregidos: Ilustraciones 3–6 restauradas desde v02
+- Anexo 2 eliminado del cuerpo y del índice
+- DDL `database/emdb_academica.sql` generado (538 líneas, 14 tablas, stored procedure, triggers)
+- Product Backlog definido: 15 Historias de Usuario con Story Points y Sprint asignado
+- 3 formularios Google Forms aplicados: coordinadora (n=1), docentes (n=5), estudiantes (n=25 pendiente)
+
+---
+
+## [0.1.0] — 2026-02-15
+### Propuesta aprobada
+
+- Propuesta de Proyecto Aplicado aprobada en modalidad individual
+- Título: *"Prototipo de Software para la Automatización de Procesos de Inscripción, Matrícula y Registro de Calificaciones mediante Metodología CDIO en el Contexto del ODS 4"*
+- Institución beneficiaria: Escuela de Mecánica Dental Bolaños (EMDB), Tuluá
+- Stack definido: PHP 8.0 + MySQL 8.0 + JavaScript ES6 + Bootstrap 5.3 + jQuery 3.7 + DataTables 1.13
+- Metodología: CDIO + Scrum. Meta de validación: TRL 5
+- Tutor: Daniel Andrés Guzmán Arevalo. Director: Rubén Darío Ordóñez
