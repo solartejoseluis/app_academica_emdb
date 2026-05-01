@@ -31,10 +31,11 @@ try {
         exit;
     }
 
-    $_SESSION['usua_id']     = $usuario['usua_id'];
-    $_SESSION['usua_email']  = $usuario['usua_email'];
-    $_SESSION['role_id']     = $usuario['role_id'];
-    $_SESSION['role_nombre'] = $usuario['role_nombre'];
+    $_SESSION['usua_id']    = (int)$usuario['usua_id'];
+    $_SESSION['role_id']    = (int)$usuario['role_id'];
+    $_SESSION['role_nombre']= $usuario['role_nombre'];
+    $_SESSION['usua_email'] = $usuario['usua_email'];
+
 
     if ($usuario['role_id'] == 3) {
         $stmt2 = $pdo->prepare("SELECT doce_id, doce_sigla FROM docentes WHERE usua_id = ?");
