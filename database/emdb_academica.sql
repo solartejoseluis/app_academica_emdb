@@ -88,12 +88,14 @@ DROP TABLE IF EXISTS usuarios;
 CREATE TABLE usuarios (
   usua_id           INT UNSIGNED     NOT NULL AUTO_INCREMENT,
   role_id           TINYINT UNSIGNED NOT NULL,
+  usua_login        VARCHAR(20)      DEFAULT NULL,
   usua_email        VARCHAR(100)     NOT NULL,
-  usua_passwordhash VARCHAR(255)     NOT NULL,   -- bcrypt hash
+  usua_passwordhash VARCHAR(255)     NOT NULL,
   usua_activo       TINYINT(1)       NOT NULL DEFAULT 1,
   fechacreacion     TIMESTAMP        DEFAULT current_timestamp(),
   PRIMARY KEY (usua_id),
   UNIQUE KEY uq_usua_email (usua_email),
+  UNIQUE KEY uq_usua_login (usua_login),
   CONSTRAINT fk_usua_role FOREIGN KEY (role_id) REFERENCES roles (role_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -147,24 +149,38 @@ CREATE TABLE docentes (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS estudiantes;
 CREATE TABLE estudiantes (
-  estu_id         INT UNSIGNED      NOT NULL AUTO_INCREMENT,
-  usua_id         INT UNSIGNED      DEFAULT NULL,   -- NULL hasta obtener acceso
-  coho_id         SMALLINT UNSIGNED DEFAULT NULL,
-  estu_nombres    VARCHAR(80)       NOT NULL,
-  estu_apellidos  VARCHAR(80)       NOT NULL,
-  estu_cedula     VARCHAR(15)       DEFAULT NULL,
-  estu_celular    VARCHAR(15)       DEFAULT NULL,
-  fechanacimiento DATE              DEFAULT NULL,
-  estu_activo     TINYINT(1)        NOT NULL DEFAULT 1,
-  fechacreacion   TIMESTAMP         DEFAULT current_timestamp(),
+  estu_id              INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+  usua_id              INT UNSIGNED      DEFAULT NULL,
+  coho_id              SMALLINT UNSIGNED DEFAULT NULL,
+  estu_tipodoc         VARCHAR(20)       DEFAULT NULL,
+  estu_numerodoc       VARCHAR(20)       DEFAULT NULL,
+  estu_expedidoen      VARCHAR(60)       DEFAULT NULL,
+  estu_nombres         VARCHAR(80)       NOT NULL,
+  estu_apellidos       VARCHAR(80)       NOT NULL,
+  estu_ciudadnac       VARCHAR(60)       DEFAULT NULL,
+  fechanacimiento      DATE              DEFAULT NULL,
+  estu_sexo            VARCHAR(20)       DEFAULT NULL,
+  estu_telefono        VARCHAR(15)       DEFAULT NULL,
+  estu_email           VARCHAR(100)      DEFAULT NULL,
+  estu_ocupacion       VARCHAR(80)       DEFAULT NULL,
+  estu_direccion       VARCHAR(120)      DEFAULT NULL,
+  estu_barrio          VARCHAR(60)       DEFAULT NULL,
+  estu_ciudad          VARCHAR(60)       DEFAULT NULL,
+  estu_estrato         TINYINT UNSIGNED  DEFAULT NULL,
+  estu_estadocivil     VARCHAR(20)       DEFAULT NULL,
+  estu_eps             VARCHAR(80)       DEFAULT NULL,
+  estu_discapacidad    VARCHAR(80)       DEFAULT NULL,
+  estu_multiculturalidad VARCHAR(60)     DEFAULT NULL,
+  estu_activo          TINYINT(1)        NOT NULL DEFAULT 1,
+  fechacreacion        TIMESTAMP         DEFAULT current_timestamp(),
   PRIMARY KEY (estu_id),
-  UNIQUE KEY uq_estu_cedula (estu_cedula),
+  UNIQUE KEY uq_estu_numerodoc (estu_numerodoc),
   CONSTRAINT fk_estu_usua FOREIGN KEY (usua_id) REFERENCES usuarios (usua_id)
     ON UPDATE CASCADE ON DELETE SET NULL,
   CONSTRAINT fk_estu_coho FOREIGN KEY (coho_id) REFERENCES cohortes (coho_id)
     ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Datos de estudiantes de la EMDB (formatos AC-FO-02 y AC-FO-09)';
+  COMMENT='Datos de estudiantes — formatos AC-FO-02 y AC-FO-09';
 
 -- =============================================================================
 -- BLOQUE 3: MÓDULOS ACADÉMICOS Y PLAN DE ESTUDIOS
@@ -206,28 +222,101 @@ CREATE TABLE modulos (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS matriculas;
 CREATE TABLE matriculas (
-  matr_id      INT UNSIGNED      NOT NULL AUTO_INCREMENT,
-  estu_id      INT UNSIGNED      NOT NULL,
-  prog_id      SMALLINT UNSIGNED NOT NULL,
-  peri_id      SMALLINT UNSIGNED NOT NULL,
-  matr_estado  ENUM('aspirante','matriculado','retirado','graduado')
-               NOT NULL DEFAULT 'aspirante',
-  fechainscripcion  DATE  DEFAULT NULL,
-  fechamatricula    DATE  DEFAULT NULL,
-  matr_observacion  TEXT  DEFAULT NULL,
+  matr_id              INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+  estu_id              INT UNSIGNED      NOT NULL,
+  prog_id              SMALLINT UNSIGNED NOT NULL,
+  peri_id              SMALLINT UNSIGNED NOT NULL,
+  matr_estado          ENUM('aspirante','matriculado','retirado','graduado')
+                       NOT NULL DEFAULT 'aspirante',
+  matr_folio           VARCHAR(20)       DEFAULT NULL,
+  matr_numero          VARCHAR(20)       DEFAULT NULL,
+  matr_matriculadopor  VARCHAR(80)       DEFAULT NULL,
+  fechainscripcion     DATE              DEFAULT NULL,
+  fechamatricula       DATE              DEFAULT NULL,
+  req_copiadiploma     TINYINT(1)        NOT NULL DEFAULT 0,
+  req_actagrado        TINYINT(1)        NOT NULL DEFAULT 0,
+  req_documento        TINYINT(1)        NOT NULL DEFAULT 0,
+  req_carnetsalud      TINYINT(1)        NOT NULL DEFAULT 0,
+  req_examenmedico     TINYINT(1)        NOT NULL DEFAULT 0,
+  req_fotos            TINYINT(1)        NOT NULL DEFAULT 0,
+  req_carpeta          TINYINT(1)        NOT NULL DEFAULT 0,
+  req_vacunastetano    TINYINT(1)        NOT NULL DEFAULT 0,
+  req_hepatitisb       TINYINT(1)        NOT NULL DEFAULT 0,
+  matr_observacion     TEXT              DEFAULT NULL,
   PRIMARY KEY (matr_id),
   UNIQUE KEY uq_matr_estu_peri_prog (estu_id, peri_id, prog_id),
-  CONSTRAINT fk_matr_estu FOREIGN KEY (estu_id)  REFERENCES estudiantes (estu_id)
+  CONSTRAINT fk_matr_estu FOREIGN KEY (estu_id) REFERENCES estudiantes (estu_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT fk_matr_prog FOREIGN KEY (prog_id)  REFERENCES programas (prog_id)
+  CONSTRAINT fk_matr_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT fk_matr_peri FOREIGN KEY (peri_id)  REFERENCES periodos (peri_id)
+  CONSTRAINT fk_matr_peri FOREIGN KEY (peri_id) REFERENCES periodos (peri_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Proceso de inscripción y matrícula (AC-FO-02 y AC-FO-09)';
+  COMMENT='Inscripción y matrícula por período — AC-FO-02 y AC-FO-09';
 
 -- -----------------------------------------------------------------------------
--- 10. gruposemestres
+-- 10. fichas_inscripcion
+--     Datos familiares y de estudios anteriores del estudiante (AC-FO-02).
+--     Relación 1:1 con estudiantes.
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS fichas_inscripcion;
+CREATE TABLE fichas_inscripcion (
+  finc_id              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  estu_id              INT UNSIGNED  NOT NULL,
+  prog_id              SMALLINT UNSIGNED DEFAULT NULL,
+  jornada              VARCHAR(20)       DEFAULT NULL,
+  fechainscripcion     DATE              DEFAULT NULL,
+  -- Padre
+  padr_vive            TINYINT(1)    DEFAULT NULL,
+  padr_nombres         VARCHAR(80)   DEFAULT NULL,
+  padr_apellidos       VARCHAR(80)   DEFAULT NULL,
+  padr_profesion       VARCHAR(80)   DEFAULT NULL,
+  padr_empresa         VARCHAR(80)   DEFAULT NULL,
+  padr_telefono        VARCHAR(15)   DEFAULT NULL,
+  padr_direccion       VARCHAR(120)  DEFAULT NULL,
+  padr_barrio          VARCHAR(60)   DEFAULT NULL,
+  padr_ciudad          VARCHAR(60)   DEFAULT NULL,
+  -- Madre
+  madr_vive            TINYINT(1)    DEFAULT NULL,
+  madr_nombres         VARCHAR(80)   DEFAULT NULL,
+  madr_apellidos       VARCHAR(80)   DEFAULT NULL,
+  madr_profesion       VARCHAR(80)   DEFAULT NULL,
+  madr_empresa         VARCHAR(80)   DEFAULT NULL,
+  madr_telefono        VARCHAR(15)   DEFAULT NULL,
+  madr_direccion       VARCHAR(120)  DEFAULT NULL,
+  madr_barrio          VARCHAR(60)   DEFAULT NULL,
+  madr_ciudad          VARCHAR(60)   DEFAULT NULL,
+  -- Acudiente / Persona de contacto
+  acud_es              ENUM('padre','madre','otro') DEFAULT NULL,
+  acud_parentesco      VARCHAR(40)   DEFAULT NULL,
+  acud_nombres         VARCHAR(80)   DEFAULT NULL,
+  acud_apellidos       VARCHAR(80)   DEFAULT NULL,
+  acud_profesion       VARCHAR(80)   DEFAULT NULL,
+  acud_empresa         VARCHAR(80)   DEFAULT NULL,
+  acud_telefono        VARCHAR(15)   DEFAULT NULL,
+  acud_direccion       VARCHAR(120)  DEFAULT NULL,
+  acud_barrio          VARCHAR(60)   DEFAULT NULL,
+  acud_ciudad          VARCHAR(60)   DEFAULT NULL,
+  -- Estudios anteriores (una fila)
+  estudio_tipo         VARCHAR(60)   DEFAULT NULL,
+  estudio_titulo       VARCHAR(120)  DEFAULT NULL,
+  estudio_institucion  VARCHAR(120)  DEFAULT NULL,
+  estudio_aniofin      YEAR          DEFAULT NULL,
+  -- Código temporal de acceso al formulario público
+  finc_codigotemporal  VARCHAR(20)   DEFAULT NULL,
+  finc_estado          ENUM('aspirante','matriculado') NOT NULL DEFAULT 'aspirante',
+  fechacreacion        TIMESTAMP     DEFAULT current_timestamp(),
+  PRIMARY KEY (finc_id),
+  UNIQUE KEY uq_finc_estu (estu_id),
+  CONSTRAINT fk_finc_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_finc_estu FOREIGN KEY (estu_id) REFERENCES estudiantes (estu_id)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Datos familiares y estudios anteriores — AC-FO-02';
+
+-- -----------------------------------------------------------------------------
+-- 11. gruposemestres
 --     Grupo de estudiantes que cursan juntos un semestre completo.
 --     Un grupo semestre pertenece a un programa y período específico.
 -- -----------------------------------------------------------------------------
@@ -533,6 +622,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =============================================================================
 -- FIN DEL SCRIPT
 -- emdb_academica.sql — v1.0.0 — 2026-04-30
--- Tablas creadas: 14
+-- Tablas creadas: 15
 -- Registros semilla: 4 roles + 2 programas + 3 períodos + 36 módulos + 1 usuario admin
 -- =============================================================================
