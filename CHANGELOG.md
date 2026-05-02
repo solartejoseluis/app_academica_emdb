@@ -5,8 +5,21 @@
 ---
 
 ## [Unreleased]
-- Phase 1.2 — CRUD 02_estudiantes + matrícula (AC-FO-02, AC-FO-09)
 - Phase 1.3 — CRUD 04_grupos (cohortes, grupos semestre, grupos módulo)
+
+---
+
+## [0.5.0] — 2026-05-01
+### Sprint 1 — Módulo 02_estudiantes
+
+#### Phase 1.2 — Módulo estudiantes (commits: dc792e2, 724dc68)
+- DDL ampliado: tabla `estudiantes` expandida a 24 campos (AC-FO-02 completo)
+- DDL ampliado: tabla `matriculas` con 9 flags de requisitos documentales (AC-FO-09)
+- DDL ampliado: tabla `fichas_inscripcion` nueva — datos familiares, estudios anteriores, código temporal
+- DDL ampliado: campo `usua_login` en `usuarios` — credencial por número de documento
+- `app/02_estudiantes/est_view.php`: dos pestañas (Aspirantes / Matriculados), modal nuevo aspirante, modal matricular con creación de usuario
+- `app/02_estudiantes/est_mdl.php`: 8 acciones — listar_aspirantes, listar_matriculados, listar_programas, listar_periodos, listar_cohortes, guardar, obtener, matricular
+- `app/02_estudiantes/est_ctrl.js`: dos DataTables, cargar dropdowns, abrirMatricular() y abrirEditar() globales, flujo clave automática/manual
 
 ---
 

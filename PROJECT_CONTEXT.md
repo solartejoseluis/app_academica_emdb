@@ -233,7 +233,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | Item | Descripción | Estado |
 |---|---|---|
 | 1.1 | Módulo `03_docentes` — CRUD | ✅ 2026-05-01 |
-| 1.2 | Módulo `02_estudiantes` — CRUD + matrícula | ⬜ |
+| 1.2 | Módulo `02_estudiantes` — CRUD + matrícula | ✅ 2026-05-01 |
 | 1.3 | Módulo `04_grupos` — cohortes, grupos | ⬜ |
 
 **Sprint 2 — Núcleo académico**
@@ -290,6 +290,8 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `c2fdcdc` | Phase 0.3-0.4: estructura MVC + módulo login con autenticación bcrypt | 2026-05-01 |
 | `5fc9f4a` | Phase 0.5: módulo admin completo — CRUD usuarios con roles y DataTables | 2026-05-01 |
 | `5dfd52b` | Phase 1.1: módulo 03_docentes + 08_admin restringido a roles admin y coordinador | 2026-05-01 |
+| `dc792e2` | Phase 1.2: DDL — estudiantes, matriculas, fichas_inscripcion, usua_login en usuarios | 2026-05-01 |
+| `724dc68` | Phase 1.2: módulo 02_estudiantes — gestión aspirantes y matriculados con creación automática de usuario | 2026-05-01 |
 
 ---
 
@@ -307,6 +309,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `abrirEditar()` global en admin_ctrl.js | DataTables render inline no puede llamar funciones dentro de `$(document).ready` |
 | Commits manuales desde CMD | Jose Luis hace git add/commit/push. Claude Code nunca ejecuta git |
 | Separación de dominios por módulo | 08_admin gestiona solo admin y coordinador. Docentes se crean exclusivamente desde 03_docentes. Estudiantes se crearán exclusivamente desde 02_estudiantes. Sin cruces entre módulos. |
+| Credencial login estudiantes | usua_login = número de documento. Sin correo institucional por ahora — implementación futura. Clave generada automáticamente: 4 letras apellido + año nacimiento. |
 
 ---
 
