@@ -2,7 +2,7 @@
 
 Sistema web para la automatización de los procesos de inscripción, matrícula y registro de calificaciones de la Escuela de Mecánica Dental Bolaños (Tuluá, Valle del Cauca). Reemplaza 80 planillas manuales de Google Sheets por un sistema centralizado con acceso por roles.
 
-> **Estado actual:** Fase de desarrollo — Phase 0 en progreso.
+> **Estado actual:** Fase de desarrollo — Sprint 1 completado. Sprint 2 en progreso.
 > Proyecto de grado — Ingeniería de Sistemas, UNAD CEAD Palmira.
 
 ---
@@ -84,16 +84,16 @@ app_academica_emdb/
     00_selects/        — Consultas SELECT reutilizables para dropdowns
     00_img/            — Recursos estáticos: logo, iconos
     00_files/          — favicon, robots.txt, .htaccess
-    01_login/          — Autenticación y redirección por rol
-    02_estudiantes/    — Registro, edición y matrícula de estudiantes
-    03_docentes/       — Gestión del cuerpo docente
-    04_grupos/         — Configuración de cohortes, grupos semestre y grupos módulo
-    05_calificaciones/ — Registro de notas por docente (módulo central)
-    06_reportes/       — Consulta de notas para estudiantes, exportación PDF/Excel
-    07_coordinador/    — Dashboard de seguimiento académico
-    08_admin/          — Gestión de usuarios del sistema
+    01_login/          — Autenticación y redirección por rol ✅
+    02_estudiantes/    — Registro, edición y matrícula de estudiantes ✅
+    03_docentes/       — Gestión del cuerpo docente ✅
+    04_grupos/         — Cohortes, grupos semestre, módulos y asignación de estudiantes ✅
+    05_calificaciones/ — Registro de notas por docente (módulo central) 🔄
+    06_reportes/       — Consulta de notas para estudiantes, exportación PDF/Excel 🔄
+    07_coordinador/    — Dashboard de seguimiento académico 🔄
+    08_admin/          — Gestión de usuarios del sistema ✅
   database/
-    emdb_academica.sql — Script DDL completo
+    emdb_academica.sql — Script DDL completo (16 tablas)
     seeds/             — Datos iniciales de configuración
   CLAUDE.md
   README.md
@@ -224,8 +224,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 | Phase | Descripción | Estado |
 |---|---|---|
 | Phase 0 | Setup: estructura, BD, login, admin | ✅ Completado |
-| Phase 1 | Módulos base: estudiantes, docentes, grupos | 🔄 En progreso |
-| Phase 2 | Gestión académica: calificaciones, reportes, coordinador | ⬜ Pendiente |
+| Phase 1 | Módulos base: estudiantes, docentes, grupos | ✅ Completado |
+| Phase 2 | Gestión académica: calificaciones, reportes, coordinador | 🔄 En progreso |
 | Phase 3 | Validación TRL5 con usuarios reales | ⬜ Pendiente |
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
