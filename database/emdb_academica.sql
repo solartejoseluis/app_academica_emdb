@@ -50,6 +50,7 @@ CREATE TABLE programas (
   prog_nombre      VARCHAR(120)      NOT NULL,
   prog_sigla       VARCHAR(10)       NOT NULL,
   prog_resolucion  VARCHAR(80)       DEFAULT NULL,
+  prog_vigencia    DATE             DEFAULT NULL,
   prog_duracion_semestres TINYINT UNSIGNED NOT NULL DEFAULT 4,
   PRIMARY KEY (prog_id),
   UNIQUE KEY uq_prog_sigla (prog_sigla)
@@ -113,6 +114,7 @@ CREATE TABLE cohortes (
   coho_codigo  VARCHAR(20)       NOT NULL,   -- Ej: "ASO-2024-1"
   fechainicio  DATE              NOT NULL,
   coho_activa  TINYINT(1)        NOT NULL DEFAULT 1,
+  coho_jornada     VARCHAR(20)      DEFAULT 'Semana',
   PRIMARY KEY (coho_id),
   UNIQUE KEY uq_coho_codigo (coho_codigo),
   CONSTRAINT fk_coho_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)
@@ -324,6 +326,7 @@ DROP TABLE IF EXISTS gruposemestres;
 CREATE TABLE gruposemestres (
   grse_id       SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
   prog_id       SMALLINT UNSIGNED NOT NULL,
+  coho_id          SMALLINT UNSIGNED DEFAULT NULL,
   peri_id       SMALLINT UNSIGNED NOT NULL,
   grse_codigo   VARCHAR(20)       NOT NULL,   -- Ej: "ASO-2025-1-A"
   grse_semestre TINYINT UNSIGNED  NOT NULL,   -- Semestre del programa (1-8)
@@ -335,26 +338,47 @@ CREATE TABLE gruposemestres (
   CONSTRAINT fk_grse_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT fk_grse_peri FOREIGN KEY (peri_id) REFERENCES periodos (peri_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_grse_coho FOREIGN KEY (coho_id) REFERENCES cohortes (coho_id)
+    ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Grupos semestre (cohorte cursando un período)';
 
 -- -----------------------------------------------------------------------------
--- 11. grseestudiantes
---     Tabla puente N:M — qué estudiantes pertenecen a qué grupo semestre.
---     Cada estudiante está en exactamente un grupo semestre por período.
+-- 11. programa_modulos
+--     Semestre sugerido por módulo según programa — flexible al armar grupos.
 -- -----------------------------------------------------------------------------
-DROP TABLE IF EXISTS grseestudiantes;
-CREATE TABLE grseestudiantes (
-  grse_id  SMALLINT UNSIGNED NOT NULL,
-  estu_id  INT UNSIGNED      NOT NULL,
-  PRIMARY KEY (grse_id, estu_id),
-  CONSTRAINT fk_grse_estu_grse FOREIGN KEY (grse_id) REFERENCES gruposemestres (grse_id)
+DROP TABLE IF EXISTS programa_modulos;
+CREATE TABLE programa_modulos (
+  prmo_id                SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  prog_id                SMALLINT UNSIGNED NOT NULL,
+  modu_id                SMALLINT UNSIGNED NOT NULL,
+  prmo_semestre_sugerido TINYINT UNSIGNED  NOT NULL DEFAULT 1,
+  PRIMARY KEY (prmo_id),
+  UNIQUE KEY uq_prmo_prog_modu (prog_id, modu_id),
+  CONSTRAINT fk_prmo_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_prmo_modu FOREIGN KEY (modu_id) REFERENCES modulos (modu_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Semestre sugerido por módulo según programa — flexible al armar grupos';
+
+-- -----------------------------------------------------------------------------
+-- 11b. grmoestudiantes
+--      Tabla puente N:M — estudiantes asignados a cada módulo específico.
+--      Reemplaza grseestudiantes para un control más granular.
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS grmoestudiantes;
+CREATE TABLE grmoestudiantes (
+  grmo_id  INT UNSIGNED NOT NULL,
+  estu_id  INT UNSIGNED NOT NULL,
+  PRIMARY KEY (grmo_id, estu_id),
+  CONSTRAINT fk_grmo_estu_grmo FOREIGN KEY (grmo_id) REFERENCES gruposmodulos (grmo_id)
     ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT fk_grse_estu_estu FOREIGN KEY (estu_id) REFERENCES estudiantes (estu_id)
+  CONSTRAINT fk_grmo_estu_estu FOREIGN KEY (estu_id) REFERENCES estudiantes (estu_id)
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Relación N:M — estudiantes asignados a grupos semestre';
+  COMMENT='Estudiantes asignados a cada módulo específico — reemplaza grseestudiantes';
 
 -- -----------------------------------------------------------------------------
 -- 12. gruposmodulos
@@ -367,6 +391,9 @@ CREATE TABLE gruposmodulos (
   grse_id   SMALLINT UNSIGNED NOT NULL,
   modu_id   SMALLINT UNSIGNED NOT NULL,
   doce_id   SMALLINT UNSIGNED NOT NULL,
+  grmo_horario     VARCHAR(30)      DEFAULT NULL,
+  fechainicio      DATE             DEFAULT NULL,
+  fechafin         DATE             DEFAULT NULL,
   grmo_activo TINYINT(1)      NOT NULL DEFAULT 1,
   PRIMARY KEY (grmo_id),
   UNIQUE KEY uq_grmo_grse_modu (grse_id, modu_id),   -- un módulo por grupo semestre
@@ -622,6 +649,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =============================================================================
 -- FIN DEL SCRIPT
 -- emdb_academica.sql — v1.0.0 — 2026-04-30
--- Tablas creadas: 15
+-- Tablas creadas: 16
 -- Registros semilla: 4 roles + 2 programas + 3 períodos + 36 módulos + 1 usuario admin
 -- =============================================================================
