@@ -5,7 +5,21 @@
 ---
 
 ## [Unreleased]
-- Phase 1.3 — CRUD 04_grupos (cohortes, grupos semestre, grupos módulo)
+- Sprint 2 — Módulos académicos: calificaciones, reportes, coordinador
+
+---
+
+## [0.6.0] — 2026-05-05
+### Sprint 1 completado — Módulo 04_grupos
+
+#### Phase 1.3 — Módulo grupos (commits: 4dc841a, 1a96050)
+- DDL rediseñado: `grseestudiantes` eliminada, reemplazada por `grmoestudiantes` (vínculo estudiante→módulo específico)
+- DDL nuevo: tabla `programa_modulos` — semestre sugerido por módulo según programa, flexible al armar grupos
+- DDL ampliado: `gruposemestres` con `coho_id` FK, `gruposmodulos` con `grmo_horario`, `fechainicio`, `fechafin`
+- DDL ampliado: `cohortes` con `coho_jornada` (Semana/Sabados), `programas` con `prog_vigencia`
+- `app/04_grupos/grupos_view.php`: 3 pestañas — Cohortes, Grupos Semestre, Asignación Estudiantes con panel dual
+- `app/04_grupos/grupos_mdl.php`: 17 acciones — gestión completa de cohortes, grupos, módulos y asignación masiva de estudiantes
+- `app/04_grupos/grupos_ctrl.js`: DataTables para cohortes y grupos, panel dual con checkboxes, filtros, asignar/retirar estudiantes
 
 ---
 

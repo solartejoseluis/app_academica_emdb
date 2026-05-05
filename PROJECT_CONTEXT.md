@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-05-01
-> Versión: 4 — actualizado al cierre del Sprint 0
+> Versión: 5 — actualizado al cierre del Sprint 1
 
 ---
 
@@ -234,7 +234,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 |---|---|---|
 | 1.1 | Módulo `03_docentes` — CRUD | ✅ 2026-05-01 |
 | 1.2 | Módulo `02_estudiantes` — CRUD + matrícula | ✅ 2026-05-01 |
-| 1.3 | Módulo `04_grupos` — cohortes, grupos | ⬜ |
+| 1.3 | Módulo `04_grupos` — cohortes, grupos | ✅ 2026-05-05 |
 
 **Sprint 2 — Núcleo académico**
 
@@ -292,6 +292,8 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `5dfd52b` | Phase 1.1: módulo 03_docentes + 08_admin restringido a roles admin y coordinador | 2026-05-01 |
 | `dc792e2` | Phase 1.2: DDL — estudiantes, matriculas, fichas_inscripcion, usua_login en usuarios | 2026-05-01 |
 | `724dc68` | Phase 1.2: módulo 02_estudiantes — gestión aspirantes y matriculados con creación automática de usuario | 2026-05-01 |
+| `4dc841a` | Phase 1.3: DDL — grupos rediseñado, programa_modulos, grmoestudiantes, coho_jornada, grmo_horario | 2026-05-05 |
+| `1a96050` | Phase 1.3: módulo 04_grupos — cohortes, grupos semestre, módulos y asignación de estudiantes | 2026-05-05 |
 
 ---
 
@@ -310,6 +312,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | Commits manuales desde CMD | Jose Luis hace git add/commit/push. Claude Code nunca ejecuta git |
 | Separación de dominios por módulo | 08_admin gestiona solo admin y coordinador. Docentes se crean exclusivamente desde 03_docentes. Estudiantes se crearán exclusivamente desde 02_estudiantes. Sin cruces entre módulos. |
 | Credencial login estudiantes | usua_login = número de documento. Sin correo institucional por ahora — implementación futura. Clave generada automáticamente: 4 letras apellido + año nacimiento. |
+| Estructura grupos rediseñada | grseestudiantes eliminada — reemplazada por grmoestudiantes (estudiante vinculado a módulo específico, no al semestre completo). programa_modulos para semestre sugerido por módulo según programa. coho_id en gruposemestres para trazabilidad completa. |
 
 ---
 

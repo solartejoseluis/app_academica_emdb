@@ -582,7 +582,7 @@ Ver historial completo en CHANGELOG.md.
 |---|---|---|
 | 1.1 | Módulo `03_docentes` — CRUD docentes | ✅ 2026-05-01 |
 | 1.2 | Módulo `02_estudiantes` — CRUD + matrícula a programas | ✅ 2026-05-01 |
-| 1.3 | Módulo `04_grupos` — cohortes, grupos semestre, grupos módulo | ⬜ |
+| 1.3 | Módulo `04_grupos` — cohortes, grupos semestre, grupos módulo | ✅ 2026-05-05 |
 
 ### Phase 2 — Gestión académica (módulo crítico TRL5)
 
