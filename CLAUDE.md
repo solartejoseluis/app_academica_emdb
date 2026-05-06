@@ -162,7 +162,7 @@ Tabla: calificaciones → prefijo: cali_
   cali_id (PK)
   grmo_id (FK — grupos_modulos.grmo_id)
   estu_id (FK — estudiantes.estu_id)
-  cali_nota1 ... cali_nota4
+  cali_n1 ... cali_n4
 ```
 
 ### Nombres de campos de fecha
@@ -198,7 +198,7 @@ fechaentreganotas
 
 ```sql
 -- Calificaciones: rango válido
-CHECK (cali_nota1 BETWEEN 0.0 AND 5.0)
+CHECK (cali_n1 BETWEEN 0.0 AND 5.0)
 
 -- Un registro de notas por estudiante-grupo
 UNIQUE (grmo_id, estu_id)
@@ -275,14 +275,14 @@ Estas reglas son invariables y deben respetarse en toda la lógica del módulo `
 
 ```php
 // Si nota original es 0.0, usar supletorio (si existe); de lo contrario usar original
-$acum_n1 = ($cali_nota1 == 0.0 && $cali_supnota1 !== null) ? $cali_supnota1 : $cali_nota1;
-$acum_n2 = ($cali_nota2 == 0.0 && $cali_supnota2 !== null) ? $cali_supnota2 : $cali_nota2;
-$acum_n4 = ($cali_nota4 == 0.0 && $cali_supnota4 !== null) ? $cali_supnota4 : $cali_nota4;
+$acum_n1 = ($cali_n1 == 0.0 && $cali_sup_n1 !== null) ? $cali_sup_n1 : $cali_n1;
+$acum_n2 = ($cali_n2 == 0.0 && $cali_sup_n2 !== null) ? $cali_sup_n2 : $cali_n2;
+$acum_n4 = ($cali_n4 == 0.0 && $cali_sup_n4 !== null) ? $cali_sup_n4 : $cali_n4;
 
 $definitiva = round(
     ($acum_n1 * 0.20) +
     ($acum_n2 * 0.20) +
-    ($cali_nota3 * 0.20) +
+    ($cali_n3 * 0.20) +
     ($acum_n4 * 0.40),
     1
 );
@@ -451,7 +451,7 @@ PHP recalcula siempre la nota definitiva antes de persistir. El JS puede mostrar
 $sup_n3 = $_POST['sup_nota3']; // Este campo no existe
 ```
 
-El campo `cali_supnota3` no existe en la BD. La columna `cali_nota3` nunca es 0.0 en el supletorio.
+El campo `cali_sup_n3` no existe en la BD. La columna `cali_n3` nunca tiene supletorio (regla institucional).
 
 ### ❌ async: false en AJAX
 
