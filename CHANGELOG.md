@@ -5,7 +5,19 @@
 ---
 
 ## [Unreleased]
-- Sprint 2 — Módulos académicos: calificaciones, reportes, coordinador
+- Phase 2.2 — módulo 06_reportes — consulta notas + PDF/Excel
+- Phase 2.3 — módulo 07_coordinador — dashboard seguimiento
+
+---
+
+## [0.7.0] — 2026-05-05
+### Sprint 2 iniciado — Módulo 05_calificaciones
+
+#### Phase 2.1 — Módulo calificaciones (commit: 76f2c3e)
+- `app/05_calificaciones/calificaciones_view.php`: panel izquierdo con cards de módulos, planilla inline con columnas N1/Sup N1/N2/Sup N2/N3/N4/Sup N4/Definitiva
+- `app/05_calificaciones/calificaciones_mdl.php`: 3 acciones — listar_grupos (filtrado por rol docente vs coordinador/admin), listar_calificaciones (LEFT JOIN para mostrar estudiantes sin notas), guardar_nota (autosave por campo, whitelist, normalización coma→punto, cálculo definitiva en PHP)
+- `app/05_calificaciones/calificaciones_ctrl.js`: autosave on blur, normalización coma→punto y entero→decimal, supletorios dinámicos (N3 excluido), definitiva en tiempo real, inputs type=text con select() al focus
+- Triggers y SP eliminados de BD — cálculo definitiva migrado a PHP por limitación MySQL (no permite UPDATE en trigger de la misma tabla)
 
 ---
 

@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-05-01
-> Versión: 5 — actualizado al cierre del Sprint 1
+> Versión: 6 — actualizado al cierre de Phase 2.1
 
 ---
 
@@ -240,7 +240,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 
 | Item | Descripción | Estado |
 |---|---|---|
-| 2.1 | Módulo `05_calificaciones` — registro notas GA-FO-04 | ⬜ |
+| 2.1 | Módulo `05_calificaciones` — registro notas GA-FO-04 | ✅ 2026-05-05 |
 | 2.2 | Módulo `06_reportes` — consulta + PDF/Excel | ⬜ |
 | 2.3 | Módulo `07_coordinador` — dashboard | ⬜ |
 
@@ -294,6 +294,8 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `724dc68` | Phase 1.2: módulo 02_estudiantes — gestión aspirantes y matriculados con creación automática de usuario | 2026-05-01 |
 | `4dc841a` | Phase 1.3: DDL — grupos rediseñado, programa_modulos, grmoestudiantes, coho_jornada, grmo_horario | 2026-05-05 |
 | `1a96050` | Phase 1.3: módulo 04_grupos — cohortes, grupos semestre, módulos y asignación de estudiantes | 2026-05-05 |
+| `70f5b89` | docs: corregir nombres campos calificaciones en CLAUDE.md + regla cierre tarea | 2026-05-05 |
+| `76f2c3e` | Phase 2.1: módulo 05_calificaciones — registro notas GA-FO-04 con autosave, supletorios y definitiva en tiempo real | 2026-05-05 |
 
 ---
 
@@ -313,6 +315,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | Separación de dominios por módulo | 08_admin gestiona solo admin y coordinador. Docentes se crean exclusivamente desde 03_docentes. Estudiantes se crearán exclusivamente desde 02_estudiantes. Sin cruces entre módulos. |
 | Credencial login estudiantes | usua_login = número de documento. Sin correo institucional por ahora — implementación futura. Clave generada automáticamente: 4 letras apellido + año nacimiento. |
 | Estructura grupos rediseñada | grseestudiantes eliminada — reemplazada por grmoestudiantes (estudiante vinculado a módulo específico, no al semestre completo). programa_modulos para semestre sugerido por módulo según programa. coho_id en gruposemestres para trazabilidad completa. |
+| Triggers MySQL eliminados | sp_calcular_definitiva y triggers AFTER INSERT/UPDATE eliminados — MySQL no permite UPDATE en trigger de la misma tabla. Cálculo de definitiva implementado en PHP en calificaciones_mdl.php. |
 
 ---
 
