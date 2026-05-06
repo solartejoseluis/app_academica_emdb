@@ -7,6 +7,7 @@
 - **Nunca borrar contenido de CLAUDE.md** — solo agregar o actualizar.
 - Nunca combinar análisis y modificaciones en un solo prompt. Primero análisis, luego (tras confirmación) modificación.
 - Cuando una decisión arquitectónica se ejecuta y queda resuelta, su registro pasa a CHANGELOG.md. La entrada en CLAUDE.md se elimina porque ya no cambia el comportamiento del código.
+- **Regla de cierre de tarea:** Una tarea no se considera completa hasta que los 4 documentos del proyecto estén actualizados y commiteados en un commit separado del código: CHANGELOG.md (historial de cambios), CLAUDE.md (estado del roadmap y decisiones), PROJECT_CONTEXT.md (estado de avance y commits) y README.md (estado general del proyecto). Claude IA es responsable de identificar qué documentos requieren actualización y generar los prompts correspondientes antes de dar la tarea por cerrada.
 
 ---
 
