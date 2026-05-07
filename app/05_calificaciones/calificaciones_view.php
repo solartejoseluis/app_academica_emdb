@@ -56,6 +56,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
         }
         .grupo-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         .grupo-card.activo { border-color: #0d6efd; box-shadow: 0 0 0 2px #0d6efd33; }
+        .semaforo-verde    { background-color: #d4edda !important; }
+        .semaforo-amarillo { background-color: #fff3cd !important; }
+        .semaforo-rojo     { background-color: #f8d7da !important; }
     </style>
 </head>
 <body>

@@ -35,6 +35,15 @@ $(document).ready(function () {
                     `);
                     contenedor.append(card);
                 });
+
+                const params = new URLSearchParams(window.location.search);
+                const grmoParam = params.get('grmo_id');
+                if (grmoParam) {
+                    const cardTarget = $('.grupo-card[data-grmo="' + grmoParam + '"]');
+                    if (cardTarget.length) {
+                        cardTarget.trigger('click');
+                    }
+                }
             }
         });
     }
@@ -111,42 +120,42 @@ $(document).ready(function () {
                 <td>${num}</td>
                 <td>${e.estu_apellidos}, ${e.estu_nombres}</td>
                 <td><small>${e.estu_numerodoc}</small></td>
-                <td class="text-center">
+                <td class="text-center ${colorSemaforo(n1)}" data-celda="cali_n1">
                     <input class="input-nota" type="text"
                            data-campo="cali_n1" value="${n1}"
                            placeholder="0.0">
                 </td>
-                <td class="text-center celda-sup">
+                <td class="text-center celda-sup ${colorSemaforo(s1)}" data-celda="cali_sup_n1">
                     <input class="input-nota input-sup" type="text"
                            data-campo="cali_sup_n1" value="${s1}"
                            placeholder="0.0" style="${verS1}">
                 </td>
-                <td class="text-center">
+                <td class="text-center ${colorSemaforo(n2)}" data-celda="cali_n2">
                     <input class="input-nota" type="text"
                            data-campo="cali_n2" value="${n2}"
                            placeholder="0.0">
                 </td>
-                <td class="text-center celda-sup">
+                <td class="text-center celda-sup ${colorSemaforo(s2)}" data-celda="cali_sup_n2">
                     <input class="input-nota input-sup" type="text"
                            data-campo="cali_sup_n2" value="${s2}"
                            placeholder="0.0" style="${verS2}">
                 </td>
-                <td class="text-center">
+                <td class="text-center ${colorSemaforo(n3)}" data-celda="cali_n3">
                     <input class="input-nota" type="text"
                            data-campo="cali_n3" value="${n3}"
                            placeholder="0.0">
                 </td>
-                <td class="text-center">
+                <td class="text-center ${colorSemaforo(n4)}" data-celda="cali_n4">
                     <input class="input-nota" type="text"
                            data-campo="cali_n4" value="${n4}"
                            placeholder="0.0">
                 </td>
-                <td class="text-center celda-sup">
+                <td class="text-center celda-sup ${colorSemaforo(s4)}" data-celda="cali_sup_n4">
                     <input class="input-nota input-sup" type="text"
                            data-campo="cali_sup_n4" value="${s4}"
                            placeholder="0.0" style="${verS4}">
                 </td>
-                <td class="text-center">
+                <td class="text-center ${colorSemaforo(def)}">
                     <span class="badge definitiva-badge ${defColor}">${def}</span>
                 </td>
             </tr>
@@ -198,6 +207,15 @@ $(document).ready(function () {
                         badge.addClass(parseFloat(def) >= 3.0 ? 'bg-success' : 'bg-danger');
                     }
 
+                    // Actualizar color semáforo del td del input que se acaba de guardar
+                    input.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
+                        .addClass(colorSemaforo(valorNorm));
+
+                    // Actualizar color semáforo del td de la definitiva
+                    const defVal = badge.text();
+                    badge.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
+                        .addClass(colorSemaforo(defVal));
+
                     // Mostrar/ocultar supletorios según valor guardado
                     actualizarVisibilidadSupletorio(fila, campo, valorNorm);
 
@@ -206,6 +224,8 @@ $(document).ready(function () {
                 } else {
                     input.removeClass('guardando').addClass('error');
                     alert('Error al guardar: ' + r.message);
+                    input.val('');
+                    setTimeout(() => input.trigger('focus'), 50);
                 }
             },
             error: function () {
@@ -240,5 +260,15 @@ $(document).ready(function () {
         $(this).select();
         $(this).removeClass('guardado error');
     });
+
+    // ── Semáforo de colores por rango de nota ────────────────────────────────
+    function colorSemaforo(valor) {
+        if (valor === null || valor === undefined || valor === '' || valor === '—') return '';
+        const n = parseFloat(valor);
+        if (isNaN(n)) return '';
+        if (n <= 2.9) return 'semaforo-rojo';
+        if (n <= 3.9) return 'semaforo-amarillo';
+        return 'semaforo-verde';
+    }
 
 });
