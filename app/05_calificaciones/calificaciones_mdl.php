@@ -115,7 +115,14 @@ switch ($accion) {
 
             // Validar rango de notas
             if ($campo !== 'cali_observacion') {
-                $valor = $valor === '' ? null : (float)$valor;
+                if ($valor === '') {
+                    $valor = null;
+                } elseif (!is_numeric($valor)) {
+                    echo json_encode(['status' => 'error', 'message' => 'Valor no numérico']);
+                    break;
+                } else {
+                    $valor = (float)$valor;
+                }
                 if ($valor !== null && ($valor < 0.0 || $valor > 5.0)) {
                     echo json_encode(['status' => 'error', 'message' => 'Nota fuera de rango (0.0 - 5.0)']);
                     break;

@@ -25,9 +25,9 @@ switch ($accion) {
 
     case 'guardar':
         $doce_id        = trim($_POST['doce_id'] ?? '');
-        $doce_nombres   = trim($_POST['doce_nombres'] ?? '');
-        $doce_apellidos = trim($_POST['doce_apellidos'] ?? '');
-        $doce_sigla     = trim($_POST['doce_sigla'] ?? '');
+        $doce_nombres   = strtoupper(trim($_POST['doce_nombres'] ?? ''));
+        $doce_apellidos = strtoupper(trim($_POST['doce_apellidos'] ?? ''));
+        $doce_sigla     = strtoupper(trim($_POST['doce_sigla'] ?? ''));
         $usua_email     = trim($_POST['usua_email'] ?? '');
 
         if ($doce_nombres === '' || $doce_apellidos === '' || $doce_sigla === '' || $usua_email === '') {

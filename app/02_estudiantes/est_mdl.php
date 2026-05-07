@@ -83,8 +83,8 @@ switch ($accion) {
 
     case 'guardar':
         $estu_id        = trim($_POST['estu_id'] ?? '');
-        $estu_nombres   = trim($_POST['estu_nombres'] ?? '');
-        $estu_apellidos = trim($_POST['estu_apellidos'] ?? '');
+        $estu_nombres   = strtoupper(trim($_POST['estu_nombres'] ?? ''));
+        $estu_apellidos = strtoupper(trim($_POST['estu_apellidos'] ?? ''));
         $estu_numerodoc = trim($_POST['estu_numerodoc'] ?? '');
 
         if ($estu_nombres === '' || $estu_apellidos === '' || $estu_numerodoc === '') {
@@ -97,11 +97,11 @@ switch ($accion) {
         $estu_sexo       = trim($_POST['estu_sexo'] ?? '') ?: null;
         $estu_telefono   = trim($_POST['estu_telefono'] ?? '') ?: null;
         $estu_email      = trim($_POST['estu_email'] ?? '') ?: null;
-        $estu_ciudad     = trim($_POST['estu_ciudad'] ?? '') ?: null;
-        $estu_direccion  = trim($_POST['estu_direccion'] ?? '') ?: null;
-        $estu_barrio     = trim($_POST['estu_barrio'] ?? '') ?: null;
+        $estu_ciudad     = strtoupper(trim($_POST['estu_ciudad'] ?? ''));
+        $estu_direccion  = strtoupper(trim($_POST['estu_direccion'] ?? ''));
+        $estu_barrio     = strtoupper(trim($_POST['estu_barrio'] ?? ''));
         $estu_estrato    = trim($_POST['estu_estrato'] ?? '') ?: null;
-        $estu_eps        = trim($_POST['estu_eps'] ?? '') ?: null;
+        $estu_eps        = strtoupper(trim($_POST['estu_eps'] ?? ''));
 
         try {
             $pdo = getConexion();

@@ -178,6 +178,15 @@ $(document).ready(function () {
         }
         input.val(valorNorm);
 
+        // Validar que el valor sea numérico (si no está vacío)
+        if (valorNorm !== '' && isNaN(parseFloat(valorNorm))) {
+            input.removeClass('guardando').addClass('error');
+            alert('Valor inválido: solo se permiten números (0.0 - 5.0)');
+            input.val('');
+            setTimeout(() => input.trigger('focus'), 50);
+            return;
+        }
+
         // No guardar si está vacío y no había valor antes
         if (valor === '' && input.attr('data-valor-original') === '') return;
 

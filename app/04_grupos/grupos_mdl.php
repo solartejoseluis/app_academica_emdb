@@ -31,7 +31,7 @@ switch ($accion) {
             $pdo = getConexion();
             $coho_id    = trim($_POST['coho_id'] ?? '');
             $prog_id    = (int)($_POST['prog_id'] ?? 0);
-            $coho_codigo = trim($_POST['coho_codigo'] ?? '');
+            $coho_codigo = strtoupper(trim($_POST['coho_codigo'] ?? ''));
             $fechainicio = trim($_POST['fechainicio'] ?? '');
             $coho_jornada = trim($_POST['coho_jornada'] ?? 'Semana');
             $coho_activa  = (int)($_POST['coho_activa'] ?? 1);
@@ -116,7 +116,7 @@ switch ($accion) {
             $peri_id      = (int)($_POST['peri_id'] ?? 0);
             $prog_id      = (int)($_POST['prog_id'] ?? 0);
             $grse_semestre = (int)($_POST['grse_semestre'] ?? 1);
-            $grse_codigo  = trim($_POST['grse_codigo'] ?? '');
+            $grse_codigo  = strtoupper(trim($_POST['grse_codigo'] ?? ''));
             $fechainicio  = trim($_POST['fechainicio'] ?? '');
             $fechafin     = trim($_POST['fechafin'] ?? '');
             $grse_activo  = (int)($_POST['grse_activo'] ?? 1);
@@ -200,7 +200,7 @@ switch ($accion) {
             $grse_id     = (int)($_POST['grse_id'] ?? 0);
             $modu_id     = (int)($_POST['modu_id'] ?? 0);
             $doce_id     = (int)($_POST['doce_id'] ?? 0);
-            $grmo_horario = trim($_POST['grmo_horario'] ?? '');
+            $grmo_horario = strtoupper(trim($_POST['grmo_horario'] ?? ''));
             $fechainicio  = trim($_POST['fechainicio_mod'] ?? '');
             $fechafin     = trim($_POST['fechafin_mod'] ?? '');
 

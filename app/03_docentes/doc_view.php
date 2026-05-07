@@ -14,6 +14,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Docentes — EMDB Académica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/app_academica_emdb/app/00_files/estilos.css">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -70,15 +71,15 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 
                 <div class="mb-3">
                     <label class="form-label">Nombres</label>
-                    <input type="text" class="form-control" id="npt_doce_nombres" autocomplete="off">
+                    <input type="text" class="form-control texto-mayus" id="npt_doce_nombres" autocomplete="off">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Apellidos</label>
-                    <input type="text" class="form-control" id="npt_doce_apellidos" autocomplete="off">
+                    <input type="text" class="form-control texto-mayus" id="npt_doce_apellidos" autocomplete="off">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Sigla <span class="text-muted small">(máx. 10 caracteres)</span></label>
-                    <input type="text" class="form-control" id="npt_doce_sigla" maxlength="10" autocomplete="off">
+                    <input type="text" class="form-control texto-mayus" id="npt_doce_sigla" maxlength="10" autocomplete="off">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Correo electrónico</label>

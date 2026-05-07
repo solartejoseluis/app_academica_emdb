@@ -13,6 +13,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grupos — EMDB Académica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/app_academica_emdb/app/00_files/estilos.css">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <style>
 .lista-item {
@@ -235,7 +236,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Código de Cohorte <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="coho_codigo"
+                    <input type="text" class="form-control texto-mayus" id="coho_codigo"
                            placeholder="Ej: CH-ASO-2025B">
                     <div class="form-text">Formato: CH-SIGLA-AAAAP (P = A o B)</div>
                 </div>
@@ -310,7 +311,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Código <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="grse_codigo"
+                        <input type="text" class="form-control texto-mayus" id="grse_codigo"
                                placeholder="Ej: ASO-2025B-S1">
                     </div>
                     <div class="col-md-6 mb-3">
@@ -394,7 +395,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Horario</label>
-                    <input type="text" class="form-control" id="grmo_horario"
+                    <input type="text" class="form-control texto-mayus" id="grmo_horario"
                            placeholder="Ej: 8:00 - 11:00 a.m.">
                 </div>
                 <div class="row">
