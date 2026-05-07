@@ -4,6 +4,19 @@
 
 ---
 
+## [bc2587a] — 2026-05-07 — fix: botón Guardar y Cerrar en modal editar grupo
+
+### Archivos modificados
+- app/04_grupos/grupos_ctrl.js — agregado hide() del modal en bloque else (modo edición)
+- app/04_grupos/grupos_view.php — texto botón cambiado de "Guardar Grupo" a "Guardar y Cerrar"
+
+### Bug corregido
+- bootstrap.Modal.getInstance('#mdl_grupo') fallaba silenciosamente — getInstance requiere elemento DOM, no selector string
+- En modo edición el modal no se cerraba después de guardar
+- Botón renombrado a "Guardar y Cerrar" para indicar el comportamiento esperado
+
+---
+
 ## [f45420b] — 2026-05-07 — navbar compartido para roles 1 y 2 en todos los módulos
 
 ### Archivos modificados
