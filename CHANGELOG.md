@@ -4,6 +4,31 @@
 
 ---
 
+## [f45420b] — 2026-05-07 — navbar compartido para roles 1 y 2 en todos los módulos
+
+### Archivos modificados
+- app/00_files/navbar.php — nuevo componente Bootstrap navbar-expand-lg para roles 1 y 2; ítem ⚙️ Usuarios condicional solo para role_id=1
+- app/02_estudiantes/est_view.php — reemplaza navbar inline por require_once navbar.php (condicional)
+- app/03_docentes/doc_view.php — reemplaza navbar inline por require_once navbar.php (condicional)
+- app/04_grupos/grupos_view.php — reemplaza navbar inline por require_once navbar.php (condicional)
+- app/05_calificaciones/calificaciones_view.php — reemplaza navbar inline por require_once navbar.php (condicional)
+- app/06_reportes/reportes_view.php — reemplaza navbar inline por require_once navbar.php (condicional)
+- app/07_coordinador/coordinador_view.php — reemplaza navbar inline por require_once navbar.php (condicional)
+- app/08_admin/admin_view.php — reemplaza navbar inline por require_once navbar.php (directo, role 1 exclusivo)
+
+### Decisiones
+- Patrón condicional: `<?php if (in_array($role_id, [1, 2])): ?> require navbar.php <?php else: ?>` navbar simple con solo email y cerrar sesión
+- href de Cerrar Sesión actualizado a ruta absoluta `/app_academica_emdb/app/01_login/logout.php` en vistas que usaban ruta relativa
+- Docentes (role 3) y Estudiantes (role 4) mantienen navbar mínimo por diseño
+
+### Pruebas realizadas
+- Roles 1 y 2 ven navbar completo con todos los módulos ✅
+- Role 3 (docente) ve navbar mínimo en calificaciones ✅
+- Role 4 (estudiante) ve navbar mínimo en reportes ✅
+- ⚙️ Usuarios solo visible para role 1 ✅
+
+---
+
 ## [e7b73e3] — 2026-05-07 — Phase 2.3: módulo 07_coordinador + ajustes 05_calificaciones
 
 ### Archivos modificados

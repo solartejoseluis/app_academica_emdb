@@ -83,7 +83,7 @@ app_academica_emdb/
     00_connect/        — Conexión a BD (local y producción)
     00_selects/        — Consultas SELECT reutilizables para dropdowns
     00_img/            — Recursos estáticos: logo, iconos
-    00_files/          — favicon, robots.txt, .htaccess
+    00_files/          — Componentes PHP compartidos: `navbar.php` (navbar unificado roles 1 y 2), favicon, robots.txt, .htaccess
     01_login/          — Autenticación y redirección por rol ✅
     02_estudiantes/    — Registro, edición y matrícula de estudiantes ✅
     03_docentes/       — Gestión del cuerpo docente ✅

@@ -298,6 +298,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `76f2c3e` | Phase 2.1: módulo 05_calificaciones — registro notas GA-FO-04 con autosave, supletorios y definitiva en tiempo real | 2026-05-05 |
 | `e8a06a8` | Phase 2.2: módulo 06_reportes — consulta notas estudiante + reporte por grupo con exportación Excel | 2026-05-07 |
 | `e7b73e3` | Phase 2.3: módulo 07_coordinador — dashboard seguimiento + semáforo y preselección en 05_calificaciones | 2026-05-07 |
+| `f45420b` | navbar compartido roles 1 y 2 en todos los módulos | 2026-05-07 |
 
 ---
 

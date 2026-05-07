@@ -46,7 +46,7 @@ app_academica_emdb/
     00_connect/        — Conexión DB: pdo.php (local) / pdo_web.php (producción)
     00_selects/        — Consultas SELECT reutilizables que pueblan dropdowns
     00_img/            — Recursos estáticos: logo, iconos
-    00_files/          — favicon, robots.txt, .htaccess
+    00_files/          — Componentes PHP compartidos: navbar.php (roles 1 y 2), favicon, robots.txt, .htaccess
     01_login/          — Autenticación por sesión y redirección por rol
     02_estudiantes/    — CRUD estudiantes + matrícula a programas
     03_docentes/       — CRUD docentes
