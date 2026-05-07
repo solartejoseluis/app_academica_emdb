@@ -591,7 +591,7 @@ Ver historial completo en CHANGELOG.md.
 |---|---|---|
 | 2.1 | Módulo `05_calificaciones` — registro notas por docente | ✅ 2026-05-05 |
 | 2.2 | Módulo `06_reportes` — consulta estudiante + exportación Excel coordinador | ✅ 2026-05-07 |
-| 2.3 | Módulo `07_coordinador` — dashboard seguimiento | ⬜ |
+| 2.3 | Módulo `07_coordinador` — dashboard seguimiento | ✅ 2026-05-07 |
 | 2.4 | Módulo `06_reportes` — exportación PDF (GA-FO-04 por módulo para coordinador + boletín individual para estudiante) | ⬜ |
 
 ### Phase 3 — Validación TRL5

@@ -4,6 +4,30 @@
 
 ---
 
+## [e7b73e3] — 2026-05-07 — Phase 2.3: módulo 07_coordinador + ajustes 05_calificaciones
+
+### Archivos modificados
+- app/07_coordinador/coordinador_mdl.php — acción resumen_dashboard (conteos + estado notas por grupo)
+- app/07_coordinador/coordinador_view.php — 3 tarjetas resumen + tabla estado notas con DataTables
+- app/07_coordinador/coordinador_ctrl.js — cargarDashboard, construirFilaEstado, botón Ver Notas → 05_calificaciones?grmo_id=X
+- app/05_calificaciones/calificaciones_ctrl.js — semáforo rojo/amarillo/verde por rango, foco en error, preselección por ?grmo_id=
+- app/05_calificaciones/calificaciones_view.php — clases CSS semaforo-rojo/amarillo/verde
+
+### Decisiones
+- Dashboard solo roles 1 y 2
+- Semáforo: rojo 0.0-2.9, amarillo 3.0-3.9, verde 4.0-5.0 (reglamento institucional GA-FO-04)
+- Botón Ver Notas en dashboard pasa grmo_id por GET a calificaciones_view.php
+- Al recibir ?grmo_id, calificaciones_ctrl.js simula click en la card correspondiente
+- Error de rango: alert + input.val('') + focus devuelto al campo erróneo
+
+### Pruebas realizadas
+- Dashboard carga conteos y tabla de estado correctamente ✅
+- Botón Ver Notas abre calificaciones con grupo preseleccionado ✅
+- Semáforo aplica colores al cargar y al guardar cada nota ✅
+- Error fuera de rango devuelve foco al campo con campo vacío ✅
+
+---
+
 ## [e8a06a8] — 2026-05-07 — Phase 2.2: módulo 06_reportes
 
 ### Archivos modificados
@@ -26,7 +50,8 @@
 ---
 
 ## [Unreleased]
-- Phase 2.3 — módulo 07_coordinador — dashboard seguimiento
+- Phase 2.4 — módulo 06_reportes — exportación PDF (GA-FO-04 coordinador + boletín estudiante)
+- Phase 3 — validación TRL5: migración datos, pruebas usuarios reales, escala SUS, video demostración
 
 ---
 
