@@ -16,6 +16,8 @@
 - Exportación Excel nativa DataTables Buttons (sin librería adicional)
 - PDF queda pendiente para después del 12 de mayo
 - CDNs de Buttons/JSZip cargados condicionalmente solo para roles 1 y 2
+- Exportación Excel funcional para roles 1 y 2 (botón DataTables Buttons) ✅
+- Exportación PDF pendiente (ítem 2.4): GA-FO-04 por módulo (coordinador) y boletín individual (estudiante)
 
 ### Pruebas realizadas
 - Role 4: select módulo → notas con badge definitiva y estado ✅
