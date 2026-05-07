@@ -362,7 +362,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 <button type="button" class="btn btn-secondary"
                         data-bs-dismiss="modal">Cerrar</button>
                 <button type="button" class="btn btn-primary"
-                        id="btn_guardar_grupo">Guardar Grupo</button>
+                        id="btn_guardar_grupo">Guardar y Cerrar</button>
             </div>
         </div>
     </div>

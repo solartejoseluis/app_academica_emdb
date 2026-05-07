@@ -425,10 +425,11 @@ $(document).ready(function () {
                     if (!$('#grse_id').val()) {
                         // recargamos módulos del grupo recién creado
                         // necesitamos el ID — hacemos reload de la tabla y cerramos
-                        bootstrap.Modal.getInstance('#mdl_grupo').hide();
+                        bootstrap.Modal.getInstance(document.getElementById('mdl_grupo')).hide();
                     } else {
                         cargarModulosGrupo($('#grse_id').val());
                         $('#btn_agregar_modulo').prop('disabled', false);
+                        bootstrap.Modal.getInstance(document.getElementById('mdl_grupo')).hide();
                     }
                 } else {
                     alert('Error: ' + r.message);
