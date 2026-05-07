@@ -18,14 +18,7 @@ if ($_SESSION['role_id'] !== 1) {
 </head>
 <body class="bg-light">
 
-<!-- Navbar -->
-<nav class="navbar navbar-dark bg-dark px-3">
-    <span class="navbar-brand fw-bold">Panel Administrador — EMDB</span>
-    <div class="d-flex align-items-center gap-3">
-        <span class="text-light small"><?= htmlspecialchars($_SESSION['usua_email']) ?></span>
-        <a href="../01_login/logout.php" class="btn btn-outline-light btn-sm">Cerrar Sesión</a>
-    </div>
-</nav>
+<?php require_once '../00_files/navbar.php'; ?>
 
 <div class="container-fluid mt-4 px-4">
 
