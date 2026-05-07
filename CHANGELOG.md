@@ -4,6 +4,34 @@
 
 ---
 
+## [3aaf8c1] — 2026-05-07 — mejoras UX: mayúsculas automáticas + validación numérica calificaciones
+
+### Archivos modificados
+- app/00_files/estilos.css — archivo nuevo: clase .texto-mayus { text-transform: uppercase }
+- app/02_estudiantes/est_view.php — clase texto-mayus en nombres, apellidos, ciudad, dirección, barrio, eps
+- app/02_estudiantes/est_mdl.php — strtoupper(trim()) en estu_nombres, apellidos, ciudad, dirección, barrio, eps
+- app/03_docentes/doc_view.php — clase texto-mayus en nombres, apellidos, sigla
+- app/03_docentes/doc_mdl.php — strtoupper(trim()) en doce_nombres, apellidos, sigla
+- app/04_grupos/grupos_view.php — clase texto-mayus en coho_codigo, grse_codigo, grmo_horario
+- app/04_grupos/grupos_mdl.php — strtoupper(trim()) en coho_codigo, grse_codigo, grmo_horario
+- app/05_calificaciones/calificaciones_ctrl.js — validación isNaN antes del AJAX: alert + campo vacío + foco
+- app/05_calificaciones/calificaciones_mdl.php — is_numeric() antes del cast (float): evita que letras se guarden como 0.0
+
+### Decisiones
+- CSS text-transform: uppercase para feedback visual inmediato mientras el usuario digita
+- strtoupper(trim()) en PHP como capa de seguridad — garantiza mayúsculas en BD independiente del frontend
+- Campos excluidos de mayúsculas: emails, passwords, documentos, teléfonos, fechas, claves manuales, filtros de búsqueda
+- Validación numérica en dos capas: JS (UX) + PHP (integridad de BD)
+- (float)"f" en PHP devuelve 0.0 sin error — is_numeric() cierra este gap
+
+### Pruebas realizadas
+- Texto en minúsculas se convierte a mayúsculas en tiempo real en los 3 módulos ✅
+- Datos guardados en BD en mayúsculas ✅
+- Letra "f" en campo de nota: alert + campo vacío + foco regresa ✅
+- Número válido (3.5): guarda normalmente ✅
+
+---
+
 ## [bc2587a] — 2026-05-07 — fix: botón Guardar y Cerrar en modal editar grupo
 
 ### Archivos modificados
