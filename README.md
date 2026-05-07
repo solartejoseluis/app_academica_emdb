@@ -89,7 +89,7 @@ app_academica_emdb/
     03_docentes/       — Gestión del cuerpo docente ✅
     04_grupos/         — Cohortes, grupos semestre, módulos y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) 🔄
-    06_reportes/       — Consulta de notas para estudiantes, exportación PDF/Excel 🔄
+    06_reportes/       — Consulta de notas para estudiantes, exportación PDF/Excel ✅
     07_coordinador/    — Dashboard de seguimiento académico 🔄
     08_admin/          — Gestión de usuarios del sistema ✅
   database/

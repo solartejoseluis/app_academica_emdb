@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-05-01
-> Versión: 6 — actualizado al cierre de Phase 2.1
+> Última actualización: 2026-05-07
+> Versión: 7 — actualizado al cierre de Phase 2.2
 
 ---
 
@@ -241,7 +241,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | Item | Descripción | Estado |
 |---|---|---|
 | 2.1 | Módulo `05_calificaciones` — registro notas GA-FO-04 | ✅ 2026-05-05 |
-| 2.2 | Módulo `06_reportes` — consulta + PDF/Excel | ⬜ |
+| 2.2 | Módulo `06_reportes` — consulta + PDF/Excel | ✅ 2026-05-07 |
 | 2.3 | Módulo `07_coordinador` — dashboard | ⬜ |
 
 ### OE4 — VALIDAR TRL5 (Sprint Review)
@@ -296,6 +296,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `1a96050` | Phase 1.3: módulo 04_grupos — cohortes, grupos semestre, módulos y asignación de estudiantes | 2026-05-05 |
 | `70f5b89` | docs: corregir nombres campos calificaciones en CLAUDE.md + regla cierre tarea | 2026-05-05 |
 | `76f2c3e` | Phase 2.1: módulo 05_calificaciones — registro notas GA-FO-04 con autosave, supletorios y definitiva en tiempo real | 2026-05-05 |
+| `e8a06a8` | Phase 2.2: módulo 06_reportes — consulta notas estudiante + reporte por grupo con exportación Excel | 2026-05-07 |
 
 ---
 

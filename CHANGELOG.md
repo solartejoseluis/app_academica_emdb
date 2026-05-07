@@ -4,8 +4,26 @@
 
 ---
 
+## [e8a06a8] — 2026-05-07 — Phase 2.2: módulo 06_reportes
+
+### Archivos modificados
+- app/06_reportes/reportes_mdl.php — 4 acciones: grupos_para_reporte, reporte_grupo, mis_modulos, mis_notas
+- app/06_reportes/reportes_view.php — vista bifurcada por rol (role 4: mis notas; roles 1-2: reporte por grupo)
+- app/06_reportes/reportes_ctrl.js — cargarModulos, cargarGrupos, construirFilaEstudiante, construirFilaReporte
+
+### Decisiones
+- Vista única con bifurcación PHP según role_id (no dos archivos separados)
+- Exportación Excel nativa DataTables Buttons (sin librería adicional)
+- PDF queda pendiente para después del 12 de mayo
+- CDNs de Buttons/JSZip cargados condicionalmente solo para roles 1 y 2
+
+### Pruebas realizadas
+- Role 4: select módulo → notas con badge definitiva y estado ✅
+- Role 1/2: select grupo → tabla con exportación Excel ✅
+
+---
+
 ## [Unreleased]
-- Phase 2.2 — módulo 06_reportes — consulta notas + PDF/Excel
 - Phase 2.3 — módulo 07_coordinador — dashboard seguimiento
 
 ---
