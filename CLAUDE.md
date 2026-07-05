@@ -539,6 +539,18 @@ $sql = "SELECT * FROM estudiantes";
 - **Razón:** Precisión exacta sin errores de punto flotante. `DECIMAL(5,2)` sería para escala 0.00-100.00.
 - **Estado:** Activa.
 
+### Formato PDF (GA-FO-04 y Boletín) — ítem 2.4
+
+- **Contexto:** La exportación PDF del reporte de grupo (`pdf_grupo.php`) y del boletín individual (`pdf_boletin.php`) debía replicar el formato institucional GA-FO-04, adaptado a un documento generado por el sistema (no una planilla física).
+- **Decisión:**
+  - Sin instrucciones de diligenciamiento — es un documento de solo lectura generado por el sistema, no una planilla para llenar a mano. Decisión tomada tras revisar el formato físico original.
+  - Sin bloque de "acumulados" (nota × porcentaje) — la fórmula se muestra una sola vez en el encabezado ("N1 (20%) + N2 (20%) + N3 (20%) + N4 (40%) = Nota Final"), no repetida por cada nota.
+  - Sin columna de faltas de asistencia — no se registra actualmente en el sistema. Pendiente de decisión futura si se necesita.
+  - Leyenda de colores con círculos CSS (`<span>` con `background-color` y `border-radius:50%`), **no emoji Unicode** — dompdf no renderiza correctamente los emoji de color; se veían como casillas vacías en el PDF generado.
+  - `pdf_grupo.php`: rol restringido a coordinador/admin (`role_id` 1, 2), orientación `landscape`, incluye todos los estudiantes del grupo.
+  - `pdf_boletin.php`: rol restringido a estudiante (`role_id` 4), orientación `portrait`, filtro de seguridad `WHERE grmo_id = ? AND usua_id = ?` — responde 403 genérico sin distinguir "el grupo no existe" de "es de otro estudiante".
+- **Estado:** Activa. No negociable (mismo nivel que las demás decisiones de esta sección).
+
 ### Contraseñas con bcrypt desde el primer usuario
 
 - **Contexto:** Proyecto de referencia almacenó contraseñas en texto plano, lo que requirió migración posterior.
@@ -578,6 +590,7 @@ $sql = "SELECT * FROM estudiantes";
 | Ítem | Detalle |
 |---|---|
 | `guardar_nota` sin validación de sesión/rol | `guardar_nota` en `calificaciones_mdl.php` no valida sesión ni rol antes de escribir en BD — a diferencia de `reportes_mdl.php`, que sí valida. Riesgo: cualquiera con acceso a la red podría escribir calificaciones sin autenticarse. Bloqueante antes de instalar en el servidor de producción de EMDB (Fase 3 / validación TRL5). |
+| Exportación Excel incompleta en `06_reportes` | Exportación a Excel en `06_reportes` no incluye datos de curso ni docente — pendiente de revisión (hallazgo del 2026-07-05, no bloqueante). |
 
 ---
 
@@ -610,7 +623,7 @@ Ver historial completo en CHANGELOG.md.
 | 2.1 | Módulo `05_calificaciones` — registro notas por docente | ✅ 2026-05-05 |
 | 2.2 | Módulo `06_reportes` — consulta estudiante + exportación Excel coordinador | ✅ 2026-05-07 |
 | 2.3 | Módulo `07_coordinador` — dashboard seguimiento | ✅ 2026-05-07 |
-| 2.4 | Módulo `06_reportes` — exportación PDF (GA-FO-04 por módulo para coordinador + boletín individual para estudiante) | ⬜ |
+| 2.4 | Módulo `06_reportes` — exportación PDF (GA-FO-04 por módulo para coordinador + boletín individual para estudiante) | ✅ 2026-07-05 |
 | 2.5 | Rediseño `05_calificaciones` — Nota Final siempre calculada, Habilitación y Definitiva como valor oficial recalculado | ✅ 2026-07-04 |
 
 ### Phase 3 — Validación TRL5

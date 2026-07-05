@@ -89,7 +89,7 @@ app_academica_emdb/
     03_docentes/       — Gestión del cuerpo docente ✅
     04_grupos/         — Cohortes, grupos semestre, módulos y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) 🔄
-    06_reportes/       — Consulta notas estudiante + exportación Excel coordinador (PDF pendiente — ítem 2.4) ✅
+    06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador + boletín PDF estudiante ✅
     07_coordinador/    — Dashboard de seguimiento académico ✅
     08_admin/          — Gestión de usuarios del sistema ✅
   database/
@@ -227,7 +227,7 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 |---|---|---|
 | Phase 0 | Setup: estructura, BD, login, admin | ✅ Completado |
 | Phase 1 | Módulos base: estudiantes, docentes, grupos | ✅ Completado |
-| Phase 2 | Gestión académica: calificaciones, reportes, coordinador | 🔄 En progreso |
+| Phase 2 | Gestión académica: calificaciones, reportes, coordinador | ✅ Completado |
 | Phase 3 | Validación TRL5 con usuarios reales | ⬜ Pendiente |
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
