@@ -4,6 +4,96 @@
 
 ---
 
+## [7755f7c] — 2026-07-05 — botones de descarga PDF en 06_reportes — cierra ítem 2.4
+
+### Archivos modificados
+- app/06_reportes/reportes_view.php — bloque `info_grupo` (vista estudiante) ampliado con botón "Descargar Boletín PDF", visible solo cuando ya hay notas cargadas
+- app/06_reportes/reportes_ctrl.js — botón "Descargar PDF" agregado al arreglo `buttons` de DataTables (junto a `'excel'`) en la vista de coordinador; handler delegado para el botón de boletín del estudiante, ambos con `window.open(url, '_blank')`
+
+### Decisiones
+- Botón del coordinador integrado directamente en la configuración de DataTables Buttons (no un botón HTML estático) — así hereda el mismo criterio de visibilidad que el botón de Excel: solo existe cuando la tabla se inicializa con datos
+- Botón del estudiante usa un atributo `data-grmo` en el propio botón para no depender de leer el `<select>` en el momento del clic
+- Sin librería de íconos nueva — se usó el emoji 📄 como texto, igual que el resto del proyecto (sin Bootstrap Icons ni Font Awesome)
+- Con este commit queda completo el ítem 2.4 del roadmap (exportación PDF: reporte de grupo + boletín individual)
+
+### Pruebas realizadas
+- Botón de boletín (estudiante) aparece solo tras cargar notas de un módulo válido, y descarga el PDF correcto en nueva pestaña ✅
+- Botón PDF (coordinador) aparece junto al de Excel solo tras cargar un reporte con datos, y descarga el PDF del grupo correcto en nueva pestaña ✅
+- Cambiar de módulo/grupo y volver a cargar actualiza correctamente el `grmo_id` usado por cada botón ✅
+- URLs de descarga verificadas sin sesión activa — redirigen a login, no exponen PDF ✅
+
+---
+
+## [b4f60f2] — 2026-07-05 — nuevo endpoint pdf_boletin.php — boletín individual PDF (estudiante)
+
+### Archivos modificados
+- app/06_reportes/pdf_boletin.php — archivo nuevo: genera el boletín de calificaciones de un estudiante en un módulo, en PDF
+
+### Decisiones
+- Acceso restringido a `role_id === 4` únicamente
+- Mismo filtro de seguridad que la acción `mis_notas` de `reportes_mdl.php`: `WHERE ge.grmo_id = ? AND est.usua_id = ?` — si el `grmo_id` no existe o pertenece a otro estudiante, la query no devuelve fila en ambos casos, indistinguibles entre sí
+- Responde **403 genérico** ("No autorizado") cuando no hay fila — no revela si el `grmo_id` existe o no para otro estudiante
+- Formato de página `portrait` (a diferencia de `pdf_grupo.php`, en `landscape`) — al ser una sola fila de datos no necesita el ancho de una tabla de grupo
+- Reutiliza el mismo patrón de `pdf_grupo.php`: helpers `fmtNota()`/`colorSemaforo()` duplicados (no se creó un archivo compartido — consistente con el resto del proyecto, que no comparte lógica PHP entre módulos), y el mismo cálculo de 3 casos de Estado (En curso / Reprobado — pendiente habilitación / Aprobado o Reprobado) ya usado en `badgeEstado()` de `reportes_ctrl.js`
+- Nombre de archivo: `Boletin_[documento]_[modu_sigla]_[fecha].pdf`
+
+### Pruebas realizadas
+- Boletín propio se descarga correctamente con datos completos ✅
+- Estados "En curso", "Reprobado — pendiente habilitación" y "Aprobado" verificados con datos reales ✅
+- Intento de acceder al `grmo_id` de otro estudiante → 403 "No autorizado" ✅
+- `grmo_id` inexistente → mismo 403 "No autorizado" (no distinguible del caso anterior) ✅
+- Acceso con rol distinto a estudiante o sin sesión → redirige a login ✅
+
+---
+
+## [906b219] — 2026-07-05 — nuevo endpoint pdf_grupo.php — reporte de grupo en PDF (coordinador/admin)
+
+### Archivos modificados
+- app/06_reportes/pdf_grupo.php — archivo nuevo: genera el reporte de calificaciones de todos los estudiantes de un grupo módulo, en PDF, formato institucional GA-FO-04
+
+### Decisiones
+- Acceso restringido a `role_id` 1 y 2 (coordinador/admin), vía `check_session.php` + validación de rol
+- Sin instrucciones de diligenciamiento — el PDF es de solo lectura, no una planilla física para llenar a mano
+- Sin bloque "ACUMULADOS" ni columna de "Total Faltas de Asistencia" — no se registra en el sistema actualmente
+- Fórmula mostrada una sola vez en el encabezado: "N1 (20%) + N2 (20%) + N3 (20%) + N4 (40%) = Nota Final"
+- Columnas de notas iguales al modelo ya usado en `05_calificaciones`/`06_reportes`: N1, Sup N1, N2, Sup N2, N3, N4, Sup N4, Nota Final, Habilitación, Definitiva
+- Leyenda de colores con círculos CSS (`border-radius:50%`), no emoji — dompdf no renderiza emoji Unicode correctamente (se veían como casillas vacías)
+- Colores de semáforo iguales a los ya usados en el resto del sistema: `#d4edda` verde pálido / `#f8d7da` rojo pálido
+- Formato de página `landscape` — necesario por la cantidad de columnas de la tabla de estudiantes
+- Nombre de archivo: `GA-FO-04_[codigo_grupo]_[fecha].pdf`
+
+### Pruebas realizadas
+- PDF se genera y descarga correctamente para un grupo con estudiantes en distintos estados (aprobado, reprobado sin habilitación, reprobado con habilitación) ✅
+- Colores de semáforo consistentes con la vista web ✅
+- Leyenda con círculos CSS se renderiza correctamente (a diferencia de los emoji iniciales) ✅
+- Acceso con rol docente o estudiante, o sin sesión → redirige a login ✅
+
+---
+
+## [fa6e685] — 2026-07-05 — alineación de 06_reportes con el modelo Nota Final / Habilitación / Definitiva
+
+### Archivos modificados
+- app/06_reportes/reportes_mdl.php — `cali_nota_final` y `cali_habilitacion` agregados al SELECT de `reporte_grupo` y `mis_notas`
+- app/06_reportes/reportes_ctrl.js — `badgeEstado()` corregido para distinguir 3 casos; `badgeDefinitiva()` corregido para mostrar `cali_nota_final` en vez de `—` cuando hay resultado bruto sin definitiva oficial; nueva función `badgeNotaFinal()`
+- app/06_reportes/reportes_view.php — nueva columna "Nota Final" en `tbl_mis_notas` y `tbl_reporte`, junto a "Definitiva"
+
+### Bug corregido
+- `badgeEstado()` solo distinguía 2 casos (sin definitiva = "En curso" / con definitiva = Aprobado o Reprobado). Tras el rediseño de `05_calificaciones`, un estudiante con las 4 notas completas que reprueba sin habilitación tiene `cali_definitiva = NULL` — el reporte del coordinador y "Mis Notas" del estudiante lo mostraban incorrectamente como **"En curso"**, cuando en realidad ya reprobó y está pendiente de habilitación. Información activamente incorrecta, no solo incompleta.
+
+### Decisiones
+- 3 casos en `badgeEstado()`: sin `cali_nota_final` (En curso, con o sin notas parciales) / `cali_nota_final` presente pero `cali_definitiva` null (Reprobado — pendiente habilitación) / `cali_definitiva` presente (Aprobado o Reprobado)
+- `badgeDefinitiva()` ya no oculta el resultado bruto de la fórmula con `—` cuando existe `cali_nota_final` pero no hay definitiva oficial todavía
+
+### Pruebas realizadas
+- Estudiante sin notas → "En curso" ✅
+- Estudiante con notas parciales (no las 4) → sigue "En curso" ✅
+- Estudiante aprobado → Nota Final y Definitiva iguales, "Aprobado" ✅
+- Estudiante reprobado sin habilitación → Nota Final visible en rojo, Definitiva ya no oculta el valor, "Reprobado — pendiente habilitación" ✅
+- Estudiante reprobado que aprueba con habilitación → Definitiva = habilitación, "Aprobado" ✅
+- Habilitación que también reprueba → "Reprobado" (sin el sufijo, porque ya hay definitiva oficial) ✅
+
+---
+
 ## [58396d1] — 2026-07-04 — rediseño Nota Final / Habilitación / Definitiva en calificaciones
 
 ### Archivos modificados
@@ -159,7 +249,6 @@
 ---
 
 ## [Unreleased]
-- Phase 2.4 — módulo 06_reportes — exportación PDF (GA-FO-04 coordinador + boletín estudiante)
 - Phase 3 — validación TRL5: migración datos, pruebas usuarios reales, escala SUS, video demostración
 
 ---

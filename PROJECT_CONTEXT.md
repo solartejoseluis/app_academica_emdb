@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-07-04
-> Versión: 9 — actualizado tras rediseño Nota Final / Habilitación / Definitiva en 05_calificaciones
+> Última actualización: 2026-07-05
+> Versión: 10 — actualizado al cierre del ítem 2.4 (exportación PDF)
 
 ---
 
@@ -88,6 +88,14 @@ Estudiantes dependen de WhatsApp para conocer calificaciones. Sin trazabilidad d
 - Formularios: inscripción `AC-FO-02`, matrícula `AC-FO-09`, notas `GA-FO-04`
 - Escala: 0.0 a 5.0 con un decimal — `DECIMAL(3,1)` en BD
 - Programas: ASO (17 módulos) y MD (19 módulos)
+
+---
+
+## Exportación PDF — reglas de formato (ítem 2.4)
+
+- Formato GA-FO-04 en PDF es un documento de **solo lectura** — sin instrucciones de diligenciamiento (no es una planilla física para llenar a mano)
+- Sin columna de "Total Faltas de Asistencia" — no se registra en el sistema actualmente
+- Boletín individual del estudiante solo accesible para su propio `usua_id` — mismo filtro de seguridad que la acción `mis_notas`, con respuesta 403 genérica si el `grmo_id` no existe o pertenece a otro estudiante (no se distingue un caso del otro)
 
 ---
 
@@ -244,8 +252,9 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | Item | Descripción | Estado |
 |---|---|---|
 | 2.1 | Módulo `05_calificaciones` — registro notas GA-FO-04 | ✅ 2026-05-05 |
-| 2.2 | Módulo `06_reportes` — consulta notas estudiante + exportación Excel coordinador. PDF pendiente como ítem 2.4 | ✅ 2026-05-07 |
+| 2.2 | Módulo `06_reportes` — consulta notas estudiante + exportación Excel coordinador | ✅ 2026-05-07 |
 | 2.3 | Módulo `07_coordinador` — dashboard | ✅ 2026-05-07 |
+| 2.4 | Exportación PDF — reporte de grupo GA-FO-04 (coordinador) + boletín individual (estudiante) | ✅ 2026-07-05 |
 | 2.5 | Rediseño `05_calificaciones` — Nota Final siempre calculada, Habilitación y Definitiva como valor oficial recalculado | ✅ 2026-07-04 |
 
 ### OE4 — VALIDAR TRL5 (Sprint Review)
@@ -308,6 +317,10 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `58396d1` | rediseño Nota Final / Habilitación / Definitiva en 05_calificaciones + fix badges no actualizados tras autosave | 2026-07-04 |
 | `5fe5f1f` | creación de .gitignore — excluye vendor/ y .claude/settings.local.json | 2026-07-04 |
 | `a575cf0` | instalación dompdf vía Composer (composer.json, composer.lock) + .htaccess de producción versionado | 2026-07-04 |
+| `fa6e685` | alineación 06_reportes con Nota Final/Habilitación/Definitiva — fix badgeEstado() mostraba "En curso" a reprobados sin habilitación | 2026-07-05 |
+| `906b219` | nuevo endpoint pdf_grupo.php — exportación PDF reporte de grupo GA-FO-04 (coordinador/admin) | 2026-07-05 |
+| `b4f60f2` | nuevo endpoint pdf_boletin.php — boletín individual PDF (estudiante), acceso restringido a propio usua_id | 2026-07-05 |
+| `7755f7c` | botones de descarga PDF en reportes_view.php/reportes_ctrl.js para ambos roles — cierra ítem 2.4 | 2026-07-05 |
 
 ---
 
