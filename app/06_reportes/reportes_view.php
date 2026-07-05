@@ -83,13 +83,14 @@ $es_coordinador = in_array($role_id, [1, 2]);
                             <th class="text-center">N3<br><small class="fw-normal">20%</small></th>
                             <th class="text-center">N4<br><small class="fw-normal">40%</small></th>
                             <th class="text-center">Sup N4</th>
+                            <th class="text-center">Nota Final</th>
                             <th class="text-center">Definitiva</th>
                             <th class="text-center">Estado</th>
                         </tr>
                     </thead>
                     <tbody id="tbody_mis_notas">
                         <tr>
-                            <td colspan="9" class="text-center text-muted">
+                            <td colspan="10" class="text-center text-muted">
                                 Seleccione un módulo para ver sus notas
                             </td>
                         </tr>
@@ -138,6 +139,7 @@ $es_coordinador = in_array($role_id, [1, 2]);
                             <th class="text-center">N3</th>
                             <th class="text-center">N4</th>
                             <th class="text-center">Sup N4</th>
+                            <th class="text-center">Nota Final</th>
                             <th class="text-center">Definitiva</th>
                             <th class="text-center">Estado</th>
                             <th>Observación</th>
@@ -145,7 +147,7 @@ $es_coordinador = in_array($role_id, [1, 2]);
                     </thead>
                     <tbody id="tbody_reporte">
                         <tr>
-                            <td colspan="14" class="text-center text-muted">
+                            <td colspan="15" class="text-center text-muted">
                                 Seleccione un grupo y haga clic en Cargar Reporte
                             </td>
                         </tr>

@@ -48,7 +48,8 @@ switch ($accion) {
             $stmt = $pdo->prepare("
                 SELECT e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
                        c.cali_n1, c.cali_sup_n1, c.cali_n2, c.cali_sup_n2,
-                       c.cali_n3, c.cali_n4, c.cali_sup_n4, c.cali_definitiva,
+                       c.cali_n3, c.cali_n4, c.cali_sup_n4,
+                       c.cali_nota_final, c.cali_habilitacion, c.cali_definitiva,
                        c.cali_observacion
                 FROM grmoestudiantes ge
                 JOIN estudiantes e ON ge.estu_id = e.estu_id
@@ -107,7 +108,8 @@ switch ($accion) {
                        gs.grse_codigo,
                        d.doce_nombres, d.doce_apellidos,
                        c.cali_n1, c.cali_sup_n1, c.cali_n2, c.cali_sup_n2,
-                       c.cali_n3, c.cali_n4, c.cali_sup_n4, c.cali_definitiva,
+                       c.cali_n3, c.cali_n4, c.cali_sup_n4,
+                       c.cali_nota_final, c.cali_habilitacion, c.cali_definitiva,
                        c.cali_observacion
                 FROM grmoestudiantes ge
                 JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id

@@ -62,7 +62,7 @@ $(document).ready(function () {
                 tbody.empty();
 
                 if (!r.data || !r.data.length) {
-                    tbody.html('<tr><td colspan="9" class="text-center text-muted">Sin datos de calificaciones</td></tr>');
+                    tbody.html('<tr><td colspan="10" class="text-center text-muted">Sin datos de calificaciones</td></tr>');
                     $('#info_grupo').hide();
                     return;
                 }
@@ -101,7 +101,7 @@ $(document).ready(function () {
                 tbody.empty();
 
                 if (!r.data.length) {
-                    tbody.html('<tr><td colspan="14" class="text-center text-muted">Sin estudiantes en este grupo</td></tr>');
+                    tbody.html('<tr><td colspan="15" class="text-center text-muted">Sin estudiantes en este grupo</td></tr>');
                     return;
                 }
 
@@ -115,7 +115,7 @@ $(document).ready(function () {
                     dom: 'Bfrtip',
                     buttons: ['excel'],
                     pageLength: 25,
-                    columnDefs: [{ orderable: false, targets: [11, 12] }]
+                    columnDefs: [{ orderable: false, targets: [11, 12, 13] }]
                 });
             }
         });
@@ -127,21 +127,42 @@ $(document).ready(function () {
         return (v !== null && v !== undefined) ? v : '—';
     }
 
-    function badgeDefinitiva(def) {
-        if (def === null || def === undefined) {
+    function badgeNotaFinal(notaFinal) {
+        if (notaFinal === null || notaFinal === undefined) {
             return '<span class="badge bg-secondary">—</span>';
         }
-        const cls = parseFloat(def) >= 3.0 ? 'bg-success' : 'bg-danger';
-        return '<span class="badge ' + cls + '">' + def + '</span>';
+        const cls = parseFloat(notaFinal) >= 3.0 ? 'bg-success' : 'bg-danger';
+        return '<span class="badge ' + cls + '">' + notaFinal + '</span>';
     }
 
-    function badgeEstado(def) {
-        if (def === null || def === undefined) {
-            return '<span class="badge bg-secondary">En curso</span>';
+    // Muestra cali_definitiva; si aún no hay definitiva oficial pero ya existe
+    // cali_nota_final (reprobó, sin habilitación registrada), muestra ese
+    // resultado bruto en vez de ocultarlo con '—'.
+    function badgeDefinitiva(d) {
+        if (d.cali_definitiva !== null && d.cali_definitiva !== undefined) {
+            const cls = parseFloat(d.cali_definitiva) >= 3.0 ? 'bg-success' : 'bg-danger';
+            return '<span class="badge ' + cls + '">' + d.cali_definitiva + '</span>';
         }
-        return parseFloat(def) >= 3.0
-            ? '<span class="badge bg-success">Aprobado</span>'
-            : '<span class="badge bg-danger">Reprobado</span>';
+        if (d.cali_nota_final !== null && d.cali_nota_final !== undefined) {
+            const cls = parseFloat(d.cali_nota_final) >= 3.0 ? 'bg-success' : 'bg-danger';
+            return '<span class="badge ' + cls + '">' + d.cali_nota_final + '</span>';
+        }
+        return '<span class="badge bg-secondary">—</span>';
+    }
+
+    // 3 casos: sin nota_final aún (en curso, con o sin notas parciales),
+    // nota_final calculada pero definitiva null (reprobó, pendiente habilitación),
+    // o definitiva ya oficial (aprobado o reprobado definitivo).
+    function badgeEstado(d) {
+        if (d.cali_definitiva !== null && d.cali_definitiva !== undefined) {
+            return parseFloat(d.cali_definitiva) >= 3.0
+                ? '<span class="badge bg-success">Aprobado</span>'
+                : '<span class="badge bg-danger">Reprobado</span>';
+        }
+        if (d.cali_nota_final !== null && d.cali_nota_final !== undefined) {
+            return '<span class="badge bg-danger">Reprobado — pendiente habilitación</span>';
+        }
+        return '<span class="badge bg-secondary">En curso</span>';
     }
 
     function construirFilaEstudiante(d) {
@@ -153,8 +174,9 @@ $(document).ready(function () {
             <td class="text-center">${n(d.cali_n3)}</td>
             <td class="text-center">${n(d.cali_n4)}</td>
             <td class="text-center">${n(d.cali_sup_n4)}</td>
-            <td class="text-center">${badgeDefinitiva(d.cali_definitiva)}</td>
-            <td class="text-center">${badgeEstado(d.cali_definitiva)}</td>
+            <td class="text-center">${badgeNotaFinal(d.cali_nota_final)}</td>
+            <td class="text-center">${badgeDefinitiva(d)}</td>
+            <td class="text-center">${badgeEstado(d)}</td>
         </tr>`;
     }
 
@@ -171,8 +193,9 @@ $(document).ready(function () {
             <td class="text-center">${n(e.cali_n3)}</td>
             <td class="text-center">${n(e.cali_n4)}</td>
             <td class="text-center">${n(e.cali_sup_n4)}</td>
-            <td class="text-center">${badgeDefinitiva(e.cali_definitiva)}</td>
-            <td class="text-center">${badgeEstado(e.cali_definitiva)}</td>
+            <td class="text-center">${badgeNotaFinal(e.cali_nota_final)}</td>
+            <td class="text-center">${badgeDefinitiva(e)}</td>
+            <td class="text-center">${badgeEstado(e)}</td>
             <td>${n(e.cali_observacion)}</td>
         </tr>`;
     }
