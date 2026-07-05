@@ -59,15 +59,20 @@ $es_coordinador = in_array($role_id, [1, 2]);
             </div>
 
             <div id="info_grupo" class="alert alert-info mb-3" style="display:none">
-                <div class="row">
-                    <div class="col-md-4">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
                         <strong>Módulo:</strong> <span id="spn_modulo_nombre">—</span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <strong>Grupo:</strong> <span id="spn_grupo_codigo">—</span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <strong>Docente:</strong> <span id="spn_docente">—</span>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <a href="#" id="btn_descargar_boletin" class="btn btn-outline-danger btn-sm" target="_blank">
+                            📄 Descargar Boletín PDF
+                        </a>
                     </div>
                 </div>
             </div>

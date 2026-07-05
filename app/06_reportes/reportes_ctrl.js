@@ -71,11 +71,21 @@ $(document).ready(function () {
                 $('#spn_modulo_nombre').text(d.modu_sigla + ' — ' + d.modu_nombre);
                 $('#spn_grupo_codigo').text(d.grse_codigo);
                 $('#spn_docente').text(d.doce_apellidos + ', ' + d.doce_nombres);
+                $('#btn_descargar_boletin').attr('data-grmo', grmo_id);
                 $('#info_grupo').show();
 
                 tbody.append(construirFilaEstudiante(d));
             }
         });
+    });
+
+    // ── Descargar boletín PDF (role 4) ───────────────────────────────────────
+
+    $(document).on('click', '#btn_descargar_boletin', function (e) {
+        e.preventDefault();
+        const grmo_id = $(this).attr('data-grmo');
+        if (!grmo_id) return;
+        window.open('pdf_boletin.php?grmo_id=' + grmo_id, '_blank');
     });
 
     // ── Cargar reporte de grupo (roles 1 y 2) ────────────────────────────────
@@ -113,7 +123,16 @@ $(document).ready(function () {
                     destroy: true,
                     language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                     dom: 'Bfrtip',
-                    buttons: ['excel'],
+                    buttons: [
+                        'excel',
+                        {
+                            text: '📄 Descargar PDF',
+                            className: 'btn btn-outline-danger btn-sm',
+                            action: function () {
+                                window.open('pdf_grupo.php?grmo_id=' + grmo_id, '_blank');
+                            }
+                        }
+                    ],
                     pageLength: 25,
                     columnDefs: [{ orderable: false, targets: [11, 12, 13] }]
                 });
