@@ -1,0 +1,2 @@
+# Evita que WordPress intercepte las rutas de esta aplicación
+RewriteEngine Off
