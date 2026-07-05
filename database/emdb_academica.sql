@@ -439,9 +439,18 @@ CREATE TABLE calificaciones (
   -- cali_sup_n3 OMITIDO INTENCIONALMENTE — N3 nunca tiene supletorio
   cali_sup_n4    DECIMAL(3,1)      DEFAULT NULL CHECK (cali_sup_n4 BETWEEN 0.0 AND 5.0),
 
-  -- Definitiva calculada: almacenada para reportes rápidos
-  -- Fórmula: COALESCE(sup,n1)*0.2 + COALESCE(sup,n2)*0.2 + n3*0.2 + COALESCE(sup,n4)*0.4
+  -- Definitiva oficial: valor final del estudiante en el módulo.
+  -- Si cali_nota_final >= 3.0 → se copia cali_nota_final.
+  -- Si cali_nota_final < 3.0 y hay habilitación registrada → se copia cali_habilitacion.
+  -- Si cali_nota_final < 3.0 y no hay habilitación → queda NULL.
   cali_definitiva DECIMAL(3,1)     DEFAULT NULL,
+
+  -- Habilitación: nota manual que reemplaza la definitiva oficial cuando la nota final es < 3.0.
+  cali_habilitacion DECIMAL(3,1)   DEFAULT NULL CHECK (cali_habilitacion BETWEEN 0.0 AND 5.0),
+
+  -- Nota final: resultado de la fórmula N1*20%+N2*20%+N3*20%+N4*40%.
+  -- Siempre se calcula y persiste, sin importar si aprueba o no.
+  cali_nota_final DECIMAL(3,1) DEFAULT NULL,
 
   cali_observacion TEXT            DEFAULT NULL,
   fecharegistro   TIMESTAMP        DEFAULT current_timestamp(),
@@ -455,6 +464,22 @@ CREATE TABLE calificaciones (
     ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Calificaciones por módulo y estudiante (formato GA-FO-04)';
+
+-- -----------------------------------------------------------------------------
+-- MIGRACIÓN — ejecutar manualmente en bases de datos ya creadas antes de esta
+-- versión (la CREATE TABLE de arriba ya incluye estas columnas para instalaciones nuevas)
+-- -----------------------------------------------------------------------------
+-- ALTER TABLE calificaciones
+--   ADD COLUMN cali_habilitacion DECIMAL(3,1) DEFAULT NULL
+--     CHECK (cali_habilitacion BETWEEN 0.0 AND 5.0) AFTER cali_definitiva,
+--   ADD COLUMN cali_definitiva_original DECIMAL(3,1) DEFAULT NULL AFTER cali_habilitacion;
+
+-- -----------------------------------------------------------------------------
+-- MIGRACIÓN — renombrar cali_definitiva_original a cali_nota_final
+-- (ejecutar solo si ya se corrió la migración anterior)
+-- -----------------------------------------------------------------------------
+-- ALTER TABLE calificaciones CHANGE cali_definitiva_original
+--   cali_nota_final DECIMAL(3,1) DEFAULT NULL;
 
 -- =============================================================================
 -- BLOQUE 6: HORARIOS (complementario)

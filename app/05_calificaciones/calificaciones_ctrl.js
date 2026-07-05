@@ -77,7 +77,7 @@ $(document).ready(function () {
                 tbody.empty();
 
                 if (!r.data.length) {
-                    tbody.html('<tr><td colspan="11" class="text-center text-muted">Sin estudiantes asignados a este módulo</td></tr>');
+                    tbody.html('<tr><td colspan="13" class="text-center text-muted">Sin estudiantes asignados a este módulo</td></tr>');
                     $('#msg_seleccione').hide();
                     $('#contenedor_notas').show();
                     return;
@@ -103,6 +103,10 @@ $(document).ready(function () {
         const s1  = e.cali_sup_n1 !== null ? e.cali_sup_n1 : '';
         const s2  = e.cali_sup_n2 !== null ? e.cali_sup_n2 : '';
         const s4  = e.cali_sup_n4 !== null ? e.cali_sup_n4 : '';
+        const hab = e.cali_habilitacion !== null ? e.cali_habilitacion : '';
+
+        const notaFinalRaw = e.cali_nota_final;
+        const notaFinal = notaFinalRaw !== null ? notaFinalRaw : '—';
         const def = e.cali_definitiva !== null ? e.cali_definitiva : '—';
 
         // Supletorios visibles solo si nota original = 0.0
@@ -110,7 +114,15 @@ $(document).ready(function () {
         const verS2 = (parseFloat(n2) === 0.0 && n2 !== '') ? '' : 'display:none';
         const verS4 = (parseFloat(n4) === 0.0 && n4 !== '') ? '' : 'display:none';
 
-        // Color definitiva
+        // Habilitación visible solo si la Nota Final es < 3.0
+        const verHab = (notaFinalRaw !== null && parseFloat(notaFinalRaw) < 3.0) ? '' : 'display:none';
+
+        // Color Nota Final
+        const notaFinalColor = notaFinal !== '—'
+            ? (parseFloat(notaFinal) >= 3.0 ? 'bg-success' : 'bg-danger')
+            : 'bg-secondary';
+
+        // Color Definitiva
         const defColor = def !== '—'
             ? (parseFloat(def) >= 3.0 ? 'bg-success' : 'bg-danger')
             : 'bg-secondary';
@@ -154,6 +166,14 @@ $(document).ready(function () {
                     <input class="input-nota input-sup" type="text"
                            data-campo="cali_sup_n4" value="${s4}"
                            placeholder="0.0" style="${verS4}">
+                </td>
+                <td class="text-center ${colorSemaforo(notaFinal)}">
+                    <span class="badge notafinal-badge ${notaFinalColor}">${notaFinal}</span>
+                </td>
+                <td class="text-center celda-hab ${colorSemaforo(hab)}" data-celda="cali_habilitacion">
+                    <input class="input-nota input-hab" type="text"
+                           data-campo="cali_habilitacion" value="${hab}"
+                           placeholder="0.0" style="${verHab}">
                 </td>
                 <td class="text-center ${colorSemaforo(def)}">
                     <span class="badge definitiva-badge ${defColor}">${def}</span>
@@ -207,26 +227,46 @@ $(document).ready(function () {
                     input.removeClass('guardando').addClass('guardado');
                     input.attr('data-valor-original', valorNorm);
 
-                    // Actualizar definitiva en tiempo real
-                    const def = r.cali_definitiva;
-                    const badge = fila.find('.definitiva-badge');
-                    if (def !== null && def !== undefined) {
-                        badge.text(def);
-                        badge.removeClass('bg-secondary bg-success bg-danger');
-                        badge.addClass(parseFloat(def) >= 3.0 ? 'bg-success' : 'bg-danger');
-                    }
+                    // Actualizar Nota Final en tiempo real (maneja null explícitamente)
+                    const notaFinal = r.cali_nota_final;
+                    const notaFinalTexto = (notaFinal !== null && notaFinal !== undefined) ? notaFinal : '—';
+                    const badgeNotaFinal = fila.find('.notafinal-badge');
+                    badgeNotaFinal.text(notaFinalTexto);
+                    badgeNotaFinal.removeClass('bg-secondary bg-success bg-danger');
+                    badgeNotaFinal.addClass(
+                        notaFinalTexto !== '—'
+                            ? (parseFloat(notaFinalTexto) >= 3.0 ? 'bg-success' : 'bg-danger')
+                            : 'bg-secondary'
+                    );
+
+                    // Actualizar Definitiva en tiempo real (maneja null explícitamente)
+                    const definitiva = r.cali_definitiva;
+                    const definitivaTexto = (definitiva !== null && definitiva !== undefined) ? definitiva : '—';
+                    const badgeDefinitiva = fila.find('.definitiva-badge');
+                    badgeDefinitiva.text(definitivaTexto);
+                    badgeDefinitiva.removeClass('bg-secondary bg-success bg-danger');
+                    badgeDefinitiva.addClass(
+                        definitivaTexto !== '—'
+                            ? (parseFloat(definitivaTexto) >= 3.0 ? 'bg-success' : 'bg-danger')
+                            : 'bg-secondary'
+                    );
 
                     // Actualizar color semáforo del td del input que se acaba de guardar
                     input.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
                         .addClass(colorSemaforo(valorNorm));
 
-                    // Actualizar color semáforo del td de la definitiva
-                    const defVal = badge.text();
-                    badge.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
-                        .addClass(colorSemaforo(defVal));
+                    // Actualizar color semáforo de los td de Nota Final y Definitiva
+                    badgeNotaFinal.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
+                        .addClass(colorSemaforo(notaFinalTexto));
+                    badgeDefinitiva.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
+                        .addClass(colorSemaforo(definitivaTexto));
 
                     // Mostrar/ocultar supletorios según valor guardado
                     actualizarVisibilidadSupletorio(fila, campo, valorNorm);
+
+                    // Mostrar/ocultar habilitación según la Nota Final recalculada
+                    // (dato leído directamente de la respuesta del servidor, no del DOM)
+                    actualizarVisibilidadHabilitacion(fila, notaFinal);
 
                     // Quitar clase guardado después de 2 segundos
                     setTimeout(() => input.removeClass('guardado'), 2000);
@@ -259,6 +299,20 @@ $(document).ready(function () {
             inputSup.show();
         } else {
             inputSup.hide().val('');
+        }
+    }
+
+    // ── Mostrar/ocultar habilitación según la Nota Final actual ──────────────
+    function actualizarVisibilidadHabilitacion(fila, notaFinalValor) {
+        const inputHab = fila.find('[data-campo="cali_habilitacion"]');
+        const reprobando = notaFinalValor !== null && notaFinalValor !== undefined &&
+            parseFloat(notaFinalValor) < 3.0;
+        if (reprobando) {
+            inputHab.show();
+        } else {
+            // No se limpia el valor (a diferencia del supletorio): una habilitación
+            // ya registrada no debe perderse visualmente si la Nota Final sube de 3.0.
+            inputHab.hide();
         }
     }
 

@@ -73,6 +73,7 @@ switch ($accion) {
                        c.cali_id,
                        c.cali_n1, c.cali_n2, c.cali_n3, c.cali_n4,
                        c.cali_sup_n1, c.cali_sup_n2, c.cali_sup_n4,
+                       c.cali_habilitacion, c.cali_nota_final,
                        c.cali_definitiva, c.cali_observacion
                 FROM grmoestudiantes ge
                 INNER JOIN estudiantes e ON ge.estu_id = e.estu_id
@@ -106,6 +107,7 @@ switch ($accion) {
             $campos_permitidos = [
                 'cali_n1', 'cali_n2', 'cali_n3', 'cali_n4',
                 'cali_sup_n1', 'cali_sup_n2', 'cali_sup_n4',
+                'cali_habilitacion',
                 'cali_observacion'
             ];
             if (!in_array($campo, $campos_permitidos)) {
@@ -132,7 +134,8 @@ switch ($accion) {
             // Verificar si ya existe registro
             $check = $pdo->prepare("
                 SELECT cali_id, cali_n1, cali_n2, cali_n3, cali_n4,
-                       cali_sup_n1, cali_sup_n2, cali_sup_n4
+                       cali_sup_n1, cali_sup_n2, cali_sup_n4,
+                       cali_habilitacion, cali_nota_final
                 FROM calificaciones WHERE grmo_id = ? AND estu_id = ?
             ");
             $check->execute([$grmo_id, $estu_id]);
@@ -159,7 +162,8 @@ switch ($accion) {
                 // Leer fila recién insertada
                 $r2 = $pdo->prepare("
                     SELECT cali_n1, cali_n2, cali_n3, cali_n4,
-                           cali_sup_n1, cali_sup_n2, cali_sup_n4
+                           cali_sup_n1, cali_sup_n2, cali_sup_n4,
+                           cali_habilitacion, cali_nota_final
                     FROM calificaciones WHERE cali_id = ?
                 ");
                 $r2->execute([$cali_id]);
@@ -175,32 +179,45 @@ switch ($accion) {
             $s2 = $existing['cali_sup_n2'];
             $s4 = $existing['cali_sup_n4'];
 
-            $definitiva = null;
+            $habilitacion = $existing['cali_habilitacion'];
+
+            $notaFinal = null;
+            $definitivaOficial = null;
             if ($n1 !== null && $n2 !== null && $n3 !== null && $n4 !== null) {
                 $ef1 = ($n1 == 0.0 && $s1 !== null) ? $s1 : $n1;
                 $ef2 = ($n2 == 0.0 && $s2 !== null) ? $s2 : $n2;
                 $ef4 = ($n4 == 0.0 && $s4 !== null) ? $s4 : $n4;
-                $definitiva = round($ef1 * 0.2 + $ef2 * 0.2 + $n3 * 0.2 + $ef4 * 0.4, 1);
+                $notaFinal = round($ef1 * 0.2 + $ef2 * 0.2 + $n3 * 0.2 + $ef4 * 0.4, 1);
 
-                // Actualizar cali_definitiva en BD
+                // Definitiva oficial: nota final si aprueba, habilitación si no
+                // aprueba y hay habilitación registrada, o NULL en otro caso.
+                if ($notaFinal >= 3.0) {
+                    $definitivaOficial = $notaFinal;
+                } elseif ($habilitacion !== null) {
+                    $definitivaOficial = round((float)$habilitacion, 1);
+                }
+
+                // Persistir nota final (siempre) y definitiva oficial
                 $upd = $pdo->prepare("
-                    UPDATE calificaciones SET cali_definitiva = ?
+                    UPDATE calificaciones SET cali_nota_final = ?, cali_definitiva = ?
                     WHERE cali_id = ?
                 ");
-                $upd->execute([$definitiva, $cali_id]);
+                $upd->execute([$notaFinal, $definitivaOficial, $cali_id]);
             }
 
             echo json_encode([
-                'status'          => 'ok',
-                'cali_id'         => $cali_id,
-                'cali_definitiva' => $definitiva,
-                'cali_n1'         => $existing['cali_n1'],
-                'cali_n2'         => $existing['cali_n2'],
-                'cali_n3'         => $existing['cali_n3'],
-                'cali_n4'         => $existing['cali_n4'],
-                'cali_sup_n1'     => $existing['cali_sup_n1'],
-                'cali_sup_n2'     => $existing['cali_sup_n2'],
-                'cali_sup_n4'     => $existing['cali_sup_n4'],
+                'status'            => 'ok',
+                'cali_id'           => $cali_id,
+                'cali_nota_final'   => $notaFinal,
+                'cali_definitiva'   => $definitivaOficial,
+                'cali_n1'           => $existing['cali_n1'],
+                'cali_n2'           => $existing['cali_n2'],
+                'cali_n3'           => $existing['cali_n3'],
+                'cali_n4'           => $existing['cali_n4'],
+                'cali_sup_n1'       => $existing['cali_sup_n1'],
+                'cali_sup_n2'       => $existing['cali_sup_n2'],
+                'cali_sup_n4'       => $existing['cali_sup_n4'],
+                'cali_habilitacion' => $existing['cali_habilitacion'],
             ]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);

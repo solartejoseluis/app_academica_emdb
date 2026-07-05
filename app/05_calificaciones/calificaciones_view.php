@@ -43,6 +43,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
             border-color: #dc3545;
         }
         .celda-sup { background: #fff8e1; }
+        .celda-hab { background: #ede7f6; }
         .definitiva-badge {
             font-size: 1em;
             font-weight: bold;
@@ -117,6 +118,8 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                                 <th class="text-center">N3<br><small class="fw-normal">20%</small></th>
                                 <th class="text-center">N4<br><small class="fw-normal">40%</small></th>
                                 <th class="text-center celda-sup">Sup N4</th>
+                                <th class="text-center">Nota Final</th>
+                                <th class="text-center celda-hab">Habilitación</th>
                                 <th class="text-center">Definitiva</th>
                             </tr>
                         </thead>
@@ -130,6 +133,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                         Las notas se guardan automáticamente al salir de cada campo.
                         Los supletorios se habilitan cuando la nota original es 0.0.
                         N3 no tiene supletorio.
+                        Nota Final siempre se calcula con la fórmula N1(20%)+N2(20%)+N3(20%)+N4(40%), sin importar si aprueba o no.
+                        Habilitación se habilita cuando Nota Final es menor a 3.0.
+                        Definitiva es el valor oficial: copia de Nota Final si aprueba, o de Habilitación si esta fue registrada.
                     </small>
                 </div>
             </div>
