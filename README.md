@@ -142,7 +142,9 @@ gruposmodulos ──< calificaciones >── estudiantes
                   nota3 (20%)  ← sin supletorio
                   nota4 (40%)
                   supletorios (N1, N2, N4)
-                  nota_definitiva
+                  nota_final       ← siempre calculada, apruebe o no
+                  habilitación     ← manual, solo si nota_final < 3.0
+                  definitiva       ← valor oficial (nota_final o habilitación)
 ```
 
 ### Tablas principales
@@ -157,7 +159,7 @@ gruposmodulos ──< calificaciones >── estudiantes
 | `cohortes` | Grupos de admisión: formato `CH-ASO-2026A` |
 | `gruposemestres` | Instancia de un programa en un período y jornada |
 | `gruposmodulos` | Módulo + docente asignado + fechas dentro de un semestre |
-| `calificaciones` | Notas N1–N4, supletorios y definitiva por estudiante-grupo |
+| `calificaciones` | Notas N1–N4, supletorios, nota final, habilitación y definitiva por estudiante-grupo |
 
 ---
 

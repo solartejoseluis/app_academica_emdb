@@ -515,6 +515,16 @@ $sql = "SELECT * FROM estudiantes";
 - **Razón:** Evitar que manipulación del cliente altere calificaciones en la BD.
 - **Estado:** Activa. No negociable.
 
+### Nota Final vs. Definitiva (calificaciones)
+
+- **Contexto:** El módulo de calificaciones necesitaba distinguir entre el resultado bruto de la fórmula de notas y el valor oficial que cuenta para aprobar, incluyendo el caso de habilitación.
+- **Decisión:**
+  - `cali_nota_final`: siempre se calcula con la fórmula estándar (N1 20% + N2 20% + N3 20% + N4 40%), sin importar si el estudiante aprueba o no. Queda persistida en BD y visible como columna independiente en la planilla.
+  - `cali_habilitacion`: entrada manual (0.0–5.0). Se activa únicamente si `cali_nota_final < 3.0`. Un solo intento — no existe ciclo de re-habilitación.
+  - `cali_definitiva`: valor oficial, recalculado en cada guardado. Copia de `cali_nota_final` si esta es `>= 3.0`; copia de `cali_habilitacion` si `cali_nota_final < 3.0` y la habilitación fue registrada; `NULL` en cualquier otro caso.
+- **Por qué se eliminó `cali_definitiva_original`:** ya no es necesario un campo de auditoría separado para conservar la definitiva pre-habilitación, porque `cali_nota_final` queda siempre visible y persistida — cumple esa función de forma natural, sin duplicar el dato.
+- **Estado:** Activa. No negociable (mismo nivel que la regla de N3 sin supletorio).
+
 ### Aspirante y Estudiante en la misma tabla (alcance actual)
 
 - **Contexto:** El prototipo TRL5 cubre inscripción, matrícula y calificaciones. El flujo aspirante→estudiante es parte del alcance pero no requiere tablas separadas en esta fase.
@@ -563,6 +573,14 @@ $sql = "SELECT * FROM estudiantes";
 
 ---
 
+## Deuda técnica / pendiente antes de producción
+
+| Ítem | Detalle |
+|---|---|
+| `guardar_nota` sin validación de sesión/rol | `guardar_nota` en `calificaciones_mdl.php` no valida sesión ni rol antes de escribir en BD — a diferencia de `reportes_mdl.php`, que sí valida. Riesgo: cualquiera con acceso a la red podría escribir calificaciones sin autenticarse. Bloqueante antes de instalar en el servidor de producción de EMDB (Fase 3 / validación TRL5). |
+
+---
+
 ## Estado del roadmap
 
 Ver historial completo en CHANGELOG.md.
@@ -593,6 +611,7 @@ Ver historial completo en CHANGELOG.md.
 | 2.2 | Módulo `06_reportes` — consulta estudiante + exportación Excel coordinador | ✅ 2026-05-07 |
 | 2.3 | Módulo `07_coordinador` — dashboard seguimiento | ✅ 2026-05-07 |
 | 2.4 | Módulo `06_reportes` — exportación PDF (GA-FO-04 por módulo para coordinador + boletín individual para estudiante) | ⬜ |
+| 2.5 | Rediseño `05_calificaciones` — Nota Final siempre calculada, Habilitación y Definitiva como valor oficial recalculado | ✅ 2026-07-04 |
 
 ### Phase 3 — Validación TRL5
 
