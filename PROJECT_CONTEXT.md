@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-05-07
-> Versión: 8 — actualizado al cierre de Phase 2.3
+> Última actualización: 2026-07-04
+> Versión: 9 — actualizado tras rediseño Nota Final / Habilitación / Definitiva en 05_calificaciones
 
 ---
 
@@ -82,6 +82,9 @@ Estudiantes dependen de WhatsApp para conocer calificaciones. Sin trazabilidad d
 - Estructura: N1 (20%) + N2 (20%) + N3 (20%) + N4 (40%) = 100%
 - Supletorios: solo N1, N2 y N4. **N3 nunca tiene supletorio — nunca.**
 - Supletorio se activa únicamente si nota original = 0.0
+- Nota Final: siempre se calcula con la fórmula estándar, sin importar si aprueba o no
+- Habilitación: entrada manual (0.0-5.0), se activa únicamente si Nota Final < 3.0, un solo intento (sin ciclo de re-habilitación)
+- Definitiva: valor oficial — copia de Nota Final si aprueba, o de Habilitación si esta fue registrada; NULL si reprueba sin habilitación
 - Formularios: inscripción `AC-FO-02`, matrícula `AC-FO-09`, notas `GA-FO-04`
 - Escala: 0.0 a 5.0 con un decimal — `DECIMAL(3,1)` en BD
 - Programas: ASO (17 módulos) y MD (19 módulos)
@@ -153,7 +156,7 @@ app_academica_emdb/
 10. gruposemestres     — grse_id, prog_id(FK), peri_id(FK), grse_codigo, grse_semestre
 11. grseestudiantes    — grse_id(FK), estu_id(FK)  [tabla puente N:M]
 12. gruposmodulos      — grmo_id, grse_id(FK), modu_id(FK), doce_id(FK)
-13. calificaciones     — cali_id, grmo_id(FK), estu_id(FK), N1-N4, sup_N1/N2/N4, definitiva
+13. calificaciones     — cali_id, grmo_id(FK), estu_id(FK), N1-N4, sup_N1/N2/N4, cali_nota_final, cali_habilitacion, cali_definitiva
 14. horariosgrupo      — hora_id, grse_id(FK), hora_diasemana, hora_horainicio
 ```
 
@@ -243,6 +246,7 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | 2.1 | Módulo `05_calificaciones` — registro notas GA-FO-04 | ✅ 2026-05-05 |
 | 2.2 | Módulo `06_reportes` — consulta notas estudiante + exportación Excel coordinador. PDF pendiente como ítem 2.4 | ✅ 2026-05-07 |
 | 2.3 | Módulo `07_coordinador` — dashboard | ✅ 2026-05-07 |
+| 2.5 | Rediseño `05_calificaciones` — Nota Final siempre calculada, Habilitación y Definitiva como valor oficial recalculado | ✅ 2026-07-04 |
 
 ### OE4 — VALIDAR TRL5 (Sprint Review)
 
@@ -301,6 +305,9 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `f45420b` | navbar compartido roles 1 y 2 en todos los módulos | 2026-05-07 |
 | `bc2587a` | fix modal editar grupo — Guardar y Cerrar | 2026-05-07 |
 | `3aaf8c1` | mejoras UX: mayúsculas automáticas + validación numérica calificaciones | 2026-05-07 |
+| `58396d1` | rediseño Nota Final / Habilitación / Definitiva en 05_calificaciones + fix badges no actualizados tras autosave | 2026-07-04 |
+| `5fe5f1f` | creación de .gitignore — excluye vendor/ y .claude/settings.local.json | 2026-07-04 |
+| `a575cf0` | instalación dompdf vía Composer (composer.json, composer.lock) + .htaccess de producción versionado | 2026-07-04 |
 
 ---
 

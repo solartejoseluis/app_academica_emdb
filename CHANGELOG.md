@@ -4,6 +4,49 @@
 
 ---
 
+## [58396d1] — 2026-07-04 — rediseño Nota Final / Habilitación / Definitiva en calificaciones
+
+### Archivos modificados
+- database/emdb_academica.sql — `cali_definitiva_original` renombrada a `cali_nota_final` en el CREATE TABLE; bloques de migración `ALTER TABLE` agregados para bases de datos ya creadas
+- app/05_calificaciones/calificaciones_mdl.php — `guardar_nota` calcula y persiste `cali_nota_final` siempre (sin importar si aprueba); `cali_definitiva` rediseñada como valor oficial recalculado en cada guardado; envelope de respuesta incluye ambos campos
+- app/05_calificaciones/calificaciones_view.php — nueva columna "Nota Final" entre Sup N4 y Habilitación; "Definitiva" movida al final de la fila; texto de ayuda actualizado con las 3 reglas
+- app/05_calificaciones/calificaciones_ctrl.js — `construirFila()` muestra Nota Final y Definitiva como badges independientes con semáforo; callback de autosave corregido; `actualizarVisibilidadHabilitacion()` recibe `cali_nota_final` directamente del servidor
+
+### Decisiones
+- `cali_nota_final`: siempre se calcula con la fórmula N1(20%)+N2(20%)+N3(20%)+N4(40%), sin importar si el estudiante aprueba o no — separa el resultado bruto de la fórmula del valor oficial
+- `cali_definitiva`: valor oficial recalculado en cada guardado — copia de `cali_nota_final` si es ≥ 3.0; copia de `cali_habilitacion` si `cali_nota_final` < 3.0 y esta fue registrada; `NULL` en cualquier otro caso
+- Eliminada la lógica de "guardar solo la primera vez" (`cali_definitiva_original`) — ya no aplica bajo el nuevo modelo, que recalcula sin bloqueos
+
+### Bug corregido
+- calificaciones_ctrl.js: el guard `if (def !== null && def !== undefined)` impedía actualizar el badge "Definitiva" cuando el valor llegaba `null` (caso legítimo tras el rediseño: reprobado sin habilitación) — el badge quedaba congelado con el valor anterior hasta recargar la página completa. Ahora se maneja explícitamente mostrando `—` con color neutro (`bg-secondary`)
+- `actualizarVisibilidadHabilitacion()` leía el valor desde el DOM (`badge.text()`) en vez de la respuesta del servidor, propagando datos obsoletos cuando el bug anterior dejaba el badge sin actualizar — corregido para recibir `cali_nota_final` directamente de la respuesta AJAX
+
+---
+
+## [5fe5f1f] — 2026-07-04 — creación de .gitignore
+
+### Archivos modificados
+- .gitignore — archivo nuevo: excluye `vendor/` y `.claude/settings.local.json`
+
+### Decisiones
+- `vendor/` excluido por ser dependencia de Composer (dompdf), regenerable vía `composer install`
+- `.claude/settings.local.json` excluido por ser configuración local de permisos de Claude Code, no código del proyecto
+
+---
+
+## [a575cf0] — 2026-07-04 — instalación dompdf vía Composer + .htaccess de producción
+
+### Archivos modificados
+- composer.json — archivo nuevo: dependencia `dompdf/dompdf` para exportación PDF
+- composer.lock — archivo nuevo: versiones bloqueadas de dompdf y sus dependencias
+- .htaccess — versionado por primera vez en el repositorio: `RewriteEngine Off` — fix de interferencia con configuración de WordPress en el hosting de producción
+
+### Decisiones
+- dompdf instalado como base para el ítem 2.4 (exportación PDF: GA-FO-04 por módulo para coordinador + boletín individual para estudiante) — la implementación de la generación de PDF en sí queda todavía pendiente
+- `.htaccess` de producción versionado para evitar que reglas de reescritura de otro CMS (WordPress) presentes en el hosting interfieran con las rutas de la aplicación
+
+---
+
 ## [3aaf8c1] — 2026-05-07 — mejoras UX: mayúsculas automáticas + validación numérica calificaciones
 
 ### Archivos modificados
