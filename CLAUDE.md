@@ -29,9 +29,9 @@
 - **Local:** XAMPP (Apache + PHP 8.0 + MySQL 8.0) en Windows
 - **Ruta local:** `C:/xampp/htdocs/app_academica_emdb/`
 - **URL local:** `http://localhost/app_academica_emdb/`
-- **Conexión DB local:** `app/00_connect/pdo.php`
-- **Conexión DB producción:** `app/00_connect/pdo_web.php`
-- **Cambio de entorno:** renombrar archivos. En producción: `pdo_web.php` → `pdo.php`. Local queda como `pdo_local.php`.
+- **Conexión DB local:** `app/00_connect/pdo.php` — versionado en git
+- **Conexión DB producción:** `app/00_connect/pdo_web.php` — existe **únicamente en el servidor de producción**. Nunca se versiona en git ni existe en el repo local en ningún momento: el estudiante lo crea y lo mantiene manualmente, directamente en el hosting, porque contiene las credenciales reales de la base de datos de producción. No es un descuido ni algo pendiente de agregar al repositorio — es una decisión deliberada.
+- **Cambio de entorno:** el código siempre hace `require` sobre `pdo.php` (nunca sobre `pdo_web.php` directamente), así que en producción el renombrado ocurre a mano, en el propio servidor: el `pdo.php` que llega por deploy (con credenciales locales) se renombra a `pdo_local.php` para conservarlo, y el `pdo_web.php` ya existente en el servidor (mantenido manualmente, nunca tocado por el deploy) se renombra a `pdo.php` para que la aplicación lo use.
 - **Ambos archivos** usan PDO con `FETCH_ASSOC` y `ERRMODE_EXCEPTION`.
 - **Nombre de la base de datos local:** `emdb_academica`
 - **Charset:** `utf8mb4` — `utf8mb4_unicode_ci`
@@ -43,7 +43,7 @@
 ```
 app_academica_emdb/
   app/
-    00_connect/        — Conexión DB: pdo.php (local) / pdo_web.php (producción)
+    00_connect/        — Conexión DB: pdo.php (local, versionado) / pdo_web.php (producción, solo en el servidor — nunca en git)
     00_selects/        — Consultas SELECT reutilizables que pueblan dropdowns
     00_img/            — Recursos estáticos: logo, iconos
     00_files/          — Componentes PHP compartidos: navbar.php (roles 1 y 2), favicon, robots.txt, .htaccess
@@ -581,7 +581,8 @@ $sql = "SELECT * FROM estudiantes";
 | Verificar en producción: `SHOW PROCEDURE STATUS WHERE Db = 'emdb_academica';` y `SHOW TRIGGERS FROM emdb_academica;` — ambas deben devolver vacío antes de operar con datos reales | ⬜ |
 
 - Nunca subir la carpeta completa — solo los archivos modificados.
-- Nunca sobreescribir `pdo_web.php` en producción.
+- Nunca sobreescribir `pdo_web.php` en producción. Como este archivo no existe en git ni en el repo local, no hay ninguna protección técnica (`.gitignore`, plantilla, etc.) que lo resguarde — la única protección es un recordatorio operativo: al subir archivos modificados manualmente al hosting, verificar explícitamente que `app/00_connect/pdo.php` (el archivo ya renombrado en el servidor, con credenciales de producción) no esté entre los archivos que se suben o sobreescriben.
+- Recomendado: mantener una copia de respaldo de `pdo_web.php` fuera del repositorio (gestor de contraseñas, carpeta local no versionada) — si se pierde el acceso al servidor, no hay forma de reconstruirlo desde git, porque nunca estuvo ahí.
 - Los nombres de tablas en producción van en **minúsculas** (Linux es case-sensitive).
 
 ---
