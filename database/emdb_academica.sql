@@ -505,75 +505,24 @@ CREATE TABLE horariosgrupo (
   COMMENT='Horarios de clases por grupo semestre';
 
 -- =============================================================================
--- BLOQUE 7: STORED PROCEDURE — cálculo de definitiva
+-- BLOQUE 7–8: (eliminados) STORED PROCEDURE + TRIGGERS de cálculo de definitiva
 -- =============================================================================
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_calcular_definitiva $$
-
-CREATE PROCEDURE sp_calcular_definitiva(IN p_cali_id INT UNSIGNED)
-BEGIN
-  -- Recalcula la nota definitiva respetando reglas de supletorios.
-  -- Supletorio reemplaza nota original SOLO si nota original = 0.0 y supletorio IS NOT NULL.
-  DECLARE v_n1   DECIMAL(3,1);
-  DECLARE v_n2   DECIMAL(3,1);
-  DECLARE v_n3   DECIMAL(3,1);
-  DECLARE v_n4   DECIMAL(3,1);
-  DECLARE v_s1   DECIMAL(3,1);
-  DECLARE v_s2   DECIMAL(3,1);
-  DECLARE v_s4   DECIMAL(3,1);
-  DECLARE v_ef1  DECIMAL(3,1);
-  DECLARE v_ef2  DECIMAL(3,1);
-  DECLARE v_ef4  DECIMAL(3,1);
-  DECLARE v_def  DECIMAL(3,1);
-
-  SELECT cali_n1, cali_n2, cali_n3, cali_n4,
-         cali_sup_n1, cali_sup_n2, cali_sup_n4
-  INTO   v_n1, v_n2, v_n3, v_n4, v_s1, v_s2, v_s4
-  FROM   calificaciones
-  WHERE  cali_id = p_cali_id;
-
-  -- Nota efectiva = supletorio SI nota original = 0.0 Y supletorio ingresado
-  SET v_ef1 = IF(v_n1 = 0.0 AND v_s1 IS NOT NULL, v_s1, v_n1);
-  SET v_ef2 = IF(v_n2 = 0.0 AND v_s2 IS NOT NULL, v_s2, v_n2);
-  -- N3 no tiene supletorio → siempre usa nota original
-  SET v_ef4 = IF(v_n4 = 0.0 AND v_s4 IS NOT NULL, v_s4, v_n4);
-
-  -- Calcular solo si todas las notas obligatorias están ingresadas
-  IF v_n1 IS NOT NULL AND v_n2 IS NOT NULL AND v_n3 IS NOT NULL AND v_n4 IS NOT NULL THEN
-    SET v_def = ROUND(v_ef1 * 0.2 + v_ef2 * 0.2 + v_n3 * 0.2 + v_ef4 * 0.4, 1);
-    UPDATE calificaciones SET cali_definitiva = v_def WHERE cali_id = p_cali_id;
-  END IF;
-END $$
-
-DELIMITER ;
-
+-- Este bloque contenía sp_calcular_definitiva() y los triggers
+-- trg_calificaciones_after_update / trg_calificaciones_after_insert, que
+-- recalculaban cali_definitiva llamando al procedimiento desde el propio
+-- trigger de la tabla calificaciones.
+--
+-- Se eliminaron porque MySQL no permite que un trigger ejecute un UPDATE
+-- sobre la misma tabla que lo disparó (ni directamente ni a través de un
+-- procedure invocado desde el trigger) — error de "Can't update table
+-- 'calificaciones' in stored function/trigger because it is already used
+-- by statement which invoked this stored function/trigger".
+--
+-- El cálculo de cali_nota_final y cali_definitiva (incluyendo las reglas de
+-- supletorio: N1/N2/N4 con supletorio solo si la nota original = 0.0, N3
+-- nunca tiene supletorio) ahora vive en PHP, en
+-- app/05_calificaciones/calificaciones_mdl.php, case 'guardar_nota'.
 -- =============================================================================
--- BLOQUE 8: TRIGGER — recalcular definitiva automáticamente
--- =============================================================================
-
-DELIMITER $$
-
-DROP TRIGGER IF EXISTS trg_calificaciones_after_update $$
-
-CREATE TRIGGER trg_calificaciones_after_update
-AFTER UPDATE ON calificaciones
-FOR EACH ROW
-BEGIN
-  CALL sp_calcular_definitiva(NEW.cali_id);
-END $$
-
-DROP TRIGGER IF EXISTS trg_calificaciones_after_insert $$
-
-CREATE TRIGGER trg_calificaciones_after_insert
-AFTER INSERT ON calificaciones
-FOR EACH ROW
-BEGIN
-  CALL sp_calcular_definitiva(NEW.cali_id);
-END $$
-
-DELIMITER ;
 
 -- =============================================================================
 -- BLOQUE 9: DATOS SEMILLA (SEEDS)
@@ -669,7 +618,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- SELECT COUNT(*) FROM modulos WHERE prog_id = 2;  -- Debe retornar 19 (MD)
 -- SELECT * FROM roles;
 -- SELECT * FROM programas;
--- CALL sp_calcular_definitiva(1);  -- Probar stored procedure
 
 -- =============================================================================
 -- FIN DEL SCRIPT
