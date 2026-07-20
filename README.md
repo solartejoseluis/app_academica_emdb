@@ -2,7 +2,7 @@
 
 Sistema web para la automatización de los procesos de inscripción, matrícula y registro de calificaciones de la Escuela de Mecánica Dental Bolaños (Tuluá, Valle del Cauca). Reemplaza 80 planillas manuales de Google Sheets por un sistema centralizado con acceso por roles.
 
-> **Estado actual:** Fase de desarrollo — Sprint 1 completado. Sprint 2 en progreso.
+> **Estado actual:** Fase de desarrollo — Fases 0 a 2 completadas (infraestructura, módulos base y gestión académica). Fase 3 (validación TRL5) pendiente.
 > Proyecto de grado — Ingeniería de Sistemas, UNAD CEAD Palmira.
 
 ---
@@ -88,7 +88,7 @@ app_academica_emdb/
     02_estudiantes/    — Registro, edición y matrícula de estudiantes ✅
     03_docentes/       — Gestión del cuerpo docente ✅
     04_grupos/         — Cohortes, grupos semestre, módulos y asignación de estudiantes ✅
-    05_calificaciones/ — Registro de notas por docente (módulo central) 🔄
+    05_calificaciones/ — Registro de notas por docente (módulo central) ✅
     06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador + boletín PDF estudiante ✅
     07_coordinador/    — Dashboard de seguimiento académico ✅
     08_admin/          — Gestión de usuarios del sistema ✅

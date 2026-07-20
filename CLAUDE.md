@@ -578,6 +578,7 @@ $sql = "SELECT * FROM estudiantes";
 | Solo archivos modificados identificados para subir | ⬜ |
 | `pdo_web.php` en producción intacto — nunca sobreescribir | ⬜ |
 | Verificar que tablas en producción existen y tienen el esquema correcto | ⬜ |
+| Verificar en producción: `SHOW PROCEDURE STATUS WHERE Db = 'emdb_academica';` y `SHOW TRIGGERS FROM emdb_academica;` — ambas deben devolver vacío antes de operar con datos reales | ⬜ |
 
 - Nunca subir la carpeta completa — solo los archivos modificados.
 - Nunca sobreescribir `pdo_web.php` en producción.
@@ -589,7 +590,6 @@ $sql = "SELECT * FROM estudiantes";
 
 | Ítem | Detalle |
 |---|---|
-| `guardar_nota` sin validación de sesión/rol | `guardar_nota` en `calificaciones_mdl.php` no valida sesión ni rol antes de escribir en BD — a diferencia de `reportes_mdl.php`, que sí valida. Riesgo: cualquiera con acceso a la red podría escribir calificaciones sin autenticarse. Bloqueante antes de instalar en el servidor de producción de EMDB (Fase 3 / validación TRL5). |
 | Exportación Excel incompleta en `06_reportes` | Exportación a Excel en `06_reportes` no incluye datos de curso ni docente — pendiente de revisión (hallazgo del 2026-07-05, no bloqueante). |
 
 ---
