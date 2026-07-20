@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-07-19
-> Versión: 11 — actualizado tras fix de validación sesión/rol/ownership en 05_calificaciones (guardar_nota, listar_calificaciones) y limpieza de SP/triggers obsoletos del DDL
+> Versión: 12 — agrega eliminación de stubs muertos de Fase 0 (02_estudiantes, 03_docentes) y normalización de fin de línea de .gitignore
 
 ---
 
@@ -324,6 +324,7 @@ Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE elimina
 | `75504eb` | fix: valida sesión, rol y ownership en guardar_nota (05_calificaciones) — docente restringido a sus propios grupos, coordinador/admin sin restricción, otros roles rechazados | 2026-07-19 |
 | `04ec8b0` | fix: valida sesión, rol y ownership en listar_calificaciones (05_calificaciones) — mismo criterio que guardar_nota, hallazgo detectado al revisar ese commit | 2026-07-19 |
 | `304127b` | fix: elimina stored procedure sp_calcular_definitiva y triggers obsoletos del DDL — corrige reinstalación limpia de la BD (cálculo ya vivía en PHP desde 58396d1) | 2026-07-19 |
+| `be827c5` | chore: elimina 6 stubs muertos de Fase 0 (estudiantes_*/docentes_* en 02_estudiantes/03_docentes, nunca reemplazados por los archivos reales est_*/doc_*) y normaliza fin de línea de .gitignore (CRLF → LF, sin cambio de contenido) | 2026-07-19 |
 
 ---
 

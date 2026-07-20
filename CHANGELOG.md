@@ -4,6 +4,29 @@
 
 ---
 
+## [be827c5] — 2026-07-19 — chore: elimina stubs muertos de Fase 0 y normaliza fin de línea de .gitignore
+
+### Archivos modificados
+- app/02_estudiantes/estudiantes_view.php — eliminado (stub sin uso desde Fase 0)
+- app/02_estudiantes/estudiantes_mdl.php — eliminado (stub sin uso desde Fase 0)
+- app/02_estudiantes/estudiantes_ctrl.js — eliminado (stub sin uso desde Fase 0)
+- app/03_docentes/docentes_view.php — eliminado (stub sin uso desde Fase 0)
+- app/03_docentes/docentes_mdl.php — eliminado (stub sin uso desde Fase 0)
+- app/03_docentes/docentes_ctrl.js — eliminado (stub sin uso desde Fase 0)
+- .gitignore — normalización de fin de línea (CRLF → LF), sin cambio de contenido
+
+### Decisiones
+- Los 6 archivos eliminados eran placeholders de Fase 0 ("Pendiente de implementación") en `02_estudiantes` y `03_docentes`, nunca reemplazados cuando se crearon los archivos reales en uso (`est_view.php`/`est_mdl.php`/`est_ctrl.js` y `doc_view.php`/`doc_mdl.php`/`doc_ctrl.js`) — quedaron como código muerto desde Phase 1.1/1.2
+- Antes de borrar se verificó por grep en todo el repo (`.php`, `.js`, `.html`) que ningún archivo referenciaba los nombres stub, y que `navbar.php` apunta correctamente a los archivos reales (`est_view.php`, `doc_view.php`)
+- El cambio en `.gitignore` es solo normalización de fin de línea (CRLF → LF) — el contenido (2 entradas: `vendor/` y `.claude/settings.local.json`) no cambió
+
+### Pruebas realizadas
+- `grep -rn` de los 6 nombres stub en todo el repositorio antes de borrar: cero coincidencias ✅
+- Confirmado que `est_view.php`, `est_mdl.php`, `est_ctrl.js`, `doc_view.php`, `doc_mdl.php`, `doc_ctrl.js` no fueron tocados ✅
+- `git diff -- .gitignore` revisado con `cat -A`: única diferencia es `^M$` (CRLF) vs `$` (LF), mismo contenido de texto ✅
+
+---
+
 ## [304127b] — 2026-07-19 — fix: elimina SP y triggers obsoletos de calificaciones en el DDL
 
 ### Archivos modificados
