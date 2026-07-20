@@ -92,11 +92,39 @@ switch ($accion) {
 
     case 'guardar_nota':
         try {
+            // Validar sesión activa (mismo criterio que check_session.php)
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+                break;
+            }
+
             $pdo = getConexion();
+            $role_id  = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id  = (int)($_SESSION['usua_id'] ?? 0);
             $grmo_id  = (int)($_POST['grmo_id'] ?? 0);
             $estu_id  = (int)($_POST['estu_id'] ?? 0);
             $campo    = $_POST['campo'] ?? '';
             $valor    = $_POST['valor'] ?? '';
+
+            if ($role_id === 3) {
+                // Docente: solo puede guardar notas en grupos asignados a él
+                // (mismo criterio de pertenencia que listar_grupos: docentes.usua_id)
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                // Coordinador/Admin: sin restricción de ownership. Cualquier otro rol (ej. estudiante) → rechazado.
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
 
             // Normalizar coma por punto (teclados numéricos)
             if ($campo !== 'cali_observacion') {
