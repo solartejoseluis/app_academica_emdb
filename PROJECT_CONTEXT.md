@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-07-05
-> Versión: 10 — actualizado al cierre del ítem 2.4 (exportación PDF)
+> Última actualización: 2026-07-19
+> Versión: 11 — actualizado tras fix de validación sesión/rol/ownership en 05_calificaciones (guardar_nota, listar_calificaciones) y limpieza de SP/triggers obsoletos del DDL
 
 ---
 
@@ -169,7 +169,7 @@ app_academica_emdb/
 ```
 
 Seeds cargados: 4 roles, 2 programas, 3 períodos, 36 módulos (17 ASO + 19 MD), 1 usuario admin.
-Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en calificaciones.
+Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE eliminados del DDL (commit `304127b`, 2026-07-19) — MySQL no permite `UPDATE` de una tabla desde su propio trigger. Cálculo de `cali_nota_final`/`cali_definitiva` vive en PHP, `app/05_calificaciones/calificaciones_mdl.php` (case `guardar_nota`).
 
 ---
 
@@ -321,6 +321,9 @@ Stored procedure: `sp_calcular_definitiva` + triggers AFTER INSERT/UPDATE en cal
 | `906b219` | nuevo endpoint pdf_grupo.php — exportación PDF reporte de grupo GA-FO-04 (coordinador/admin) | 2026-07-05 |
 | `b4f60f2` | nuevo endpoint pdf_boletin.php — boletín individual PDF (estudiante), acceso restringido a propio usua_id | 2026-07-05 |
 | `7755f7c` | botones de descarga PDF en reportes_view.php/reportes_ctrl.js para ambos roles — cierra ítem 2.4 | 2026-07-05 |
+| `75504eb` | fix: valida sesión, rol y ownership en guardar_nota (05_calificaciones) — docente restringido a sus propios grupos, coordinador/admin sin restricción, otros roles rechazados | 2026-07-19 |
+| `04ec8b0` | fix: valida sesión, rol y ownership en listar_calificaciones (05_calificaciones) — mismo criterio que guardar_nota, hallazgo detectado al revisar ese commit | 2026-07-19 |
+| `304127b` | fix: elimina stored procedure sp_calcular_definitiva y triggers obsoletos del DDL — corrige reinstalación limpia de la BD (cálculo ya vivía en PHP desde 58396d1) | 2026-07-19 |
 
 ---
 

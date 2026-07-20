@@ -4,6 +4,57 @@
 
 ---
 
+## [304127b] — 2026-07-19 — fix: elimina SP y triggers obsoletos de calificaciones en el DDL
+
+### Archivos modificados
+- database/emdb_academica.sql — BLOQUE 7 (stored procedure `sp_calcular_definitiva`) y BLOQUE 8 (triggers `trg_calificaciones_after_update`/`trg_calificaciones_after_insert`) eliminados; reemplazados por un comentario que explica el motivo (MySQL no permite que un trigger ejecute `UPDATE` sobre la misma tabla que lo disparó, ni directamente ni vía un procedure invocado desde el trigger) y remite al cálculo real en `app/05_calificaciones/calificaciones_mdl.php`, case `guardar_nota`. Referencia residual `CALL sp_calcular_definitiva(1);` en el bloque de verificación manual también eliminada. Numeración del resto de bloques (incluido `BLOQUE 9: DATOS SEMILLA`) sin cambios.
+
+### Decisiones
+- El SP y los triggers eran obsoletos desde el commit `58396d1` (2026-07-04) — el cálculo de `cali_nota_final`/`cali_definitiva` ya vivía en PHP desde entonces. El script `.sql` versionado no reflejaba ese cambio: una reinstalación limpia de la BD con el SP/triggers activos fallaba al guardar la primera nota, con el error de MySQL "Can't update table ... in stored function/trigger because it is already used by statement which invoked this stored function/trigger".
+- Cambio acotado únicamente al `.sql` — no se tocó `calificaciones_mdl.php` en este commit (su lógica ya era correcta desde el rediseño de julio).
+- Antes de eliminar el SP se verificó por revisión de código que la fórmula y las reglas de supletorio en PHP (N1/N2/N4 con supletorio solo si la nota original = 0.0, N3 nunca) replican exactamente la lógica que tenía `sp_calcular_definitiva` — no se perdió ninguna regla de negocio al retirarlo.
+
+### Pruebas realizadas
+- Revisión de código: fórmula y reglas de supletorio comparadas línea por línea entre el SP eliminado y `calificaciones_mdl.php` ✅
+- Diff completo del `.sql` revisado — ninguna otra sección (CREATE TABLE, seeds) modificada ✅
+- Validación end-to-end indirecta: los scripts curl temporales de los commits `75504eb` y `04ec8b0` (login + pruebas a/b/c) ejecutaron INSERT/UPDATE reales sobre la tabla `calificaciones` de la BD local ya corregida, sin el error de MySQL que producía el SP/trigger — confirma que el DDL corregido permite guardar notas correctamente ✅
+
+---
+
+## [75504eb] — 2026-07-19 — fix: valida sesión, rol y ownership en guardar_nota
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php — case `guardar_nota`: agregada validación de sesión activa, rol y ownership del `grmo_id` al inicio del case, antes de cualquier escritura en `calificaciones`
+
+### Decisiones
+- Criterio de sesión activa idéntico al de `check_session.php`: `isset($_SESSION['usua_id'])` — sin sesión, responde `{"status":"error","message":"Sesión no válida"}`
+- Docente (`role_id === 3`): ownership del `grmo_id` validado con el mismo join ya usado en `listar_grupos` (`gruposmodulos.doce_id → docentes.usua_id`) — si el grupo no le pertenece, responde `{"status":"error","message":"No autorizado para este grupo"}` y no escribe nada
+- Coordinador/Admin (`role_id` 1 o 2): sin restricción de ownership, igual que en `listar_grupos`
+- Cualquier otro rol (ej. `role_id = 4`, estudiante): rechazado con `{"status":"error","message":"Sin autorización"}`, mismo mensaje que ya usa `reportes_mdl.php` para el mismo caso
+- Cierra el ítem de deuda técnica documentado en CLAUDE.md: `guardar_nota` no validaba sesión/rol antes de escribir en BD
+
+### Pruebas realizadas
+- Verificación por script curl temporal (`/tmp/test_guardar_nota.sh`, borrado al terminar): login real contra la BD local + 3 pruebas automatizadas — (a) docente guardando en su grupo propio → PASA; (b) mismo docente con `grmo_id` no autorizado → PASA (mensaje exacto "No autorizado para este grupo"); (c) sin cookies de sesión → PASA (mensaje exacto "Sesión no válida") ✅
+- Valor de prueba escrito en `cali_n1` durante la prueba (a) restaurado manualmente a su valor original tras la verificación ✅
+
+---
+
+## [04ec8b0] — 2026-07-19 — fix: valida sesión, rol y ownership en listar_calificaciones
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php — case `listar_calificaciones`: agregada la misma validación de sesión, rol y ownership aplicada en `guardar_nota` (commit `75504eb`), al inicio del case, sin cambiar la estructura de datos que devuelve la consulta cuando es válida
+
+### Decisiones
+- Mismo criterio exacto que `guardar_nota`: sesión activa vía `isset($_SESSION['usua_id'])`, ownership de docente vía join `gruposmodulos.doce_id → docentes.usua_id`, roles 1/2 sin restricción, cualquier otro rol rechazado con "Sin autorización"
+- Hallazgo detectado como efecto colateral al revisar `guardar_nota`: `listar_calificaciones` exponía la planilla de notas de cualquier `grmo_id` (incluyendo notas de otros docentes) sin ninguna validación de sesión ni rol
+- Con este commit, los 3 cases de `calificaciones_mdl.php` (`listar_grupos`, `guardar_nota`, `listar_calificaciones`) quedan cubiertos por la misma capa de validación
+
+### Pruebas realizadas
+- Verificación por script curl temporal (`/tmp/test_listar_calificaciones.sh`, borrado al terminar): login real contra la BD local + 3 pruebas automatizadas — (a) docente consultando su grupo propio → PASA (`"status":"ok"` con datos); (b) mismo docente con `grmo_id` no autorizado → PASA (mensaje exacto "No autorizado para este grupo"); (c) sin cookies de sesión → PASA (mensaje exacto "Sesión no válida") ✅
+- Prueba de solo lectura — sin escritura en BD, sin necesidad de restaurar datos ✅
+
+---
+
 ## [7755f7c] — 2026-07-05 — botones de descarga PDF en 06_reportes — cierra ítem 2.4
 
 ### Archivos modificados
