@@ -66,8 +66,37 @@ switch ($accion) {
 
     case 'listar_calificaciones':
         try {
+            // Validar sesión activa (mismo criterio que check_session.php)
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+                break;
+            }
+
             $pdo = getConexion();
+            $role_id = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id = (int)($_SESSION['usua_id'] ?? 0);
             $grmo_id = (int)($_POST['grmo_id'] ?? 0);
+
+            if ($role_id === 3) {
+                // Docente: solo puede consultar grupos asignados a él
+                // (mismo criterio de pertenencia que listar_grupos/guardar_nota: docentes.usua_id)
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                // Coordinador/Admin: sin restricción de ownership. Cualquier otro rol (ej. estudiante) → rechazado.
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+
             $stmt = $pdo->prepare("
                 SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
                        c.cali_id,
