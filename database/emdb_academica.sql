@@ -597,13 +597,11 @@ INSERT INTO modulos (prog_id, modu_nombre, modu_sigla, modu_orden) VALUES
   (2, 'Práctica de Laboratorio Integradora', 'MD-PLI',   4);
 
 -- ----- 9.6 Usuario administrador por defecto -----
--- Contraseña: Admin@2026 → hash bcrypt generado con cost=10
+-- Contraseña: Admin@2026 → hash bcrypt generado con cost=12
 -- IMPORTANTE: Cambiar esta contraseña inmediatamente en producción
 -- Para regenerar: php -r "echo password_hash('Admin@2026', PASSWORD_BCRYPT);"
 INSERT INTO usuarios (role_id, usua_email, usua_passwordhash) VALUES
-  (1, 'admin@emdb.edu.co', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
--- Nota: el hash anterior es el hash de 'password' en bcrypt — solo de referencia.
--- En setup real, ejecutar: UPDATE usuarios SET usua_passwordhash=password_hash('Admin@2026', PASSWORD_BCRYPT) WHERE usua_id=1;
+  (1, 'admin@emdb.edu.co', '$2y$12$QT8nad.2sgsm4rbRmCHUcOlyTXuT0kc0ft.BWv6/lwJ3Qo5HY8WiS');
 
 -- =============================================================================
 -- RESTAURAR FOREIGN KEY CHECKS
