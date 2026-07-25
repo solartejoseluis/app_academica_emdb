@@ -4,6 +4,32 @@
 
 ---
 
+## [Unreleased] — 2026-07-25 — migración del entorno de desarrollo local a Docker (Fedora 44)
+
+### Archivos modificados
+- docker-compose.yml — archivo nuevo: define 3 servicios — `app` (build desde `docker/Dockerfile`, imagen base `php:8.5-apache`, puerto 8120→8080, volumen `.:/var/www/html/app_academica_emdb:z`), `db` (`mysql:8.0`, `network_mode: service:app`, puerto 3310→3306, importa `database/emdb_academica.sql` automáticamente vía `/docker-entrypoint-initdb.d`), `phpmyadmin` (puerto 8121→80)
+- docker/Dockerfile — archivo nuevo: PHP 8.5 + Apache, extensiones `pdo_mysql`/`mysqli`/`zip`, Composer instalado, Apache configurado para escuchar en el puerto 8080 interno
+- app/00_connect/pdo.php — modificado: host del DSN cambiado de `localhost` a `127.0.0.1`
+
+### Decisiones
+- Reemplazo del entorno local Windows/XAMPP por Fedora 44/Docker
+- PHP 8.5 elegido para el contenedor `app` (en vez de 8.0) por paridad con producción — el hosting cPanel de `escuelamdb.com` ya corre PHP 8.5
+- Volumen del proyecto montado en `/var/www/html/app_academica_emdb` (no directo en `/var/www/html`) para preservar las rutas absolutas hardcodeadas en `navbar.php` (`/app_academica_emdb/...`), replicando la estructura de subcarpeta que ya usaban XAMPP y producción
+- `db` usa `network_mode: service:app` para compartir red con `app` — por eso `pdo.php` requiere `127.0.0.1` en vez de `localhost`: con red compartida entre contenedores, `localhost` fuerza a PDO a buscar un socket Unix inexistente; `127.0.0.1` fuerza conexión TCP
+- Puertos asignados al proyecto: bloque 8120-8129, según registro centralizado de puertos en `~/proyectos/PUERTOS.md` (fuera del repo)
+- URL de acceso local actualizada a `http://localhost:8120/app_academica_emdb/`
+- Corregida una inconsistencia detectada en las credenciales admin sembradas en `database/emdb_academica.sql`: el hash correspondía realmente a la contraseña `password`, pese a que el comentario del script indicaba `Admin@2026` — credencial admin actualizada a `admin@emdb.edu.co` / `Admin@2026`
+- Alias bash creados en Fedora: `academica` (cd al proyecto), `c` (clear)
+
+### Pruebas realizadas
+- `docker-compose up` levanta los 3 servicios correctamente ✅
+- Aplicación accesible en `http://localhost:8120/app_academica_emdb/` ✅
+- phpMyAdmin accesible en el puerto 8121, conexión a la BD `emdb_academica` verificada ✅
+- Conexión PDO desde `app` hacia `db` funcional tras el cambio de `localhost` a `127.0.0.1` en el DSN ✅
+- Login con credencial admin corregida (`admin@emdb.edu.co` / `Admin@2026`) verificado ✅
+
+---
+
 ## [be827c5] — 2026-07-19 — chore: elimina stubs muertos de Fase 0 y normaliza fin de línea de .gitignore
 
 ### Archivos modificados

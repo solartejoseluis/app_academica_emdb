@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8120:8080"
+      - "3310:3306"
+    volumes:
+      - .:/var/www/html/app_academica_emdb:z
+    restart: unless-stopped
+  db:
+    image: mysql:8.0
+    network_mode: "service:app"
+    depends_on:
+      - app
+    environment:
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: emdb_academica
+    volumes:
+      - db_data:/var/lib/mysql:z
+      - ./database:/docker-entrypoint-initdb.d:z
+    restart: unless-stopped
+  phpmyadmin:
+    image: phpmyadmin:latest
+    depends_on:
+      - app
+    environment:
+      PMA_HOST: app
+    ports:
+      - "8121:80"
+    restart: unless-stopped
+volumes:
+  db_data:

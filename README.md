@@ -11,13 +11,13 @@ Sistema web para la automatización de los procesos de inscripción, matrícula 
 
 | Capa | Tecnología | Versión |
 |---|---|---|
-| Backend | PHP | 8.0 |
+| Backend | PHP | 8.5 |
 | Base de datos | MySQL | 8.0 |
 | Frontend CSS | Bootstrap | 5.3 (CDN) |
 | Frontend JS | jQuery | 3.7 (CDN) |
 | Tablas interactivas | DataTables | 1.13 (CDN) |
 | Generación PDF | dompdf | vía Composer |
-| Servidor local | XAMPP | Apache + PHP + MySQL |
+| Servidor local | Docker (Fedora 44) | PHP 8.5 + Apache + MySQL 8.0 |
 
 ---
 
@@ -25,53 +25,51 @@ Sistema web para la automatización de los procesos de inscripción, matrícula 
 
 ### Requisitos previos
 
-- XAMPP instalado (Apache + PHP 8.0 + MySQL 8.0)
+- Docker y Docker Compose instalados
 - Git
 
 ### Pasos
 
 **1. Clonar el repositorio**
 ```bash
-git clone https://github.com/[usuario]/app_academica_emdb.git C:/xampp/htdocs/app_academica_emdb
+git clone https://github.com/solartejoseluis/app_academica_emdb.git
+cd app_academica_emdb
 ```
 
-**2. Crear la base de datos**
+`docker-compose.yml` y `docker/Dockerfile` ya están incluidos en el repositorio — no hace falta crearlos.
 
-Abrir phpMyAdmin (`http://localhost/phpmyadmin`) y ejecutar el script:
-```
-database/emdb_academica.sql
-```
-
-**3. Configurar la conexión**
-
-El archivo de conexión local ya está configurado en:
-```
-app/00_connect/pdo.php
+**2. Levantar los contenedores**
+```bash
+docker compose up -d --build
 ```
 
-Verificar que los datos coincidan con tu instalación XAMPP:
+Esto construye la imagen `app` (PHP 8.5 + Apache) y levanta los 3 servicios: `app` (aplicación), `db` (MySQL 8.0 — importa `database/emdb_academica.sql` automáticamente en el primer arranque) y `phpmyadmin`.
+
+**3. Instalar dependencias de Composer**
+```bash
+docker compose exec app composer install
+```
+
+**4. Verificar la conexión**
+
+El archivo `app/00_connect/pdo.php` ya está configurado para el entorno Docker:
 ```php
-$host = 'localhost';
+$host = '127.0.0.1';
 $dbname = 'emdb_academica';
 $user = 'root';
 $pass = '';
 ```
 
-**4. Acceder al sistema**
-```
-http://localhost/app_academica_emdb/
-```
+> Se usa `127.0.0.1` en vez de `localhost` — con `network_mode: service:app` en `docker-compose.yml`, `localhost` fuerza a PDO a buscar un socket Unix inexistente entre contenedores.
 
-El sistema redirige automáticamente al login.
-
-**5. Usuario administrador inicial**
-
-Ejecutar el script de datos iniciales:
+**5. Acceder al sistema**
 ```
-database/seeds/datos_iniciales.sql
+http://localhost:8120/app_academica_emdb/
 ```
 
-Esto crea el usuario administrador, los programas ASO y MD, y los módulos de cada programa.
+El sistema redirige automáticamente al login. phpMyAdmin queda disponible en `http://localhost:8121/`.
+
+El usuario administrador inicial ya viene sembrado junto con los datos de configuración (roles, programas ASO y MD, módulos) al importarse `database/emdb_academica.sql`. Para las credenciales, consultar `CLAUDE.md` o solicitarlas al responsable del proyecto.
 
 ---
 

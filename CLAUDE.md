@@ -26,10 +26,17 @@
 
 ## Entorno de desarrollo
 
-- **Local:** XAMPP (Apache + PHP 8.0 + MySQL 8.0) en Windows
-- **Ruta local:** `C:/xampp/htdocs/app_academica_emdb/`
-- **URL local:** `http://localhost/app_academica_emdb/`
-- **Conexión DB local:** `app/00_connect/pdo.php` — versionado en git
+- **Local:** Docker (Fedora 44) — `docker-compose.yml` en la raíz del proyecto, 3 servicios:
+  - `app`: build desde `docker/Dockerfile` (imagen base `php:8.5-apache`), extensiones `pdo_mysql`/`mysqli`/`zip`, Composer instalado, Apache escucha en el puerto 8080 interno. Puerto publicado: `8120→8080`
+  - `db`: `mysql:8.0`, `network_mode: service:app` (comparte red con `app`), puerto publicado `3310→3306`, importa `database/emdb_academica.sql` automáticamente vía `/docker-entrypoint-initdb.d`
+  - `phpmyadmin`: puerto publicado `8121→80`
+- **PHP 8.5** en el contenedor `app` (no 8.0) — paridad con producción: el hosting cPanel de `escuelamdb.com` ya corre PHP 8.5
+- **Ruta local:** volumen montado en `/var/www/html/app_academica_emdb` (no directo en `/var/www/html`) — necesario porque `navbar.php` usa rutas absolutas hardcodeadas tipo `/app_academica_emdb/...`, replicando la estructura de subcarpeta que ya usaban XAMPP y producción
+- **URL local:** `http://localhost:8120/app_academica_emdb/`
+- **Puertos:** bloque `8120-8129` asignado a este proyecto, según registro centralizado en `~/proyectos/PUERTOS.md` (fuera del repo)
+- **Alias bash (Fedora):** `academica` → cd al proyecto; `c` → clear
+- **Entorno anterior (histórico):** desarrollo local originalmente en Windows con XAMPP (Apache + PHP 8.0 + MySQL 8.0), ruta `C:/xampp/htdocs/app_academica_emdb/`, acceso `http://localhost/app_academica_emdb/`. Migrado a Fedora 44/Docker el 2026-07-25.
+- **Conexión DB local:** `app/00_connect/pdo.php` — versionado en git. DSN usa host `127.0.0.1` (no `localhost`) — con `network_mode: service:app`, `localhost` fuerza a PDO a buscar un socket Unix inexistente entre contenedores; `127.0.0.1` fuerza conexión TCP
 - **Conexión DB producción:** `app/00_connect/pdo_web.php` — existe **únicamente en el servidor de producción**. Nunca se versiona en git ni existe en el repo local en ningún momento: el estudiante lo crea y lo mantiene manualmente, directamente en el hosting, porque contiene las credenciales reales de la base de datos de producción. No es un descuido ni algo pendiente de agregar al repositorio — es una decisión deliberada.
 - **Cambio de entorno:** el código siempre hace `require` sobre `pdo.php` (nunca sobre `pdo_web.php` directamente), así que en producción el renombrado ocurre a mano, en el propio servidor: el `pdo.php` que llega por deploy (con credenciales locales) se renombra a `pdo_local.php` para conservarlo, y el `pdo_web.php` ya existente en el servidor (mantenido manualmente, nunca tocado por el deploy) se renombra a `pdo.php` para que la aplicación lo use.
 - **Ambos archivos** usan PDO con `FETCH_ASSOC` y `ERRMODE_EXCEPTION`.

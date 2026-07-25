@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-07-19
-> Versión: 12 — agrega eliminación de stubs muertos de Fase 0 (02_estudiantes, 03_docentes) y normalización de fin de línea de .gitignore
+> Última actualización: 2026-07-25
+> Versión: 13 — migración del entorno de desarrollo local de Windows/XAMPP a Fedora 44/Docker
 
 ---
 
@@ -29,13 +29,16 @@ Estudiantes dependen de WhatsApp para conocer calificaciones. Sin trazabilidad d
 
 ## Stack tecnológico
 
-- PHP 8.0 + MySQL 8.0 + JavaScript ES6 + Bootstrap 5.3 + jQuery 3.7 + DataTables 1.13
+- PHP 8.5 + MySQL 8.0 + JavaScript ES6 + Bootstrap 5.3 + jQuery 3.7 + DataTables 1.13
 - Arquitectura MVC — 3 archivos por módulo: `_view.php` / `_mdl.php` / `_ctrl.js`
-- Servidor local: XAMPP. BD: `emdb_academica`
+- Servidor local: Docker (Fedora 44) — `docker-compose.yml` con 3 servicios: `app` (PHP 8.5 + Apache, build `docker/Dockerfile`, puerto 8120→8080), `db` (`mysql:8.0`, `network_mode: service:app`, puerto 3310→3306, importa `database/emdb_academica.sql` automáticamente), `phpmyadmin` (puerto 8121→80). BD: `emdb_academica`
+- PHP 8.5 en desarrollo (no 8.0) por paridad con producción — el hosting cPanel de `escuelamdb.com` ya corre PHP 8.5
 - Generación PDF: dompdf (Composer). Control versiones: Git + GitHub
 - Repositorio GitHub: `https://github.com/solartejoseluis/app_academica_emdb` (público)
-- Acceso local: `http://localhost/app_academica_emdb`
-- Alias WSL: `academica` → `cd /mnt/c/xampp/htdocs/app_academica_emdb`
+- Acceso local: `http://localhost:8120/app_academica_emdb`
+- Alias bash (Fedora): `academica` → cd al proyecto; `c` → clear
+
+**Entorno anterior (histórico):** desarrollo local originalmente en Windows con XAMPP (Apache + PHP 8.0 + MySQL 8.0), ruta `C:/xampp/htdocs/app_academica_emdb`, alias WSL `academica` → `cd /mnt/c/xampp/htdocs/app_academica_emdb`, acceso `http://localhost/app_academica_emdb`. Migrado a Fedora 44/Docker el 2026-07-25.
 
 ---
 
