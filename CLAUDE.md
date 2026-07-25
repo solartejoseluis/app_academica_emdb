@@ -600,6 +600,7 @@ $sql = "SELECT * FROM estudiantes";
 | Ítem | Detalle |
 |---|---|
 | Exportación Excel incompleta en `06_reportes` | Exportación a Excel en `06_reportes` no incluye datos de curso ni docente — pendiente de revisión (hallazgo del 2026-07-05, no bloqueante). |
+| ~~Auditoría PHP 8.1-8.5~~ (RESUELTO 2026-07-25) | Auditoría estática completa sobre los 22 archivos .php de app/: sin hallazgos (código 100% procedural, sin type hints, conexión BD 100% vía PDO). Prueba en runtime de dompdf (librería de terceros) con `display_errors=1` y `error_reporting=E_ALL`: PDF generado sin ningún warning ni deprecation. Compatibilidad con PHP 8.5 confirmada de punta a punta. |
 
 ---
 
