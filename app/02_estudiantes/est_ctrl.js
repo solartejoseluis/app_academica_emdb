@@ -397,6 +397,8 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.status === 'ok') {
                     bootstrap.Modal.getInstance(document.getElementById('mdl_ficha')).hide();
+                    tablaAspirantes.ajax.reload(null, false);
+                    tablaMatriculados.ajax.reload(null, false);
                     alert('Ficha guardada correctamente.');
                 } else {
                     alert(response.message);
@@ -475,12 +477,15 @@ $(document).ready(function () {
                     orderable: false,
                     width: '240px',
                     render: function (data, type, row) {
+                        const colorFicha = row.tiene_ficha == 1 ? '#28a745' : '#dc3545';
+                        const tituloFicha = row.tiene_ficha == 1 ? 'Ficha completa' : 'Falta diligenciar ficha';
                         return `<button class="btn btn-sm btn-outline-success me-1"
                                         onclick="abrirMatricular(${row.estu_id})">Matricular</button>
                                 <button class="btn btn-sm btn-outline-primary me-1"
                                         onclick="abrirEditar(${row.estu_id})">Editar</button>
-                                <button class="btn btn-sm btn-outline-info"
-                                        onclick="abrirFicha(${row.estu_id})">📋 Ficha</button>`;
+                                <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id})" title="${tituloFicha}">
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
+                                </button>`;
                     }
                 }
             ]
@@ -542,10 +547,13 @@ $(document).ready(function () {
                     orderable: false,
                     width: '160px',
                     render: function (data, type, row) {
+                        const colorFicha = row.tiene_ficha == 1 ? '#28a745' : '#dc3545';
+                        const tituloFicha = row.tiene_ficha == 1 ? 'Ficha completa' : 'Falta diligenciar ficha';
                         return `<button class="btn btn-sm btn-outline-primary me-1"
                                         onclick="abrirEditar(${row.estu_id})">Editar</button>
-                                <button class="btn btn-sm btn-outline-info"
-                                        onclick="abrirFicha(${row.estu_id})">📋 Ficha</button>`;
+                                <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id})" title="${tituloFicha}">
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
+                                </button>`;
                     }
                 }
             ]

@@ -11,9 +11,11 @@ switch ($accion) {
             $pdo = getConexion();
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_telefono,
-                           e.estu_foto, e.fechacreacion
+                           e.estu_foto, e.fechacreacion,
+                           (fi.finc_id IS NOT NULL) AS tiene_ficha
                     FROM estudiantes e
                     LEFT JOIN matriculas m ON e.estu_id = m.estu_id
+                    LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
                     WHERE e.estu_activo = 1
                       AND (m.matr_estado = 'aspirante' OR m.matr_id IS NULL)
                     ORDER BY e.estu_apellidos ASC, e.estu_nombres ASC";
@@ -31,11 +33,13 @@ switch ($accion) {
             $pdo = getConexion();
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_foto,
-                           p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id
+                           p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id,
+                           (fi.finc_id IS NOT NULL) AS tiene_ficha
                     FROM estudiantes e
                     INNER JOIN matriculas m ON e.estu_id = m.estu_id
                     INNER JOIN programas p ON m.prog_id = p.prog_id
                     INNER JOIN periodos pe ON m.peri_id = pe.peri_id
+                    LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
                     WHERE e.estu_activo = 1
                       AND m.matr_estado = 'matriculado'
                     ORDER BY e.estu_apellidos ASC, e.estu_nombres ASC";
