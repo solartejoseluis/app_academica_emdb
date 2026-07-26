@@ -12,6 +12,77 @@ function marcarValidacion($campo) {
     $campo.addClass(valor === '' ? 'is-invalid' : 'is-valid');
 }
 
+// --- Ficha Familiar: campos siempre obligatorios vs. condicionados a Padre/Madre ---
+const CAMPOS_FICHA_SIEMPRE = [
+    '#slct_finc_prog_id', '#npt_jornada', '#npt_fechainscripcion',
+    '#slct_acud_es', '#npt_acud_parentesco', '#npt_acud_nombres', '#npt_acud_apellidos',
+    '#npt_acud_profesion', '#npt_acud_empresa', '#npt_acud_telefono', '#npt_acud_direccion',
+    '#npt_acud_barrio', '#npt_acud_ciudad',
+    '#npt_estudio_tipo', '#npt_estudio_titulo', '#npt_estudio_institucion', '#npt_estudio_aniofin'
+];
+const CAMPOS_FICHA_PADRE = [
+    '#npt_padr_nombres', '#npt_padr_apellidos', '#npt_padr_profesion', '#npt_padr_empresa',
+    '#npt_padr_telefono', '#npt_padr_barrio', '#npt_padr_ciudad', '#npt_padr_direccion'
+];
+const CAMPOS_FICHA_MADRE = [
+    '#npt_madr_nombres', '#npt_madr_apellidos', '#npt_madr_profesion', '#npt_madr_empresa',
+    '#npt_madr_telefono', '#npt_madr_barrio', '#npt_madr_ciudad', '#npt_madr_direccion'
+];
+
+function actualizarVisibilidadPadreMadre() {
+    $('#bloque_padre_campos').toggle($('#npt_padr_vive').is(':checked'));
+    $('#bloque_madre_campos').toggle($('#npt_madr_vive').is(':checked'));
+}
+
+function actualizarSelectAcudiente() {
+    const valorActual = $('#slct_acud_es').val();
+    let opciones = '<option value="">-- Seleccionar --</option>';
+    if ($('#npt_padr_vive').is(':checked')) {
+        opciones += '<option value="padre">Padre</option>';
+    }
+    if ($('#npt_madr_vive').is(':checked')) {
+        opciones += '<option value="madre">Madre</option>';
+    }
+    opciones += '<option value="otro">Otro</option>';
+    $('#slct_acud_es').html(opciones);
+    // Si la selección anterior ya no es válida (la persona dejó de
+    // "vivir"), resetear a vacío y limpiar/habilitar los campos.
+    if ($('#slct_acud_es').find(`option[value="${valorActual}"]`).length) {
+        $('#slct_acud_es').val(valorActual);
+    } else {
+        $('#slct_acud_es').val('');
+        limpiarYHabilitarCamposAcudiente();
+    }
+}
+
+const MAPEO_ACUDIENTE = ['nombres', 'apellidos', 'profesion', 'empresa', 'telefono', 'direccion', 'barrio', 'ciudad'];
+
+function limpiarYHabilitarCamposAcudiente() {
+    MAPEO_ACUDIENTE.forEach(function (campo) {
+        $('#npt_acud_' + campo).val('').prop('readonly', false);
+    });
+}
+
+function manejarCambioAcudiente() {
+    const seleccion = $('#slct_acud_es').val();
+    if (seleccion === 'padre' || seleccion === 'madre') {
+        const prefijo = seleccion === 'padre' ? 'padr' : 'madr';
+        $('#bloque_acud_parentesco').hide();
+        $('#npt_acud_parentesco')
+            .val(seleccion === 'padre' ? 'PADRE' : 'MADRE')
+            .prop('readonly', true);
+        MAPEO_ACUDIENTE.forEach(function (campo) {
+            const valor = $('#npt_' + prefijo + '_' + campo).val();
+            $('#npt_acud_' + campo).val(valor).prop('readonly', true);
+        });
+    } else {
+        $('#bloque_acud_parentesco').show();
+        $('#npt_acud_parentesco').val('').prop('readonly', false);
+        limpiarYHabilitarCamposAcudiente();
+    }
+    marcarValidacion($('#npt_acud_parentesco'));
+}
+
 $(document).ready(function () {
 
     let tablaAspirantes;
@@ -173,8 +244,51 @@ $(document).ready(function () {
         });
     });
 
+    // --- Ficha Familiar: visibilidad Padre/Madre y Acudiente dinámico ---
+    $('#npt_padr_vive, #npt_madr_vive').on('change', function () {
+        actualizarVisibilidadPadreMadre();
+        actualizarSelectAcudiente();
+    });
+    $('#slct_acud_es').on('change', manejarCambioAcudiente);
+
+    // --- Validación visual en vivo: modal Ficha Familiar ---
+    CAMPOS_FICHA_SIEMPRE.concat(CAMPOS_FICHA_PADRE, CAMPOS_FICHA_MADRE)
+        .forEach(function (selector) {
+            $(selector).on('input change blur', function () {
+                marcarValidacion($(this));
+            });
+        });
+
     // --- Guardar ficha familiar (AC-FO-02) ---
     $('#btn_guardar_ficha').click(function () {
+        let camposRequeridos = CAMPOS_FICHA_SIEMPRE.slice();
+        if (!$('#bloque_acud_parentesco').is(':visible')) {
+            camposRequeridos = camposRequeridos.filter(function (selector) {
+                return selector !== '#npt_acud_parentesco';
+            });
+        }
+        if ($('#npt_padr_vive').is(':checked')) {
+            camposRequeridos = camposRequeridos.concat(CAMPOS_FICHA_PADRE);
+        }
+        if ($('#npt_madr_vive').is(':checked')) {
+            camposRequeridos = camposRequeridos.concat(CAMPOS_FICHA_MADRE);
+        }
+
+        let primerCampoVacioFicha = null;
+        camposRequeridos.forEach(function (selector) {
+            let $campo = $(selector);
+            marcarValidacion($campo);
+            if ($campo.hasClass('is-invalid') && primerCampoVacioFicha === null) {
+                primerCampoVacioFicha = $campo;
+            }
+        });
+
+        if (primerCampoVacioFicha !== null) {
+            primerCampoVacioFicha.focus();
+            alert('Por favor complete todos los campos antes de guardar.');
+            return;
+        }
+
         let data = {
             estu_id:              $('#npt_estu_id_ficha').val(),
             prog_id:              $('#slct_finc_prog_id').val(),
@@ -523,7 +637,23 @@ function abrirFicha(estu_id) {
                 $('#npt_estudio_aniofin').val(d.estudio_aniofin);
             }
 
-            new bootstrap.Modal(document.getElementById('mdl_ficha')).show();
+            actualizarVisibilidadPadreMadre();
+            actualizarSelectAcudiente();
+            $('#slct_acud_es').val(d ? d.acud_es : '');
+            manejarCambioAcudiente();
+
+            const modalFicha = document.getElementById('mdl_ficha');
+            if (d) {
+                $(modalFicha).one('shown.bs.modal', function () {
+                    CAMPOS_FICHA_SIEMPRE.concat(CAMPOS_FICHA_PADRE, CAMPOS_FICHA_MADRE)
+                        .forEach(function (selector) {
+                            if ($(selector).is(':visible')) {
+                                marcarValidacion($(selector));
+                            }
+                        });
+                });
+            }
+            new bootstrap.Modal(modalFicha).show();
         }
     });
 }
@@ -565,4 +695,11 @@ function limpiarFormularioFicha() {
     $('#npt_estudio_titulo').val('');
     $('#npt_estudio_institucion').val('');
     $('#npt_estudio_aniofin').val('');
+
+    actualizarVisibilidadPadreMadre();
+    actualizarSelectAcudiente();
+
+    CAMPOS_FICHA_SIEMPRE.concat(CAMPOS_FICHA_PADRE, CAMPOS_FICHA_MADRE).forEach(function (selector) {
+        $(selector).removeClass('is-invalid is-valid');
+    });
 }

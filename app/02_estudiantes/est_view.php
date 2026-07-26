@@ -290,6 +290,14 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             <div class="modal-body">
                 <input type="hidden" id="npt_estu_id_ficha" value="">
 
+                <div class="alert alert-info mb-3">
+                    <strong>Instrucciones:</strong> Diligencie esta ficha con los datos
+                    actualizados del aspirante y su núcleo familiar. Complete todos los
+                    campos visibles — si el padre o la madre no viven, desmarque la
+                    casilla correspondiente y esos campos se ocultarán automáticamente.
+                    Al finalizar, pulse "Guardar Ficha".
+                </div>
+
                 <h6 class="text-muted border-bottom pb-2 mb-2">Información general</h6>
                 <div class="row mb-3">
                     <div class="col-md-4">
@@ -300,7 +308,11 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Jornada</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_jornada" autocomplete="off">
+                        <select class="form-select" id="npt_jornada">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="SEMANA">Semana</option>
+                            <option value="SABADOS">Sábados</option>
+                        </select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Fecha de inscripción</label>
@@ -316,6 +328,8 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                             <label class="form-check-label" for="npt_padr_vive">¿Vive?</label>
                         </div>
                     </div>
+                </div>
+                <div id="bloque_padre_campos" class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nombres</label>
                         <input type="text" class="form-control texto-mayus" id="npt_padr_nombres" autocomplete="off">
@@ -358,6 +372,8 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                             <label class="form-check-label" for="npt_madr_vive">¿Vive?</label>
                         </div>
                     </div>
+                </div>
+                <div id="bloque_madre_campos" class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nombres</label>
                         <input type="text" class="form-control texto-mayus" id="npt_madr_nombres" autocomplete="off">
@@ -403,7 +419,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                             <option value="otro">Otro</option>
                         </select>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 mb-3" id="bloque_acud_parentesco">
                         <label class="form-label">Parentesco</label>
                         <input type="text" class="form-control texto-mayus" id="npt_acud_parentesco" autocomplete="off">
                     </div>
@@ -442,6 +458,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
 
                 <h6 class="text-muted border-bottom pb-2 mb-2">Estudios anteriores</h6>
+                <p class="text-muted small">Escriba la última certificación que ha
+                    recibido, en una institución formal (bachiller, técnico,
+                    universitario, etc.).</p>
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Tipo</label>
