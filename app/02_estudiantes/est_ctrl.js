@@ -12,6 +12,16 @@ function marcarValidacion($campo) {
     $campo.addClass(valor === '' ? 'is-invalid' : 'is-valid');
 }
 
+function validarFormatoEmail($campo) {
+    const valor = ($campo.val() || '').trim();
+    $campo.removeClass('is-invalid is-valid');
+    if (valor === '' || valor.indexOf('@') === -1) {
+        $campo.addClass('is-invalid');
+    } else {
+        $campo.addClass('is-valid');
+    }
+}
+
 // --- Ficha Familiar: campos siempre obligatorios vs. condicionados a Padre/Madre ---
 const CAMPOS_FICHA_SIEMPRE = [
     '#slct_finc_prog_id', '#npt_jornada', '#npt_fechainscripcion',
@@ -101,7 +111,11 @@ $(document).ready(function () {
     // --- Validación visual en vivo: modal Nuevo Aspirante / Editar Estudiante ---
     CAMPOS_ESTUDIANTE.forEach(function (selector) {
         $(selector).on('input change blur', function () {
-            marcarValidacion($(this));
+            if (selector === '#npt_estu_email') {
+                validarFormatoEmail($(this));
+            } else {
+                marcarValidacion($(this));
+            }
         });
     });
 
@@ -109,6 +123,14 @@ $(document).ready(function () {
     $('#npt_estu_numerodoc').on('input', function () {
         let soloDigitos = $(this).val().replace(/\D/g, '');
         $(this).val(soloDigitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
+    });
+
+    // --- Minúsculas forzadas en vivo: correo electrónico ---
+    $('#npt_estu_email').on('input', function () {
+        const inicio = this.selectionStart;
+        const fin = this.selectionEnd;
+        $(this).val($(this).val().toLowerCase());
+        this.setSelectionRange(inicio, fin);
     });
 
     // --- Nuevo aspirante ---
@@ -124,7 +146,11 @@ $(document).ready(function () {
 
         CAMPOS_ESTUDIANTE.forEach(function (selector) {
             let $campo = $(selector);
-            marcarValidacion($campo);
+            if (selector === '#npt_estu_email') {
+                validarFormatoEmail($campo);
+            } else {
+                marcarValidacion($campo);
+            }
             if ($campo.hasClass('is-invalid') && primerCampoVacio === null) {
                 primerCampoVacio = $campo;
             }
@@ -566,7 +592,11 @@ function abrirEditar(estu_id) {
                 $('#npt_estu_eps').val(d.estu_eps);
 
                 CAMPOS_ESTUDIANTE.forEach(function (selector) {
-                    marcarValidacion($(selector));
+                    if (selector === '#npt_estu_email') {
+                        validarFormatoEmail($(selector));
+                    } else {
+                        marcarValidacion($(selector));
+                    }
                 });
 
                 $('#mdl_estudiante_titulo').text('Editar Estudiante');
