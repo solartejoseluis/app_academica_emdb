@@ -2,3 +2,4 @@ vendor/
 .claude/settings.local.json 
 vendor/ 
 .claude/settings.local.json 
+app/00_connect/recaptcha_config.php
