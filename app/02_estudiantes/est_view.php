@@ -372,7 +372,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Ficha Familiar (AC-FO-02)</h5>
+                <div>
+                    <h5 class="modal-title mb-0">Ficha Familiar (AC-FO-02)</h5>
+                    <div class="text-muted small" id="ficha_nombre_estudiante"></div>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -570,7 +573,6 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-outline-danger" id="btn_descargar_ficha_pdf">📄 Descargar PDF</button>
                 <button type="button" class="btn btn-primary" id="btn_guardar_ficha">Guardar Ficha</button>
             </div>
         </div>

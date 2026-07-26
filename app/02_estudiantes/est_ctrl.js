@@ -435,16 +435,6 @@ $(document).ready(function () {
         });
     });
 
-    // --- Descargar PDF de la ficha familiar ---
-    $('#btn_descargar_ficha_pdf').click(function () {
-        let estu_id = $('#npt_estu_id_ficha').val();
-        if (!estu_id) {
-            alert('Seleccione un estudiante primero.');
-            return;
-        }
-        window.open('../06_reportes/pdf_ficha.php?estu_id=' + estu_id, '_blank');
-    });
-
     // --- Cerrar y actualizar lista (tras mostrar clave) ---
     $('#btn_cerrar_matricula').click(function () {
         bootstrap.Modal.getInstance(document.getElementById('mdl_matricular')).hide();
@@ -513,17 +503,20 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
-                    width: '240px',
+                    width: '300px',
                     render: function (data, type, row) {
                         const colorFicha = row.tiene_ficha == 1 ? '#28a745' : '#dc3545';
                         const tituloFicha = row.tiene_ficha == 1 ? 'Ficha completa' : 'Falta diligenciar ficha';
+                        const botonPdf = row.tiene_ficha == 1
+                            ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
+                            : '';
                         return `<button class="btn btn-sm btn-outline-success me-1"
                                         onclick="abrirMatricular(${row.estu_id})">Matricular</button>
                                 <button class="btn btn-sm btn-outline-primary me-1"
                                         onclick="abrirEditar(${row.estu_id})">Editar</button>
-                                <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id})" title="${tituloFicha}">
+                                <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
-                                </button>`;
+                                </button>${botonPdf}`;
                     }
                 }
             ]
@@ -583,15 +576,18 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
-                    width: '160px',
+                    width: '200px',
                     render: function (data, type, row) {
                         const colorFicha = row.tiene_ficha == 1 ? '#28a745' : '#dc3545';
                         const tituloFicha = row.tiene_ficha == 1 ? 'Ficha completa' : 'Falta diligenciar ficha';
+                        const botonPdf = row.tiene_ficha == 1
+                            ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
+                            : '';
                         return `<button class="btn btn-sm btn-outline-primary me-1"
                                         onclick="abrirEditar(${row.estu_id})">Editar</button>
-                                <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id})" title="${tituloFicha}">
+                                <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
-                                </button>`;
+                                </button>${botonPdf}`;
                     }
                 }
             ]
@@ -766,7 +762,12 @@ function abrirMatricular(estu_id) {
     new bootstrap.Modal(document.getElementById('mdl_matricular')).show();
 }
 
-function abrirFicha(estu_id) {
+function descargarFichaPdf(estu_id) {
+    window.open('../06_reportes/pdf_ficha.php?estu_id=' + estu_id, '_blank');
+}
+
+function abrirFicha(estu_id, nombreCompleto) {
+    $('#ficha_nombre_estudiante').text(nombreCompleto || '');
     $.ajax({
         type: 'POST',
         url: 'est_mdl.php?accion=obtener_ficha',

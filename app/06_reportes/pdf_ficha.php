@@ -290,6 +290,8 @@ $options->set('chroot', realpath(__DIR__ . '/../../'));
 
 $dompdf = new Dompdf($options);
 $dompdf->loadHtml($html);
-$dompdf->setPaper('letter', 'portrait');
+// Oficio Colombia: mismo ancho que Carta (21.59cm = 612pt),
+// alto de 33cm = 935.43pt
+$dompdf->setPaper([0, 0, 612, 935.43], 'portrait');
 $dompdf->render();
 $dompdf->stream($nombreArchivo, ['Attachment' => true]);
