@@ -100,11 +100,18 @@ switch ($accion) {
         $estu_barrio     = strtoupper(trim($_POST['estu_barrio'] ?? ''));
         $estu_estrato    = trim($_POST['estu_estrato'] ?? '');
         $estu_eps        = strtoupper(trim($_POST['estu_eps'] ?? ''));
+        $estu_expedidoen        = strtoupper(trim($_POST['estu_expedidoen'] ?? ''));
+        $estu_ciudadnac         = strtoupper(trim($_POST['estu_ciudadnac'] ?? ''));
+        $estu_ocupacion         = strtoupper(trim($_POST['estu_ocupacion'] ?? ''));
+        $estu_estadocivil       = trim($_POST['estu_estadocivil'] ?? '');
+        $estu_discapacidad      = trim($_POST['estu_discapacidad'] ?? '');
+        $estu_multiculturalidad = trim($_POST['estu_multiculturalidad'] ?? '');
 
         if ($estu_tipodoc === '' || $estu_numerodoc === '' || $estu_nombres === '' || $estu_apellidos === ''
             || $fechanacimiento === '' || $estu_sexo === '' || $estu_telefono === '' || $estu_email === ''
             || $estu_ciudad === '' || $estu_direccion === '' || $estu_barrio === '' || $estu_estrato === ''
-            || $estu_eps === '') {
+            || $estu_eps === '' || $estu_expedidoen === '' || $estu_ciudadnac === '' || $estu_ocupacion === ''
+            || $estu_estadocivil === '' || $estu_discapacidad === '' || $estu_multiculturalidad === '') {
             echo json_encode(['status' => 'error', 'message' => 'Todos los campos son requeridos']);
             break;
         }
@@ -125,13 +132,17 @@ switch ($accion) {
                     "INSERT INTO estudiantes
                         (estu_tipodoc, estu_numerodoc, estu_nombres, estu_apellidos,
                          fechanacimiento, estu_sexo, estu_telefono, estu_email,
-                         estu_ciudad, estu_direccion, estu_barrio, estu_estrato, estu_eps)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                         estu_ciudad, estu_direccion, estu_barrio, estu_estrato, estu_eps,
+                         estu_expedidoen, estu_ciudadnac, estu_ocupacion,
+                         estu_estadocivil, estu_discapacidad, estu_multiculturalidad)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 );
                 $stmt->execute([
                     $estu_tipodoc, $estu_numerodoc, $estu_nombres, $estu_apellidos,
                     $fechanacimiento, $estu_sexo, $estu_telefono, $estu_email,
-                    $estu_ciudad, $estu_direccion, $estu_barrio, $estu_estrato, $estu_eps
+                    $estu_ciudad, $estu_direccion, $estu_barrio, $estu_estrato, $estu_eps,
+                    $estu_expedidoen, $estu_ciudadnac, $estu_ocupacion,
+                    $estu_estadocivil, $estu_discapacidad, $estu_multiculturalidad
                 ]);
                 $pdo->commit();
                 echo json_encode(['status' => 'ok', 'rows' => 1]);
@@ -151,13 +162,17 @@ switch ($accion) {
                     "UPDATE estudiantes
                      SET estu_tipodoc = ?, estu_numerodoc = ?, estu_nombres = ?, estu_apellidos = ?,
                          fechanacimiento = ?, estu_sexo = ?, estu_telefono = ?, estu_email = ?,
-                         estu_ciudad = ?, estu_direccion = ?, estu_barrio = ?, estu_estrato = ?, estu_eps = ?
+                         estu_ciudad = ?, estu_direccion = ?, estu_barrio = ?, estu_estrato = ?, estu_eps = ?,
+                         estu_expedidoen = ?, estu_ciudadnac = ?, estu_ocupacion = ?,
+                         estu_estadocivil = ?, estu_discapacidad = ?, estu_multiculturalidad = ?
                      WHERE estu_id = ?"
                 );
                 $stmt->execute([
                     $estu_tipodoc, $estu_numerodoc, $estu_nombres, $estu_apellidos,
                     $fechanacimiento, $estu_sexo, $estu_telefono, $estu_email,
                     $estu_ciudad, $estu_direccion, $estu_barrio, $estu_estrato, $estu_eps,
+                    $estu_expedidoen, $estu_ciudadnac, $estu_ocupacion,
+                    $estu_estadocivil, $estu_discapacidad, $estu_multiculturalidad,
                     $estu_id_int
                 ]);
                 $pdo->commit();
@@ -185,7 +200,9 @@ switch ($accion) {
             $stmt = $pdo->prepare(
                 "SELECT estu_id, estu_tipodoc, estu_numerodoc, estu_nombres, estu_apellidos,
                         fechanacimiento, estu_sexo, estu_telefono, estu_email,
-                        estu_ciudad, estu_direccion, estu_barrio, estu_estrato, estu_eps, estu_foto
+                        estu_ciudad, estu_direccion, estu_barrio, estu_estrato, estu_eps, estu_foto,
+                        estu_expedidoen, estu_ciudadnac, estu_ocupacion,
+                        estu_estadocivil, estu_discapacidad, estu_multiculturalidad
                  FROM estudiantes
                  WHERE estu_id = ?"
             );

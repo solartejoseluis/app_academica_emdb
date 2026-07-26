@@ -172,7 +172,7 @@ CREATE TABLE estudiantes (
   estu_estadocivil     VARCHAR(20)       DEFAULT NULL,
   estu_eps             VARCHAR(80)       DEFAULT NULL,
   estu_discapacidad    VARCHAR(80)       DEFAULT NULL,
-  estu_multiculturalidad VARCHAR(60)     DEFAULT NULL,
+  estu_multiculturalidad VARCHAR(150)    DEFAULT NULL,
   estu_activo          TINYINT(1)        NOT NULL DEFAULT 1,
   estu_foto            VARCHAR(255)      DEFAULT NULL,
   fechacreacion        TIMESTAMP         DEFAULT current_timestamp(),

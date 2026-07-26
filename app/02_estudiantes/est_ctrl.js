@@ -3,7 +3,9 @@
 const CAMPOS_ESTUDIANTE = [
     '#slct_estu_tipodoc', '#npt_estu_numerodoc', '#npt_estu_nombres', '#npt_estu_apellidos',
     '#npt_fechanacimiento', '#slct_estu_sexo', '#npt_estu_telefono', '#npt_estu_email',
-    '#npt_estu_ciudad', '#npt_estu_direccion', '#npt_estu_barrio', '#slct_estu_estrato', '#npt_estu_eps'
+    '#npt_estu_ciudad', '#npt_estu_direccion', '#npt_estu_barrio', '#slct_estu_estrato', '#npt_estu_eps',
+    '#npt_estu_expedidoen', '#npt_estu_ciudadnac', '#npt_estu_ocupacion',
+    '#slct_estu_estadocivil', '#slct_estu_discapacidad'
 ];
 
 function marcarValidacion($campo) {
@@ -133,6 +135,18 @@ $(document).ready(function () {
         this.setSelectionRange(inicio, fin);
     });
 
+    // --- Multiculturalidad: exclusión mutua "No aplica" vs. el resto ---
+    $('#chk_multi_no_aplica').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('.chk-multicultural').not(this).prop('checked', false);
+        }
+    });
+    $('.chk-multicultural').not('#chk_multi_no_aplica').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('#chk_multi_no_aplica').prop('checked', false);
+        }
+    });
+
     // --- Nuevo aspirante ---
     $('#btn_nuevo_aspirante').click(function () {
         limpiarFormulario();
@@ -156,8 +170,16 @@ $(document).ready(function () {
             }
         });
 
+        let multiculturalidadValida = $('.chk-multicultural:checked').length > 0;
+        $('#lbl_multiculturalidad').toggleClass('text-danger', !multiculturalidadValida);
+
         if (primerCampoVacio !== null) {
             primerCampoVacio.focus();
+            alert('Por favor complete todos los campos antes de guardar.');
+            return;
+        }
+
+        if (!multiculturalidadValida) {
             alert('Por favor complete todos los campos antes de guardar.');
             return;
         }
@@ -181,7 +203,13 @@ $(document).ready(function () {
             estu_direccion: $('#npt_estu_direccion').val().trim(),
             estu_barrio:    $('#npt_estu_barrio').val().trim(),
             estu_estrato:   $('#slct_estu_estrato').val(),
-            estu_eps:       $('#npt_estu_eps').val().trim()
+            estu_eps:       $('#npt_estu_eps').val().trim(),
+            estu_expedidoen:        $('#npt_estu_expedidoen').val().trim(),
+            estu_ciudadnac:         $('#npt_estu_ciudadnac').val().trim(),
+            estu_ocupacion:         $('#npt_estu_ocupacion').val().trim(),
+            estu_estadocivil:       $('#slct_estu_estadocivil').val(),
+            estu_discapacidad:      $('#slct_estu_discapacidad').val(),
+            estu_multiculturalidad: obtenerMulticulturalidad()
         };
 
         $.ajax({
@@ -624,6 +652,15 @@ $(document).ready(function () {
         $('#npt_estu_barrio').val('');
         $('#slct_estu_estrato').val('');
         $('#npt_estu_eps').val('');
+        $('#npt_estu_expedidoen').val('');
+        $('#npt_estu_ciudadnac').val('');
+        $('#npt_estu_ocupacion').val('');
+        $('#slct_estu_estadocivil').val('');
+        $('#slct_estu_discapacidad').val('9) NO APLICA');
+
+        $('.chk-multicultural').prop('checked', false);
+        $('#chk_multi_no_aplica').prop('checked', true);
+        $('#lbl_multiculturalidad').removeClass('text-danger');
 
         CAMPOS_ESTUDIANTE.forEach(function (selector) {
             $(selector).removeClass('is-invalid is-valid');
@@ -632,6 +669,14 @@ $(document).ready(function () {
         $('#bloque_foto_estudiante').addClass('d-none');
         $('#img_preview_foto').attr('src', '').addClass('d-none');
         $('#npt_foto_estudiante').val('');
+    }
+
+    function obtenerMulticulturalidad() {
+        let seleccionadas = [];
+        $('.chk-multicultural:checked').each(function () {
+            seleccionadas.push($(this).data('valor'));
+        });
+        return seleccionadas.join(',');
     }
 });
 
@@ -659,6 +704,25 @@ function abrirEditar(estu_id) {
                 $('#npt_estu_barrio').val(d.estu_barrio);
                 $('#slct_estu_estrato').val(d.estu_estrato);
                 $('#npt_estu_eps').val(d.estu_eps);
+                $('#npt_estu_expedidoen').val(d.estu_expedidoen);
+                $('#npt_estu_ciudadnac').val(d.estu_ciudadnac);
+                $('#npt_estu_ocupacion').val(d.estu_ocupacion);
+                $('#slct_estu_estadocivil').val(d.estu_estadocivil);
+                $('#slct_estu_discapacidad').val(d.estu_discapacidad);
+
+                let multi = (d.estu_multiculturalidad || '')
+                    .split(',')
+                    .map(function (v) { return v.trim(); })
+                    .filter(function (v) { return v !== ''; });
+                $('.chk-multicultural').prop('checked', false);
+                if (multi.length === 0) {
+                    $('#chk_multi_no_aplica').prop('checked', true);
+                } else {
+                    multi.forEach(function (valor) {
+                        $('.chk-multicultural[data-valor="' + valor + '"]').prop('checked', true);
+                    });
+                }
+                $('#lbl_multiculturalidad').removeClass('text-danger');
 
                 CAMPOS_ESTUDIANTE.forEach(function (selector) {
                     if (selector === '#npt_estu_email') {
