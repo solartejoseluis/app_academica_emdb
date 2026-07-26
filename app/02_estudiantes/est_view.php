@@ -570,6 +570,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-outline-danger" id="btn_descargar_ficha_pdf">📄 Descargar PDF</button>
                 <button type="button" class="btn btn-primary" id="btn_guardar_ficha">Guardar Ficha</button>
             </div>
         </div>

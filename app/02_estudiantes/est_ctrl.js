@@ -435,6 +435,16 @@ $(document).ready(function () {
         });
     });
 
+    // --- Descargar PDF de la ficha familiar ---
+    $('#btn_descargar_ficha_pdf').click(function () {
+        let estu_id = $('#npt_estu_id_ficha').val();
+        if (!estu_id) {
+            alert('Seleccione un estudiante primero.');
+            return;
+        }
+        window.open('../06_reportes/pdf_ficha.php?estu_id=' + estu_id, '_blank');
+    });
+
     // --- Cerrar y actualizar lista (tras mostrar clave) ---
     $('#btn_cerrar_matricula').click(function () {
         bootstrap.Modal.getInstance(document.getElementById('mdl_matricular')).hide();
