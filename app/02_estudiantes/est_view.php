@@ -54,6 +54,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <table id="tbl_aspirantes" class="table table-hover table-bordered w-100">
                         <thead class="table-dark">
                             <tr>
+                                <th>Foto</th>
                                 <th>#</th>
                                 <th>Nombres</th>
                                 <th>Apellidos</th>
@@ -74,6 +75,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <table id="tbl_matriculados" class="table table-hover table-bordered w-100">
                         <thead class="table-dark">
                             <tr>
+                                <th>Foto</th>
                                 <th>#</th>
                                 <th>Nombres</th>
                                 <th>Apellidos</th>
@@ -102,6 +104,16 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             </div>
             <div class="modal-body">
                 <input type="hidden" id="npt_estu_id" value="">
+
+                <div id="bloque_foto_estudiante" class="mb-3 d-none">
+                    <label class="form-label d-block">Foto del estudiante</label>
+                    <img id="img_preview_foto" src="" alt="Foto del estudiante" class="d-none mb-2" style="max-width:120px;max-height:150px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="file" class="form-control form-control-sm" id="npt_foto_estudiante" accept="image/jpeg,image/png" style="max-width:300px;">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btn_subir_foto">Subir Foto</button>
+                    </div>
+                </div>
+
                 <h6 class="text-muted border-bottom pb-2 mb-3">Datos del Estudiante</h6>
                 <div class="row">
                     <div class="col-md-4 mb-3">

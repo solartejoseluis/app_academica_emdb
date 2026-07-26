@@ -11,7 +11,7 @@ switch ($accion) {
             $pdo = getConexion();
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_telefono,
-                           e.fechacreacion
+                           e.estu_foto, e.fechacreacion
                     FROM estudiantes e
                     LEFT JOIN matriculas m ON e.estu_id = m.estu_id
                     WHERE e.estu_activo = 1
@@ -30,7 +30,7 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
-                           e.estu_tipodoc, e.estu_numerodoc,
+                           e.estu_tipodoc, e.estu_numerodoc, e.estu_foto,
                            p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id
                     FROM estudiantes e
                     INNER JOIN matriculas m ON e.estu_id = m.estu_id
@@ -181,7 +181,7 @@ switch ($accion) {
             $stmt = $pdo->prepare(
                 "SELECT estu_id, estu_tipodoc, estu_numerodoc, estu_nombres, estu_apellidos,
                         fechanacimiento, estu_sexo, estu_telefono, estu_email,
-                        estu_ciudad, estu_direccion, estu_barrio, estu_estrato, estu_eps
+                        estu_ciudad, estu_direccion, estu_barrio, estu_estrato, estu_eps, estu_foto
                  FROM estudiantes
                  WHERE estu_id = ?"
             );
@@ -493,6 +493,94 @@ switch ($accion) {
                 $pdo->rollBack();
             }
             echo json_encode(['status' => 'error', 'message' => 'Error al guardar la ficha']);
+        }
+        break;
+
+    case 'subir_foto':
+        $estu_id = (int)($_POST['estu_id'] ?? 0);
+
+        if ($estu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de estudiante inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+            $check = $pdo->prepare("SELECT estu_id FROM estudiantes WHERE estu_id = ?");
+            $check->execute([$estu_id]);
+            if (!$check->fetch()) {
+                echo json_encode(['status' => 'error', 'message' => 'Estudiante no encontrado']);
+                break;
+            }
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al verificar el estudiante']);
+            break;
+        }
+
+        if (!isset($_FILES['foto']) || $_FILES['foto']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['status' => 'error', 'message' => 'No se recibió ningún archivo válido']);
+            break;
+        }
+
+        if ($_FILES['foto']['size'] > 5 * 1024 * 1024) {
+            echo json_encode(['status' => 'error', 'message' => 'La imagen no debe superar 5MB']);
+            break;
+        }
+
+        $rutaTemporal = $_FILES['foto']['tmp_name'];
+        $info = @getimagesize($rutaTemporal);
+
+        if ($info === false || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'El archivo no es una imagen JPEG o PNG válida']);
+            break;
+        }
+
+        $anchoOriginal = $info[0];
+        $altoOriginal  = $info[1];
+
+        $origen = ($info[2] === IMAGETYPE_JPEG)
+            ? @imagecreatefromjpeg($rutaTemporal)
+            : @imagecreatefrompng($rutaTemporal);
+
+        if ($origen === false) {
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo procesar la imagen']);
+            break;
+        }
+
+        $maxMayor = 500;
+        $maxMenor = 400;
+
+        $ladoMayorOriginal = max($anchoOriginal, $altoOriginal);
+        $ladoMenorOriginal = min($anchoOriginal, $altoOriginal);
+        $escala = min($maxMayor / $ladoMayorOriginal, $maxMenor / $ladoMenorOriginal, 1);
+
+        $anchoFinal = max(1, (int)round($anchoOriginal * $escala));
+        $altoFinal  = max(1, (int)round($altoOriginal * $escala));
+
+        $lienzo = imagecreatetruecolor($anchoFinal, $altoFinal);
+        $blanco = imagecolorallocate($lienzo, 255, 255, 255);
+        imagefill($lienzo, 0, 0, $blanco);
+        imagecopyresampled(
+            $lienzo, $origen,
+            0, 0, 0, 0,
+            $anchoFinal, $altoFinal, $anchoOriginal, $altoOriginal
+        );
+
+        $nombreArchivo = $estu_id . '.jpg';
+        $rutaDestino   = __DIR__ . '/../../uploads/fotos_estudiantes/' . $nombreArchivo;
+        $guardado      = imagejpeg($lienzo, $rutaDestino, 80);
+
+        if (!$guardado) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al guardar la imagen procesada']);
+            break;
+        }
+
+        try {
+            $pdo->prepare("UPDATE estudiantes SET estu_foto = ? WHERE estu_id = ?")
+                ->execute([$nombreArchivo, $estu_id]);
+            echo json_encode(['status' => 'ok', 'foto' => $nombreArchivo]);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al actualizar la foto en la base de datos']);
         }
         break;
 

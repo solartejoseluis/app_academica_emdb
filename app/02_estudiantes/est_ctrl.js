@@ -201,6 +201,41 @@ $(document).ready(function () {
         });
     });
 
+    // --- Subir foto del estudiante (petición propia, fuera del guardado general) ---
+    $('#btn_subir_foto').click(function () {
+        let archivo = $('#npt_foto_estudiante')[0].files[0];
+        if (!archivo) {
+            alert('Seleccione una imagen primero.');
+            return;
+        }
+        let formData = new FormData();
+        formData.append('estu_id', $('#npt_estu_id').val());
+        formData.append('foto', archivo);
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=subir_foto',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    $('#img_preview_foto')
+                        .attr('src', '../../uploads/fotos_estudiantes/' + response.foto)
+                        .removeClass('d-none');
+                    alert('Foto actualizada correctamente.');
+                    tablaAspirantes.ajax.reload(null, false);
+                    tablaMatriculados.ajax.reload(null, false);
+                } else {
+                    alert(response.message);
+                }
+            },
+            error: function () {
+                alert('Error al subir la foto.');
+            }
+        });
+    });
+
     // --- Radio tipo_acceso ---
     $('input[name="tipo_acceso"]').change(function () {
         if ($(this).val() === 'manual') {
@@ -408,6 +443,17 @@ $(document).ready(function () {
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
             columns: [
                 {
+                    data: 'estu_foto',
+                    orderable: false,
+                    width: '50px',
+                    render: function (data, type, row) {
+                        let src = data
+                            ? '../../uploads/fotos_estudiantes/' + data
+                            : 'https://via.placeholder.com/40x50?text=%20';
+                        return `<img src="${src}" style="width:40px;height:50px;object-fit:cover;border-radius:4px;">`;
+                    }
+                },
+                {
                     data: null,
                     orderable: false,
                     width: '40px',
@@ -449,6 +495,17 @@ $(document).ready(function () {
             destroy: true,
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
             columns: [
+                {
+                    data: 'estu_foto',
+                    orderable: false,
+                    width: '50px',
+                    render: function (data, type, row) {
+                        let src = data
+                            ? '../../uploads/fotos_estudiantes/' + data
+                            : 'https://via.placeholder.com/40x50?text=%20';
+                        return `<img src="${src}" style="width:40px;height:50px;object-fit:cover;border-radius:4px;">`;
+                    }
+                },
                 {
                     data: null,
                     orderable: false,
@@ -563,6 +620,10 @@ $(document).ready(function () {
         CAMPOS_ESTUDIANTE.forEach(function (selector) {
             $(selector).removeClass('is-invalid is-valid');
         });
+
+        $('#bloque_foto_estudiante').addClass('d-none');
+        $('#img_preview_foto').attr('src', '').addClass('d-none');
+        $('#npt_foto_estudiante').val('');
     }
 });
 
@@ -598,6 +659,16 @@ function abrirEditar(estu_id) {
                         marcarValidacion($(selector));
                     }
                 });
+
+                $('#bloque_foto_estudiante').removeClass('d-none');
+                $('#npt_foto_estudiante').val('');
+                if (d.estu_foto) {
+                    $('#img_preview_foto')
+                        .attr('src', '../../uploads/fotos_estudiantes/' + d.estu_foto)
+                        .removeClass('d-none');
+                } else {
+                    $('#img_preview_foto').attr('src', '').addClass('d-none');
+                }
 
                 $('#mdl_estudiante_titulo').text('Editar Estudiante');
                 new bootstrap.Modal(document.getElementById('mdl_estudiante')).show();
