@@ -4,7 +4,159 @@
 
 ---
 
-## [Unreleased] — 2026-07-25 — migración del entorno de desarrollo local a Docker (Fedora 44)
+## [dc18116] — 2026-07-26 — feat: nombre del estudiante en modal Ficha y tamaño Oficio en el PDF
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js — encabezado de `mdl_ficha` ahora muestra el nombre completo del estudiante, pasado desde la fila de la tabla (`row.estu_nombres`/`estu_apellidos`) sin depender de una consulta adicional al servidor; botón de descarga de PDF trasladado de dentro del modal Ficha hacia la columna Acciones de las tablas Aspirantes/Matriculados, visible solo cuando `tiene_ficha=1` (ícono impresora + PDF); eliminada la limpieza redundante del nombre en `limpiarFormularioFicha()`
+- app/02_estudiantes/est_view.php — marcado ajustado para el botón de descarga de PDF reubicado en la columna Acciones
+- app/06_reportes/pdf_ficha.php — tamaño de página cambiado de Carta a Oficio Colombia vertical (mismo ancho 612pt, alto 935.43pt = 33cm) vía arreglo de coordenadas explícito en `setPaper()`
+
+### Decisiones
+- Nombre del estudiante se obtiene de los datos ya cargados en la fila de la tabla, evitando una consulta adicional al servidor solo para mostrar el encabezado del modal
+- Botón de descarga de PDF movido del modal a la columna Acciones — visible únicamente cuando la ficha ya existe (`tiene_ficha=1`)
+
+### Bug corregido
+- `limpiarFormularioFicha()` sobrescribía el nombre recién fijado por `abrirFicha()`, porque se ejecuta después dentro del callback AJAX — se eliminó la limpieza redundante de ese campo
+
+---
+
+## [15021e0] — 2026-07-26 — feat: descarga en PDF de la Ficha Familiar (AC-FO-02) con foto del estudiante
+
+### Archivos modificados
+- app/06_reportes/pdf_ficha.php — archivo nuevo: replica el diseño del formato oficial AC-FO-02 (datos del estudiante, padre, madre, acudiente, estudios anteriores, líneas de firma, pie con programa/fecha/jornada)
+- app/02_estudiantes/est_ctrl.js — botón Descargar PDF agregado al modal de Ficha Familiar, mismo patrón `window.open()` que ya usan `pdf_boletin.php` y `pdf_grupo.php`
+- app/02_estudiantes/est_view.php — marcado del botón de descarga en el modal de Ficha Familiar
+
+### Decisiones
+- Acceso restringido a roles 1 y 2 (mismo patrón que `pdf_grupo.php`)
+- Consulta con LEFT JOIN `fichas_inscripcion` para que aspirantes sin ficha diligenciada aún generen el PDF, con esas secciones en blanco
+
+### Bug corregido
+- `colspan` mixto en las tablas de Estudiante/Padre/Madre/Acudiente causaba "Frame not found in cellmap" en Dompdf — se reemplazó por celdas físicas vacías para mantener el mismo número de `<td>` por fila en cada tabla
+- `display:table-cell` en un `div` anidado dentro de un `td` real también causaba el mismo error — se removió, ya que el `td` que lo envuelve ya cumple esa función
+- Dompdf restringe la lectura de archivos locales al chroot por defecto (su propia carpeta `vendor/`), lo que bloqueaba silenciosamente la foto sin lanzar excepción — se configuró el chroot a la raíz del proyecto
+
+---
+
+## [8fe6c99] — 2026-07-26 — feat: agrega 6 campos faltantes del formato AC-FO-02 al modal Nuevo Aspirante
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php — nuevos campos: Expedido en, Ciudad de nacimiento, Ocupación, Estado civil (select), Discapacidad (select con lista fija del formato oficial), Multiculturalidad (checkboxes múltiples)
+- app/02_estudiantes/est_ctrl.js — recolección, precarga y validación de los 6 campos nuevos, incluyendo la exclusión mutua de Multiculturalidad
+- app/02_estudiantes/est_mdl.php — case `obtener` ampliado para incluir los 6 campos nuevos (requerido para que `abrirEditar()` precargue los datos correctamente)
+- database/emdb_academica.sql — `estu_multiculturalidad` ampliado de VARCHAR(60) a VARCHAR(150) para admitir varias categorías combinadas sin truncamiento
+
+### Decisiones
+- Discapacidad usa exactamente las 8 opciones y textos del formato AC-FO-02 (incluye salto de numeración 7→9, sin ítem 8, tal como está configurado en la plataforma externa que recibe estos datos)
+- Multiculturalidad: exclusión mutua entre "No aplica" y las demás categorías, guardado como texto separado por comas en la misma columna
+
+---
+
+## [2355ab1] — 2026-07-26 — feat: indicador rojo/verde de ficha completa en tablas de estudiantes
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php — `listar_aspirantes`/`listar_matriculados`: LEFT JOIN `fichas_inscripcion` + campo `tiene_ficha` (aprovecha el índice de la UNIQUE KEY `uq_finc_estu`, sin duplicar filas por ser relación 1:1)
+- app/02_estudiantes/est_ctrl.js — botón Ficha ahora muestra un punto de color (verde = existe fila guardada, rojo = pendiente) con tooltip explicativo; ambas tablas se recargan automáticamente tras guardar una ficha, sin necesidad de refrescar la página
+
+### Decisiones
+- Definición "simple" del indicador: existencia de fila en `fichas_inscripcion`, no validación campo por campo (decisión documentada en conversación con el usuario)
+
+---
+
+## [1b699f5] — 2026-07-26 — feat: carga y miniatura de foto del estudiante
+
+### Archivos modificados
+- docker/Dockerfile — agrega extensión GD (`libpng-dev` `libjpeg-dev` `libfreetype6-dev` + `docker-php-ext-configure`/`install gd`)
+- database/emdb_academica.sql — nueva columna `estudiantes.estu_foto VARCHAR(255) DEFAULT NULL`
+- .gitignore — excluye `uploads/fotos_estudiantes/*`, con excepción de `.gitkeep` para mantener la carpeta versionada
+- uploads/fotos_estudiantes/.gitkeep — archivo nuevo
+- app/02_estudiantes/est_mdl.php — nuevo case `subir_foto`: valida contenido real de la imagen con `getimagesize()`, redimensiona a máx. 500x400 con GD manteniendo proporción, comprime a JPEG calidad 80, guarda como `{estu_id}.jpg`
+- app/02_estudiantes/est_ctrl.js — flujo de subida de foto vía `FormData`
+- app/02_estudiantes/est_view.php — miniatura como primera columna en las tablas de Aspirantes y Matriculados; campo de foto solo visible en modo Editar (no en Nuevo Aspirante, ya que depende de `estu_id`)
+
+### Decisiones
+- Primera funcionalidad de subida de archivos del proyecto: usa `FormData` + `processData`/`contentType: false`, distinto del patrón de objeto plano usado en el resto de la app
+- Nota operativa: en Docker/Fedora la carpeta `uploads/fotos_estudiantes/` requiere `chmod 777` tras crearse, porque Apache corre como `www-data` (UID distinto al usuario del host que crea la carpeta vía bind mount)
+
+### Bug corregido
+- Se removieron las llamadas a `imagedestroy()` (deprecada en PHP 8.5, sin efecto desde PHP 8.0) que rompían el JSON de respuesta
+
+---
+
+## [67683ab] — 2026-07-26 — feat: valida formato de correo electrónico en minúsculas en modal Nuevo Aspirante
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js — `npt_estu_email` fuerza minúsculas en vivo (con preservación de la posición del cursor); nueva función `validarFormatoEmail()`: marca `is-invalid` si el campo está vacío o no contiene `@`, `is-valid` en caso contrario
+
+### Decisiones
+- Validación aplicada de forma consistente en tres puntos: validación en vivo, `abrirEditar()` (modo edición) y el bloqueo previo al guardado
+
+---
+
+## [e29b7b1] — 2026-07-26 — fix: corrige validación visual y comportamiento del select Acudiente en Ficha Familiar
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js — validación visual en vivo (`input`/`change`/`blur`) en los 33 campos de `mdl_ficha`, mismo patrón que `CAMPOS_ESTUDIANTE` de la Fase A; `abrirFicha()`: el marcado de campos llenos ahora corre en el callback `shown.bs.modal` de Bootstrap; `manejarCambioAcudiente()`: el campo Parentesco ahora se oculta por completo (no solo se bloquea) cuando se selecciona Padre o Madre, y reaparece vacío/editable con Otro
+- app/02_estudiantes/est_view.php — marcado asociado al comportamiento condicional del select Acudiente
+
+### Decisiones
+- Parentesco se excluye de los campos obligatorios al guardar cuando su bloque está oculto (selección Padre/Madre)
+
+### Bug corregido
+- `abrirFicha()` marcaba los campos llenos inmediatamente después de `.show()`, pero Bootstrap 5 muestra el modal de forma asíncrona — el chequeo `:visible` daba falso para todo antes de este fix; el marcado se movió al callback `shown.bs.modal`
+- `manejarCambioAcudiente()` solo bloqueaba el campo Parentesco en vez de ocultarlo por completo al seleccionar Padre o Madre
+
+---
+
+## [fe397ad] — 2026-07-26 — feat: validación obligatoria y formato de documento en modal Nuevo Aspirante
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js — validación visual en vivo (rojo/verde) en los 13 campos del modal, reutilizable vía `marcarValidacion()` y `CAMPOS_ESTUDIANTE` (pensado para reusarse en la Ficha Familiar, Fase B); número de documento con formato de puntos de miles en pantalla, se limpia antes de enviar y guarda solo dígitos en BD; `limpiarFormulario()` y `abrirEditar()` actualizados para limpiar/aplicar las clases de validación visual
+- app/02_estudiantes/est_mdl.php — los 13 campos ahora son obligatorios (antes solo nombres/apellidos/documento), validado en el servidor como respaldo
+- app/02_estudiantes/est_view.php — label "Ciudad" renombrado a "Ciudad de residencia"
+
+### Decisiones
+- Validación reutilizable vía `marcarValidacion()` + `CAMPOS_ESTUDIANTE`, diseñada para reusarse en el modal de Ficha Familiar (Fase B)
+- Validación en dos capas: JS (UX) y PHP (respaldo de integridad — el servidor nunca confía en los datos del cliente)
+
+---
+
+## [115c8ed] — 2026-07-25 — chore: ignora recaptcha_config.php (credenciales sensibles, fuera de git)
+
+### Archivos modificados
+- .gitignore — agregada la entrada `app/00_connect/recaptcha_config.php`
+
+### Decisiones
+- Archivo excluido de git por contener credenciales sensibles (site key / secret key de reCAPTCHA)
+
+---
+
+## [590e64e] — 2026-07-25 — docs: registra auditoría de compatibilidad PHP 8.1-8.5 en deuda técnica
+
+### Archivos modificados
+- CLAUDE.md — sección Deuda técnica: se registra el resultado de la auditoría de compatibilidad PHP 8.1-8.5
+
+### Decisiones
+- Auditoría estática sobre los 22 archivos `.php` de `app/`: sin hallazgos de propiedades dinámicas, nullable implícito, offsets de string con llaves, ni funciones deprecadas. Código 100% procedural sin type hints, conexión BD 100% vía PDO
+
+### Pruebas realizadas
+- Auditoría estática de los 22 archivos `.php` de `app/` ✅
+- Prueba en runtime de dompdf (librería de terceros) con `display_errors=1` y `error_reporting=E_ALL`: PDF generado sin ningún warning ni deprecation — compatibilidad con PHP 8.5 confirmada de punta a punta ✅
+
+---
+
+## [d406166] — 2026-07-25 — fix: corrige hash del usuario admin en seed SQL
+
+### Archivos modificados
+- database/emdb_academica.sql — INSERT de usuarios: hash de la contraseña admin reemplazado por el hash real y verificado de `Admin@2026` (cost=12), eliminando el parche manual (`UPDATE`) que antes era necesario tras cada import
+- CLAUDE.md — documenta explícitamente la credencial del admin sembrado, ya que README.md remite ahí para consultarla
+
+### Bug corregido
+- El INSERT de usuarios en `database/emdb_academica.sql` usaba el hash de `password` pese a que el comentario indicaba `Admin@2026`
+
+---
+
+## [d6169e6] — 2026-07-25 — migración del entorno de desarrollo local a Docker (Fedora 44)
 
 ### Archivos modificados
 - docker-compose.yml — archivo nuevo: define 3 servicios — `app` (build desde `docker/Dockerfile`, imagen base `php:8.5-apache`, puerto 8120→8080, volumen `.:/var/www/html/app_academica_emdb:z`), `db` (`mysql:8.0`, `network_mode: service:app`, puerto 3310→3306, importa `database/emdb_academica.sql` automáticamente vía `/docker-entrypoint-initdb.d`), `phpmyadmin` (puerto 8121→80)

@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-07-25
-> Versión: 13 — migración del entorno de desarrollo local de Windows/XAMPP a Fedora 44/Docker
+> Última actualización: 2026-07-26
+> Versión: 14 — Ficha Familiar AC-FO-02 completa, foto de estudiante, PDF con foto, migración Docker documentada
 
 ---
 
@@ -34,6 +34,7 @@ Estudiantes dependen de WhatsApp para conocer calificaciones. Sin trazabilidad d
 - Servidor local: Docker (Fedora 44) — `docker-compose.yml` con 3 servicios: `app` (PHP 8.5 + Apache, build `docker/Dockerfile`, puerto 8120→8080), `db` (`mysql:8.0`, `network_mode: service:app`, puerto 3310→3306, importa `database/emdb_academica.sql` automáticamente), `phpmyadmin` (puerto 8121→80). BD: `emdb_academica`
 - PHP 8.5 en desarrollo (no 8.0) por paridad con producción — el hosting cPanel de `escuelamdb.com` ya corre PHP 8.5
 - Generación PDF: dompdf (Composer). Control versiones: Git + GitHub
+- Procesamiento de imágenes: extensión GD de PHP (agregada al `docker/Dockerfile`) — redimensionado y miniaturas de foto de estudiante
 - Repositorio GitHub: `https://github.com/solartejoseluis/app_academica_emdb` (público)
 - Acceso local: `http://localhost:8120/app_academica_emdb`
 - Alias bash (Fedora): `academica` → cd al proyecto; `c` → clear
@@ -152,7 +153,7 @@ app_academica_emdb/
 
 ---
 
-## Tablas de la BD (14 tablas — todas creadas)
+## Tablas de la BD (15 tablas — todas creadas)
 
 ```
 1.  roles              — role_id, role_nombre
@@ -161,7 +162,7 @@ app_academica_emdb/
 4.  usuarios           — usua_id, role_id(FK), usua_email, usua_passwordhash, usua_activo
 5.  cohortes           — coho_id, prog_id(FK), coho_codigo, fechainicio
 6.  docentes           — doce_id, usua_id(FK), doce_nombres, doce_apellidos, doce_sigla
-7.  estudiantes        — estu_id, usua_id(FK), coho_id(FK), estu_nombres, estu_apellidos
+7.  estudiantes        — estu_id, usua_id(FK), coho_id(FK), estu_nombres, estu_apellidos, estu_foto, estu_expedidoen, estu_ciudadnac, estu_ocupacion, estu_estadocivil, estu_discapacidad, estu_multiculturalidad
 8.  modulos            — modu_id, prog_id(FK), modu_nombre, modu_sigla, modu_orden
 9.  matriculas         — matr_id, estu_id(FK), prog_id(FK), peri_id(FK), matr_estado
 10. gruposemestres     — grse_id, prog_id(FK), peri_id(FK), grse_codigo, grse_semestre
@@ -169,6 +170,7 @@ app_academica_emdb/
 12. gruposmodulos      — grmo_id, grse_id(FK), modu_id(FK), doce_id(FK)
 13. calificaciones     — cali_id, grmo_id(FK), estu_id(FK), N1-N4, sup_N1/N2/N4, cali_nota_final, cali_habilitacion, cali_definitiva
 14. horariosgrupo      — hora_id, grse_id(FK), hora_diasemana, hora_horainicio
+15. fichas_inscripcion — finc_id, estu_id(FK), datos familiares (padre/madre/acudiente), estudios anteriores, código temporal
 ```
 
 Seeds cargados: 4 roles, 2 programas, 3 períodos, 36 módulos (17 ASO + 19 MD), 1 usuario admin.
@@ -259,6 +261,7 @@ Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE elimina
 | 2.3 | Módulo `07_coordinador` — dashboard | ✅ 2026-05-07 |
 | 2.4 | Exportación PDF — reporte de grupo GA-FO-04 (coordinador) + boletín individual (estudiante) | ✅ 2026-07-05 |
 | 2.5 | Rediseño `05_calificaciones` — Nota Final siempre calculada, Habilitación y Definitiva como valor oficial recalculado | ✅ 2026-07-04 |
+| 2.6 | Ficha Familiar AC-FO-02 completa — captura de datos familiares, foto de estudiante, indicador de completitud, PDF con foto en tamaño Oficio | ✅ 2026-07-26 |
 
 ### OE4 — VALIDAR TRL5 (Sprint Review)
 
@@ -328,6 +331,18 @@ Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE elimina
 | `04ec8b0` | fix: valida sesión, rol y ownership en listar_calificaciones (05_calificaciones) — mismo criterio que guardar_nota, hallazgo detectado al revisar ese commit | 2026-07-19 |
 | `304127b` | fix: elimina stored procedure sp_calcular_definitiva y triggers obsoletos del DDL — corrige reinstalación limpia de la BD (cálculo ya vivía en PHP desde 58396d1) | 2026-07-19 |
 | `be827c5` | chore: elimina 6 stubs muertos de Fase 0 (estudiantes_*/docentes_* en 02_estudiantes/03_docentes, nunca reemplazados por los archivos reales est_*/doc_*) y normaliza fin de línea de .gitignore (CRLF → LF, sin cambio de contenido) | 2026-07-19 |
+| `d6169e6` | feat: migra entorno de desarrollo local a Docker (Fedora 44) — docker-compose.yml y Dockerfile nuevos, pdo.php host localhost→127.0.0.1 | 2026-07-25 |
+| `d406166` | fix: corrige hash del usuario admin en seed SQL — reemplaza el hash de 'password' por el real de Admin@2026, elimina el parche manual (UPDATE) post-import | 2026-07-25 |
+| `590e64e` | docs: registra auditoría de compatibilidad PHP 8.1-8.5 en deuda técnica — 22 archivos .php sin hallazgos, dompdf probado en runtime sin warnings | 2026-07-25 |
+| `115c8ed` | chore: ignora recaptcha_config.php — credenciales sensibles de reCAPTCHA fuera de git | 2026-07-25 |
+| `fe397ad` | feat: validación obligatoria y formato de documento en modal Nuevo Aspirante — 13 campos obligatorios, marcarValidacion()/CAMPOS_ESTUDIANTE reutilizable, documento con puntos de miles | 2026-07-26 |
+| `e29b7b1` | fix: corrige validación visual y comportamiento del select Acudiente en Ficha Familiar — validación en vivo en 33 campos de mdl_ficha, Parentesco se oculta con Padre/Madre | 2026-07-26 |
+| `67683ab` | feat: valida formato de correo electrónico en minúsculas en modal Nuevo Aspirante | 2026-07-26 |
+| `1b699f5` | feat: carga y miniatura de foto del estudiante — extensión GD en Dockerfile, estu_foto, primer upload de archivos del proyecto vía FormData | 2026-07-26 |
+| `2355ab1` | feat: indicador rojo/verde de ficha completa en tablas de estudiantes — LEFT JOIN fichas_inscripcion, definición simple por existencia de fila | 2026-07-26 |
+| `8fe6c99` | feat: agrega 6 campos faltantes del formato AC-FO-02 al modal Nuevo Aspirante — expedido en, ciudad de nacimiento, ocupación, estado civil, discapacidad, multiculturalidad | 2026-07-26 |
+| `15021e0` | feat: descarga en PDF de la Ficha Familiar (AC-FO-02) con foto del estudiante — pdf_ficha.php nuevo, fixes de Dompdf (cellmap, table-cell, chroot) | 2026-07-26 |
+| `dc18116` | feat: nombre del estudiante en modal Ficha y tamaño Oficio en el PDF — botón de descarga trasladado a columna Acciones | 2026-07-26 |
 
 ---
 
@@ -348,6 +363,8 @@ Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE elimina
 | Credencial login estudiantes | usua_login = número de documento. Sin correo institucional por ahora — implementación futura. Clave generada automáticamente: 4 letras apellido + año nacimiento. |
 | Estructura grupos rediseñada | grseestudiantes eliminada — reemplazada por grmoestudiantes (estudiante vinculado a módulo específico, no al semestre completo). programa_modulos para semestre sugerido por módulo según programa. coho_id en gruposemestres para trazabilidad completa. |
 | Triggers MySQL eliminados | sp_calcular_definitiva y triggers AFTER INSERT/UPDATE eliminados — MySQL no permite UPDATE en trigger de la misma tabla. Cálculo de definitiva implementado en PHP en calificaciones_mdl.php. |
+| Subida de archivos vía FormData | Primera vez en el proyecto (foto de estudiante) — usa `FormData` + `processData`/`contentType: false`, distinto del patrón de objeto plano usado en el resto de la app. |
+| Indicador de ficha completa (simple) | Definido como existencia de fila en `fichas_inscripcion`, no validación campo por campo. |
 
 ---
 
