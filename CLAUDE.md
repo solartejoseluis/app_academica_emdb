@@ -27,7 +27,7 @@
 ## Entorno de desarrollo
 
 - **Local:** Docker (Fedora 44) — `docker-compose.yml` en la raíz del proyecto, 3 servicios:
-  - `app`: build desde `docker/Dockerfile` (imagen base `php:8.5-apache`), extensiones `pdo_mysql`/`mysqli`/`zip`, Composer instalado, Apache escucha en el puerto 8080 interno. Puerto publicado: `8120→8080`
+  - `app`: build desde `docker/Dockerfile` (imagen base `php:8.5-apache`), extensiones `pdo_mysql`/`mysqli`/`zip`/`gd`, Composer instalado, Apache escucha en el puerto 8080 interno. Puerto publicado: `8120→8080`
   - `db`: `mysql:8.0`, `network_mode: service:app` (comparte red con `app`), puerto publicado `3310→3306`, importa `database/emdb_academica.sql` automáticamente vía `/docker-entrypoint-initdb.d`
   - `phpmyadmin`: puerto publicado `8121→80`
 - **PHP 8.5** en el contenedor `app` (no 8.0) — paridad con producción: el hosting cPanel de `escuelamdb.com` ya corre PHP 8.5
@@ -35,6 +35,7 @@
 - **URL local:** `http://localhost:8120/app_academica_emdb/`
 - **Puertos:** bloque `8120-8129` asignado a este proyecto, según registro centralizado en `~/proyectos/PUERTOS.md` (fuera del repo)
 - **Alias bash (Fedora):** `academica` → cd al proyecto; `c` → clear
+- **Nota operativa (uploads):** `uploads/fotos_estudiantes/` requiere `chmod 777` tras crearse en Docker/Fedora — Apache corre como `www-data` (UID distinto al usuario del host que crea la carpeta vía bind mount)
 - **Entorno anterior (histórico):** desarrollo local originalmente en Windows con XAMPP (Apache + PHP 8.0 + MySQL 8.0), ruta `C:/xampp/htdocs/app_academica_emdb/`, acceso `http://localhost/app_academica_emdb/`. Migrado a Fedora 44/Docker el 2026-07-25.
 - **Conexión DB local:** `app/00_connect/pdo.php` — versionado en git. DSN usa host `127.0.0.1` (no `localhost`) — con `network_mode: service:app`, `localhost` fuerza a PDO a buscar un socket Unix inexistente entre contenedores; `127.0.0.1` fuerza conexión TCP
 - **Usuario admin sembrado:** `admin@emdb.edu.co` / `Admin@2026` (definido en database/emdb_academica.sql, sección 9.6)
@@ -51,7 +52,7 @@
 ```
 app_academica_emdb/
   app/
-    00_connect/        — Conexión DB: pdo.php (local, versionado) / pdo_web.php (producción, solo en el servidor — nunca en git)
+    00_connect/        — Conexión DB: pdo.php (local, versionado) / pdo_web.php (producción, solo en el servidor — nunca en git). También recaptcha_config.php: credenciales reCAPTCHA reales, fuera de git (mismo patrón que pdo_web.php) — preparación para la Fase 3 del formulario público de inscripción, todavía no integrado en ningún formulario
     00_selects/        — Consultas SELECT reutilizables que pueblan dropdowns
     00_img/            — Recursos estáticos: logo, iconos
     00_files/          — Componentes PHP compartidos: navbar.php (roles 1 y 2), favicon, robots.txt, .htaccess
@@ -63,6 +64,8 @@ app_academica_emdb/
     06_reportes/       — Generación PDF y exportación Excel/DataTables
     07_coordinador/    — Dashboard de seguimiento académico
     08_admin/          — Gestión de usuarios del sistema
+  uploads/
+    fotos_estudiantes/ — Fotos de estudiantes, fuera de app/, excluidas de git salvo .gitkeep
   CLAUDE.md
   README.md
   CHANGELOG.md
@@ -242,6 +245,7 @@ Orden de creación (respetando dependencias FK):
 12. gruposmodulos
 13. calificaciones
 14. horariosgrupo
+15. fichas_inscripcion (datos familiares y estudios anteriores, AC-FO-02)
 ```
 
 ### Resumen de tablas principales
@@ -251,7 +255,7 @@ Orden de creación (respetando dependencias FK):
 | `roles` | `role_` | Catálogo: Administrador, Coordinador, Docente, Estudiante |
 | `usuarios` | `usua_` | Credenciales de acceso. Relacionado 1:1 con docentes o estudiantes |
 | `docentes` | `doce_` | Datos personales + sigla única |
-| `estudiantes` | `estu_` | Datos personales + cohorte de ingreso |
+| `estudiantes` | `estu_` | Datos personales + cohorte de ingreso + foto (`estu_foto`) + campos AC-FO-02 (`estu_expedidoen`, `estu_ciudadnac`, `estu_ocupacion`, `estu_estadocivil`, `estu_discapacidad`, `estu_multiculturalidad`) |
 | `programas` | `prog_` | ASO y MD con resolución y fechas de vigencia |
 | `modulos` | `modu_` | Asignaturas por programa con sigla |
 | `cohortes` | `coho_` | Grupos de admisión: `CH-ASO-2024B` |
@@ -262,6 +266,7 @@ Orden de creación (respetando dependencias FK):
 | `gruposmodulos` | `grmo_` | Módulo + docente + fechas dentro de un grupo semestre |
 | `calificaciones` | `cali_` | Notas por estudiante y grupo módulo |
 | `horariosgrupo` | `hora_` | Horarios por grupo (solo jornada SEMA) |
+| `fichas_inscripcion` | `finc_` | Datos familiares (padre/madre/acudiente) y estudios anteriores — formato AC-FO-02 |
 
 ---
 
@@ -364,6 +369,27 @@ $('#slct_prog_id').change(function(){
     $('#npt_prog_id').val($(this).val());
 });
 ```
+
+### Subida de archivos (FormData)
+
+Única excepción al patrón de objeto plano de datos usado en el resto del proyecto. Se usa exclusivamente cuando el AJAX debe subir un archivo real (ej. foto de estudiante) — nunca para formularios de texto/select normales, que siguen usando el objeto plano estándar.
+
+```js
+let formData = new FormData();
+formData.append('estu_id', id);
+formData.append('foto', $('#npt_foto')[0].files[0]);
+
+$.ajax({
+    url: 'est_mdl.php?accion=subir_foto',
+    type: 'POST',
+    data: formData,
+    processData: false,
+    contentType: false,
+    success: function(response) { ... }
+});
+```
+
+`processData: false` y `contentType: false` son obligatorios: jQuery, por defecto, serializa `data` como querystring y fija `Content-Type: application/x-www-form-urlencoded`, lo que rompe el envío de archivos binarios.
 
 ---
 
@@ -504,6 +530,48 @@ $sql = "SELECT * FROM ESTUDIANTES";
 $sql = "SELECT * FROM estudiantes";
 ```
 
+### ❌ colspan mezclado con celdas físicas en tablas para Dompdf
+
+```php
+// PROHIBIDO — mezclar colspan con <td> sueltos en la misma tabla dentro de contenido para Dompdf
+echo "<tr><td colspan='2'>Nombre</td><td>Valor</td></tr>";
+echo "<tr><td>Campo</td><td>Campo</td><td>Campo</td></tr>"; // incluso si la suma de columnas coincide
+```
+
+Dompdf falla con "Frame not found in cellmap" aunque el total de columnas por fila sea matemáticamente correcto. Usar celdas físicas vacías (`<td></td>`) en vez de `colspan` para mantener el mismo número de `<td>` en cada fila de la tabla.
+
+### ❌ display:table-cell anidado dentro de un `<td>` real (Dompdf)
+
+```html
+<!-- PROHIBIDO -->
+<td>
+  <div style="display:table-cell">...</div>
+</td>
+```
+
+Rompe Dompdf de la misma forma que el antipatrón anterior. `display:table-cell` solo es válido como hijo directo de una fila (`<tr>`) de una tabla real — nunca anidado dentro de un `<td>` que ya cumple esa función.
+
+### ❌ imagedestroy() en PHP 8.1+
+
+```php
+// PROHIBIDO — deprecada y sin efecto desde PHP 8.0
+$img = imagecreatefromjpeg($ruta);
+// ... procesamiento con GD ...
+imagedestroy($img);
+```
+
+El warning de deprecación se imprime antes del `json_encode()` si `display_errors` está activo, rompiendo la respuesta JSON del envelope. GD libera la memoria automáticamente desde PHP 8.0 — omitir la llamada.
+
+### ❌ Asumir que Dompdf puede leer cualquier archivo local
+
+```php
+// PROHIBIDO — sin configurar chroot, Dompdf solo lee dentro de su propio directorio de librería (vendor/)
+$dompdf = new Dompdf();
+$dompdf->loadHtml($html); // <img src="/ruta/absoluta/fuera/de/vendor/foto.jpg"> falla en silencio, sin excepción
+```
+
+Por defecto Dompdf restringe la lectura de archivos locales al chroot de su propia carpeta (`vendor/`). Configurar `setChroot()` a la raíz del proyecto (o al directorio que contiene los archivos a leer) antes de renderizar HTML con rutas de imagen fuera de `vendor/`.
+
 ---
 
 ## Decisiones arquitectónicas activas
@@ -559,6 +627,15 @@ $sql = "SELECT * FROM estudiantes";
   - `pdf_boletin.php`: rol restringido a estudiante (`role_id` 4), orientación `portrait`, filtro de seguridad `WHERE grmo_id = ? AND usua_id = ?` — responde 403 genérico sin distinguir "el grupo no existe" de "es de otro estudiante".
 - **Estado:** Activa. No negociable (mismo nivel que las demás decisiones de esta sección).
 
+### Formato PDF Ficha Familiar (AC-FO-02) — pdf_ficha.php
+
+- **Contexto:** La Ficha Familiar (formato AC-FO-02) necesitaba exportación PDF con el mismo criterio de acceso y patrón que los demás endpoints PDF (`pdf_grupo.php`, `pdf_boletin.php`).
+- **Decisión:**
+  - Mismo patrón de acceso que `pdf_grupo.php`: restringido a roles 1 y 2 (coordinador/admin).
+  - Tamaño de página **Oficio Colombia** (612×935.43pt = 33cm), no Carta — mediante arreglo de coordenadas explícito en `setPaper()`, no el nombre de tamaño estándar, porque Dompdf no trae "Oficio" como tamaño predefinido.
+  - LEFT JOIN con `fichas_inscripcion` para que aspirantes sin ficha diligenciada aún generen el PDF, con esas secciones en blanco.
+- **Estado:** Activa. Mismo nivel que las demás decisiones de formato PDF de esta sección.
+
 ### Contraseñas con bcrypt desde el primer usuario
 
 - **Contexto:** Proyecto de referencia almacenó contraseñas en texto plano, lo que requirió migración posterior.
@@ -601,6 +678,7 @@ $sql = "SELECT * FROM estudiantes";
 |---|---|
 | Exportación Excel incompleta en `06_reportes` | Exportación a Excel en `06_reportes` no incluye datos de curso ni docente — pendiente de revisión (hallazgo del 2026-07-05, no bloqueante). |
 | ~~Auditoría PHP 8.1-8.5~~ (RESUELTO 2026-07-25) | Auditoría estática completa sobre los 22 archivos .php de app/: sin hallazgos (código 100% procedural, sin type hints, conexión BD 100% vía PDO). Prueba en runtime de dompdf (librería de terceros) con `display_errors=1` y `error_reporting=E_ALL`: PDF generado sin ningún warning ni deprecation. Compatibilidad con PHP 8.5 confirmada de punta a punta. |
+| `recaptcha_config.php` sin integrar | Credenciales reCAPTCHA ya creadas (`app/00_connect/recaptcha_config.php`) y excluidas de git — es preparación para la Fase 3 del formulario público de inscripción; reCAPTCHA todavía no está integrado en ningún formulario del sistema (hallazgo del 2026-07-25/26, no bloqueante). |
 
 ---
 
@@ -635,6 +713,7 @@ Ver historial completo en CHANGELOG.md.
 | 2.3 | Módulo `07_coordinador` — dashboard seguimiento | ✅ 2026-05-07 |
 | 2.4 | Módulo `06_reportes` — exportación PDF (GA-FO-04 por módulo para coordinador + boletín individual para estudiante) | ✅ 2026-07-05 |
 | 2.5 | Rediseño `05_calificaciones` — Nota Final siempre calculada, Habilitación y Definitiva como valor oficial recalculado | ✅ 2026-07-04 |
+| 2.6 | Ficha Familiar AC-FO-02 — captura completa de datos familiares, foto de estudiante, indicador de completitud, exportación PDF | ✅ 2026-07-26 |
 
 ### Phase 3 — Validación TRL5
 

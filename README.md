@@ -17,6 +17,7 @@ Sistema web para la automatización de los procesos de inscripción, matrícula 
 | Frontend JS | jQuery | 3.7 (CDN) |
 | Tablas interactivas | DataTables | 1.13 (CDN) |
 | Generación PDF | dompdf | vía Composer |
+| Procesamiento de imágenes | GD (extensión PHP) | Dockerfile |
 | Servidor local | Docker (Fedora 44) | PHP 8.5 + Apache + MySQL 8.0 |
 
 ---
@@ -83,11 +84,11 @@ app_academica_emdb/
     00_img/            — Recursos estáticos: logo, iconos
     00_files/          — Componentes PHP compartidos: `navbar.php` (navbar unificado roles 1 y 2), `estilos.css` (texto-mayus), favicon, robots.txt, .htaccess
     01_login/          — Autenticación y redirección por rol ✅
-    02_estudiantes/    — Registro, edición y matrícula de estudiantes ✅
+    02_estudiantes/    — Registro, edición y matrícula de estudiantes; Ficha Familiar (AC-FO-02) y foto del estudiante ✅
     03_docentes/       — Gestión del cuerpo docente ✅
     04_grupos/         — Cohortes, grupos semestre, módulos y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) ✅
-    06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador + boletín PDF estudiante ✅
+    06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador + boletín PDF estudiante + PDF de Ficha Familiar ✅
     07_coordinador/    — Dashboard de seguimiento académico ✅
     08_admin/          — Gestión de usuarios del sistema ✅
   database/
@@ -120,6 +121,8 @@ El sistema organiza la información en torno a tres procesos principales:
 programas ──< modulos
     │
     └──< cohortes ──< estudiantes ──< matriculas
+                           │
+                           └── fichas_inscripcion  (1:1)
 ```
 
 ### Configuración académica por semestre
@@ -158,6 +161,7 @@ gruposmodulos ──< calificaciones >── estudiantes
 | `gruposemestres` | Instancia de un programa en un período y jornada |
 | `gruposmodulos` | Módulo + docente asignado + fechas dentro de un semestre |
 | `calificaciones` | Notas N1–N4, supletorios, nota final, habilitación y definitiva por estudiante-grupo |
+| `fichas_inscripcion` | Datos familiares (padre/madre/acudiente) y estudios anteriores — formato AC-FO-02 |
 
 ---
 
