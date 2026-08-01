@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-07-26
-> Versión: 14 — Ficha Familiar AC-FO-02 completa, foto de estudiante, PDF con foto, migración Docker documentada
+> Última actualización: 2026-07-27
+> Versión: 15 — estu_origen agregado (Fase 2 formulario público de inscripción)
 
 ---
 
@@ -263,6 +263,26 @@ Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE elimina
 | 2.5 | Rediseño `05_calificaciones` — Nota Final siempre calculada, Habilitación y Definitiva como valor oficial recalculado | ✅ 2026-07-04 |
 | 2.6 | Ficha Familiar AC-FO-02 completa — captura de datos familiares, foto de estudiante, indicador de completitud, PDF con foto en tamaño Oficio | ✅ 2026-07-26 |
 
+### Formulario público de inscripción (plan de 5 fases)
+
+> Planeado en sesión 2026-07-27. Objetivo: permitir que un aspirante
+> sin cuenta diligencie su propia inscripción desde la web, quedando
+> pendiente de revisión y aprobación del coordinador.
+
+| Fase | Descripción | Estado |
+|---|---|---|
+| 0 | Credenciales Google reCAPTCHA v2 ("No soy un robot") para escuelamdb.com + localhost | ✅ 2026-07-25 |
+| 1 | Pantalla interna de datos familiares (AC-FO-02) — coordinador diligencia fichas_inscripcion | ✅ 2026-07-26 (Ficha Familiar) |
+| 2 | Migración de esquema — estudiantes.estu_origen ENUM('manual','web') DEFAULT 'manual' | ✅ 2026-07-27 (commit 7702fe2) |
+| 3 | Formulario público — módulo nuevo `09_inscripcion_publica/`, sin sesión, verificación reCAPTCHA en servidor, detección de duplicados por documento, genera `finc_codigotemporal` | ⬜ |
+| 4 | Integración — listado de Aspirantes muestra origen (Manual/Web) para que el coordinador sepa qué revisar | ⬜ |
+| 5 | Pruebas extremo a extremo + documentación | ⬜ |
+
+Diseño acordado para la Fase 3: reutilizar el campo
+`finc_codigotemporal` (ya existente en `fichas_inscripcion`, sin usar
+hasta ahora) para permitir que el aspirante retome el formulario sin
+necesidad de una cuenta completa.
+
 ### OE4 — VALIDAR TRL5 (Sprint Review)
 
 | # | Actividad | Estado |
@@ -343,6 +363,7 @@ Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE elimina
 | `8fe6c99` | feat: agrega 6 campos faltantes del formato AC-FO-02 al modal Nuevo Aspirante — expedido en, ciudad de nacimiento, ocupación, estado civil, discapacidad, multiculturalidad | 2026-07-26 |
 | `15021e0` | feat: descarga en PDF de la Ficha Familiar (AC-FO-02) con foto del estudiante — pdf_ficha.php nuevo, fixes de Dompdf (cellmap, table-cell, chroot) | 2026-07-26 |
 | `dc18116` | feat: nombre del estudiante en modal Ficha y tamaño Oficio en el PDF — botón de descarga trasladado a columna Acciones | 2026-07-26 |
+| `7702fe2` | fase 2 formulario público — agrega estu_origen ENUM('manual','web') a estudiantes | 2026-07-27 |
 
 ---
 

@@ -4,6 +4,25 @@
 
 ---
 
+## [7702fe2] — 2026-07-27 — feat: agrega estu_origen a estudiantes (Fase 2 formulario público de inscripción)
+
+### Archivos modificados
+- database/emdb_academica.sql — nueva columna `estu_origen ENUM('manual','web') NOT NULL DEFAULT 'manual'` en la tabla `estudiantes`, agregada entre `estu_foto` y `fechacreacion`
+- app/02_estudiantes/est_mdl.php — case `guardar`, rama INSERT: agregado `estu_origen` a la lista de columnas con el literal `'manual'` como valor fijo (no viene de `$_POST`, ya que este formulario es el flujo interno de coordinador/admin). Rama UPDATE no modificada.
+
+### Decisiones
+- `estu_origen` distingue si un aspirante fue registrado por el coordinador desde dentro del sistema ('manual') o por sí mismo desde el futuro formulario público ('web', Fase 3)
+- Valor fijado únicamente en el INSERT — editar un aspirante existente nunca cambia su origen
+- Migración aplicada en dos lugares: `database/emdb_academica.sql` (para que persista si se recrea el volumen db_data) y `ALTER TABLE` manual contra el contenedor Docker activo (no se recreó el volumen)
+- Cierra la Fase 2 del plan de 5 fases del "Formulario público de inscripción" (ver sección nueva en CLAUDE.md/PROJECT_CONTEXT.md) — Fase 0 (reCAPTCHA) y Fase 1 (Ficha Familiar interna) ya estaban cerradas previamente; Fases 3-5 pendientes
+
+### Pruebas realizadas
+- Aspirante nuevo creado desde el modal existente → estu_origen = 'manual' confirmado en phpMyAdmin ✅
+- Edición de aspirante existente → estu_origen permanece 'manual', no se modifica ✅
+- Estudiante creado antes de este cambio → estu_origen = 'manual' por el DEFAULT del ALTER TABLE ✅
+
+---
+
 ## [dc18116] — 2026-07-26 — feat: nombre del estudiante en modal Ficha y tamaño Oficio en el PDF
 
 ### Archivos modificados
