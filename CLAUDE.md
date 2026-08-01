@@ -728,7 +728,7 @@ Ver historial completo en CHANGELOG.md.
 | 2.7.0 | Credenciales Google reCAPTCHA v2 ("No soy un robot") para escuelamdb.com + localhost | ✅ 2026-07-25 |
 | 2.7.1 | Pantalla interna de datos familiares (AC-FO-02) — coordinador diligencia fichas_inscripcion | ✅ 2026-07-26 (Ficha Familiar) |
 | 2.7.2 | Migración de esquema — estudiantes.estu_origen ENUM('manual','web') DEFAULT 'manual' | ✅ 2026-07-27 (commit 7702fe2) |
-| 2.7.3 | Formulario público — módulo nuevo `09_inscripcion_publica/`, sin sesión, verificación reCAPTCHA en servidor, detección de duplicados por documento, genera `finc_codigotemporal` | 🔄 Paso 1 (datos personales) completo — commits b5626c2 (UNIQUE finc_codigotemporal), b34143d (insc_view/mdl/ctrl). Paso 2 (datos familiares, fam_view.php) pendiente |
+| 2.7.3 | Formulario público — módulo nuevo `09_inscripcion_publica/`, sin sesión, verificación reCAPTCHA en servidor, detección de duplicados por documento, genera `finc_codigotemporal` | ✅ 2026-08-01 — Paso 1 (b5626c2, b34143d) y Paso 2 (c60cb1b) completos |
 | 2.7.4 | Integración — listado de Aspirantes muestra origen (Manual/Web) para que el coordinador sepa qué revisar | ⬜ |
 | 2.7.5 | Pruebas extremo a extremo + documentación | ⬜ |
 
