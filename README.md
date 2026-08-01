@@ -232,7 +232,7 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 | Phase 2 | Gestión académica: calificaciones, reportes, coordinador | ✅ Completado |
 | Phase 3 | Validación TRL5 con usuarios reales | ⬜ Pendiente |
 
-> **Formulario público de inscripción:** en planeación/parcialmente iniciado — Fases 0-2 de 5 completas (reCAPTCHA, Ficha Familiar interna, migración `estu_origen`). Fases 3-5 (formulario público, integración, pruebas) pendientes.
+> **Formulario público de inscripción:** en desarrollo — Fases 0-2 de 5 completas (reCAPTCHA, Ficha Familiar interna, migración `estu_origen`). Fase 3 en progreso: Paso 1 (datos personales) completo, Paso 2 (datos familiares) pendiente. Fases 4-5 pendientes.
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
