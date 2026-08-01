@@ -4,6 +4,33 @@
 
 ---
 
+## [b34143d] — 2026-08-01 — feat: Paso 1 del formulario público de inscripción (Fase 3-B)
+
+### Archivos modificados
+- app/09_inscripcion_publica/insc_view.php — archivo nuevo: vista pública sin sesión (sin check_session.php ni navbar.php), <head> manual con Bootstrap 5.3.3 + estilos.css + script de reCAPTCHA v2, replica los 18 campos del modal "Nuevo Aspirante" (mismos ids, opciones, labels) sin el bloque de foto, widget reCAPTCHA antes del botón "Enviar Inscripción", bloque de confirmación con el código temporal y link a fam_view.php (Fase 3-C)
+- app/09_inscripcion_publica/insc_mdl.php — archivo nuevo: case `crear_aspirante` sin check_session.php (intencional). Valida 18 campos → verifica reCAPTCHA vía curl contra la API de Google antes de tocar la BD → verifica documento duplicado (mismo mensaje que est_mdl.php) → transacción: INSERT en estudiantes (estu_origen='web') + genera finc_codigotemporal de 8 caracteres (charset sin ambigüedades, reintento hasta 5 veces ante colisión) + INSERT en fichas_inscripcion
+- app/09_inscripcion_publica/insc_ctrl.js — archivo nuevo: validación visual (mismo patrón que est_ctrl.js), validación de grecaptcha.getResponse() antes de enviar, envío AJAX, manejo de confirmación/error
+- CLAUDE.md — registrado el hallazgo de curl_close() como deuda técnica resuelta
+
+### Decisiones
+- Formulario público en dos pasos separados (decisión explícita del usuario): Paso 1 (este commit) solo datos personales; Paso 2 (Fase 3-C, pendiente) datos familiares vía código temporal
+- Sin subida de foto en el formulario público (decisión explícita) — el coordinador la agrega al revisar el registro
+- insc_mdl.php no reutiliza nada de est_mdl.php — modelo propio y aislado para no arrastrar por accidente ninguna dependencia de sesión
+- Código temporal de 8 caracteres con charset 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' (sin 0/O/I/1/L, para evitar confusión visual al transcribirlo)
+- Verificación de reCAPTCHA ANTES de cualquier escritura en BD
+
+### Bug corregido
+- curl_close() deprecada desde PHP 8.0, sin efecto, genera warning explícito en PHP 8.5 — el warning se imprimía antes del json_encode() y rompía dataType:'json' en $.ajax (mismo patrón que imagedestroy(), ya documentado). Eliminada de verificarRecaptcha().
+
+### Pruebas realizadas
+- Formulario completo enviado con reCAPTCHA resuelto → pantalla de confirmación con código de 8 caracteres, sin errores ✅
+- estu_origen='web' confirmado en phpMyAdmin ✅
+- Fila correspondiente en fichas_inscripcion con finc_codigotemporal generado, resto de campos familiares en NULL ✅
+- Reenvío con mismo número de documento → rechazado con "El número de documento ya está registrado" ✅
+- Link "Continuar con datos familiares" → 404 esperado (fam_view.php es Fase 3-C, aún no existe) ✅
+
+---
+
 ## [7702fe2] — 2026-07-27 — feat: agrega estu_origen a estudiantes (Fase 2 formulario público de inscripción)
 
 ### Archivos modificados
