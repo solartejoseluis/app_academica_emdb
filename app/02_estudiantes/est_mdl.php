@@ -134,15 +134,15 @@ switch ($accion) {
                          fechanacimiento, estu_sexo, estu_telefono, estu_email,
                          estu_ciudad, estu_direccion, estu_barrio, estu_estrato, estu_eps,
                          estu_expedidoen, estu_ciudadnac, estu_ocupacion,
-                         estu_estadocivil, estu_discapacidad, estu_multiculturalidad)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                         estu_estadocivil, estu_discapacidad, estu_multiculturalidad, estu_origen)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 );
                 $stmt->execute([
                     $estu_tipodoc, $estu_numerodoc, $estu_nombres, $estu_apellidos,
                     $fechanacimiento, $estu_sexo, $estu_telefono, $estu_email,
                     $estu_ciudad, $estu_direccion, $estu_barrio, $estu_estrato, $estu_eps,
                     $estu_expedidoen, $estu_ciudadnac, $estu_ocupacion,
-                    $estu_estadocivil, $estu_discapacidad, $estu_multiculturalidad
+                    $estu_estadocivil, $estu_discapacidad, $estu_multiculturalidad, 'manual'
                 ]);
                 $pdo->commit();
                 echo json_encode(['status' => 'ok', 'rows' => 1]);

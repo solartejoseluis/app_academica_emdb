@@ -175,6 +175,7 @@ CREATE TABLE estudiantes (
   estu_multiculturalidad VARCHAR(150)    DEFAULT NULL,
   estu_activo          TINYINT(1)        NOT NULL DEFAULT 1,
   estu_foto            VARCHAR(255)      DEFAULT NULL,
+  estu_origen          ENUM('manual','web') NOT NULL DEFAULT 'manual',
   fechacreacion        TIMESTAMP         DEFAULT current_timestamp(),
   PRIMARY KEY (estu_id),
   UNIQUE KEY uq_estu_numerodoc (estu_numerodoc),
