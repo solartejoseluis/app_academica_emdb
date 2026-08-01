@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-01
-> Versión: 16 — Fase 3-A/3-B del formulario público (UNIQUE finc_codigotemporal, Paso 1 datos personales con reCAPTCHA)
+> Versión: 17 — Fase 3 del formulario público completa (Pasos 1 y 2: datos personales + datos familiares)
 
 ---
 
@@ -274,7 +274,7 @@ Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE elimina
 | 0 | Credenciales Google reCAPTCHA v2 ("No soy un robot") para escuelamdb.com + localhost | ✅ 2026-07-25 |
 | 1 | Pantalla interna de datos familiares (AC-FO-02) — coordinador diligencia fichas_inscripcion | ✅ 2026-07-26 (Ficha Familiar) |
 | 2 | Migración de esquema — estudiantes.estu_origen ENUM('manual','web') DEFAULT 'manual' | ✅ 2026-07-27 (commit 7702fe2) |
-| 3 | Formulario público — módulo `09_inscripcion_publica/`, sin sesión, verificación reCAPTCHA en servidor, detección de duplicados por documento, genera `finc_codigotemporal` | 🔄 Paso 1 (datos personales) completo — commits b5626c2, b34143d. Paso 2 (datos familiares, fam_view.php) pendiente |
+| 3 | Formulario público — módulo `09_inscripcion_publica/`, sin sesión, verificación reCAPTCHA en servidor, detección de duplicados por documento, genera `finc_codigotemporal` | ✅ 2026-08-01 — Paso 1 (b5626c2, b34143d) y Paso 2 (c60cb1b) completos |
 | 4 | Integración — listado de Aspirantes muestra origen (Manual/Web) para que el coordinador sepa qué revisar | ⬜ |
 | 5 | Pruebas extremo a extremo + documentación | ⬜ |
 
@@ -366,6 +366,7 @@ necesidad de una cuenta completa.
 | `7702fe2` | fase 2 formulario público — agrega estu_origen ENUM('manual','web') a estudiantes | 2026-07-27 |
 | `b5626c2` | fase 3-a — agrega UNIQUE a finc_codigotemporal | 2026-08-01 |
 | `b34143d` | fase 3-b — Paso 1 formulario público (módulo 09_inscripcion_publica, insc_view/mdl/ctrl) | 2026-08-01 |
+| `c60cb1b` | fase 3-c — Paso 2 formulario público (módulo 09_inscripcion_publica, fam_view/mdl/ctrl) | 2026-08-01 |
 
 ---
 

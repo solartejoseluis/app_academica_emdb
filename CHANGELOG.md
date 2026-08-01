@@ -4,6 +4,29 @@
 
 ---
 
+## [c60cb1b] — 2026-08-01 — feat: Paso 2 del formulario público de inscripción (Fase 3-C)
+
+### Archivos modificados
+- app/09_inscripcion_publica/fam_view.php — archivo nuevo: vista pública sin sesión, acceso por código temporal (vía ?codigo= en URL con autobúsqueda, o entrada manual), formulario de Programa/Jornada + Padre/Madre/Acudiente/Estudios anteriores replicando la estructura del modal interno Ficha Familiar
+- app/09_inscripcion_publica/fam_mdl.php — archivo nuevo: consultar_por_codigo (busca por finc_codigotemporal, devuelve datos ya guardados para permitir edición sin bloquear reenvío), listar_programas (endpoint propio de solo lectura, aislado de est_mdl.php), completar_ficha (UPDATE de las 35 columnas familiares localizando la fila por código — nunca por estu_id del cliente —, fechainscripcion fijada en servidor con CURDATE())
+- app/09_inscripcion_publica/fam_ctrl.js — archivo nuevo: autobúsqueda si el código llega por URL, precarga del select de programas antes de asignar el valor guardado, misma lógica de visibilidad Padre/Madre/Acudiente que est_ctrl.js
+
+### Decisiones
+- Sin reCAPTCHA en este paso — el código de 8 caracteres (~6.5x10^11 combinaciones) ya ofrece protección práctica suficiente sin la fricción de un segundo captcha
+- El código temporal es el único credencial aceptado por completar_ficha — estu_id nunca viaja del cliente al servidor en este flujo
+- Reingreso permitido sin bloqueo: si el aspirante vuelve con el mismo código, ve sus datos ya guardados y puede editarlos, en vez de un error de "ya completado"
+- Solo UPDATE, nunca INSERT — la fila en fichas_inscripcion ya existe desde el Paso 1 (Fase 3-B)
+
+### Pruebas realizadas
+- Autobúsqueda por URL con código real generado en el Paso 1 → saludo con nombre correcto ✅
+- Visibilidad condicional Padre/Madre/Acudiente idéntica al modal interno (autocompletado readonly al elegir Padre/Madre como acudiente) ✅
+- Guardado completo → pantalla de confirmación ✅
+- Verificado en phpMyAdmin: 35 campos familiares + fechainscripcion con fecha del día ✅
+- Reingreso con mismo código → datos previamente guardados precargados correctamente ✅
+- Código inválido → mensaje "Código no válido, verifica que esté bien escrito" ✅
+
+---
+
 ## [b34143d] — 2026-08-01 — feat: Paso 1 del formulario público de inscripción (Fase 3-B)
 
 ### Archivos modificados
