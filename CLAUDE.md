@@ -678,7 +678,7 @@ Por defecto Dompdf restringe la lectura de archivos locales al chroot de su prop
 |---|---|
 | Exportación Excel incompleta en `06_reportes` | Exportación a Excel en `06_reportes` no incluye datos de curso ni docente — pendiente de revisión (hallazgo del 2026-07-05, no bloqueante). |
 | ~~Auditoría PHP 8.1-8.5~~ (RESUELTO 2026-07-25) | Auditoría estática completa sobre los 22 archivos .php de app/: sin hallazgos (código 100% procedural, sin type hints, conexión BD 100% vía PDO). Prueba en runtime de dompdf (librería de terceros) con `display_errors=1` y `error_reporting=E_ALL`: PDF generado sin ningún warning ni deprecation. Compatibilidad con PHP 8.5 confirmada de punta a punta. |
-| `recaptcha_config.php` sin integrar | Credenciales reCAPTCHA ya creadas (`app/00_connect/recaptcha_config.php`) y excluidas de git — es preparación para la Fase 3 del formulario público de inscripción; reCAPTCHA todavía no está integrado en ningún formulario del sistema (hallazgo del 2026-07-25/26, no bloqueante). |
+| `recaptcha_config.php` sin integrar | Credenciales reCAPTCHA ya creadas (`app/00_connect/recaptcha_config.php`, hallazgo 2026-07-25/26). Es preparación para la Fase 3 del formulario público de inscripción — ver tabla de 5 fases más abajo en "Estado del roadmap". Fases 0-2 cerradas, Fases 3-5 pendientes. |
 
 ---
 
@@ -714,6 +714,28 @@ Ver historial completo en CHANGELOG.md.
 | 2.4 | Módulo `06_reportes` — exportación PDF (GA-FO-04 por módulo para coordinador + boletín individual para estudiante) | ✅ 2026-07-05 |
 | 2.5 | Rediseño `05_calificaciones` — Nota Final siempre calculada, Habilitación y Definitiva como valor oficial recalculado | ✅ 2026-07-04 |
 | 2.6 | Ficha Familiar AC-FO-02 — captura completa de datos familiares, foto de estudiante, indicador de completitud, exportación PDF | ✅ 2026-07-26 |
+
+### Phase 2.7 — Formulario público de inscripción (5 fases, plan de sesión 2026-07-27)
+
+> Objetivo: permitir que un aspirante sin cuenta diligencie su propia
+> inscripción desde la web, quedando pendiente de revisión y
+> aprobación del coordinador. No confundir con Phase 3 (Validación
+> TRL5) — es trabajo de desarrollo, no de validación.
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| 2.7.0 | Credenciales Google reCAPTCHA v2 ("No soy un robot") para escuelamdb.com + localhost | ✅ 2026-07-25 |
+| 2.7.1 | Pantalla interna de datos familiares (AC-FO-02) — coordinador diligencia fichas_inscripcion | ✅ 2026-07-26 (Ficha Familiar) |
+| 2.7.2 | Migración de esquema — estudiantes.estu_origen ENUM('manual','web') DEFAULT 'manual' | ✅ 2026-07-27 (commit 7702fe2) |
+| 2.7.3 | Formulario público — módulo nuevo `09_inscripcion_publica/`, sin sesión, verificación reCAPTCHA en servidor, detección de duplicados por documento, genera `finc_codigotemporal` | ⬜ |
+| 2.7.4 | Integración — listado de Aspirantes muestra origen (Manual/Web) para que el coordinador sepa qué revisar | ⬜ |
+| 2.7.5 | Pruebas extremo a extremo + documentación | ⬜ |
+
+**Nota de diseño (Fase 2.7.3):** reutilizar `finc_codigotemporal`
+(existente en `fichas_inscripcion`, VARCHAR(20), sin usar hasta ahora)
+para permitir que el aspirante retome el formulario sin necesidad de
+una cuenta completa. Al construir esta fase, evaluar si el campo
+necesita una restricción UNIQUE (hoy no la tiene).
 
 ### Phase 3 — Validación TRL5
 
