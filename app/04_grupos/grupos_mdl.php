@@ -441,6 +441,30 @@ switch ($accion) {
 
     case 'listar_periodos':
         if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT peri_id, peri_codigo, peri_anio, peri_semestre, fechainicio, fechafin
+                FROM periodos
+                ORDER BY peri_id DESC
+            ");
+            $stmt->execute();
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'guardar_periodo':
+        if (!isset($_SESSION['usua_id'])) {
             echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
             break;
         }
@@ -451,9 +475,80 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
-            $stmt = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos ORDER BY peri_id DESC");
-            $stmt->execute();
-            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+            $peri_id       = trim($_POST['peri_id'] ?? '');
+            $peri_codigo   = trim($_POST['peri_codigo'] ?? '');
+            $peri_anio     = trim($_POST['peri_anio'] ?? '');
+            $peri_semestre = trim($_POST['peri_semestre'] ?? '');
+            $fechainicio   = trim($_POST['fechainicio'] ?? '') ?: null;
+            $fechafin      = trim($_POST['fechafin'] ?? '') ?: null;
+
+            if ($peri_codigo === '' || $peri_anio === '' || $peri_semestre === '') {
+                echo json_encode(['status' => 'error', 'message' => 'Código, año y semestre son requeridos']);
+                break;
+            }
+
+            if (!preg_match('/^\d{4}-[12]$/', $peri_codigo)) {
+                echo json_encode(['status' => 'error', 'message' => 'El código debe tener el formato AAAA-N (ej. 2026-2)']);
+                break;
+            }
+
+            $peri_semestre_int = (int)$peri_semestre;
+            if (!in_array($peri_semestre_int, [1, 2], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'El semestre debe ser 1 o 2']);
+                break;
+            }
+
+            if ($peri_id === '') {
+                $check = $pdo->prepare("SELECT peri_id FROM periodos WHERE peri_codigo = ?");
+                $check->execute([$peri_codigo]);
+                if ($check->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ya existe un período con ese código']);
+                    break;
+                }
+                $stmt = $pdo->prepare("
+                    INSERT INTO periodos (peri_codigo, peri_anio, peri_semestre, fechainicio, fechafin)
+                    VALUES (?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([$peri_codigo, (int)$peri_anio, $peri_semestre_int, $fechainicio, $fechafin]);
+            } else {
+                $peri_id_int = (int)$peri_id;
+                $check = $pdo->prepare("SELECT peri_id FROM periodos WHERE peri_codigo = ? AND peri_id != ?");
+                $check->execute([$peri_codigo, $peri_id_int]);
+                if ($check->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ya existe un período con ese código']);
+                    break;
+                }
+                $stmt = $pdo->prepare("
+                    UPDATE periodos
+                    SET peri_codigo=?, peri_anio=?, peri_semestre=?, fechainicio=?, fechafin=?
+                    WHERE peri_id=?
+                ");
+                $stmt->execute([$peri_codigo, (int)$peri_anio, $peri_semestre_int, $fechainicio, $fechafin, $peri_id_int]);
+            }
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'obtener_periodo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("SELECT * FROM periodos WHERE peri_id = ?");
+            $stmt->execute([(int)($_POST['peri_id'] ?? 0)]);
+            $row = $stmt->fetch();
+            echo json_encode($row
+                ? ['status' => 'ok', 'data' => $row]
+                : ['status' => 'error', 'message' => 'No encontrado']);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }

@@ -1,13 +1,15 @@
 $(document).ready(function () {
 
     // ── Variables globales de estado ─────────────────────────────────────────
-    let tablaCohortes, tablaGrupos;
+    let tablaCohortes, tablaGrupos, tablaPeriodos;
     let grmo_id_activo = null;
     let coho_id_activo = null;
+    let periodoCodigoManual = false;
 
     // ── Inicialización ───────────────────────────────────────────────────────
     cargarTablaCohortes();
     cargarTablaGrupos();
+    cargarTablaPeriodos();
     cargarProgramasSelectores();
     cargarPeriodosSelector();
     cargarDocentesSelector();
@@ -17,6 +19,7 @@ $(document).ready(function () {
     $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
         if (tablaCohortes) tablaCohortes.columns.adjust();
         if (tablaGrupos) tablaGrupos.columns.adjust();
+        if (tablaPeriodos) tablaPeriodos.columns.adjust();
     });
 
     // ════════════════════════════════════════════════════════════════════════
@@ -78,6 +81,31 @@ $(document).ready(function () {
                 { data: 'grse_id', render: id =>
                     `<button class="btn btn-sm btn-outline-primary"
                         onclick="abrirEditarGrupo(${id})">Ver/Editar</button>`
+                }
+            ],
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            responsive: true
+        });
+    }
+
+    function cargarTablaPeriodos() {
+        if (tablaPeriodos) { tablaPeriodos.ajax.reload(); return; }
+        tablaPeriodos = $('#tbl_periodos').DataTable({
+            ajax: {
+                url: 'grupos_mdl.php?accion=listar_periodos',
+                type: 'POST',
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: null, render: (d, t, r, m) => m.row + 1 },
+                { data: 'peri_codigo' },
+                { data: 'peri_anio' },
+                { data: 'peri_semestre' },
+                { data: 'fechainicio', render: v => v || '—' },
+                { data: 'fechafin', render: v => v || '—' },
+                { data: 'peri_id', render: id =>
+                    `<button class="btn btn-sm btn-outline-primary"
+                        onclick="abrirEditarPeriodo(${id})">Editar</button>`
                 }
             ],
             language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
@@ -376,6 +404,69 @@ $(document).ready(function () {
     });
 
     // ════════════════════════════════════════════════════════════════════════
+    // MODAL PERÍODO — botones
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Autogenerar Código (AAAA-N) desde Año + Semestre, mientras el usuario
+    // no lo haya editado manualmente
+    $('#peri_anio, #peri_semestre').on('change', function () {
+        const anio = $('#peri_anio').val();
+        const sem  = $('#peri_semestre').val();
+        if (anio && sem) {
+            $('#peri_codigo').prop('readonly', false);
+            if (!periodoCodigoManual) {
+                $('#peri_codigo').val(`${anio}-${sem}`);
+            }
+        }
+    });
+
+    $('#peri_codigo').on('input', function () {
+        periodoCodigoManual = true;
+    });
+
+    $('#btn_nuevo_periodo').on('click', function () {
+        $('#peri_id').val('');
+        $('#peri_anio, #peri_fechainicio, #peri_fechafin').val('');
+        $('#peri_codigo').val('').prop('readonly', true);
+        $('#peri_semestre').val('1');
+        periodoCodigoManual = false;
+        $('#mdl_periodo_titulo').text('Nuevo Período');
+        new bootstrap.Modal('#mdl_periodo').show();
+    });
+
+    $('#btn_guardar_periodo').on('click', function () {
+        const anio   = $('#peri_anio').val();
+        const sem    = $('#peri_semestre').val();
+        const codigo = $('#peri_codigo').val().trim();
+        if (!anio || !sem || !codigo) {
+            alert('Complete los campos obligatorios');
+            return;
+        }
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=guardar_periodo',
+            data: {
+                peri_id:       $('#peri_id').val(),
+                peri_codigo:   codigo,
+                peri_anio:     anio,
+                peri_semestre: sem,
+                fechainicio:   $('#peri_fechainicio').val(),
+                fechafin:      $('#peri_fechafin').val()
+            },
+            dataType: 'json',
+            success: function (r) {
+                if (r.status === 'ok') {
+                    bootstrap.Modal.getInstance('#mdl_periodo').hide();
+                    cargarTablaPeriodos();
+                    cargarPeriodosSelector();
+                } else {
+                    alert('Error: ' + r.message);
+                }
+            }
+        });
+    });
+
+    // ════════════════════════════════════════════════════════════════════════
     // MODAL GRUPO — botones
     // ════════════════════════════════════════════════════════════════════════
 
@@ -554,6 +645,28 @@ function abrirEditarCohorte(coho_id) {
             $('#bloque_activo_cohorte').removeClass('d-none');
             $('#mdl_cohorte_titulo').text('Editar Cohorte');
             new bootstrap.Modal('#mdl_cohorte').show();
+        }
+    });
+}
+
+function abrirEditarPeriodo(peri_id) {
+    $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=obtener_periodo',
+        data: { peri_id: peri_id },
+        dataType: 'json',
+        success: function (r) {
+            if (r.status !== 'ok') { alert('Error al cargar'); return; }
+            const d = r.data;
+            $('#peri_id').val(d.peri_id);
+            $('#peri_anio').val(d.peri_anio);
+            $('#peri_semestre').val(d.peri_semestre);
+            $('#peri_codigo').val(d.peri_codigo).prop('readonly', false);
+            $('#peri_fechainicio').val(d.fechainicio);
+            $('#peri_fechafin').val(d.fechafin);
+            periodoCodigoManual = true; // no autogenerar sobre un código ya guardado
+            $('#mdl_periodo_titulo').text('Editar Período');
+            new bootstrap.Modal('#mdl_periodo').show();
         }
     });
 }

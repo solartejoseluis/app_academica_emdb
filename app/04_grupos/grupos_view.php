@@ -79,6 +79,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab"
+                    data-bs-target="#tab_periodos">Períodos</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab"
                     data-bs-target="#tab_grupos">Grupos Semestre</button>
         </li>
         <li class="nav-item">
@@ -106,6 +110,29 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <th>Jornada</th>
                         <th>Fecha Inicio</th>
                         <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <!-- TAB: PERÍODOS -->
+        <div class="tab-pane fade" id="tab_periodos">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Períodos Académicos</h5>
+                <button class="btn btn-primary btn-sm" id="btn_nuevo_periodo">
+                    + Nuevo Período
+                </button>
+            </div>
+            <table id="tbl_periodos" class="table table-bordered table-hover w-100">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Código</th>
+                        <th>Año</th>
+                        <th>Semestre</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -264,6 +291,58 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary"
                         id="btn_guardar_cohorte">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PERÍODO -->
+<div class="modal fade" id="mdl_periodo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="mdl_periodo_titulo">Nuevo Período</h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="peri_id">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Año <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="peri_anio"
+                               min="2020" max="2100" placeholder="Ej: 2026">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Semestre <span class="text-danger">*</span></label>
+                        <select class="form-select" id="peri_semestre">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Código <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="peri_codigo" readonly
+                           placeholder="Se autogenera desde Año y Semestre">
+                    <div class="form-text">Formato: AAAA-N. Se autogenera; puede editarlo manualmente después.</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Fecha Inicio</label>
+                        <input type="date" class="form-control" id="peri_fechainicio">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Fecha Fin</label>
+                        <input type="date" class="form-control" id="peri_fechafin">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary"
+                        id="btn_guardar_periodo">Guardar</button>
             </div>
         </div>
     </div>
