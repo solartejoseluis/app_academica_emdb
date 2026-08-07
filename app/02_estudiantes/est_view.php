@@ -61,6 +61,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                                 <th>Documento</th>
                                 <th>Teléfono</th>
                                 <th>Fecha Inscripción</th>
+                                <th>Origen</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>

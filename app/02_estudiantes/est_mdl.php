@@ -20,7 +20,7 @@ switch ($accion) {
             $pdo = getConexion();
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_telefono,
-                           e.estu_foto, e.fechacreacion,
+                           e.estu_origen, e.estu_foto, e.fechacreacion,
                            (fi.finc_id IS NOT NULL) AS tiene_ficha
                     FROM estudiantes e
                     LEFT JOIN matriculas m ON e.estu_id = m.estu_id

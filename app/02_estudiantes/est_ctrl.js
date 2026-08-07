@@ -496,6 +496,12 @@ $(document).ready(function () {
                 },
                 { data: 'estu_telefono', defaultContent: '—' },
                 { data: 'fechacreacion', width: '130px' },
+                { data: 'estu_origen', render: function (data) {
+                    let map = { 'manual': 'bg-secondary', 'web': 'bg-info text-dark' };
+                    let label = { 'manual': 'Manual', 'web': 'Web' };
+                    let cls = map[data] || 'bg-secondary';
+                    return `<span class="badge ${cls}">${label[data] || data}</span>`;
+                }},
                 {
                     data: null,
                     orderable: false,
