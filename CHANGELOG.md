@@ -4,6 +4,24 @@
 
 ---
 
+## [35831fe] — 2026-08-07 — feat: CRUD de períodos académicos como pestaña en 04_grupos
+
+### Archivos modificados
+- app/04_grupos/grupos_mdl.php, app/04_grupos/grupos_view.php, app/04_grupos/grupos_ctrl.js
+
+### Cambios
+- Nueva pestaña "Períodos" en 04_grupos, junto a Cohortes y Grupos Semestre, con crear/editar (sin eliminar).
+- listar_periodos ampliado (ahora trae peri_anio, peri_semestre, fechainicio, fechafin) y con 'data' => [] en sus respuestas de error.
+- Nuevos case guardar_periodo (upsert con validación de formato AAAA-N, semestre 1/2, y duplicado de código) y obtener_periodo.
+- Autogeneración editable del código (AAAA-N) a partir de Año+Semestre en el formulario.
+
+### Decisiones
+- No se ubicó dentro de 08_admin: ese módulo está restringido a role_id=1 únicamente, mientras que períodos debe ser accesible para Administrador y Coordinador (rol [1,2]), igual que el resto de 04_grupos.
+- Sin función de eliminar, igual que admin_mdl.php: periodos tiene FK con ON DELETE RESTRICT desde matriculas y gruposemestres — no admite borrado libre.
+- Resuelve el hallazgo de "gestión de períodos sin CRUD" registrado en CLAUDE.md el 2026-08-07.
+
+---
+
 ## [54d4514] — 2026-08-07 — fix: valida sesión y rol en doc_mdl, grupos_mdl, coordinador_mdl y admin_mdl
 
 ### Archivos modificados
