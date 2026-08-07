@@ -7,6 +7,15 @@ $accion = $_GET['accion'] ?? '';
 switch ($accion) {
 
     case 'listar_aspirantes':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
         try {
             $pdo = getConexion();
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
@@ -29,6 +38,15 @@ switch ($accion) {
         break;
 
     case 'listar_matriculados':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
         try {
             $pdo = getConexion();
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
@@ -53,6 +71,15 @@ switch ($accion) {
         break;
 
     case 'listar_programas':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("SELECT prog_id, prog_nombre, prog_sigla FROM programas ORDER BY prog_nombre ASC");
@@ -64,6 +91,15 @@ switch ($accion) {
         break;
 
     case 'listar_periodos':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos ORDER BY peri_anio DESC, peri_semestre DESC");
@@ -75,6 +111,15 @@ switch ($accion) {
         break;
 
     case 'listar_cohortes':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("SELECT coho_id, coho_codigo FROM cohortes WHERE coho_activa = 1 ORDER BY coho_codigo DESC");
@@ -86,6 +131,15 @@ switch ($accion) {
         break;
 
     case 'guardar':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         $estu_id         = trim($_POST['estu_id'] ?? '');
         $estu_tipodoc    = trim($_POST['estu_tipodoc'] ?? '');
         $estu_numerodoc  = str_replace('.', '', trim($_POST['estu_numerodoc'] ?? ''));
@@ -188,6 +242,15 @@ switch ($accion) {
         break;
 
     case 'obtener':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         $estu_id = (int)($_POST['estu_id'] ?? 0);
 
         if ($estu_id === 0) {
@@ -221,6 +284,15 @@ switch ($accion) {
         break;
 
     case 'matricular':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         $estu_id     = (int)($_POST['estu_id'] ?? 0);
         $prog_id     = (int)($_POST['prog_id'] ?? 0);
         $peri_id     = (int)($_POST['peri_id'] ?? 0);
@@ -370,6 +442,15 @@ switch ($accion) {
         break;
 
     case 'obtener_ficha':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         $estu_id = (int)($_POST['estu_id'] ?? 0);
 
         if ($estu_id === 0) {
@@ -401,6 +482,15 @@ switch ($accion) {
         break;
 
     case 'guardar_ficha':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         $estu_id = (int)($_POST['estu_id'] ?? 0);
 
         if ($estu_id === 0) {
@@ -518,6 +608,15 @@ switch ($accion) {
         break;
 
     case 'subir_foto':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         $estu_id = (int)($_POST['estu_id'] ?? 0);
 
         if ($estu_id === 0) {
