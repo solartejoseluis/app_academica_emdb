@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-07
-> Versión: 19 — Ajustes de formularios en 02_estudiantes (Folio/Número eliminados de Completar Matrícula, "Expedido en" reubicado en Nuevo Aspirante)
+> Versión: 20 — Fix seguridad en 4 módulos restantes (doc, grupos, coordinador, admin) — mismo hallazgo de est_mdl.php
 
 ---
 
@@ -369,6 +369,7 @@ necesidad de una cuenta completa.
 | `c60cb1b` | fase 3-c — Paso 2 formulario público (módulo 09_inscripcion_publica, fam_view/mdl/ctrl) | 2026-08-01 |
 | `920bcfe` | fix: valida sesión y rol en los 9 case de est_mdl.php (02_estudiantes) — mismo patrón de calificaciones_mdl.php | 2026-08-07 |
 | `29b6ca6` | refactor: ajustes de formularios en 02_estudiantes — elimina Folio/Número de Completar Matrícula, reubica "Expedido en" en Nuevo Aspirante | 2026-08-07 |
+| `54d4514` | fix: valida sesión y rol en doc_mdl, grupos_mdl, coordinador_mdl y admin_mdl — mismo hallazgo de est_mdl.php | 2026-08-07 |
 
 ---
 

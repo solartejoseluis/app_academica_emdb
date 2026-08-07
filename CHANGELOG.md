@@ -4,6 +4,24 @@
 
 ---
 
+## [54d4514] — 2026-08-07 — fix: valida sesión y rol en doc_mdl, grupos_mdl, coordinador_mdl y admin_mdl
+
+### Archivos modificados
+- app/03_docentes/doc_mdl.php (3 case)
+- app/04_grupos/grupos_mdl.php (17 case)
+- app/07_coordinador/coordinador_mdl.php (1 case, refactor)
+- app/08_admin/admin_mdl.php (5 case)
+
+### Vulnerabilidad corregida
+- Mismo hallazgo que est_mdl.php (920bcfe): estos 4 archivos carecían de cualquier verificación de sesión o rol. admin_mdl.php era el más crítico — permitía crear usuarios con cualquier role_id (incluido Administrador) y resetear contraseñas de cualquier usuario sin autenticarse, es decir, escalación de privilegios sin sesión.
+
+### Decisiones
+- doc_mdl.php y grupos_mdl.php: mismo patrón que est_mdl.php — guard de sesión + rol in_array($role_id, [1, 2], true). listar_cohortes y listar_grupos incluyen 'data' => [] por dataSrc de DataTables.
+- coordinador_mdl.php: resumen_dashboard ya tenía protección parcial (un solo mensaje para sesión inválida y rol no autorizado, dentro del try); se separó en el patrón estándar de dos mensajes distintos, guard movido fuera del try.
+- admin_mdl.php: guard restringido a role_id === 1 únicamente (no [1,2]) — admin_view.php ya excluye a Coordinador de este módulo, que maneja creación de usuarios, asignación de roles y reseteo de contraseñas. case listar incluye 'data' => [].
+
+---
+
 ## [29b6ca6] — 2026-08-07 — refactor: ajustes de formularios en 02_estudiantes
 
 ### Archivos modificados
