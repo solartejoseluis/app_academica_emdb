@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-07
-> Versión: 21 — CRUD de períodos académicos (pestaña en 04_grupos)
+> Versión: 22 — Fase 4 formulario público — columna Origen en Aspirantes
 
 ---
 
@@ -371,6 +371,7 @@ necesidad de una cuenta completa.
 | `29b6ca6` | refactor: ajustes de formularios en 02_estudiantes — elimina Folio/Número de Completar Matrícula, reubica "Expedido en" en Nuevo Aspirante | 2026-08-07 |
 | `54d4514` | fix: valida sesión y rol en doc_mdl, grupos_mdl, coordinador_mdl y admin_mdl — mismo hallazgo de est_mdl.php | 2026-08-07 |
 | `35831fe` | feat: CRUD de períodos académicos como pestaña en 04_grupos — crear/editar, sin eliminar | 2026-08-07 |
+| `f704901` | feat: muestra origen (Manual/Web) en listado de Aspirantes — Fase 4 formulario público | 2026-08-07 |
 
 ---
 

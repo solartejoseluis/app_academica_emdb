@@ -4,6 +4,20 @@
 
 ---
 
+## [f704901] — 2026-08-07 — feat: muestra origen (Manual/Web) en listado de Aspirantes
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php, app/02_estudiantes/est_view.php, app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Fase 4 del formulario público de inscripción: nueva columna "Origen" en el listado de Aspirantes, con badge de Bootstrap (Manual/Web), mismo patrón visual ya usado para matr_estado.
+- listar_aspirantes ahora incluye estu_origen en el SELECT.
+
+### Decisiones
+- Se reutilizó la columna estu_origen ENUM('manual','web') ya existente desde la migración de esquema previa (commit 7702fe2) — no requirió cambios de base de datos.
+
+---
+
 ## [35831fe] — 2026-08-07 — feat: CRUD de períodos académicos como pestaña en 04_grupos
 
 ### Archivos modificados
