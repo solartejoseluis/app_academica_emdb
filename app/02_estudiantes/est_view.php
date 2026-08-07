@@ -116,8 +116,8 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 
                 <h6 class="text-muted border-bottom pb-2 mb-3">Datos del Estudiante</h6>
                 <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Tipo de documento</label>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">Tipo/Documento</label>
                         <select class="form-select" id="slct_estu_tipodoc">
                             <option value="">-- Seleccionar --</option>
                             <option value="CC">CC</option>
@@ -127,9 +127,13 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                             <option value="NIT">NIT</option>
                         </select>
                     </div>
-                    <div class="col-md-8 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label class="form-label">Número de documento <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="npt_estu_numerodoc" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Expedido en</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estu_expedidoen" autocomplete="off">
                     </div>
                 </div>
                 <div class="row">
@@ -199,15 +203,11 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
 
                 <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Expedido en</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_estu_expedidoen" autocomplete="off">
-                    </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Ciudad de nacimiento</label>
                         <input type="text" class="form-control texto-mayus" id="npt_estu_ciudadnac" autocomplete="off">
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Ocupación</label>
                         <input type="text" class="form-control texto-mayus" id="npt_estu_ocupacion" autocomplete="off">
                     </div>
@@ -308,15 +308,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Folio</label>
-                        <input type="text" class="form-control" id="npt_matr_folio" autocomplete="off">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Número</label>
-                        <input type="text" class="form-control" id="npt_matr_numero" autocomplete="off">
-                    </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-12 mb-3">
                         <label class="form-label">Cohorte</label>
                         <select class="form-select" id="slct_coho_id">
                             <option value="">-- Seleccionar --</option>

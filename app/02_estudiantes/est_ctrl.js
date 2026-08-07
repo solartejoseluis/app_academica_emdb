@@ -293,8 +293,6 @@ $(document).ready(function () {
             prog_id:           prog_id,
             peri_id:           peri_id,
             coho_id:           $('#slct_coho_id').val(),
-            matr_folio:        $('#npt_matr_folio').val().trim(),
-            matr_numero:       $('#npt_matr_numero').val().trim(),
             tipo_acceso:       tipo_acceso,
             clave_manual:      $('#npt_clave_manual').val().trim(),
             req_copiadiploma:  $('#npt_req_copiadiploma').is(':checked') ? 1 : 0,
@@ -450,8 +448,6 @@ $(document).ready(function () {
         $('#div_clave_generada').addClass('d-none');
         $('#btn_cerrar_matricula').addClass('d-none');
         $('#btn_confirmar_matricula').removeClass('d-none');
-        $('#npt_matr_folio').val('');
-        $('#npt_matr_numero').val('');
         $('#npt_clave_manual').val('');
         $('#slct_coho_id').val('');
         $('#slct_prog_id').val('');
