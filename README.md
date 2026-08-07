@@ -199,7 +199,7 @@ Usuario interactúa con la vista
 ### Seguridad
 
 - Todas las vistas verifican sesión y rol en el servidor antes de renderizar
-- Los endpoints `_mdl.php` de los módulos con datos sensibles (`02_estudiantes`, `05_calificaciones`) también validan sesión y rol antes de ejecutar cada acción, no solo las vistas — así una acción no puede invocarse directamente sin pasar por el control de acceso
+- Los endpoints `_mdl.php` de los módulos con datos sensibles (`02_estudiantes`, `03_docentes`, `04_grupos`, `05_calificaciones`, `07_coordinador`, `08_admin`) también validan sesión y rol antes de ejecutar cada acción, no solo las vistas — así una acción no puede invocarse directamente sin pasar por el control de acceso
 - Todas las queries usan PDO con parámetros enlazados — sin interpolación directa
 - Contraseñas hasheadas con bcrypt (`password_hash` / `password_verify`)
 - La nota definitiva se recalcula en el servidor antes de persistir — el cliente no define calificaciones
