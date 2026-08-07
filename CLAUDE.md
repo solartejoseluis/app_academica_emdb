@@ -680,6 +680,7 @@ Por defecto Dompdf restringe la lectura de archivos locales al chroot de su prop
 | ~~Auditoría PHP 8.1-8.5~~ (RESUELTO 2026-07-25) | Auditoría estática completa sobre los 22 archivos .php de app/: sin hallazgos (código 100% procedural, sin type hints, conexión BD 100% vía PDO). Prueba en runtime de dompdf (librería de terceros) con `display_errors=1` y `error_reporting=E_ALL`: PDF generado sin ningún warning ni deprecation. Compatibilidad con PHP 8.5 confirmada de punta a punta. |
 | `recaptcha_config.php` sin integrar | Credenciales reCAPTCHA ya creadas (`app/00_connect/recaptcha_config.php`, hallazgo 2026-07-25/26). Es preparación para la Fase 3 del formulario público de inscripción — ver tabla de 5 fases más abajo en "Estado del roadmap". Fases 0-2 cerradas, Fases 3-5 pendientes. |
 | ~~curl_close() deprecada~~ (RESUELTO 2026-08-01) | Igual que imagedestroy() (Fase Ficha Familiar), curl_close() no hace nada desde PHP 8.0 y genera warning de deprecación explícito en PHP 8.5 — el warning se imprime antes del json_encode() y rompe dataType:'json' en $.ajax. Eliminada de verificarRecaptcha() en insc_mdl.php. Patrón a vigilar en cualquier código nuevo que use curl. |
+| Gestión de períodos académicos sin CRUD | La tabla `periodos` no tiene ningún CRUD en la aplicación — solo existen los 3 períodos sembrados por el seed inicial (2025-1, 2025-2, 2026-1). Cualquier período nuevo debe insertarse manualmente vía SQL/phpMyAdmin. Hallazgo detectado el 2026-08-07, sin prioridad asignada todavía. |
 
 ---
 
