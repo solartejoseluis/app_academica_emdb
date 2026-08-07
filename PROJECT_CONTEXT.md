@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-08-01
-> Versión: 17 — Fase 3 del formulario público completa (Pasos 1 y 2: datos personales + datos familiares)
+> Última actualización: 2026-08-07
+> Versión: 18 — Fix seguridad est_mdl.php (sesión/rol en 9 case) + Fase 3 del formulario público completa (Pasos 1 y 2: datos personales + datos familiares)
 
 ---
 
@@ -367,6 +367,7 @@ necesidad de una cuenta completa.
 | `b5626c2` | fase 3-a — agrega UNIQUE a finc_codigotemporal | 2026-08-01 |
 | `b34143d` | fase 3-b — Paso 1 formulario público (módulo 09_inscripcion_publica, insc_view/mdl/ctrl) | 2026-08-01 |
 | `c60cb1b` | fase 3-c — Paso 2 formulario público (módulo 09_inscripcion_publica, fam_view/mdl/ctrl) | 2026-08-01 |
+| `920bcfe` | fix: valida sesión y rol en los 9 case de est_mdl.php (02_estudiantes) — mismo patrón de calificaciones_mdl.php | 2026-08-07 |
 
 ---
 

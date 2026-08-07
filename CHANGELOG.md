@@ -4,6 +4,20 @@
 
 ---
 
+## [920bcfe] — 2026-08-07 — fix: valida sesión y rol en los 9 case de est_mdl.php (02_estudiantes)
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php — guard de sesión (`$_SESSION['usua_id']`) + guard de rol (`in_array($role_id, [1, 2], true)`) agregado al inicio de los 9 case existentes: listar_aspirantes, listar_matriculados, listar_programas, listar_periodos, listar_cohortes, guardar, obtener, matricular, obtener_ficha, guardar_ficha, subir_foto
+
+### Vulnerabilidad corregida
+- Ninguno de los 9 case tenía validación de sesión ni de rol. Cualquiera con la URL podía leer o modificar datos de estudiantes —incluida la creación de credenciales de acceso vía `matricular`— sin sesión activa.
+
+### Decisiones
+- Mismo patrón ya usado en `calificaciones_mdl.php` (commits `75504eb`/`04ec8b0`): guard de sesión + guard de rol al inicio de cada case. Sin rama de ownership — `02_estudiantes` es exclusivo de Administrador/Coordinador (role_id 1 y 2), a diferencia de `05_calificaciones` donde el docente está restringido a sus propios grupos.
+- `listar_aspirantes` y `listar_matriculados` incluyen `'data' => []` en las respuestas de error para no romper `dataSrc: 'data'` de DataTables en `est_ctrl.js`.
+
+---
+
 ## [c60cb1b] — 2026-08-01 — feat: Paso 2 del formulario público de inscripción (Fase 3-C)
 
 ### Archivos modificados
