@@ -7,6 +7,15 @@ $accion = $_GET['accion'] ?? '';
 switch ($accion) {
 
     case 'listar':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $sql = "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla,
@@ -24,6 +33,15 @@ switch ($accion) {
         break;
 
     case 'guardar':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         $doce_id        = trim($_POST['doce_id'] ?? '');
         $doce_nombres   = strtoupper(trim($_POST['doce_nombres'] ?? ''));
         $doce_apellidos = strtoupper(trim($_POST['doce_apellidos'] ?? ''));
@@ -109,6 +127,15 @@ switch ($accion) {
         break;
 
     case 'obtener':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         $doce_id = (int)($_POST['doce_id'] ?? 0);
 
         if ($doce_id === 0) {

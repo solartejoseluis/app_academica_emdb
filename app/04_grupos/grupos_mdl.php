@@ -9,6 +9,15 @@ switch ($accion) {
     // ── COHORTES ─────────────────────────────────────────────────────────────
 
     case 'listar_cohortes':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
@@ -27,6 +36,15 @@ switch ($accion) {
         break;
 
     case 'guardar_cohorte':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $coho_id    = trim($_POST['coho_id'] ?? '');
@@ -65,6 +83,15 @@ switch ($accion) {
         break;
 
     case 'obtener_cohorte':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
@@ -86,6 +113,15 @@ switch ($accion) {
     // ── GRUPOS SEMESTRE ───────────────────────────────────────────────────────
 
     case 'listar_grupos':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
@@ -109,6 +145,15 @@ switch ($accion) {
         break;
 
     case 'guardar_grupo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $grse_id      = trim($_POST['grse_id'] ?? '');
@@ -151,6 +196,15 @@ switch ($accion) {
         break;
 
     case 'obtener_grupo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
@@ -172,6 +226,15 @@ switch ($accion) {
     // ── MÓDULOS DEL GRUPO ─────────────────────────────────────────────────────
 
     case 'listar_modulos_grupo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $grse_id = (int)($_POST['grse_id'] ?? 0);
@@ -194,6 +257,15 @@ switch ($accion) {
         break;
 
     case 'guardar_modulo_grupo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $grmo_id     = trim($_POST['grmo_id'] ?? '');
@@ -233,6 +305,15 @@ switch ($accion) {
     // ── ASIGNACIÓN DE ESTUDIANTES A MÓDULOS ───────────────────────────────────
 
     case 'listar_estudiantes_disponibles':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $grmo_id = (int)($_POST['grmo_id'] ?? 0);
@@ -255,6 +336,15 @@ switch ($accion) {
         break;
 
     case 'listar_estudiantes_modulo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $grmo_id = (int)($_POST['grmo_id'] ?? 0);
@@ -273,6 +363,15 @@ switch ($accion) {
         break;
 
     case 'asignar_estudiantes':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $grmo_id    = (int)($_POST['grmo_id'] ?? 0);
@@ -297,6 +396,15 @@ switch ($accion) {
         break;
 
     case 'retirar_estudiante':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $grmo_id = (int)($_POST['grmo_id'] ?? 0);
@@ -312,6 +420,15 @@ switch ($accion) {
     // ── SELECTORES ────────────────────────────────────────────────────────────
 
     case 'listar_programas':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("SELECT prog_id, prog_nombre, prog_sigla FROM programas ORDER BY prog_id");
@@ -323,6 +440,15 @@ switch ($accion) {
         break;
 
     case 'listar_periodos':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos ORDER BY peri_id DESC");
@@ -334,6 +460,15 @@ switch ($accion) {
         break;
 
     case 'listar_cohortes_por_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $prog_id = (int)($_POST['prog_id'] ?? 0);
@@ -351,6 +486,15 @@ switch ($accion) {
         break;
 
     case 'listar_modulos_por_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $prog_id = (int)($_POST['prog_id'] ?? 0);
@@ -370,6 +514,15 @@ switch ($accion) {
         break;
 
     case 'listar_docentes':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("

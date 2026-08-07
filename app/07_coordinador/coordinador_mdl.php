@@ -9,11 +9,16 @@ switch ($accion) {
     // ── RESUMEN DASHBOARD (roles 1 y 2) ──────────────────────────────────────
 
     case 'resumen_dashboard':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
         try {
-            if (!in_array((int)($_SESSION['role_id'] ?? 0), [1, 2])) {
-                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
-                break;
-            }
             $pdo = getConexion();
 
             // Query 1 — conteos generales
