@@ -4,6 +4,21 @@
 
 ---
 
+## [29b6ca6] — 2026-08-07 — refactor: ajustes de formularios en 02_estudiantes
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php, app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Completar Matrícula: eliminados los campos Folio y Número de la UI. Cohorte ahora ocupa el ancho completo de la fila.
+- Nuevo Aspirante: "Expedido en" reubicado junto a Tipo de documento y Número de documento (mismo renglón). "Tipo de documento" renombrado a "Tipo/Documento" para ahorrar espacio.
+
+### Decisiones
+- matr_folio/matr_numero se mantienen en est_mdl.php y en la tabla `matriculas` como campos opcionales, sin usarse desde la UI — pertenecen a una etapa de certificación fuera del alcance de este proyecto, y así quedan listos para reactivarse sin cambios de backend/BD si se retoman en el futuro.
+- El reordenamiento del HTML no requirió tocar el array CAMPOS_ESTUDIANTE en est_ctrl.js, ya que la validación usa selectores por ID, no posición en el DOM.
+
+---
+
 ## [920bcfe] — 2026-08-07 — fix: valida sesión y rol en los 9 case de est_mdl.php (02_estudiantes)
 
 ### Archivos modificados
