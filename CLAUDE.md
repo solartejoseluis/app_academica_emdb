@@ -448,6 +448,16 @@ $sql = "SELECT * FROM estudiantes WHERE estu_id = $_POST[estu_id]";
 
 Los cálculos críticos (nota definitiva, estado de aprobación, acumulados con supletorios) se realizan en PHP, no en JavaScript. El cliente recibe resultados calculados, no datos crudos para calcular.
 
+### DELETE físico con verificación de reglas de negocio en servidor
+
+Cuando una entidad tiene FKs entrantes con distintas políticas de borrado (RESTRICT/CASCADE), el DELETE físico debe:
+
+1. Verificar en el servidor (`_mdl.php`) las condiciones de negocio que permiten el borrado — nunca confiar en que el frontend oculte el botón.
+2. Ejecutarse dentro de una transacción PDO (`beginTransaction()` / `commit()` / `rollBack()`), incluyendo el borrado explícito de filas dependientes que el propio RESTRICT no resuelve solo.
+3. Dejar que las FK con RESTRICT actúen como salvavidas final — si una tabla inesperada tiene filas asociadas, la excepción PDO debe activar el rollback, nunca forzarse el borrado.
+
+Ejemplo: `eliminar_aspirante` en `02_estudiantes` — verifica `matr_estado` antes de proceder, borra `matriculas` en la misma transacción, y deja que `calificaciones` (con RESTRICT) bloquee la operación si hubiera datos inesperados.
+
 ---
 
 ## Antipatrones a evitar
@@ -683,6 +693,7 @@ Por defecto Dompdf restringe la lectura de archivos locales al chroot de su prop
 | ~~curl_close() deprecada~~ (RESUELTO 2026-08-01) | Igual que imagedestroy() (Fase Ficha Familiar), curl_close() no hace nada desde PHP 8.0 y genera warning de deprecación explícito en PHP 8.5 — el warning se imprime antes del json_encode() y rompe dataType:'json' en $.ajax. Eliminada de verificarRecaptcha() en insc_mdl.php. Patrón a vigilar en cualquier código nuevo que use curl. |
 | ~~Gestión de períodos académicos sin CRUD~~ (RESUELTO 2026-08-07) | La tabla `periodos` no tenía ningún CRUD en la aplicación — solo existían los 3 períodos sembrados por el seed inicial (2025-1, 2025-2, 2026-1). Cualquier período nuevo debía insertarse manualmente vía SQL/phpMyAdmin. Implementado como pestaña "Períodos" dentro de `04_grupos` (crear/editar, sin eliminar — FK con `ON DELETE RESTRICT` desde `matriculas` y `gruposemestres`). |
 | `pdo_web.php` sin `SET time_zone` (producción) | Desde el commit 7216637, `app/00_connect/pdo.php` (local) ejecuta `SET time_zone = '-05:00'` justo tras conectar. `pdo_web.php` — el archivo equivalente en producción, no versionado en git — no tiene ese `SET` porque no pasa por el flujo de deploy. La conexión de producción sigue dependiendo del `time_zone` que tenga configurado el servidor MySQL del hosting cPanel, que probablemente no sea Bogotá. Pendiente: edición manual directa en el servidor de producción, fuera del flujo de git. |
+| Eliminar aspirante sin auditoría (decisión, no deuda pendiente) | `eliminar_aspirante` en `02_estudiantes` (commit 7d72327) hace DELETE físico y permanente, sin guardar motivo ni registro de quién/cuándo eliminó. Esto fue una decisión explícita de José Luis (director del proyecto), no un descuido — no agregar soft-delete, motivo, ni tabla de auditoría a esta acción sin consultarlo primero. |
 
 ---
 

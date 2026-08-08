@@ -204,6 +204,7 @@ Usuario interactúa con la vista
 - Todas las queries usan PDO con parámetros enlazados — sin interpolación directa
 - Contraseñas hasheadas con bcrypt (`password_hash` / `password_verify`)
 - La nota definitiva se recalcula en el servidor antes de persistir — el cliente no define calificaciones
+- Operaciones destructivas (ej. eliminar aspirante en `02_estudiantes`) verifican en el servidor las condiciones de negocio antes de ejecutar el DELETE — no dependen de que el frontend oculte el botón
 
 ---
 
