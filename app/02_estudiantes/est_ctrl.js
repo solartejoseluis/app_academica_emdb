@@ -151,6 +151,7 @@ $(document).ready(function () {
     $('#btn_nuevo_aspirante').click(function () {
         limpiarFormulario();
         $('#mdl_estudiante_titulo').text('Nuevo Aspirante');
+        $('#btn_eliminar_aspirante').addClass('d-none');
         new bootstrap.Modal(document.getElementById('mdl_estudiante')).show();
     });
 
@@ -223,6 +224,35 @@ $(document).ready(function () {
                     tablaAspirantes.ajax.reload(null, false);
                     alert(estu_id === '' ? 'Aspirante registrado correctamente.' : 'Estudiante actualizado correctamente.');
                 } else {
+                    alert(response.message);
+                }
+            }
+        });
+    });
+
+    // --- Eliminar aspirante (DELETE físico, solo aspirantes) ---
+    $('#btn_eliminar_aspirante').click(function () {
+        let nombre = $('#npt_estu_nombres').val().trim() + ' ' + $('#npt_estu_apellidos').val().trim();
+        $('#spn_nombre_eliminar_aspirante').text(nombre);
+        new bootstrap.Modal(document.getElementById('mdl_confirmar_eliminar_aspirante')).show();
+    });
+
+    $('#btn_confirmar_eliminar_aspirante').click(function () {
+        let estu_id = $('#npt_estu_id').val().trim();
+
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=eliminar_aspirante',
+            data: { estu_id: estu_id },
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_confirmar_eliminar_aspirante')).hide();
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_estudiante')).hide();
+                    tablaAspirantes.ajax.reload(null, false);
+                    alert('Aspirante eliminado correctamente.');
+                } else {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_confirmar_eliminar_aspirante')).hide();
                     alert(response.message);
                 }
             }
@@ -517,7 +547,7 @@ $(document).ready(function () {
                         return `<button class="btn btn-sm btn-outline-success me-1"
                                         onclick="abrirMatricular(${row.estu_id})">Matricular</button>
                                 <button class="btn btn-sm btn-outline-primary me-1"
-                                        onclick="abrirEditar(${row.estu_id})">Editar</button>
+                                        onclick="abrirEditar(${row.estu_id}, true)">Editar</button>
                                 <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
                                 </button>${botonPdf}`;
@@ -590,7 +620,7 @@ $(document).ready(function () {
                             ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
                             : '';
                         return `<button class="btn btn-sm btn-outline-primary me-1"
-                                        onclick="abrirEditar(${row.estu_id})">Editar</button>
+                                        onclick="abrirEditar(${row.estu_id}, false)">Editar</button>
                                 <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
                                 </button>${botonPdf}`;
@@ -693,7 +723,7 @@ $(document).ready(function () {
 });
 
 // Fuera de ready — requerido para onclick inline de DataTables
-function abrirEditar(estu_id) {
+function abrirEditar(estu_id, esAspirante) {
     $.ajax({
         type: 'POST',
         url: 'est_mdl.php?accion=obtener',
@@ -702,6 +732,7 @@ function abrirEditar(estu_id) {
         success: function (response) {
             if (response.status === 'ok') {
                 let d = response.data;
+                $('#btn_eliminar_aspirante').toggleClass('d-none', !esAspirante);
                 $('#npt_estu_id').val(d.estu_id);
                 $('#slct_estu_tipodoc').val(d.estu_tipodoc);
                 $('#npt_estu_numerodoc').val(d.estu_numerodoc);

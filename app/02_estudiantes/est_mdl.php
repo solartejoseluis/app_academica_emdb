@@ -791,6 +791,65 @@ switch ($accion) {
         }
         break;
 
+    case 'eliminar_aspirante':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $estu_id = (int)($_POST['estu_id'] ?? 0);
+
+        if ($estu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de estudiante inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            $stmtMatr = $pdo->prepare("SELECT matr_id, matr_estado FROM matriculas WHERE estu_id = ?");
+            $stmtMatr->execute([$estu_id]);
+            $matricula = $stmtMatr->fetch();
+
+            if ($matricula && $matricula['matr_estado'] !== 'aspirante') {
+                echo json_encode(['status' => 'error', 'message' => 'Este estudiante ya tiene una matrícula activa, no puede eliminarse como aspirante']);
+                break;
+            }
+
+            $pdo->beginTransaction();
+
+            if ($matricula) {
+                $stmtDelMatr = $pdo->prepare("DELETE FROM matriculas WHERE matr_id = ?");
+                $stmtDelMatr->execute([$matricula['matr_id']]);
+            }
+
+            // fichas_inscripcion se elimina sola vía ON DELETE CASCADE.
+            // Si existieran calificaciones o grmoestudiantes inesperados, el
+            // RESTRICT de calificaciones hace fallar esta sentencia — se captura abajo.
+            $stmtDelEstu = $pdo->prepare("DELETE FROM estudiantes WHERE estu_id = ? AND estu_activo = 1");
+            $stmtDelEstu->execute([$estu_id]);
+
+            if ($stmtDelEstu->rowCount() === 0) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'Aspirante no encontrado']);
+                break;
+            }
+
+            $pdo->commit();
+            echo json_encode(['status' => 'ok']);
+
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar: existen datos asociados al estudiante']);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;

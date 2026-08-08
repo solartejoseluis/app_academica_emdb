@@ -276,8 +276,28 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto d-none" id="btn_eliminar_aspirante">Eliminar aspirante</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btn_guardar_estudiante">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar Aspirante -->
+<div class="modal fade" id="mdl_confirmar_eliminar_aspirante" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar aspirante</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Eliminar a <strong id="spn_nombre_eliminar_aspirante"></strong> de forma permanente? Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_aspirante">Eliminar definitivamente</button>
             </div>
         </div>
     </div>
