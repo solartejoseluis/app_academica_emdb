@@ -87,7 +87,7 @@ app_academica_emdb/
     01_login/          — Autenticación y redirección por rol ✅
     02_estudiantes/    — Registro, edición y matrícula de estudiantes; Ficha Familiar (AC-FO-02) y foto del estudiante ✅
     03_docentes/       — Gestión del cuerpo docente ✅
-    04_grupos/         — Cohortes, períodos académicos, grupos semestre, módulos y asignación de estudiantes ✅
+    04_grupos/         — Cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) ✅
     06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador (con contexto de curso y docente) + boletín PDF estudiante + PDF de Ficha Familiar ✅
     07_coordinador/    — Dashboard de seguimiento académico ✅

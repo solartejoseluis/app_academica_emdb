@@ -458,6 +458,16 @@ Cuando una entidad tiene FKs entrantes con distintas políticas de borrado (REST
 
 Ejemplo: `eliminar_aspirante` en `02_estudiantes` — verifica `matr_estado` antes de proceder, borra `matriculas` en la misma transacción, y deja que `calificaciones` (con RESTRICT) bloquee la operación si hubiera datos inesperados.
 
+### DELETE condicionado + alternativa reversible con flag existente
+
+Cuando una entidad ya tiene un flag booleano de activo/inactivo (ej. `modu_activo`, `estu_activo`, `grse_activo`) y el DELETE físico puede bloquearse por FKs con historial real de uso, ofrecer una alternativa explícita y reversible en vez de solo bloquear:
+
+1. Intentar el DELETE solo si la entidad no tiene historial en la tabla dependiente relevante — un simple `SELECT COUNT(*)` previo basta si no hay filas hijas que borrar en la misma operación (a diferencia del patrón anterior, aquí no hace falta una transacción PDO si el DELETE es de una sola tabla).
+2. Si el DELETE está bloqueado, el mensaje de error debe sugerir explícitamente la alternativa reversible (ej. "no puede eliminarse — puedes desactivarlo en su lugar"), no solo informar el bloqueo.
+3. La acción de desactivar/activar (`toggle_estado_*`) es una operación separada, sin modal de confirmación — a diferencia del DELETE, que si es irreversible sí la requiere — porque alternar el flag es reversible en cualquier momento.
+
+Ejemplo: `eliminar_modulo` / `toggle_estado_modulo` en `04_grupos` — un módulo con historial en `gruposmodulos` no puede eliminarse, pero sí desactivarse (`modu_activo=0`), lo que lo excluye de los selects activos (`listar_modulos_por_programa`) sin perder la trazabilidad de calificaciones o grupos pasados que ya lo referencian.
+
 ---
 
 ## Antipatrones a evitar
