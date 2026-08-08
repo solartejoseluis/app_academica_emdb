@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-08
-> Versión: 25 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker
+> Versión: 26 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente
 
 ---
 
@@ -376,6 +376,7 @@ necesidad de una cuenta completa.
 | `8ada1df` | feat: agrega contexto de curso/docente al reporte y export Excel en 06_reportes | 2026-08-07 |
 | `1531593` | feat: Ficha Familiar obligatoria + indicador de 3 estados en Aspirantes/Matriculados | 2026-08-07 |
 | `7216637` | fix: fija zona horaria America/Bogota (UTC-5) en Docker y conexión PDO | 2026-08-08 |
+| `75907a3` | feat: muestra nombre completo del módulo e inicial del docente en select de Reportes | 2026-08-08 |
 
 ---
 

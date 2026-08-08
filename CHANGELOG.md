@@ -4,6 +4,23 @@
 
 ---
 
+## [75907a3] — 2026-08-08 — feat: muestra nombre completo del módulo e inicial del docente en select de Reportes
+
+### Archivos modificados
+- app/06_reportes/reportes_ctrl.js
+
+### Cambios
+- `#sel_grupo` (rol coordinador/admin) ahora incluye `modu_nombre` junto a la sigla del módulo en el texto de cada `<option>`.
+- Apellido del docente ahora precedido por la inicial del primer nombre (ej. "L.Gómez"), vía nueva función auxiliar `inicialDocente()` que toma el primer token de `doce_nombres` aunque venga con varios nombres.
+- Conteo de estudiantes abreviado de "estudiantes" a "est".
+- `#sel_modulo` (rol estudiante) sin cambios — ya mostraba `modu_nombre` correctamente antes de este ajuste.
+
+### Decisiones
+- Sin cambios en `reportes_mdl.php` ni en la query SQL de `grupos_para_reporte` — `modu_nombre`, `doce_nombres` y `doce_apellidos` ya viajaban en el JSON, solo faltaba usarlos en el texto del `<option>`.
+- El `value` del select (`grmo_id`) no se modificó.
+
+---
+
 ## [7216637] — 2026-08-08 — fix: fija zona horaria America/Bogota (UTC-5) en Docker y conexión PDO
 
 ### Archivos modificados
