@@ -89,6 +89,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             <button class="nav-link" data-bs-toggle="tab"
                     data-bs-target="#tab_asignacion">Asignación Estudiantes</button>
         </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab"
+                    data-bs-target="#tab_modulos">Módulos</button>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -239,6 +243,30 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             <div id="msg_seleccione" class="text-muted mt-3">
                 Seleccione un grupo y un módulo para gestionar estudiantes.
             </div>
+        </div>
+
+        <!-- TAB: MÓDULOS -->
+        <div class="tab-pane fade" id="tab_modulos">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Módulos</h5>
+                <button class="btn btn-primary btn-sm" id="btn_nuevo_modulo">
+                    + Nuevo Módulo
+                </button>
+            </div>
+            <table id="tbl_modulos" class="table table-bordered table-hover w-100">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Programa</th>
+                        <th>Sigla</th>
+                        <th>Nombre</th>
+                        <th>Orden</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
         </div>
 
     </div><!-- /tab-content -->
@@ -493,6 +521,67 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary"
                         id="btn_guardar_modulo_grupo">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL MÓDULO -->
+<div class="modal fade" id="mdl_modulo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="mdl_modulo_titulo">Nuevo Módulo</h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modu_id">
+                <div class="mb-3">
+                    <label class="form-label">Programa <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_prog_modulo">
+                        <option value="">-- Seleccionar --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="modu_nombre"
+                           placeholder="Ej: Anatomía y Fisiología General">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sigla <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control texto-mayus" id="modu_sigla"
+                           placeholder="Ej: ASO-AF1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Orden (semestre/bloque) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="modu_orden" min="1" max="10">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary"
+                        id="btn_guardar_modulo">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR MÓDULO -->
+<div class="modal fade" id="mdl_confirmar_eliminar_modulo" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar módulo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Eliminar el módulo <strong id="spn_nombre_eliminar_modulo"></strong> de forma permanente? Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_modulo">Eliminar definitivamente</button>
             </div>
         </div>
     </div>
