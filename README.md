@@ -19,6 +19,7 @@ Sistema web para la automatización de los procesos de inscripción, matrícula 
 | Generación PDF | dompdf | vía Composer |
 | Procesamiento de imágenes | GD (extensión PHP) | Dockerfile |
 | Servidor local | Docker (Fedora 44) | PHP 8.5 + Apache + MySQL 8.0 |
+| Zona horaria | America/Bogota | UTC-5, offset fijo (sin horario de verano) |
 
 ---
 
