@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-08
-> Versión: 27 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes
+> Versión: 28 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos
 
 ---
 
@@ -378,6 +378,9 @@ necesidad de una cuenta completa.
 | `7216637` | fix: fija zona horaria America/Bogota (UTC-5) en Docker y conexión PDO | 2026-08-08 |
 | `75907a3` | feat: muestra nombre completo del módulo e inicial del docente en select de Reportes | 2026-08-08 |
 | `7d72327` | feat: eliminar aspirante desde el modal Editar (02_estudiantes) — DELETE físico, bloqueo de matriculados en servidor | 2026-08-08 |
+| `6ef7e85` | feat: CRUD de módulos en 04_grupos — backend (listar/guardar/eliminar/toggle_estado en grupos_mdl.php) | 2026-08-08 |
+| `e7e6b3b` | feat: CRUD de módulos en 04_grupos — pestaña, tabla y modales en grupos_view.php (frontend HTML, sin JS) | 2026-08-08 |
+| `0eca14e` | feat: CRUD de módulos en 04_grupos — conecta grupos_ctrl.js (listar, crear/editar, eliminar condicionado, desactivar/activar) | 2026-08-08 |
 
 ---
 

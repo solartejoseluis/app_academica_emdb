@@ -4,6 +4,25 @@
 
 ---
 
+## [6ef7e85, e7e6b3b, 0eca14e] — 2026-08-08 — feat: CRUD completo de módulos en 04_grupos
+
+### Archivos modificados
+- app/04_grupos/grupos_mdl.php (6ef7e85 — backend), app/04_grupos/grupos_view.php (e7e6b3b — frontend HTML), app/04_grupos/grupos_ctrl.js (0eca14e — JS)
+
+### Cambios
+- Nueva pestaña "Módulos" en `04_grupos`, roles 1-2, con listar/crear/editar/eliminar y desactivar/activar — mismo patrón de pestañas ya usado para Cohortes, Períodos y Grupos Semestre.
+- `eliminar_modulo`: DELETE físico solo si el módulo no tiene historial en `gruposmodulos` (`SELECT COUNT(*) ... WHERE modu_id = ?` antes de borrar); bloqueado con mensaje claro si lo tiene, sugiriendo desactivar en su lugar.
+- `toggle_estado_modulo`: alterna `modu_activo` en ambos sentidos, sin confirmación (reversible) — el módulo desactivado desaparece del dropdown de `listar_modulos_por_programa` (ya filtraba por `modu_activo=1`) sin tocar ese endpoint.
+- `guardar_modulo` (crear/editar combinados): valida unicidad de `(prog_id, modu_sigla)` vía `SELECT` previo antes de INSERT/UPDATE, respetando `uq_modu_sigla_prog`.
+- Implementado en 3 fases con checkpoint de prueba entre cada una: backend verificado con 8 pruebas vía curl (incluyendo bloqueo de rol no autorizado y bloqueo de eliminación con historial), frontend HTML verificado visualmente sin JS conectado, JS verificado con 7 pruebas manuales en navegador (crear, sigla duplicada, editar, eliminar, desactivar/activar con verificación cruzada en el dropdown de Grupos Semestre, gate de roles).
+
+### Decisiones
+- DELETE condicionado en vez de desactivación forzosa: se eligió permitir eliminar físicamente solo cuando `gruposmodulos` no tiene filas para ese módulo (caso real: módulo creado por error, nunca usado). Para módulos con historial real, `modu_activo` (ya existente en el esquema) cubre el caso de retirar del plan de estudios vigente sin perder trazabilidad de calificaciones/grupos pasados.
+- Sin auditoría en `eliminar_modulo` — mismo patrón ya establecido para `eliminar_aspirante` (commit 7d72327): borrado permanente sin motivo ni registro de quién/cuándo, por decisión de diseño consistente entre ambos módulos.
+- `programa_modulos` (FK con RESTRICT hacia `modulos`) se ignoró en la lógica de bloqueo de `eliminar_modulo` porque ningún flujo actual del sistema la puebla — confirmado en el diagnóstico previo a la Fase 1.
+
+---
+
 ## [7d72327] — 2026-08-08 — feat: eliminar aspirante desde el modal Editar (02_estudiantes)
 
 ### Archivos modificados
