@@ -634,6 +634,159 @@ switch ($accion) {
         }
         break;
 
+    // ── MÓDULOS ──────────────────────────────────────────────────────────────
+
+    case 'listar_modulos':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT m.modu_id, m.modu_nombre, m.modu_sigla, m.modu_orden,
+                       m.modu_activo, m.prog_id, p.prog_nombre,
+                       COUNT(gm.grmo_id) AS total_grupos
+                FROM modulos m
+                JOIN programas p ON m.prog_id = p.prog_id
+                LEFT JOIN gruposmodulos gm ON gm.modu_id = m.modu_id
+                GROUP BY m.modu_id
+                ORDER BY p.prog_nombre, m.modu_orden, m.modu_sigla
+            ");
+            $stmt->execute();
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'guardar_modulo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $modu_id     = trim($_POST['modu_id'] ?? '');
+            $modu_nombre = trim($_POST['modu_nombre'] ?? '');
+            $modu_sigla  = trim($_POST['modu_sigla'] ?? '');
+            $prog_id     = trim($_POST['prog_id'] ?? '');
+            $modu_orden  = trim($_POST['modu_orden'] ?? '');
+
+            if ($modu_nombre === '' || $modu_sigla === '' || $prog_id === '' || $modu_orden === '') {
+                echo json_encode(['status' => 'error', 'message' => 'Nombre, sigla, programa y orden son requeridos']);
+                break;
+            }
+
+            $prog_id_int    = (int)$prog_id;
+            $modu_orden_int = (int)$modu_orden;
+
+            if ($modu_id === '') {
+                $check = $pdo->prepare("SELECT modu_id FROM modulos WHERE prog_id = ? AND modu_sigla = ?");
+                $check->execute([$prog_id_int, $modu_sigla]);
+                if ($check->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ya existe un módulo con esa sigla en este programa']);
+                    break;
+                }
+                $stmt = $pdo->prepare("
+                    INSERT INTO modulos (prog_id, modu_nombre, modu_sigla, modu_orden, modu_activo)
+                    VALUES (?, ?, ?, ?, 1)
+                ");
+                $stmt->execute([$prog_id_int, $modu_nombre, $modu_sigla, $modu_orden_int]);
+            } else {
+                $modu_id_int = (int)$modu_id;
+                $check = $pdo->prepare("SELECT modu_id FROM modulos WHERE prog_id = ? AND modu_sigla = ? AND modu_id != ?");
+                $check->execute([$prog_id_int, $modu_sigla, $modu_id_int]);
+                if ($check->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ya existe un módulo con esa sigla en este programa']);
+                    break;
+                }
+                $stmt = $pdo->prepare("
+                    UPDATE modulos
+                    SET prog_id = ?, modu_nombre = ?, modu_sigla = ?, modu_orden = ?
+                    WHERE modu_id = ?
+                ");
+                $stmt->execute([$prog_id_int, $modu_nombre, $modu_sigla, $modu_orden_int, $modu_id_int]);
+            }
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'eliminar_modulo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $modu_id = (int)($_POST['modu_id'] ?? 0);
+
+        if ($modu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de módulo inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            $check = $pdo->prepare("SELECT COUNT(*) FROM gruposmodulos WHERE modu_id = ?");
+            $check->execute([$modu_id]);
+            if ((int)$check->fetchColumn() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Este módulo ya fue asignado a uno o más grupos, no puede eliminarse — puedes desactivarlo en su lugar.']);
+                break;
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM modulos WHERE modu_id = ?");
+            $stmt->execute([$modu_id]);
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar: existen datos asociados al módulo']);
+        }
+        break;
+
+    case 'toggle_estado_modulo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $modu_id     = (int)($_POST['modu_id'] ?? 0);
+        $modu_activo = (int)($_POST['modu_activo'] ?? 0);
+
+        if ($modu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de módulo inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("UPDATE modulos SET modu_activo = ? WHERE modu_id = ?");
+            $stmt->execute([$modu_activo, $modu_id]);
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;
