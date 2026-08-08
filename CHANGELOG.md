@@ -4,6 +4,24 @@
 
 ---
 
+## [1531593] — 2026-08-07 — feat: Ficha Familiar obligatoria + indicador de 3 estados en Aspirantes/Matriculados
+
+### Archivos modificados
+- app/09_inscripcion_publica/fam_ctrl.js, app/09_inscripcion_publica/fam_mdl.php, app/02_estudiantes/est_mdl.php, app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Cierra el hallazgo crítico detectado en la Fase 5 (pruebas extremo a extremo): el indicador binario de "ficha completa" daba falso positivo para aspirantes web que abandonaban el formulario tras el Paso 1.
+- Ficha Familiar ahora obligatoria en el formulario público (fam_ctrl.js/fam_mdl.php), con validación en dos capas (visual + servidor).
+- Misma validación server-side agregada al flujo interno del coordinador (est_mdl.php case guardar_ficha), que antes solo validaba en el JS.
+- Nueva función calcularEstadoFicha() clasifica cada registro en sin_iniciar/incompleta/completa según los campos realmente diligenciados, no solo la existencia de la fila. Aplicada en listar_aspirantes y listar_matriculados.
+- Indicador visual de 3 colores (rojo/ámbar/verde) en ambas tablas de 02_estudiantes.
+
+### Decisiones
+- Sin migración de BD — ninguna columna pasa a NOT NULL, la obligatoriedad vive a nivel de aplicación. Los registros existentes se reclasifican automáticamente al leer los mismos datos, sin tocar filas.
+- Probado con 9/9 casos vía curl (validación server-side en ambos endpoints, incluyendo confirmación de que el guard de sesión del commit 54d4514 sigue intacto).
+
+---
+
 ## [8ada1df] — 2026-08-07 — feat: agrega contexto de curso/docente al reporte y export Excel en 06_reportes
 
 ### Archivos modificados

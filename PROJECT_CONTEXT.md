@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-07
-> Versión: 23 — Contexto de curso/docente en reporte y export Excel (06_reportes)
+> Versión: 24 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público)
 
 ---
 
@@ -373,6 +373,7 @@ necesidad de una cuenta completa.
 | `35831fe` | feat: CRUD de períodos académicos como pestaña en 04_grupos — crear/editar, sin eliminar | 2026-08-07 |
 | `f704901` | feat: muestra origen (Manual/Web) en listado de Aspirantes — Fase 4 formulario público | 2026-08-07 |
 | `8ada1df` | feat: agrega contexto de curso/docente al reporte y export Excel en 06_reportes | 2026-08-07 |
+| `1531593` | feat: Ficha Familiar obligatoria + indicador de 3 estados en Aspirantes/Matriculados | 2026-08-07 |
 
 ---
 
