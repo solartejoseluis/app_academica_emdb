@@ -45,6 +45,27 @@ switch ($accion) {
             }
             $pdo = getConexion();
             $grmo_id = (int)($_POST['grmo_id'] ?? 0);
+
+            $stmtGrupo = $pdo->prepare("
+                SELECT gm.grmo_id,
+                       m.modu_nombre, m.modu_sigla,
+                       gs.grse_codigo,
+                       p.prog_nombre, p.prog_sigla,
+                       pe.peri_codigo,
+                       d.doce_nombres, d.doce_apellidos,
+                       coh.coho_jornada
+                FROM gruposmodulos gm
+                INNER JOIN modulos m ON gm.modu_id = m.modu_id
+                INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                INNER JOIN programas p ON gs.prog_id = p.prog_id
+                INNER JOIN periodos pe ON gs.peri_id = pe.peri_id
+                INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                LEFT JOIN cohortes coh ON gs.coho_id = coh.coho_id
+                WHERE gm.grmo_id = ?
+            ");
+            $stmtGrupo->execute([$grmo_id]);
+            $contexto = $stmtGrupo->fetch();
+
             $stmt = $pdo->prepare("
                 SELECT e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
                        c.cali_n1, c.cali_sup_n1, c.cali_n2, c.cali_sup_n2,
@@ -58,7 +79,7 @@ switch ($accion) {
                 ORDER BY e.estu_apellidos, e.estu_nombres
             ");
             $stmt->execute([$grmo_id]);
-            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+            echo json_encode(['status' => 'ok', 'grupo' => $contexto, 'data' => $stmt->fetchAll()]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }

@@ -107,6 +107,9 @@ $(document).ready(function () {
                     tablaReporte = null;
                 }
 
+                const contextoTexto = construirContextoTexto(r.grupo);
+                mostrarInfoReporteGrupo(r.grupo);
+
                 const tbody = $('#tbody_reporte');
                 tbody.empty();
 
@@ -124,7 +127,10 @@ $(document).ready(function () {
                     language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
                     dom: 'Bfrtip',
                     buttons: [
-                        'excel',
+                        {
+                            extend: 'excel',
+                            title: contextoTexto
+                        },
                         {
                             text: '📄 Descargar PDF',
                             className: 'btn btn-outline-danger btn-sm',
@@ -144,6 +150,27 @@ $(document).ready(function () {
 
     function n(v) {
         return (v !== null && v !== undefined) ? v : '—';
+    }
+
+    function construirContextoTexto(g) {
+        if (!g) return '';
+        return 'Módulo: ' + g.modu_nombre + ' (' + g.modu_sigla + ') — ' +
+               'Grupo: ' + g.grse_codigo + ' — ' +
+               'Docente: ' + g.doce_nombres + ' ' + g.doce_apellidos + ' — ' +
+               'Programa: ' + g.prog_nombre + ' — ' +
+               'Período: ' + g.peri_codigo + ' — ' +
+               'Jornada: ' + (g.coho_jornada || '—');
+    }
+
+    function mostrarInfoReporteGrupo(g) {
+        if (!g) { $('#info_reporte_grupo').hide(); return; }
+        $('#spn_ctx_modulo').text(g.modu_sigla + ' — ' + g.modu_nombre);
+        $('#spn_ctx_grupo').text(g.grse_codigo);
+        $('#spn_ctx_docente').text(g.doce_apellidos + ', ' + g.doce_nombres);
+        $('#spn_ctx_programa').text(g.prog_nombre + ' (' + g.prog_sigla + ')');
+        $('#spn_ctx_periodo').text(g.peri_codigo);
+        $('#spn_ctx_jornada').text(g.coho_jornada || '—');
+        $('#info_reporte_grupo').show();
     }
 
     function badgeNotaFinal(notaFinal) {

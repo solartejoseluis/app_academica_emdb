@@ -129,6 +129,29 @@ $es_coordinador = in_array($role_id, [1, 2]);
                 </div>
             </div>
 
+            <div id="info_reporte_grupo" class="alert alert-info mb-3" style="display:none">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <strong>Módulo:</strong> <span id="spn_ctx_modulo">—</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Grupo:</strong> <span id="spn_ctx_grupo">—</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Docente:</strong> <span id="spn_ctx_docente">—</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Programa:</strong> <span id="spn_ctx_programa">—</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Período:</strong> <span id="spn_ctx_periodo">—</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Jornada:</strong> <span id="spn_ctx_jornada">—</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-bordered table-hover" id="tbl_reporte" style="width:100%">
                     <thead class="table-dark">
