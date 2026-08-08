@@ -25,6 +25,10 @@ $(document).ready(function () {
         });
     }
 
+    function inicialDocente(nombres) {
+        return nombres.trim().split(' ')[0].charAt(0).toUpperCase();
+    }
+
     function cargarGrupos() {
         $.ajax({
             type: 'POST',
@@ -36,8 +40,9 @@ $(document).ready(function () {
                 r.data.forEach(function (g) {
                     sel.append($('<option>', {
                         value: g.grmo_id,
-                        text:  g.grse_codigo + ' — ' + g.modu_sigla + ' — ' +
-                               g.doce_apellidos + ' (' + g.total_estudiantes + ' estudiantes)'
+                        text:  g.grse_codigo + ' — ' + g.modu_sigla + ' ' + g.modu_nombre + ' — ' +
+                               inicialDocente(g.doce_nombres) + '.' + g.doce_apellidos +
+                               ' (' + g.total_estudiantes + ' est)'
                     }));
                 });
             }
