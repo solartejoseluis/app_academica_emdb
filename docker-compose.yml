@@ -6,6 +6,8 @@ services:
     ports:
       - "8120:8080"
       - "3310:3306"
+    environment:
+      - TZ=America/Bogota
     volumes:
       - .:/var/www/html/app_academica_emdb:z
     restart: unless-stopped
@@ -18,6 +20,8 @@ services:
       MYSQL_ROOT_PASSWORD: ""
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
       MYSQL_DATABASE: emdb_academica
+      TZ: America/Bogota
+    command: --default-time-zone=-05:00
     volumes:
       - db_data:/var/lib/mysql:z
       - ./database:/docker-entrypoint-initdb.d:z
