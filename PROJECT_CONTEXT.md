@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-08-07
-> Versión: 24 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público)
+> Última actualización: 2026-08-08
+> Versión: 25 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker
 
 ---
 
@@ -32,6 +32,7 @@ Estudiantes dependen de WhatsApp para conocer calificaciones. Sin trazabilidad d
 - PHP 8.5 + MySQL 8.0 + JavaScript ES6 + Bootstrap 5.3 + jQuery 3.7 + DataTables 1.13
 - Arquitectura MVC — 3 archivos por módulo: `_view.php` / `_mdl.php` / `_ctrl.js`
 - Servidor local: Docker (Fedora 44) — `docker-compose.yml` con 3 servicios: `app` (PHP 8.5 + Apache, build `docker/Dockerfile`, puerto 8120→8080), `db` (`mysql:8.0`, `network_mode: service:app`, puerto 3310→3306, importa `database/emdb_academica.sql` automáticamente), `phpmyadmin` (puerto 8121→80). BD: `emdb_academica`
+- Zona horaria del entorno Docker: America/Bogota (UTC-5, offset fijo, sin horario de verano) desde el commit 7216637 — TZ en `app`/`db`, `--default-time-zone=-05:00` en MySQL, `date.timezone` en PHP, `SET time_zone` en `pdo.php`
 - PHP 8.5 en desarrollo (no 8.0) por paridad con producción — el hosting cPanel de `escuelamdb.com` ya corre PHP 8.5
 - Generación PDF: dompdf (Composer). Control versiones: Git + GitHub
 - Procesamiento de imágenes: extensión GD de PHP (agregada al `docker/Dockerfile`) — redimensionado y miniaturas de foto de estudiante
@@ -374,6 +375,7 @@ necesidad de una cuenta completa.
 | `f704901` | feat: muestra origen (Manual/Web) en listado de Aspirantes — Fase 4 formulario público | 2026-08-07 |
 | `8ada1df` | feat: agrega contexto de curso/docente al reporte y export Excel en 06_reportes | 2026-08-07 |
 | `1531593` | feat: Ficha Familiar obligatoria + indicador de 3 estados en Aspirantes/Matriculados | 2026-08-07 |
+| `7216637` | fix: fija zona horaria America/Bogota (UTC-5) en Docker y conexión PDO | 2026-08-08 |
 
 ---
 

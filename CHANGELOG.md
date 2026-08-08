@@ -4,6 +4,25 @@
 
 ---
 
+## [7216637] — 2026-08-08 — fix: fija zona horaria America/Bogota (UTC-5) en Docker y conexión PDO
+
+### Archivos modificados
+- docker-compose.yml, docker/Dockerfile, app/00_connect/pdo.php
+
+### Cambios
+- Diagnóstico previo detectó que los contenedores `app` y `db` corrían en UTC (sin TZ, sin date.timezone en PHP, MySQL time_zone=SYSTEM), 5 horas adelantados respecto a la hora real de Bogotá, aunque el host Fedora sí estaba correcto.
+- TZ=America/Bogota agregado como variable de entorno en los servicios `app` y `db` de docker-compose.yml.
+- `command: --default-time-zone=-05:00` agregado al servicio `db` — offset fijo, sin horario de verano.
+- docker/Dockerfile: tzdata instalado + enlace de `/etc/localtime`/`/etc/timezone` a America/Bogota; nuevo `date.timezone = America/Bogota` en `conf.d/timezone.ini`, ya que la imagen `php:8.5-apache` no carga ningún php.ini por defecto.
+- `app/00_connect/pdo.php`: `SET time_zone = '-05:00'` ejecutado justo después de crear la conexión PDO, para que la sesión de la app siempre use la zona horaria correcta sin depender de la config global del servidor MySQL.
+
+### Decisiones
+- Sin corrección de datos existentes — las columnas TIMESTAMP ya almacenaban el instante UTC real; al cambiar el time_zone de sesión, MySQL reinterpreta esos mismos instantes con el offset correcto, sin necesidad de UPDATE.
+- Offset fijo `-05:00` en vez de nombre de zona horaria de MySQL (`America/Bogota`) — Colombia no tiene horario de verano, y usar el offset evita depender de que las tablas `mysql.time_zone*` estén cargadas en el servidor.
+- Pendiente manual: replicar `SET time_zone = '-05:00'` en `pdo_web.php` en producción — ese archivo no está versionado en git (mantenimiento manual directo en el hosting cPanel).
+
+---
+
 ## [1531593] — 2026-08-07 — feat: Ficha Familiar obligatoria + indicador de 3 estados en Aspirantes/Matriculados
 
 ### Archivos modificados
