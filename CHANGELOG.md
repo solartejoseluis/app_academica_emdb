@@ -4,6 +4,25 @@
 
 ---
 
+## [7d72327] — 2026-08-08 — feat: eliminar aspirante desde el modal Editar (02_estudiantes)
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php, app/02_estudiantes/est_view.php, app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Nuevo endpoint `eliminar_aspirante` en `est_mdl.php` — DELETE físico en transacción PDO, restringido a roles 1 y 2 (coordinador/admin).
+- Verifica en servidor que no exista una matrícula real (`matr_estado` distinto de `'aspirante'`) antes de proceder — bloquea con mensaje claro si la hay, sin depender de que el frontend oculte el botón.
+- Borra la fila de `matriculas` cuando `matr_estado='aspirante'`; `fichas_inscripcion` se elimina sola por `ON DELETE CASCADE`.
+- Botón "Eliminar aspirante" agregado al modal Editar (`est_view.php`), visible solo cuando el modal se abrió desde la tabla de Aspirantes (`abrirEditar(estu_id, esAspirante)`).
+- Nuevo modal de confirmación (`mdl_confirmar_eliminar_aspirante`) con texto explícito de irreversibilidad — no existía un patrón de confirmación reutilizable previo en el proyecto.
+
+### Decisiones
+- DELETE físico, sin guardar motivo ni registro de auditoría — decisión de diseño confirmada explícitamente, no un descuido.
+- `calificaciones` y `grmoestudiantes` mantienen su RESTRICT/CASCADE existente como salvavidas — si un aspirante tuviera datos inesperados ahí, la transacción falla y hace rollback en vez de forzar el borrado.
+- Verificado manualmente: aspirante sin matrícula, aspirante con matrícula `'aspirante'` (ambas filas se eliminan correctamente), y bloqueo de un matriculado real tanto desde la UI (botón oculto) como directamente contra el backend vía curl (confirma que el bloqueo no depende solo del frontend).
+
+---
+
 ## [75907a3] — 2026-08-08 — feat: muestra nombre completo del módulo e inicial del docente en select de Reportes
 
 ### Archivos modificados
