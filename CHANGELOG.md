@@ -4,6 +4,22 @@
 
 ---
 
+## [8ada1df] — 2026-08-07 — feat: agrega contexto de curso/docente al reporte y export Excel en 06_reportes
+
+### Archivos modificados
+- app/06_reportes/reportes_mdl.php, app/06_reportes/reportes_view.php, app/06_reportes/reportes_ctrl.js
+
+### Cambios
+- Resuelve el pendiente conocido: el export a Excel no incluía datos de curso/docente, a diferencia del PDF equivalente (pdf_grupo.php).
+- reporte_grupo ahora devuelve también un bloque de contexto (Módulo, Grupo, Docente, Programa, Período, Jornada), vía el mismo patrón de JOINs ya usado en pdf_grupo.php.
+- Nuevo bloque visual de contexto en pantalla, encima de la tabla de notas.
+- El botón Excel de DataTables Buttons incluye ese mismo contexto como fila de encabezado en el archivo .xlsx exportado.
+
+### Decisiones
+- No fue necesario actualizar el botón Excel "en caliente" — la tabla ya se destruye y reinicializa completa en cada carga de grupo, así que el contexto se pasa directo en la config del botón en el momento de la reinicialización.
+
+---
+
 ## [f704901] — 2026-08-07 — feat: muestra origen (Manual/Web) en listado de Aspirantes
 
 ### Archivos modificados

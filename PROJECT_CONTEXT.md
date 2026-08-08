@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-07
-> Versión: 22 — Fase 4 formulario público — columna Origen en Aspirantes
+> Versión: 23 — Contexto de curso/docente en reporte y export Excel (06_reportes)
 
 ---
 
@@ -372,6 +372,7 @@ necesidad de una cuenta completa.
 | `54d4514` | fix: valida sesión y rol en doc_mdl, grupos_mdl, coordinador_mdl y admin_mdl — mismo hallazgo de est_mdl.php | 2026-08-07 |
 | `35831fe` | feat: CRUD de períodos académicos como pestaña en 04_grupos — crear/editar, sin eliminar | 2026-08-07 |
 | `f704901` | feat: muestra origen (Manual/Web) en listado de Aspirantes — Fase 4 formulario público | 2026-08-07 |
+| `8ada1df` | feat: agrega contexto de curso/docente al reporte y export Excel en 06_reportes | 2026-08-07 |
 
 ---
 
