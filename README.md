@@ -233,7 +233,7 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 | Phase 2 | Gestión académica: calificaciones, reportes, coordinador | ✅ Completado |
 | Phase 3 | Validación TRL5 con usuarios reales | ⬜ Pendiente |
 
-> **Formulario público de inscripción:** Fases 0-4 de 5 completas (reCAPTCHA, Ficha Familiar interna, migración `estu_origen`, formulario público en dos pasos, columna Origen en listado de Aspirantes). Solo Fase 5 (documentación final) pendiente.
+> **Formulario público de inscripción:** 5 de 5 fases completas (reCAPTCHA, Ficha Familiar interna, migración `estu_origen`, formulario público en dos pasos, columna Origen en listado de Aspirantes, Ficha Familiar obligatoria + indicador de 3 estados con pruebas extremo a extremo).
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
