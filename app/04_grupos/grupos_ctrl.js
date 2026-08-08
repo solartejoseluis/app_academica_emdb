@@ -1,7 +1,14 @@
+// Cache de la última carga de listar_modulos (modu_id → fila completa) y
+// modu_id pendiente de confirmación de borrado — accesibles tanto desde el
+// scope de $(document).ready como desde las funciones globales de abajo,
+// que se invocan vía onclick inline desde el HTML renderizado por DataTables.
+let cacheModulos = {};
+let moduloIdPendienteEliminar = null;
+
 $(document).ready(function () {
 
     // ── Variables globales de estado ─────────────────────────────────────────
-    let tablaCohortes, tablaGrupos, tablaPeriodos;
+    let tablaCohortes, tablaGrupos, tablaPeriodos, tablaModulos;
     let grmo_id_activo = null;
     let coho_id_activo = null;
     let periodoCodigoManual = false;
@@ -10,6 +17,7 @@ $(document).ready(function () {
     cargarTablaCohortes();
     cargarTablaGrupos();
     cargarTablaPeriodos();
+    cargarTablaModulos();
     cargarProgramasSelectores();
     cargarPeriodosSelector();
     cargarDocentesSelector();
@@ -20,6 +28,7 @@ $(document).ready(function () {
         if (tablaCohortes) tablaCohortes.columns.adjust();
         if (tablaGrupos) tablaGrupos.columns.adjust();
         if (tablaPeriodos) tablaPeriodos.columns.adjust();
+        if (tablaModulos) tablaModulos.columns.adjust();
     });
 
     // ════════════════════════════════════════════════════════════════════════
@@ -113,6 +122,50 @@ $(document).ready(function () {
         });
     }
 
+    function cargarTablaModulos() {
+        if (tablaModulos) { tablaModulos.ajax.reload(); return; }
+        tablaModulos = $('#tbl_modulos').DataTable({
+            ajax: {
+                url: 'grupos_mdl.php?accion=listar_modulos',
+                type: 'POST',
+                dataSrc: function (json) {
+                    if (json.status !== 'ok') return [];
+                    cacheModulos = {};
+                    json.data.forEach(m => { cacheModulos[m.modu_id] = m; });
+                    return json.data;
+                }
+            },
+            columns: [
+                { data: 'prog_nombre' },
+                { data: 'modu_sigla' },
+                { data: 'modu_nombre' },
+                { data: 'modu_orden' },
+                { data: 'modu_activo', render: v =>
+                    v == 1
+                        ? '<span class="badge bg-success">Activo</span>'
+                        : '<span class="badge bg-secondary">Inactivo</span>'
+                },
+                { data: null, render: (d, t, row) => {
+                    let botones = `<button class="btn btn-sm btn-outline-primary me-1"
+                        onclick="abrirEditarModulo(${row.modu_id})">Editar</button>`;
+                    if (row.modu_activo == 1 && row.total_grupos == 0) {
+                        botones += `<button class="btn btn-sm btn-outline-danger"
+                            onclick="confirmarEliminarModulo(${row.modu_id}, '${row.modu_nombre.replace(/'/g, "\\'")}')">Eliminar</button>`;
+                    } else if (row.modu_activo == 1 && row.total_grupos > 0) {
+                        botones += `<button class="btn btn-sm btn-outline-warning"
+                            onclick="toggleEstadoModulo(${row.modu_id}, 0)">Desactivar</button>`;
+                    } else {
+                        botones += `<button class="btn btn-sm btn-outline-success"
+                            onclick="toggleEstadoModulo(${row.modu_id}, 1)">Activar</button>`;
+                    }
+                    return botones;
+                }}
+            ],
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            responsive: true
+        });
+    }
+
     function cargarProgramasSelectores() {
         $.ajax({
             type: 'POST',
@@ -124,7 +177,7 @@ $(document).ready(function () {
                 r.data.forEach(p => {
                     opts += `<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                 });
-                $('#slct_prog_cohorte, #slct_prog_grupo').html(opts);
+                $('#slct_prog_cohorte, #slct_prog_grupo, #slct_prog_modulo').html(opts);
             }
         });
     }
@@ -587,6 +640,70 @@ $(document).ready(function () {
         });
     });
 
+    // ════════════════════════════════════════════════════════════════════════
+    // MODAL MÓDULO — botones
+    // ════════════════════════════════════════════════════════════════════════
+
+    $('#btn_nuevo_modulo').on('click', function () {
+        $('#modu_id').val('');
+        $('#modu_nombre, #modu_sigla, #modu_orden').val('');
+        $('#slct_prog_modulo').val('');
+        $('#mdl_modulo_titulo').text('Nuevo Módulo');
+        new bootstrap.Modal('#mdl_modulo').show();
+    });
+
+    $('#btn_guardar_modulo').on('click', function () {
+        const prog_id = $('#slct_prog_modulo').val();
+        const nombre  = $('#modu_nombre').val().trim();
+        const sigla   = $('#modu_sigla').val().trim();
+        const orden   = $('#modu_orden').val();
+        if (!prog_id || !nombre || !sigla || !orden) {
+            alert('Complete los campos obligatorios');
+            return;
+        }
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=guardar_modulo',
+            data: {
+                modu_id:     $('#modu_id').val(),
+                prog_id:     prog_id,
+                modu_nombre: nombre,
+                modu_sigla:  sigla,
+                modu_orden:  orden
+            },
+            dataType: 'json',
+            success: function (r) {
+                if (r.status === 'ok') {
+                    bootstrap.Modal.getInstance('#mdl_modulo').hide();
+                    cargarTablaModulos();
+                } else {
+                    alert('Error: ' + r.message);
+                }
+            }
+        });
+    });
+
+    // Eliminar vive como acción de fila en la tabla (no dentro del modal de
+    // edición) — al confirmar, solo hay un modal abierto: el de confirmación.
+    $('#btn_confirmar_eliminar_modulo').on('click', function () {
+        if (!moduloIdPendienteEliminar) return;
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=eliminar_modulo',
+            data: { modu_id: moduloIdPendienteEliminar },
+            dataType: 'json',
+            success: function (r) {
+                bootstrap.Modal.getInstance('#mdl_confirmar_eliminar_modulo').hide();
+                if (r.status === 'ok') {
+                    cargarTablaModulos();
+                } else {
+                    alert(r.message);
+                }
+                moduloIdPendienteEliminar = null;
+            }
+        });
+    });
+
 }); // fin ready
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -730,6 +847,41 @@ function abrirEditarModuloGrupo(grmo_id, grse_id) {
             $('#grmo_fechainicio').val(mod.fechainicio || '');
             $('#grmo_fechafin').val(mod.fechafin || '');
             new bootstrap.Modal('#mdl_modulo_grupo').show();
+        }
+    });
+}
+
+// Sin segundo AJAX — reutiliza la fila ya cacheada por listar_modulos.
+function abrirEditarModulo(modu_id) {
+    const d = cacheModulos[modu_id];
+    if (!d) { alert('Módulo no encontrado'); return; }
+    $('#modu_id').val(d.modu_id);
+    $('#slct_prog_modulo').val(d.prog_id);
+    $('#modu_nombre').val(d.modu_nombre);
+    $('#modu_sigla').val(d.modu_sigla);
+    $('#modu_orden').val(d.modu_orden);
+    $('#mdl_modulo_titulo').text('Editar Módulo');
+    new bootstrap.Modal('#mdl_modulo').show();
+}
+
+function confirmarEliminarModulo(modu_id, nombre) {
+    moduloIdPendienteEliminar = modu_id;
+    $('#spn_nombre_eliminar_modulo').text(nombre);
+    new bootstrap.Modal('#mdl_confirmar_eliminar_modulo').show();
+}
+
+function toggleEstadoModulo(modu_id, nuevoEstado) {
+    $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=toggle_estado_modulo',
+        data: { modu_id: modu_id, modu_activo: nuevoEstado },
+        dataType: 'json',
+        success: function (r) {
+            if (r.status === 'ok') {
+                $('#tbl_modulos').DataTable().ajax.reload(null, false);
+            } else {
+                alert('Error: ' + r.message);
+            }
         }
     });
 }
