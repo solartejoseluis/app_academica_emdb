@@ -507,9 +507,11 @@ $(document).ready(function () {
                     orderable: false,
                     width: '300px',
                     render: function (data, type, row) {
-                        const colorFicha = row.tiene_ficha == 1 ? '#28a745' : '#dc3545';
-                        const tituloFicha = row.tiene_ficha == 1 ? 'Ficha completa' : 'Falta diligenciar ficha';
-                        const botonPdf = row.tiene_ficha == 1
+                        const mapaColorFicha = { sin_iniciar: '#dc3545', incompleta: '#ffc107', completa: '#28a745' };
+                        const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
+                        const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
+                        const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
+                        const botonPdf = row.estado_ficha === 'completa'
                             ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
                             : '';
                         return `<button class="btn btn-sm btn-outline-success me-1"
@@ -580,9 +582,11 @@ $(document).ready(function () {
                     orderable: false,
                     width: '200px',
                     render: function (data, type, row) {
-                        const colorFicha = row.tiene_ficha == 1 ? '#28a745' : '#dc3545';
-                        const tituloFicha = row.tiene_ficha == 1 ? 'Ficha completa' : 'Falta diligenciar ficha';
-                        const botonPdf = row.tiene_ficha == 1
+                        const mapaColorFicha = { sin_iniciar: '#dc3545', incompleta: '#ffc107', completa: '#28a745' };
+                        const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
+                        const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
+                        const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
+                        const botonPdf = row.estado_ficha === 'completa'
                             ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
                             : '';
                         return `<button class="btn btn-sm btn-outline-primary me-1"

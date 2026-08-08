@@ -4,6 +4,25 @@ function marcarValidacion($campo) {
     $campo.addClass(valor === '' ? 'is-invalid' : 'is-valid');
 }
 
+// --- Ficha Familiar: campos siempre obligatorios vs. condicionados a Padre/Madre ---
+// fechainscripcion no está en esta lista: no es un input del usuario, el backend
+// siempre la setea con CURDATE() en completar_ficha.
+const CAMPOS_FICHA_SIEMPRE = [
+    '#slct_finc_prog_id', '#npt_jornada',
+    '#slct_acud_es', '#npt_acud_parentesco', '#npt_acud_nombres', '#npt_acud_apellidos',
+    '#npt_acud_profesion', '#npt_acud_empresa', '#npt_acud_telefono', '#npt_acud_direccion',
+    '#npt_acud_barrio', '#npt_acud_ciudad',
+    '#npt_estudio_tipo', '#npt_estudio_titulo', '#npt_estudio_institucion', '#npt_estudio_aniofin'
+];
+const CAMPOS_FICHA_PADRE = [
+    '#npt_padr_nombres', '#npt_padr_apellidos', '#npt_padr_profesion', '#npt_padr_empresa',
+    '#npt_padr_telefono', '#npt_padr_barrio', '#npt_padr_ciudad', '#npt_padr_direccion'
+];
+const CAMPOS_FICHA_MADRE = [
+    '#npt_madr_nombres', '#npt_madr_apellidos', '#npt_madr_profesion', '#npt_madr_empresa',
+    '#npt_madr_telefono', '#npt_madr_barrio', '#npt_madr_ciudad', '#npt_madr_direccion'
+];
+
 function actualizarVisibilidadPadreMadre() {
     $('#bloque_padre_campos').toggle($('#npt_padr_vive').is(':checked'));
     $('#bloque_madre_campos').toggle($('#npt_madr_vive').is(':checked'));
@@ -154,6 +173,14 @@ $(document).ready(function () {
     });
     $('#slct_acud_es').on('change', manejarCambioAcudiente);
 
+    // --- Validación visual en vivo: Ficha Familiar ---
+    CAMPOS_FICHA_SIEMPRE.concat(CAMPOS_FICHA_PADRE, CAMPOS_FICHA_MADRE)
+        .forEach(function (selector) {
+            $(selector).on('input change blur', function () {
+                marcarValidacion($(this));
+            });
+        });
+
     // --- Buscar código ---
     $('#btn_buscar_codigo').click(buscarCodigo);
 
@@ -164,6 +191,34 @@ $(document).ready(function () {
 
     // --- Guardar datos familiares ---
     $('#btn_guardar_ficha').click(function () {
+        let camposRequeridos = CAMPOS_FICHA_SIEMPRE.slice();
+        if (!$('#bloque_acud_parentesco').is(':visible')) {
+            camposRequeridos = camposRequeridos.filter(function (selector) {
+                return selector !== '#npt_acud_parentesco';
+            });
+        }
+        if ($('#npt_padr_vive').is(':checked')) {
+            camposRequeridos = camposRequeridos.concat(CAMPOS_FICHA_PADRE);
+        }
+        if ($('#npt_madr_vive').is(':checked')) {
+            camposRequeridos = camposRequeridos.concat(CAMPOS_FICHA_MADRE);
+        }
+
+        let primerCampoVacioFicha = null;
+        camposRequeridos.forEach(function (selector) {
+            let $campo = $(selector);
+            marcarValidacion($campo);
+            if ($campo.hasClass('is-invalid') && primerCampoVacioFicha === null) {
+                primerCampoVacioFicha = $campo;
+            }
+        });
+
+        if (primerCampoVacioFicha !== null) {
+            primerCampoVacioFicha.focus();
+            alert('Por favor complete todos los campos antes de guardar.');
+            return;
+        }
+
         let data = {
             codigo:               $('#npt_codigo_ficha').val(),
             prog_id:              $('#slct_finc_prog_id').val(),

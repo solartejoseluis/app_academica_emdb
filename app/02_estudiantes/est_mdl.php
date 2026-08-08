@@ -2,6 +2,42 @@
 session_start();
 require_once '../00_connect/pdo.php';
 
+function calcularEstadoFicha(array $fila): string {
+    $requeridos = [
+        'prog_id', 'jornada', 'acud_es', 'acud_parentesco', 'acud_nombres', 'acud_apellidos',
+        'acud_profesion', 'acud_empresa', 'acud_telefono', 'acud_direccion', 'acud_barrio', 'acud_ciudad',
+        'estudio_tipo', 'estudio_titulo', 'estudio_institucion', 'estudio_aniofin',
+    ];
+    if ((int)($fila['padr_vive'] ?? 0) === 1) {
+        $requeridos = array_merge($requeridos, [
+            'padr_nombres', 'padr_apellidos', 'padr_profesion', 'padr_empresa',
+            'padr_telefono', 'padr_direccion', 'padr_barrio', 'padr_ciudad',
+        ]);
+    }
+    if ((int)($fila['madr_vive'] ?? 0) === 1) {
+        $requeridos = array_merge($requeridos, [
+            'madr_nombres', 'madr_apellidos', 'madr_profesion', 'madr_empresa',
+            'madr_telefono', 'madr_direccion', 'madr_barrio', 'madr_ciudad',
+        ]);
+    }
+
+    $llenos = 0;
+    foreach ($requeridos as $campo) {
+        $valor = $fila[$campo] ?? null;
+        if ($valor !== null && $valor !== '') {
+            $llenos++;
+        }
+    }
+
+    if ($llenos === 0) {
+        return 'sin_iniciar';
+    }
+    if ($llenos === count($requeridos)) {
+        return 'completa';
+    }
+    return 'incompleta';
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {
@@ -21,7 +57,14 @@ switch ($accion) {
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_telefono,
                            e.estu_origen, e.estu_foto, e.fechacreacion,
-                           (fi.finc_id IS NOT NULL) AS tiene_ficha
+                           fi.prog_id, fi.jornada,
+                           fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
+                           fi.padr_telefono, fi.padr_direccion, fi.padr_barrio, fi.padr_ciudad,
+                           fi.madr_vive, fi.madr_nombres, fi.madr_apellidos, fi.madr_profesion, fi.madr_empresa,
+                           fi.madr_telefono, fi.madr_direccion, fi.madr_barrio, fi.madr_ciudad,
+                           fi.acud_es, fi.acud_parentesco, fi.acud_nombres, fi.acud_apellidos, fi.acud_profesion,
+                           fi.acud_empresa, fi.acud_telefono, fi.acud_direccion, fi.acud_barrio, fi.acud_ciudad,
+                           fi.estudio_tipo, fi.estudio_titulo, fi.estudio_institucion, fi.estudio_aniofin
                     FROM estudiantes e
                     LEFT JOIN matriculas m ON e.estu_id = m.estu_id
                     LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
@@ -31,6 +74,10 @@ switch ($accion) {
             $stmt = $pdo->prepare($sql);
             $stmt->execute();
             $rows = $stmt->fetchAll();
+            foreach ($rows as &$row) {
+                $row['estado_ficha'] = calcularEstadoFicha($row);
+            }
+            unset($row);
             echo json_encode(['status' => 'ok', 'data' => $rows]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al listar aspirantes']);
@@ -52,7 +99,14 @@ switch ($accion) {
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_foto,
                            p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id,
-                           (fi.finc_id IS NOT NULL) AS tiene_ficha
+                           fi.prog_id, fi.jornada,
+                           fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
+                           fi.padr_telefono, fi.padr_direccion, fi.padr_barrio, fi.padr_ciudad,
+                           fi.madr_vive, fi.madr_nombres, fi.madr_apellidos, fi.madr_profesion, fi.madr_empresa,
+                           fi.madr_telefono, fi.madr_direccion, fi.madr_barrio, fi.madr_ciudad,
+                           fi.acud_es, fi.acud_parentesco, fi.acud_nombres, fi.acud_apellidos, fi.acud_profesion,
+                           fi.acud_empresa, fi.acud_telefono, fi.acud_direccion, fi.acud_barrio, fi.acud_ciudad,
+                           fi.estudio_tipo, fi.estudio_titulo, fi.estudio_institucion, fi.estudio_aniofin
                     FROM estudiantes e
                     INNER JOIN matriculas m ON e.estu_id = m.estu_id
                     INNER JOIN programas p ON m.prog_id = p.prog_id
@@ -64,6 +118,10 @@ switch ($accion) {
             $stmt = $pdo->prepare($sql);
             $stmt->execute();
             $rows = $stmt->fetchAll();
+            foreach ($rows as &$row) {
+                $row['estado_ficha'] = calcularEstadoFicha($row);
+            }
+            unset($row);
             echo json_encode(['status' => 'ok', 'data' => $rows]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al listar matriculados']);
@@ -537,6 +595,35 @@ switch ($accion) {
         $estudio_titulo      = strtoupper(trim($_POST['estudio_titulo'] ?? '')) ?: null;
         $estudio_institucion = strtoupper(trim($_POST['estudio_institucion'] ?? '')) ?: null;
         $estudio_aniofin     = trim($_POST['estudio_aniofin'] ?? '') ?: null;
+
+        $camposRequeridos = [
+            $prog_id, $jornada, $acud_es, $acud_parentesco, $acud_nombres, $acud_apellidos,
+            $acud_profesion, $acud_empresa, $acud_telefono, $acud_direccion, $acud_barrio, $acud_ciudad,
+            $estudio_tipo, $estudio_titulo, $estudio_institucion, $estudio_aniofin,
+        ];
+        if ($padr_vive === 1) {
+            $camposRequeridos = array_merge($camposRequeridos, [
+                $padr_nombres, $padr_apellidos, $padr_profesion, $padr_empresa,
+                $padr_telefono, $padr_direccion, $padr_barrio, $padr_ciudad,
+            ]);
+        }
+        if ($madr_vive === 1) {
+            $camposRequeridos = array_merge($camposRequeridos, [
+                $madr_nombres, $madr_apellidos, $madr_profesion, $madr_empresa,
+                $madr_telefono, $madr_direccion, $madr_barrio, $madr_ciudad,
+            ]);
+        }
+        $campoFaltante = false;
+        foreach ($camposRequeridos as $valor) {
+            if ($valor === null) {
+                $campoFaltante = true;
+                break;
+            }
+        }
+        if ($campoFaltante) {
+            echo json_encode(['status' => 'error', 'message' => 'Todos los campos de la ficha familiar son obligatorios']);
+            break;
+        }
 
         try {
             $pdo = getConexion();

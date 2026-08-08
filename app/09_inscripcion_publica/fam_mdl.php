@@ -98,6 +98,35 @@ switch ($_GET['accion'] ?? '') {
         $estudio_institucion = strtoupper(trim($_POST['estudio_institucion'] ?? '')) ?: null;
         $estudio_aniofin     = trim($_POST['estudio_aniofin'] ?? '') ?: null;
 
+        $camposRequeridos = [
+            $prog_id, $jornada, $acud_es, $acud_parentesco, $acud_nombres, $acud_apellidos,
+            $acud_profesion, $acud_empresa, $acud_telefono, $acud_direccion, $acud_barrio, $acud_ciudad,
+            $estudio_tipo, $estudio_titulo, $estudio_institucion, $estudio_aniofin,
+        ];
+        if ($padr_vive === 1) {
+            $camposRequeridos = array_merge($camposRequeridos, [
+                $padr_nombres, $padr_apellidos, $padr_profesion, $padr_empresa,
+                $padr_telefono, $padr_direccion, $padr_barrio, $padr_ciudad,
+            ]);
+        }
+        if ($madr_vive === 1) {
+            $camposRequeridos = array_merge($camposRequeridos, [
+                $madr_nombres, $madr_apellidos, $madr_profesion, $madr_empresa,
+                $madr_telefono, $madr_direccion, $madr_barrio, $madr_ciudad,
+            ]);
+        }
+        $campoFaltante = false;
+        foreach ($camposRequeridos as $valor) {
+            if ($valor === null) {
+                $campoFaltante = true;
+                break;
+            }
+        }
+        if ($campoFaltante) {
+            echo json_encode(['status' => 'error', 'message' => 'Todos los campos de la ficha familiar son obligatorios']);
+            break;
+        }
+
         try {
             $pdo = getConexion();
 
