@@ -276,8 +276,8 @@ Stored procedure `sp_calcular_definitiva` y triggers AFTER INSERT/UPDATE elimina
 | 1 | Pantalla interna de datos familiares (AC-FO-02) — coordinador diligencia fichas_inscripcion | ✅ 2026-07-26 (Ficha Familiar) |
 | 2 | Migración de esquema — estudiantes.estu_origen ENUM('manual','web') DEFAULT 'manual' | ✅ 2026-07-27 (commit 7702fe2) |
 | 3 | Formulario público — módulo `09_inscripcion_publica/`, sin sesión, verificación reCAPTCHA en servidor, detección de duplicados por documento, genera `finc_codigotemporal` | ✅ 2026-08-01 — Paso 1 (b5626c2, b34143d) y Paso 2 (c60cb1b) completos |
-| 4 | Integración — listado de Aspirantes muestra origen (Manual/Web) para que el coordinador sepa qué revisar | ⬜ |
-| 5 | Pruebas extremo a extremo + documentación | ⬜ |
+| 4 | Integración — listado de Aspirantes muestra origen (Manual/Web) para que el coordinador sepa qué revisar | ✅ 2026-08-07 (commit f704901) |
+| 5 | Pruebas extremo a extremo + documentación | ✅ 2026-08-07 (commit 1531593) — pruebas detectaron hallazgo crítico (indicador binario de ficha completa daba falso positivo para aspirantes web que abandonaban tras el Paso 1); corregido con Ficha Familiar obligatoria + indicador de 3 estados |
 
 Diseño acordado para la Fase 3: reutilizar el campo
 `finc_codigotemporal` (ya existente en `fichas_inscripcion`, sin usar
