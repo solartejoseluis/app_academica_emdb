@@ -4,6 +4,37 @@
 
 ---
 
+## [0eddadf] — 2026-08-15 — fix: valida sesión en listar_grupos (05_calificaciones)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- El case `listar_grupos` no tenía el guard `isset($_SESSION['usua_id'])`
+  que sí tienen los demás case del archivo (`listar_calificaciones`,
+  `guardar_nota`). Con sesión vacía, `role_id` caía en 0 vía `?? 0`, entraba
+  en la rama "Coordinador/Admin: todos los grupos" y exponía sin
+  autenticación el listado completo de grupos, módulos, nombre completo de
+  docentes y conteo de estudiantes por grupo — accesible por URL directa a
+  `calificaciones_mdl.php?accion=listar_grupos` sin pasar por la vista.
+- Hallazgo detectado el 2026-08-15 al verificar (y confirmar como ya
+  resuelto) el hallazgo previo de seguridad en `est_mdl.php` (commit
+  920bcfe, 2026-08-07) — asimetría dentro del mismo archivo
+  `calificaciones_mdl.php`, ya que los demás case sí tenían el guard desde
+  los commits 75504eb/04ec8b0 (2026-07-19).
+
+### Decisiones
+- Fix quirúrgico: se agregó únicamente el guard de sesión, replicando
+  carácter por carácter el patrón ya usado en `listar_calificaciones` del
+  mismo archivo. La lógica de ownership por rol (docente restringido a sus
+  grupos vía `docentes.usua_id`) ya estaba correctamente implementada y no
+  se modificó.
+- Se incluyó `'data' => []` en el envelope de error por convención de
+  uniformidad del proyecto, aunque el frontend (`calificaciones_ctrl.js`)
+  ya manejaba `r.data` ausente de forma segura sin ese campo.
+
+---
+
 ## [6ef7e85, e7e6b3b, 0eca14e] — 2026-08-08 — feat: CRUD completo de módulos en 04_grupos
 
 ### Archivos modificados
