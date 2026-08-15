@@ -4,6 +4,42 @@
 
 ---
 
+## [f46d9d9] — 2026-08-15 — fix: precarga módulo/docente al editar + permite cambiar módulo + eliminar módulo-grupo con confirmación
+
+### Archivos modificados
+- app/04_grupos/grupos_view.php
+- app/04_grupos/grupos_ctrl.js
+- app/04_grupos/grupos_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- El modal "Asignar Módulo al Grupo" (mdl_modulo_grupo) no precargaba los
+  selects de Módulo ni Docente al editar un módulo-grupo ya asignado —
+  aparecían vacíos en "-- Seleccionar --". Causa raíz doble: (a)
+  abrirEditarModuloGrupo nunca poblaba las opciones del select de Módulo
+  (solo se poblaba en el flujo "Nuevo"), y (b) el endpoint
+  listar_modulos_grupo no devolvía modu_id ni doce_id, sin los cuales no
+  había nada que preseleccionar.
+- No existía forma de eliminar una asignación módulo-grupo desde el modal.
+
+### Decisiones
+- listar_modulos_grupo ahora incluye modu_id y doce_id en el SELECT.
+- Se extrajo cargarSelectModulosPrograma() como función compartida
+  (antes duplicada solo en el flujo "Nuevo"), reutilizada también al editar.
+- El título del modal ahora cambia dinámicamente entre "Asignar Módulo al
+  Grupo" (nuevo) y "Editar Módulo" (edición).
+- guardar_modulo_grupo (rama UPDATE) ahora permite cambiar el módulo
+  asignado, con verificación de duplicado grse_id+modu_id excluyendo el
+  propio grmo_id — antes el módulo quedaba fijo tras la creación.
+- Nuevo case eliminar_modulo_grupo: guard de sesión/rol, bloquea el DELETE
+  si el grupo-módulo ya tiene calificaciones registradas (ON DELETE
+  RESTRICT como salvavidas final), ON DELETE CASCADE limpia
+  automáticamente grmoestudiantes sin necesidad de borrado explícito.
+- Botón "Eliminar" visible solo en modo edición, con modal de confirmación
+  separado — mismo patrón visual ya usado en eliminar_aspirante
+  (02_estudiantes).
+
+---
+
 ## [5bef1ef] — 2026-08-15 — refactor: mueve jornada de cohorte a grupo semestre
 
 ### Archivos modificados

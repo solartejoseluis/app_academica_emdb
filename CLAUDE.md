@@ -468,6 +468,12 @@ Cuando una entidad ya tiene un flag booleano de activo/inactivo (ej. `modu_activ
 
 Ejemplo: `eliminar_modulo` / `toggle_estado_modulo` en `04_grupos` — un módulo con historial en `gruposmodulos` no puede eliminarse, pero sí desactivarse (`modu_activo=0`), lo que lo excluye de los selects activos (`listar_modulos_por_programa`) sin perder la trazabilidad de calificaciones o grupos pasados que ya lo referencian.
 
+### Endpoints `listar_X` que alimentan también un modal de edición
+
+Un endpoint `listar_X` que alimenta tanto una tabla/listado como un modal de edición debe devolver los IDs crudos de las relaciones (ej. `modu_id`, `doce_id`), no solo los valores ya resueltos por JOIN (`modu_nombre`, `doce_nombres`). Sin los IDs, el frontend no tiene con qué preseleccionar los `<select>` del modal de edición.
+
+Caso real: `listar_modulos_grupo` en `04_grupos` solo devolvía nombres resueltos por JOIN, lo que impedía precargar los selects de Módulo/Docente al editar (corregido en el commit `f46d9d9`, 2026-08-15) — agregar `gm.modu_id` y `gm.doce_id` al SELECT resolvió el problema sin afectar el uso existente del endpoint para el listado.
+
 ---
 
 ## Antipatrones a evitar
