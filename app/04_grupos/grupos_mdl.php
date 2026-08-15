@@ -240,6 +240,7 @@ switch ($accion) {
             $grse_id = (int)($_POST['grse_id'] ?? 0);
             $stmt = $pdo->prepare("
                 SELECT gm.grmo_id, gm.grmo_horario, gm.fechainicio, gm.fechafin, gm.grmo_activo,
+                       gm.modu_id, gm.doce_id,
                        m.modu_nombre, m.modu_sigla,
                        d.doce_nombres, d.doce_apellidos, d.doce_sigla,
                        (SELECT COUNT(*) FROM grmoestudiantes ge WHERE ge.grmo_id = gm.grmo_id) AS total_estudiantes
@@ -289,16 +290,57 @@ switch ($accion) {
                 ");
                 $stmt->execute([$grse_id, $modu_id, $doce_id, $grmo_horario, $fechainicio, $fechafin]);
             } else {
+                $check = $pdo->prepare("SELECT grmo_id FROM gruposmodulos WHERE grse_id=? AND modu_id=? AND grmo_id != ?");
+                $check->execute([$grse_id, $modu_id, (int)$grmo_id]);
+                if ($check->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Este módulo ya está asignado a este grupo']);
+                    break;
+                }
                 $stmt = $pdo->prepare("
                     UPDATE gruposmodulos
-                    SET doce_id=?, grmo_horario=?, fechainicio=?, fechafin=?
+                    SET modu_id=?, doce_id=?, grmo_horario=?, fechainicio=?, fechafin=?
                     WHERE grmo_id=?
                 ");
-                $stmt->execute([$doce_id, $grmo_horario, $fechainicio, $fechafin, (int)$grmo_id]);
+                $stmt->execute([$modu_id, $doce_id, $grmo_horario, $fechainicio, $fechafin, (int)$grmo_id]);
             }
             echo json_encode(['status' => 'ok', 'rows' => $stmt->rowCount()]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'eliminar_modulo_grupo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $grmo_id = (int)($_POST['grmo_id'] ?? 0);
+
+        if ($grmo_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de grupo módulo inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            $check = $pdo->prepare("SELECT COUNT(*) FROM calificaciones WHERE grmo_id = ?");
+            $check->execute([$grmo_id]);
+            if ((int)$check->fetchColumn() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Este módulo ya tiene calificaciones registradas, no puede eliminarse.']);
+                break;
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM gruposmodulos WHERE grmo_id = ?");
+            $stmt->execute([$grmo_id]);
+            echo json_encode(['status' => 'ok', 'rows' => $stmt->rowCount()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar: existen datos asociados al módulo']);
         }
         break;
 

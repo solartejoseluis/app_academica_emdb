@@ -480,7 +480,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-secondary text-white">
-                <h5 class="modal-title">Asignar Módulo al Grupo</h5>
+                <h5 class="modal-title" id="mdl_modulo_grupo_titulo">Asignar Módulo al Grupo</h5>
                 <button type="button" class="btn-close btn-close-white"
                         data-bs-dismiss="modal"></button>
             </div>
@@ -516,10 +516,31 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto d-none"
+                        id="btn_eliminar_modulo_grupo">Eliminar</button>
                 <button type="button" class="btn btn-secondary"
                         data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary"
                         id="btn_guardar_modulo_grupo">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar Módulo del Grupo -->
+<div class="modal fade" id="mdl_confirmar_eliminar_grmo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar módulo del grupo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Eliminar <strong id="spn_nombre_eliminar_grmo"></strong> de este grupo semestre? Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_grmo">Eliminar definitivamente</button>
             </div>
         </div>
     </div>

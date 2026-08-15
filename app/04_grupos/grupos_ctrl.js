@@ -586,24 +586,14 @@ $(document).ready(function () {
         const grse_id = $('#grse_id').val();
         const prog_id = $('#slct_prog_grupo').val();
         if (!grse_id) return;
-        // Cargar módulos disponibles del programa
-        $.ajax({
-            type: 'POST',
-            url: 'grupos_mdl.php?accion=listar_modulos_por_programa',
-            data: { prog_id: prog_id },
-            dataType: 'json',
-            success: function (r) {
-                if (r.status !== 'ok') return;
-                let opts = '<option value="">-- Seleccionar --</option>';
-                r.data.forEach(m => {
-                    opts += `<option value="${m.modu_id}">Sem.${m.semestre_sugerido} — ${m.modu_sigla} ${m.modu_nombre}</option>`;
-                });
-                $('#slct_modu_grupo').html(opts);
-                $('#grmo_id').val('');
-                $('#grmo_grse_id').val(grse_id);
-                $('#grmo_horario, #grmo_fechainicio, #grmo_fechafin').val('');
-                new bootstrap.Modal('#mdl_modulo_grupo').show();
-            }
+        cargarSelectModulosPrograma(prog_id).then(function () {
+            $('#grmo_id').val('');
+            $('#grmo_grse_id').val(grse_id);
+            $('#grmo_horario, #grmo_fechainicio, #grmo_fechafin').val('');
+            $('#slct_doce_grupo').val('');
+            $('#mdl_modulo_grupo_titulo').text('Asignar Módulo al Grupo');
+            $('#btn_eliminar_modulo_grupo').addClass('d-none');
+            new bootstrap.Modal('#mdl_modulo_grupo').show();
         });
     });
 
@@ -634,6 +624,33 @@ $(document).ready(function () {
                     cargarTablaGrupos();
                 } else {
                     alert('Error: ' + r.message);
+                }
+            }
+        });
+    });
+
+    $('#btn_eliminar_modulo_grupo').on('click', function () {
+        const nombre = $('#slct_modu_grupo option:selected').text().trim();
+        $('#spn_nombre_eliminar_grmo').text(nombre);
+        new bootstrap.Modal(document.getElementById('mdl_confirmar_eliminar_grmo')).show();
+    });
+
+    $('#btn_confirmar_eliminar_grmo').on('click', function () {
+        const grmo_id = $('#grmo_id').val();
+        const grse_id = $('#grmo_grse_id').val();
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=eliminar_modulo_grupo',
+            data: { grmo_id: grmo_id },
+            dataType: 'json',
+            success: function (r) {
+                bootstrap.Modal.getInstance(document.getElementById('mdl_confirmar_eliminar_grmo')).hide();
+                if (r.status === 'ok') {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_modulo_grupo')).hide();
+                    cargarModulosGrupo(grse_id);
+                    cargarTablaGrupos();
+                } else {
+                    alert(r.message);
                 }
             }
         });
@@ -831,6 +848,22 @@ function abrirEditarGrupo(grse_id) {
     });
 }
 
+function cargarSelectModulosPrograma(prog_id) {
+    return $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=listar_modulos_por_programa',
+        data: { prog_id: prog_id },
+        dataType: 'json'
+    }).then(function (r) {
+        if (r.status !== 'ok') return;
+        let opts = '<option value="">-- Seleccionar --</option>';
+        r.data.forEach(m => {
+            opts += `<option value="${m.modu_id}">Sem.${m.semestre_sugerido} — ${m.modu_sigla} ${m.modu_nombre}</option>`;
+        });
+        $('#slct_modu_grupo').html(opts);
+    });
+}
+
 function abrirEditarModuloGrupo(grmo_id, grse_id) {
     $.ajax({
         type: 'POST',
@@ -840,12 +873,19 @@ function abrirEditarModuloGrupo(grmo_id, grse_id) {
         success: function (r) {
             const mod = r.data ? r.data.find(m => m.grmo_id == grmo_id) : null;
             if (!mod) { alert('Módulo no encontrado'); return; }
-            $('#grmo_id').val(grmo_id);
-            $('#grmo_grse_id').val(grse_id);
-            $('#grmo_horario').val(mod.grmo_horario || '');
-            $('#grmo_fechainicio').val(mod.fechainicio || '');
-            $('#grmo_fechafin').val(mod.fechafin || '');
-            new bootstrap.Modal('#mdl_modulo_grupo').show();
+            const prog_id = $('#slct_prog_grupo').val();
+            cargarSelectModulosPrograma(prog_id).then(function () {
+                $('#grmo_id').val(grmo_id);
+                $('#grmo_grse_id').val(grse_id);
+                $('#grmo_horario').val(mod.grmo_horario || '');
+                $('#grmo_fechainicio').val(mod.fechainicio || '');
+                $('#grmo_fechafin').val(mod.fechafin || '');
+                $('#slct_modu_grupo').val(mod.modu_id);
+                $('#slct_doce_grupo').val(mod.doce_id);
+                $('#mdl_modulo_grupo_titulo').text('Editar Módulo');
+                $('#btn_eliminar_modulo_grupo').removeClass('d-none');
+                new bootstrap.Modal('#mdl_modulo_grupo').show();
+            });
         }
     });
 }
