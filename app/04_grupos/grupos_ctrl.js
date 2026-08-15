@@ -47,7 +47,6 @@ $(document).ready(function () {
                 { data: null, render: (d, t, r, m) => m.row + 1 },
                 { data: 'coho_codigo' },
                 { data: 'prog_nombre' },
-                { data: 'coho_jornada' },
                 { data: 'fechainicio' },
                 { data: 'coho_activa', render: v =>
                     v == 1
@@ -248,7 +247,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 let opts = '<option value="">-- Seleccionar --</option>';
                 r.data.forEach(c => {
-                    opts += `<option value="${c.coho_id}">${c.coho_codigo} (${c.coho_jornada})</option>`;
+                    opts += `<option value="${c.coho_id}">${c.coho_codigo}</option>`;
                 });
                 $('#slct_coho_grupo').html(opts);
             }
@@ -418,7 +417,6 @@ $(document).ready(function () {
         $('#coho_id').val('');
         $('#coho_codigo, #coho_fechainicio').val('');
         $('#slct_prog_cohorte').val('');
-        $('#coho_jornada').val('Semana');
         $('#bloque_activo_cohorte').addClass('d-none');
         $('#mdl_cohorte_titulo').text('Nueva Cohorte');
         new bootstrap.Modal('#mdl_cohorte').show();
@@ -440,7 +438,6 @@ $(document).ready(function () {
                 prog_id:      prog_id,
                 coho_codigo:  codigo,
                 fechainicio:  fecha,
-                coho_jornada: $('#coho_jornada').val(),
                 coho_activa:  $('#coho_activa').val() || 1
             },
             dataType: 'json',
@@ -528,6 +525,7 @@ $(document).ready(function () {
         $('#grse_codigo, #grse_fechainicio, #grse_fechafin').val('');
         $('#slct_prog_grupo, #slct_coho_grupo, #slct_peri_grupo').val('');
         $('#grse_semestre').val('1');
+        $('#grse_jornada').val('Semana');
         $('#bloque_activo_grupo').addClass('d-none');
         $('#btn_agregar_modulo').prop('disabled', true);
         $('#tbody_modulos_grupo').html(
@@ -556,6 +554,7 @@ $(document).ready(function () {
                 peri_id:       peri_id,
                 grse_semestre: sem,
                 grse_codigo:   codigo,
+                grse_jornada:  $('#grse_jornada').val(),
                 fechainicio:   $('#grse_fechainicio').val(),
                 fechafin:      $('#grse_fechafin').val(),
                 grse_activo:   $('#grse_activo').val() || 1
@@ -756,7 +755,6 @@ function abrirEditarCohorte(coho_id) {
             $('#coho_id').val(d.coho_id);
             $('#slct_prog_cohorte').val(d.prog_id);
             $('#coho_codigo').val(d.coho_codigo);
-            $('#coho_jornada').val(d.coho_jornada);
             $('#coho_fechainicio').val(d.fechainicio);
             $('#coho_activa').val(d.coho_activa);
             $('#bloque_activo_cohorte').removeClass('d-none');
@@ -801,6 +799,7 @@ function abrirEditarGrupo(grse_id) {
             $('#slct_peri_grupo').val(d.peri_id);
             $('#grse_semestre').val(d.grse_semestre);
             $('#grse_codigo').val(d.grse_codigo);
+            $('#grse_jornada').val(d.grse_jornada);
             $('#grse_fechainicio').val(d.fechainicio);
             $('#grse_fechafin').val(d.fechafin);
             $('#grse_activo').val(d.grse_activo);
@@ -820,7 +819,7 @@ function abrirEditarGrupo(grse_id) {
                     if (rc.status !== 'ok') return;
                     let opts = '<option value="">-- Seleccionar --</option>';
                     rc.data.forEach(c => {
-                        opts += `<option value="${c.coho_id}">${c.coho_codigo} (${c.coho_jornada})</option>`;
+                        opts += `<option value="${c.coho_id}">${c.coho_codigo}</option>`;
                     });
                     $('#slct_coho_grupo').html(opts);
                     $('#slct_coho_grupo').val(d.coho_id);

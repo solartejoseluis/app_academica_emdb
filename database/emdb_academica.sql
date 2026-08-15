@@ -114,7 +114,6 @@ CREATE TABLE cohortes (
   coho_codigo  VARCHAR(20)       NOT NULL,   -- Ej: "ASO-2024-1"
   fechainicio  DATE              NOT NULL,
   coho_activa  TINYINT(1)        NOT NULL DEFAULT 1,
-  coho_jornada     VARCHAR(20)      DEFAULT 'Semana',
   PRIMARY KEY (coho_id),
   UNIQUE KEY uq_coho_codigo (coho_codigo),
   CONSTRAINT fk_coho_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)
@@ -333,6 +332,7 @@ CREATE TABLE gruposemestres (
   peri_id       SMALLINT UNSIGNED NOT NULL,
   grse_codigo   VARCHAR(20)       NOT NULL,   -- Ej: "ASO-2025-1-A"
   grse_semestre TINYINT UNSIGNED  NOT NULL,   -- Semestre del programa (1-8)
+  grse_jornada  VARCHAR(20)       DEFAULT 'Semana',
   fechainicio   DATE              DEFAULT NULL,
   fechafin      DATE              DEFAULT NULL,
   grse_activo   TINYINT(1)        NOT NULL DEFAULT 1,

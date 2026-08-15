@@ -33,7 +33,7 @@ $stmt = $pdo->prepare("
            p.prog_nombre, p.prog_sigla,
            pe.peri_codigo,
            d.doce_nombres, d.doce_apellidos,
-           coh.coho_jornada,
+           gs.grse_jornada,
            c.cali_n1, c.cali_sup_n1, c.cali_n2, c.cali_sup_n2,
            c.cali_n3, c.cali_n4, c.cali_sup_n4,
            c.cali_nota_final, c.cali_habilitacion, c.cali_definitiva
@@ -45,7 +45,6 @@ $stmt = $pdo->prepare("
     JOIN periodos pe ON gs.peri_id = pe.peri_id
     JOIN docentes d ON gm.doce_id = d.doce_id
     JOIN estudiantes est ON est.estu_id = ge.estu_id
-    LEFT JOIN cohortes coh ON gs.coho_id = coh.coho_id
     LEFT JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = ge.estu_id
     WHERE ge.grmo_id = ? AND est.usua_id = ?
 ");
@@ -81,7 +80,7 @@ function estadoInfo($notaFinal, $definitiva) {
 }
 
 $estado = estadoInfo($d['cali_nota_final'], $d['cali_definitiva']);
-$jornada = $d['coho_jornada'] ?? '—';
+$jornada = $d['grse_jornada'] ?? '—';
 $fechaGenerado = date('d/m/Y H:i');
 $nombreArchivo = 'Boletin_' . $d['estu_numerodoc'] . '_' . $d['modu_sigla'] . '_' . date('Y-m-d') . '.pdf';
 

@@ -111,7 +111,6 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <th>#</th>
                         <th>Código</th>
                         <th>Programa</th>
-                        <th>Jornada</th>
                         <th>Fecha Inicio</th>
                         <th>Estado</th>
                         <th>Acciones</th>
@@ -296,13 +295,6 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <div class="form-text">Formato: CH-SIGLA-AAAAP (P = A o B)</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Jornada <span class="text-danger">*</span></label>
-                    <select class="form-select" id="coho_jornada">
-                        <option value="Semana">Semana</option>
-                        <option value="Sabados">Sábados</option>
-                    </select>
-                </div>
-                <div class="mb-3">
                     <label class="form-label">Fecha de Inicio <span class="text-danger">*</span></label>
                     <input type="date" class="form-control" id="coho_fechainicio">
                 </div>
@@ -420,6 +412,13 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <label class="form-label">Código <span class="text-danger">*</span></label>
                         <input type="text" class="form-control texto-mayus" id="grse_codigo"
                                placeholder="Ej: ASO-2025B-S1">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Jornada <span class="text-danger">*</span></label>
+                        <select class="form-select" id="grse_jornada">
+                            <option value="Semana">Semana</option>
+                            <option value="Sabados">Sábados</option>
+                        </select>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Fecha Inicio</label>

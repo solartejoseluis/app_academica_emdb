@@ -30,14 +30,13 @@ $stmtGrupo = $pdo->prepare("
            p.prog_nombre, p.prog_sigla,
            pe.peri_codigo,
            d.doce_nombres, d.doce_apellidos,
-           coh.coho_jornada
+           gs.grse_jornada
     FROM gruposmodulos gm
     INNER JOIN modulos m ON gm.modu_id = m.modu_id
     INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
     INNER JOIN programas p ON gs.prog_id = p.prog_id
     INNER JOIN periodos pe ON gs.peri_id = pe.peri_id
     INNER JOIN docentes d ON gm.doce_id = d.doce_id
-    LEFT JOIN cohortes coh ON gs.coho_id = coh.coho_id
     WHERE gm.grmo_id = ?
 ");
 $stmtGrupo->execute([$grmo_id]);
@@ -102,7 +101,7 @@ if (!$estudiantes) {
     }
 }
 
-$jornada = $grupo['coho_jornada'] ?? '—';
+$jornada = $grupo['grse_jornada'] ?? '—';
 
 // ── HTML del reporte ──────────────────────────────────────────────────────────
 $html = '

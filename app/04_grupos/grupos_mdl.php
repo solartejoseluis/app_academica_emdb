@@ -22,7 +22,7 @@ switch ($accion) {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
                 SELECT c.coho_id, c.coho_codigo, c.fechainicio,
-                       c.coho_activa, c.coho_jornada,
+                       c.coho_activa,
                        p.prog_nombre, p.prog_sigla
                 FROM cohortes c
                 INNER JOIN programas p ON c.prog_id = p.prog_id
@@ -51,7 +51,6 @@ switch ($accion) {
             $prog_id    = (int)($_POST['prog_id'] ?? 0);
             $coho_codigo = strtoupper(trim($_POST['coho_codigo'] ?? ''));
             $fechainicio = trim($_POST['fechainicio'] ?? '');
-            $coho_jornada = trim($_POST['coho_jornada'] ?? 'Semana');
             $coho_activa  = (int)($_POST['coho_activa'] ?? 1);
 
             if ($coho_id === '') {
@@ -63,18 +62,18 @@ switch ($accion) {
                     break;
                 }
                 $stmt = $pdo->prepare("
-                    INSERT INTO cohortes (prog_id, coho_codigo, fechainicio, coho_jornada, coho_activa)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO cohortes (prog_id, coho_codigo, fechainicio, coho_activa)
+                    VALUES (?, ?, ?, ?)
                 ");
-                $stmt->execute([$prog_id, $coho_codigo, $fechainicio, $coho_jornada, $coho_activa]);
+                $stmt->execute([$prog_id, $coho_codigo, $fechainicio, $coho_activa]);
             } else {
                 // UPDATE
                 $stmt = $pdo->prepare("
                     UPDATE cohortes
-                    SET prog_id=?, coho_codigo=?, fechainicio=?, coho_jornada=?, coho_activa=?
+                    SET prog_id=?, coho_codigo=?, fechainicio=?, coho_activa=?
                     WHERE coho_id=?
                 ");
-                $stmt->execute([$prog_id, $coho_codigo, $fechainicio, $coho_jornada, $coho_activa, (int)$coho_id]);
+                $stmt->execute([$prog_id, $coho_codigo, $fechainicio, $coho_activa, (int)$coho_id]);
             }
             echo json_encode(['status' => 'ok', 'rows' => $stmt->rowCount()]);
         } catch (Exception $e) {
@@ -127,7 +126,7 @@ switch ($accion) {
             $stmt = $pdo->prepare("
                 SELECT gs.grse_id, gs.grse_codigo, gs.grse_semestre,
                        gs.fechainicio, gs.fechafin, gs.grse_activo, gs.coho_id,
-                       c.coho_codigo, c.coho_jornada,
+                       c.coho_codigo,
                        p.prog_sigla, p.prog_nombre,
                        pe.peri_codigo,
                        (SELECT COUNT(*) FROM gruposmodulos gm WHERE gm.grse_id = gs.grse_id) AS total_modulos
@@ -162,6 +161,7 @@ switch ($accion) {
             $prog_id      = (int)($_POST['prog_id'] ?? 0);
             $grse_semestre = (int)($_POST['grse_semestre'] ?? 1);
             $grse_codigo  = strtoupper(trim($_POST['grse_codigo'] ?? ''));
+            $grse_jornada = trim($_POST['grse_jornada'] ?? 'Semana');
             $fechainicio  = trim($_POST['fechainicio'] ?? '');
             $fechafin     = trim($_POST['fechafin'] ?? '');
             $grse_activo  = (int)($_POST['grse_activo'] ?? 1);
@@ -175,19 +175,19 @@ switch ($accion) {
                 }
                 $stmt = $pdo->prepare("
                     INSERT INTO gruposemestres
-                      (coho_id, prog_id, peri_id, grse_semestre, grse_codigo, fechainicio, fechafin, grse_activo)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                      (coho_id, prog_id, peri_id, grse_semestre, grse_codigo, grse_jornada, fechainicio, fechafin, grse_activo)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$coho_id, $prog_id, $peri_id, $grse_semestre, $grse_codigo, $fechainicio, $fechafin, $grse_activo]);
+                $stmt->execute([$coho_id, $prog_id, $peri_id, $grse_semestre, $grse_codigo, $grse_jornada, $fechainicio, $fechafin, $grse_activo]);
             } else {
                 $stmt = $pdo->prepare("
                     UPDATE gruposemestres
                     SET coho_id=?, prog_id=?, peri_id=?, grse_semestre=?,
-                        grse_codigo=?, fechainicio=?, fechafin=?, grse_activo=?
+                        grse_codigo=?, grse_jornada=?, fechainicio=?, fechafin=?, grse_activo=?
                     WHERE grse_id=?
                 ");
                 $stmt->execute([$coho_id, $prog_id, $peri_id, $grse_semestre, $grse_codigo,
-                                $fechainicio, $fechafin, $grse_activo, (int)$grse_id]);
+                                $grse_jornada, $fechainicio, $fechafin, $grse_activo, (int)$grse_id]);
             }
             echo json_encode(['status' => 'ok', 'rows' => $stmt->rowCount()]);
         } catch (Exception $e) {
@@ -568,7 +568,7 @@ switch ($accion) {
             $pdo = getConexion();
             $prog_id = (int)($_POST['prog_id'] ?? 0);
             $stmt = $pdo->prepare("
-                SELECT coho_id, coho_codigo, coho_jornada
+                SELECT coho_id, coho_codigo
                 FROM cohortes
                 WHERE prog_id = ? AND coho_activa = 1
                 ORDER BY coho_id DESC
