@@ -663,6 +663,12 @@ Por defecto Dompdf restringe la lectura de archivos locales al chroot de su prop
 - **Decisión:** `usua_password VARCHAR(255) NOT NULL`. Hash con `password_hash()`. Verificación con `password_verify()`. Desde el primer INSERT.
 - **Estado:** Activa. No negociable.
 
+### Jornada como atributo de grupo semestre, no de cohorte
+
+- **Decisión:** Jornada (Semana/Sábados) es un atributo de `gruposemestres` (`grse_jornada`), NO de `cohortes`. Una cohorte agrupa el momento de inicio de varios grupos semestre; cada grupo semestre define su propia jornada de forma independiente.
+- **Nota:** Si en el futuro se necesita mostrar o filtrar por jornada, la fuente de verdad es `grse_jornada` — `cohortes` ya no tiene ningún campo relacionado (columna `coho_jornada` eliminada en el commit `5bef1ef`, 2026-08-15).
+- **Estado:** Activa.
+
 ---
 
 ## Frontend stack

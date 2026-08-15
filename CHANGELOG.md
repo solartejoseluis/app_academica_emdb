@@ -4,6 +4,46 @@
 
 ---
 
+## [5bef1ef] — 2026-08-15 — refactor: mueve jornada de cohorte a grupo semestre
+
+### Archivos modificados
+- app/04_grupos/grupos_view.php
+- app/04_grupos/grupos_ctrl.js
+- app/04_grupos/grupos_mdl.php
+- app/06_reportes/reportes_mdl.php
+- app/06_reportes/reportes_ctrl.js
+- app/06_reportes/pdf_grupo.php
+- app/06_reportes/pdf_boletin.php
+- database/emdb_academica.sql
+
+### Cambios/Vulnerabilidad corregida
+- Se movió la captura del campo jornada (Semana/Sábados) de la entidad
+  cohorte a la entidad grupo semestre. Una cohorte marca el inicio de
+  varios grupos semestre, cada uno con su propia jornada — el campo no
+  pertenecía al nivel de cohorte.
+- Migración en 4 etapas: (1) se agregó grse_jornada a gruposemestres y se
+  migraron los datos existentes desde cohortes.coho_jornada (2 grupos
+  semestre de CH-ASO-2026B heredaron el valor 'Sabados'), (2) se movió la
+  captura del modal de Cohorte al modal de Grupo Semestre, (3) se
+  actualizaron todos los puntos de lectura (DataTable de cohortes, select
+  de cohorte en el modal de grupo, y los tres puntos de 06_reportes que
+  leían coho_jornada), (4) se eliminó la columna coho_jornada de cohortes.
+
+### Decisiones
+- No se agregó ENUM ni CHECK constraint en grse_jornada, replicando
+  exactamente el tipo original de coho_jornada (VARCHAR(20) DEFAULT
+  'Semana') — los valores válidos siguen enforced solo por el <select> del
+  frontend, consistente con el resto del proyecto.
+- Los grupos semestre ya existentes de una misma cohorte heredaron el mismo
+  valor de jornada por copia directa en la migración (ej. los 2 grupos de
+  CH-ASO-2026B); a partir de ahí cada grupo queda libre de editarse
+  independientemente.
+- Se eliminó también el LEFT JOIN cohortes en reportes_mdl.php,
+  pdf_grupo.php y pdf_boletin.php, ya que ese JOIN existía únicamente para
+  traer coho_jornada y no se usaba para ningún otro campo.
+
+---
+
 ## [0eddadf] — 2026-08-15 — fix: valida sesión en listar_grupos (05_calificaciones)
 
 ### Archivos modificados

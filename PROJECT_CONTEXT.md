@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-15
-> Versión: 29 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones)
+> Versión: 30 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada)
 
 ---
 
@@ -382,6 +382,7 @@ necesidad de una cuenta completa.
 | `e7e6b3b` | feat: CRUD de módulos en 04_grupos — pestaña, tabla y modales en grupos_view.php (frontend HTML, sin JS) | 2026-08-08 |
 | `0eca14e` | feat: CRUD de módulos en 04_grupos — conecta grupos_ctrl.js (listar, crear/editar, eliminar condicionado, desactivar/activar) | 2026-08-08 |
 | `0eddadf` | fix: valida sesión en listar_grupos (05_calificaciones) — hallazgo colateral detectado al verificar el fix de est_mdl.php | 2026-08-15 |
+| `5bef1ef` | refactor: mueve jornada de cohorte a grupo semestre (4 etapas: schema, migración de datos, backend, frontend, reportes/PDFs) | 2026-08-15 |
 
 ---
 
@@ -404,6 +405,7 @@ necesidad de una cuenta completa.
 | Triggers MySQL eliminados | sp_calcular_definitiva y triggers AFTER INSERT/UPDATE eliminados — MySQL no permite UPDATE en trigger de la misma tabla. Cálculo de definitiva implementado en PHP en calificaciones_mdl.php. |
 | Subida de archivos vía FormData | Primera vez en el proyecto (foto de estudiante) — usa `FormData` + `processData`/`contentType: false`, distinto del patrón de objeto plano usado en el resto de la app. |
 | Indicador de ficha completa (simple) | Definido como existencia de fila en `fichas_inscripcion`, no validación campo por campo. |
+| Jornada es atributo de grupo semestre, no de cohorte | La jornada (Semana/Sábados) es un atributo de grupo semestre, no de cohorte — una cohorte puede tener grupos semestre con jornadas distintas. |
 
 ---
 
