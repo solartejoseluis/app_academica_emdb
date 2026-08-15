@@ -10,6 +10,11 @@ switch ($accion) {
 
     case 'listar_grupos':
         try {
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+                break;
+            }
+
             $pdo = getConexion();
             $role_id = (int)($_SESSION['role_id'] ?? 0);
             $usua_id = (int)($_SESSION['usua_id'] ?? 0);
