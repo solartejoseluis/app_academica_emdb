@@ -509,6 +509,31 @@ CREATE TABLE horariosgrupo (
   COMMENT='Horarios de clases por grupo semestre';
 
 -- =============================================================================
+-- BLOQUE 6B: CONTENIDO DE AYUDA (fuera del dominio académico)
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 15. ayudas
+--     Contenido de ayuda/instrucción mostrado en el sidebar de cada sección
+--     de la aplicación. ayud_seccion es el identificador de carpeta del
+--     módulo de la app (ej. "04_grupos", "05_calificaciones") — NO debe
+--     confundirse con la tabla modulos (asignaturas académicas).
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS ayudas;
+CREATE TABLE ayudas (
+  ayud_id             INT(5)            AUTO_INCREMENT,
+  ayud_seccion        VARCHAR(30)       NOT NULL,
+  ayud_titulo         VARCHAR(100)      NOT NULL,
+  ayud_contenido      TEXT              NOT NULL,
+  ayud_orden          SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  ayud_activo         TINYINT(1)        NOT NULL DEFAULT 1,
+  fecharegistro       TIMESTAMP         DEFAULT current_timestamp(),
+  fechaactualizacion  TIMESTAMP         DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (ayud_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Contenido de ayuda por sección de la aplicación';
+
+-- =============================================================================
 -- BLOQUE 7–8: (eliminados) STORED PROCEDURE + TRIGGERS de cálculo de definitiva
 -- =============================================================================
 -- Este bloque contenía sp_calcular_definitiva() y los triggers
@@ -624,6 +649,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =============================================================================
 -- FIN DEL SCRIPT
 -- emdb_academica.sql — v1.0.0 — 2026-04-30
--- Tablas creadas: 16
+-- Tablas creadas: 17
 -- Registros semilla: 4 roles + 2 programas + 3 períodos + 36 módulos + 1 usuario admin
 -- =============================================================================
