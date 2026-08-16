@@ -83,6 +83,28 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
         <!-- Panel izquierdo: lista de grupos -->
         <div class="col-md-3" id="panel_grupos">
             <h6 class="fw-bold mb-3">Mis Módulos</h6>
+            <?php if (in_array((int)$_SESSION['role_id'], [1, 2])): ?>
+            <div id="bloque_filtros_grupos" class="mb-3">
+                <div class="mb-2">
+                    <label class="form-label small mb-1">Profesor</label>
+                    <select class="form-select form-select-sm" id="slct_filtro_doce_id">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small mb-1">Programa</label>
+                    <select class="form-select form-select-sm" id="slct_filtro_prog_id">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small mb-1">Período</label>
+                    <select class="form-select form-select-sm" id="slct_filtro_peri_id">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <?php endif; ?>
             <div id="lista_grupos">
                 <div class="text-muted small">Cargando...</div>
             </div>

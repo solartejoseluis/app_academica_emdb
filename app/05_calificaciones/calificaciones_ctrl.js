@@ -2,13 +2,69 @@ $(document).ready(function () {
 
     let grmo_id_activo = null;
 
+    // ── Filtros de grupos (solo Coordinador/Admin) ───────────────────────────
+    const bloqueFiltros = $('#bloque_filtros_grupos');
+
+    if (bloqueFiltros.length) {
+        poblarFiltros();
+        $('#slct_filtro_doce_id, #slct_filtro_prog_id, #slct_filtro_peri_id').on('change', function () {
+            cargarGrupos();
+        });
+    }
+
+    function poblarFiltros() {
+        $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=listar_docentes_filtro',
+            dataType: 'json',
+            success: function (r) {
+                if (r.status !== 'ok') return;
+                const slct = $('#slct_filtro_doce_id');
+                r.data.forEach(d => {
+                    slct.append(`<option value="${d.doce_id}">${d.doce_apellidos}, ${d.doce_nombres}</option>`);
+                });
+            }
+        });
+        $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=listar_programas_filtro',
+            dataType: 'json',
+            success: function (r) {
+                if (r.status !== 'ok') return;
+                const slct = $('#slct_filtro_prog_id');
+                r.data.forEach(p => {
+                    slct.append(`<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`);
+                });
+            }
+        });
+        $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=listar_periodos_filtro',
+            dataType: 'json',
+            success: function (r) {
+                if (r.status !== 'ok') return;
+                const slct = $('#slct_filtro_peri_id');
+                r.data.forEach(pe => {
+                    slct.append(`<option value="${pe.peri_id}">${pe.peri_codigo}</option>`);
+                });
+            }
+        });
+    }
+
     // ── Cargar lista de grupos al inicio ────────────────────────────────────
     cargarGrupos();
 
     function cargarGrupos() {
+        const filtros = {};
+        if (bloqueFiltros.length) {
+            filtros.doce_id = $('#slct_filtro_doce_id').val();
+            filtros.prog_id = $('#slct_filtro_prog_id').val();
+            filtros.peri_id = $('#slct_filtro_peri_id').val();
+        }
         $.ajax({
             type: 'POST',
             url: 'calificaciones_mdl.php?accion=listar_grupos',
+            data: filtros,
             dataType: 'json',
             success: function (r) {
                 const contenedor = $('#lista_grupos');

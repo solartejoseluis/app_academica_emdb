@@ -40,14 +40,34 @@ switch ($accion) {
                 ");
                 $stmt->execute([$usua_id]);
             } else {
-                // Coordinador/Admin: todos los grupos
+                // Coordinador/Admin: todos los grupos, con filtros opcionales (doce_id, prog_id, peri_id)
+                $doce_id_filtro = trim($_POST['doce_id'] ?? '');
+                $prog_id_filtro = trim($_POST['prog_id'] ?? '');
+                $peri_id_filtro = trim($_POST['peri_id'] ?? '');
+
+                $where  = "WHERE gm.grmo_activo = 1";
+                $params = [];
+
+                if ($doce_id_filtro !== '') {
+                    $where .= " AND d.doce_id = ?";
+                    $params[] = (int)$doce_id_filtro;
+                }
+                if ($prog_id_filtro !== '') {
+                    $where .= " AND p.prog_id = ?";
+                    $params[] = (int)$prog_id_filtro;
+                }
+                if ($peri_id_filtro !== '') {
+                    $where .= " AND gs.peri_id = ?";
+                    $params[] = (int)$peri_id_filtro;
+                }
+
                 $stmt = $pdo->prepare("
                     SELECT gm.grmo_id, gm.grmo_horario, gm.fechainicio, gm.fechafin,
                            m.modu_nombre, m.modu_sigla,
-                           gs.grse_codigo, gs.grse_semestre,
+                           gs.grse_codigo, gs.grse_semestre, gs.peri_id,
                            c.coho_codigo, p.prog_sigla,
                            pe.peri_codigo,
-                           d.doce_nombres, d.doce_apellidos,
+                           d.doce_id, d.doce_nombres, d.doce_apellidos,
                            (SELECT COUNT(*) FROM grmoestudiantes ge WHERE ge.grmo_id = gm.grmo_id) AS total_estudiantes
                     FROM gruposmodulos gm
                     INNER JOIN modulos m ON gm.modu_id = m.modu_id
@@ -56,11 +76,79 @@ switch ($accion) {
                     INNER JOIN programas p ON c.prog_id = p.prog_id
                     INNER JOIN periodos pe ON gs.peri_id = pe.peri_id
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
-                    WHERE gm.grmo_activo = 1
+                    {$where}
                     ORDER BY p.prog_sigla ASC, gs.grse_semestre ASC, m.modu_nombre ASC
                 ");
-                $stmt->execute();
+                $stmt->execute($params);
             }
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    // ── CATÁLOGOS PARA FILTROS DE listar_grupos (Coordinador/Admin) ──────────
+
+    case 'listar_programas_filtro':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("SELECT prog_id, prog_nombre, prog_sigla FROM programas ORDER BY prog_nombre");
+            $stmt->execute();
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'listar_periodos_filtro':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos ORDER BY peri_anio DESC, peri_semestre DESC");
+            $stmt->execute();
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'listar_docentes_filtro':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT d.doce_id, d.doce_nombres, d.doce_apellidos
+                FROM docentes d
+                INNER JOIN usuarios u ON d.usua_id = u.usua_id
+                WHERE u.usua_activo = 1
+                ORDER BY d.doce_apellidos
+            ");
+            $stmt->execute();
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
