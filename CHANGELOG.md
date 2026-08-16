@@ -4,6 +4,47 @@
 
 ---
 
+## [2dd4a55] — 2026-08-15 — feat: eliminar/desactivar docente + corrige desincronización de doce_activo
+
+### Archivos modificados
+- app/03_docentes/doc_view.php
+- app/03_docentes/doc_ctrl.js
+- app/03_docentes/doc_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- No existía forma de eliminar un docente desde 03_docentes, solo editar.
+- Bug real preexistente detectado durante el análisis: docentes.doce_activo
+  (usado por el KPI total_docentes en 07_coordinador) nunca se actualizaba
+  desde 03_docentes — solo usuarios.usua_activo cambiaba al editar. Ambos
+  campos quedaban desincronizados desde la creación del docente,
+  invalidando silenciosamente el KPI del dashboard del coordinador.
+
+### Decisiones
+- Regla de eliminación más estricta que en módulos/cohortes: solo se puede
+  eliminar un docente que NUNCA haya tenido ningún grupo asignado
+  (histórico completo, sin filtro de período ni de grmo_activo) — un
+  docente con grupos en períodos pasados solo puede desactivarse.
+- Nuevo case eliminar_docente: DELETE en transacción que borra también la
+  fila de usuarios asociada explícitamente (mismo patrón que
+  eliminar_aspirante, no depende del ON DELETE SET NULL de la FK).
+- Nuevo case toggle_estado_docente: sincroniza doce_activo y usua_activo
+  al mismo valor en cada cambio, corrigiendo el bug de desincronización.
+- listar ahora incluye doce_activo y total_grupos_historico (distinto de
+  total_grupos, que sigue siendo el conteo del período seleccionado
+  agregado en el commit 7eba870).
+- toggleEstadoDocente usa $('#tbl_docentes').DataTable().ajax.reload()
+  directamente, aplicando el fix de scope ya documentado para funciones
+  invocadas vía onclick inline de DataTables.
+
+Probado end-to-end vía endpoints reales: creación/eliminación con
+verificación de cascada de usuario, docente con histórico (solo
+desactivar), sincronización de ambos flags en ambas direcciones (0→0 y
+1→1, con reversión controlada), KPI de 07_coordinador reflejando el
+cambio. Confirmado que 08_admin excluye deliberadamente role_id 3/4
+(comportamiento esperado, no bug relacionado).
+
+---
+
 ## [7eba870] — 2026-08-15 — feat: período activo (peri_activo) + conteo de grupos por docente
 
 ### Archivos modificados

@@ -638,6 +638,21 @@ $dompdf->loadHtml($html); // <img src="/ruta/absoluta/fuera/de/vendor/foto.jpg">
 
 Por defecto Dompdf restringe la lectura de archivos locales al chroot de su propia carpeta (`vendor/`). Configurar `setChroot()` a la raíz del proyecto (o al directorio que contiene los archivos a leer) antes de renderizar HTML con rutas de imagen fuera de `vendor/`.
 
+### ❌ Todo campo "activo" que se muestre en un KPI debe actualizarse desde TODOS los puntos que cambian el estado de esa entidad
+
+```php
+// PROHIBIDO — actualiza solo un campo "espejo" del estado, dejando el otro desincronizado
+$stmtU = $pdo->prepare("UPDATE usuarios SET usua_activo = ? WHERE usua_id = ?");
+$stmtU->execute([$usua_activo, $rowDoc['usua_id']]);
+// docentes.doce_activo nunca se toca — queda congelado en 1 desde el INSERT
+```
+
+Bug real detectado el 2026-08-15: `docentes.doce_activo` se usaba como fuente del KPI `total_docentes` en `07_coordinador` (`SELECT COUNT(*) FROM docentes WHERE doce_activo = 1`), pero `03_docentes` nunca lo actualizaba — el módulo de docentes solo tocaba `usuarios.usua_activo` al editar. Como resultado, `doce_activo` quedaba congelado en `1` desde el INSERT inicial para siempre, sin importar cuántas veces se "desactivara" un docente desde la UI (el único efecto visible era sobre `usua_activo`, un campo distinto). El KPI del coordinador mostraba un número incorrecto de forma silenciosa, sin ningún error visible.
+
+Lección: cuando una entidad tiene el estado duplicado en dos tablas relacionadas (ej. `docentes.doce_activo` y `usuarios.usua_activo` para la misma persona), CUALQUIER endpoint que cambie el estado de esa entidad debe actualizar AMBOS campos en la misma operación — no asumir que un campo "espejo" se mantiene sincronizado solo porque existe. Antes de crear un nuevo campo de estado, buscar (grep) si ya existe un campo equivalente en una tabla relacionada, y si el nuevo código solo actualiza uno de los dos, es una señal de alerta.
+
+Corregido en `toggle_estado_docente` (commit `2dd4a55`, 2026-08-15): actualiza `docentes.doce_activo` y `usuarios.usua_activo` en la misma transacción, siempre al mismo valor.
+
 ---
 
 ## Decisiones arquitectónicas activas
