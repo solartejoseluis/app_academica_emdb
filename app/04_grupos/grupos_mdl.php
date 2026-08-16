@@ -23,7 +23,9 @@ switch ($accion) {
             $stmt = $pdo->prepare("
                 SELECT c.coho_id, c.coho_codigo, c.fechainicio,
                        c.coho_activa,
-                       p.prog_nombre, p.prog_sigla
+                       p.prog_nombre, p.prog_sigla,
+                       (SELECT COUNT(*) FROM estudiantes e WHERE e.coho_id = c.coho_id) AS total_estudiantes,
+                       (SELECT COUNT(*) FROM gruposemestres g WHERE g.coho_id = c.coho_id) AS total_grupos
                 FROM cohortes c
                 INNER JOIN programas p ON c.prog_id = p.prog_id
                 ORDER BY c.coho_id DESC
@@ -104,6 +106,76 @@ switch ($accion) {
             echo json_encode($row
                 ? ['status' => 'ok', 'data' => $row]
                 : ['status' => 'error', 'message' => 'No encontrado']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'eliminar_cohorte':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $coho_id = (int)($_POST['coho_id'] ?? 0);
+
+        if ($coho_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de cohorte inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            $check = $pdo->prepare("SELECT COUNT(*) FROM estudiantes WHERE coho_id = ?");
+            $check->execute([$coho_id]);
+            if ((int)$check->fetchColumn() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Esta cohorte tiene estudiantes matriculados, no puede eliminarse.']);
+                break;
+            }
+
+            $check = $pdo->prepare("SELECT COUNT(*) FROM gruposemestres WHERE coho_id = ?");
+            $check->execute([$coho_id]);
+            if ((int)$check->fetchColumn() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Esta cohorte tiene grupos semestre asociados, no puede eliminarse.']);
+                break;
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM cohortes WHERE coho_id = ?");
+            $stmt->execute([$coho_id]);
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar: existen datos asociados a la cohorte']);
+        }
+        break;
+
+    case 'toggle_estado_cohorte':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $coho_id     = (int)($_POST['coho_id'] ?? 0);
+        $coho_activa = (int)($_POST['coho_activa'] ?? 0);
+
+        if ($coho_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de cohorte inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("UPDATE cohortes SET coho_activa = ? WHERE coho_id = ?");
+            $stmt->execute([$coho_activa, $coho_id]);
+            echo json_encode(['status' => 'ok']);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }

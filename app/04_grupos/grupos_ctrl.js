@@ -4,6 +4,7 @@
 // que se invocan vía onclick inline desde el HTML renderizado por DataTables.
 let cacheModulos = {};
 let moduloIdPendienteEliminar = null;
+let cohorteIdPendienteEliminar = null;
 
 $(document).ready(function () {
 
@@ -53,10 +54,21 @@ $(document).ready(function () {
                         ? '<span class="badge bg-success">Activa</span>'
                         : '<span class="badge bg-secondary">Inactiva</span>'
                 },
-                { data: 'coho_id', render: id =>
-                    `<button class="btn btn-sm btn-outline-primary"
-                        onclick="abrirEditarCohorte(${id})">Editar</button>`
-                }
+                { data: null, render: (d, t, row) => {
+                    let botones = `<button class="btn btn-sm btn-outline-primary me-1"
+                        onclick="abrirEditarCohorte(${row.coho_id})">Editar</button>`;
+                    if (row.coho_activa == 1 && row.total_estudiantes == 0 && row.total_grupos == 0) {
+                        botones += `<button class="btn btn-sm btn-outline-danger"
+                            onclick="confirmarEliminarCohorte(${row.coho_id}, '${row.coho_codigo.replace(/'/g, "\\'")}')">Eliminar</button>`;
+                    } else if (row.coho_activa == 1 && (row.total_estudiantes > 0 || row.total_grupos > 0)) {
+                        botones += `<button class="btn btn-sm btn-outline-warning"
+                            onclick="toggleEstadoCohorte(${row.coho_id}, 0)">Desactivar</button>`;
+                    } else {
+                        botones += `<button class="btn btn-sm btn-outline-success"
+                            onclick="toggleEstadoCohorte(${row.coho_id}, 1)">Activar</button>`;
+                    }
+                    return botones;
+                }}
             ],
             language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
             responsive: true
@@ -720,6 +732,27 @@ $(document).ready(function () {
         });
     });
 
+    // Eliminar vive como acción de fila en la tabla (no dentro del modal de
+    // edición) — mismo patrón que btn_confirmar_eliminar_modulo.
+    $('#btn_confirmar_eliminar_cohorte').on('click', function () {
+        if (!cohorteIdPendienteEliminar) return;
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=eliminar_cohorte',
+            data: { coho_id: cohorteIdPendienteEliminar },
+            dataType: 'json',
+            success: function (r) {
+                bootstrap.Modal.getInstance('#mdl_confirmar_eliminar_cohorte').hide();
+                if (r.status === 'ok') {
+                    cargarTablaCohortes();
+                } else {
+                    alert(r.message);
+                }
+                cohorteIdPendienteEliminar = null;
+            }
+        });
+    });
+
 }); // fin ready
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -909,6 +942,12 @@ function confirmarEliminarModulo(modu_id, nombre) {
     new bootstrap.Modal('#mdl_confirmar_eliminar_modulo').show();
 }
 
+function confirmarEliminarCohorte(coho_id, codigo) {
+    cohorteIdPendienteEliminar = coho_id;
+    $('#spn_codigo_eliminar_cohorte').text(codigo);
+    new bootstrap.Modal('#mdl_confirmar_eliminar_cohorte').show();
+}
+
 function toggleEstadoModulo(modu_id, nuevoEstado) {
     $.ajax({
         type: 'POST',
@@ -918,6 +957,22 @@ function toggleEstadoModulo(modu_id, nuevoEstado) {
         success: function (r) {
             if (r.status === 'ok') {
                 $('#tbl_modulos').DataTable().ajax.reload(null, false);
+            } else {
+                alert('Error: ' + r.message);
+            }
+        }
+    });
+}
+
+function toggleEstadoCohorte(coho_id, nuevoEstado) {
+    $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=toggle_estado_cohorte',
+        data: { coho_id: coho_id, coho_activa: nuevoEstado },
+        dataType: 'json',
+        success: function (r) {
+            if (r.status === 'ok') {
+                $('#tbl_cohortes').DataTable().ajax.reload(null, false);
             } else {
                 alert('Error: ' + r.message);
             }
