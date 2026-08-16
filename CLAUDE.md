@@ -486,6 +486,19 @@ Las funciones que se invocan vía `onclick` inline desde HTML generado por DataT
 
 Ejemplo: bug real en `toggleEstadoCohorte` (04_grupos), corregido en el mismo commit `5611153` tras detectarse en pruebas manuales — `toggleEstadoModulo` ya usaba el patrón correcto desde antes.
 
+### Personalizar exportación Excel vía customize del botón excelHtml5 (DataTables Buttons)
+
+La exportación a Excel del proyecto es 100% client-side, generada por el plugin DataTables Buttons (buttons.html5.min.js + JSZip) — no hay PhpSpreadsheet ni ninguna librería de generación de .xlsx en el backend. La opción `title` del botón `{ extend: 'excel' }` solo acepta un string plano que se convierte en UNA fila de título; no soporta múltiples líneas como filas independientes.
+
+Para insertar contenido estructurado (múltiples filas, formato específico) antes de los datos de la tabla, usar la opción `customize` del botón: recibe el objeto `xlsx` ya generado por el plugin antes de la descarga, con acceso al XML crudo de la hoja vía `xlsx.xl.worksheets['sheet1.xml']` (un documento parseado con jQuery). Patrón usado:
+
+1. Insertar nuevas `<row>` con `$('row', sheet).eq(0).before(...)`, usando celdas de texto plano `t="inlineStr"` (sin necesidad de mergeCells para texto que se desborda visualmente sobre columnas vacías adyacentes).
+2. Reindexar TODAS las filas y celdas existentes tras la inserción — cada `<row r="N">` y cada `<c r="colN">` dentro de ella debe recalcularse (`$('row', sheet).each(...)`, extrayendo la parte de letra de columna con `.replace(/[0-9]/g, '')` y añadiendo el nuevo número de fila). Sin este paso, el archivo queda con referencias desincronizadas y Excel lo reporta como dañado.
+3. Actualizar el atributo `ref` de `<dimension>` al final, con la última celda de la última fila tras la reindexación.
+4. Escapar `&`, `<`, `>` en cualquier texto libre insertado (nombres de docente, módulo, etc.) antes de insertarlo como `<t>` dentro del XML.
+
+Ejemplo: `reportes_ctrl.js` (commit `7fe1151`, 2026-08-15) — la fila de contexto (Módulo/Grupo/Docente/Programa/Período/Jornada) se dividió en 2 filas reales de la hoja usando este patrón, con los encabezados de columna arrancando en la fila 3.
+
 ---
 
 ## Antipatrones a evitar

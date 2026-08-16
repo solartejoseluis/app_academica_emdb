@@ -4,6 +4,34 @@
 
 ---
 
+## [7fe1151] — 2026-08-15 — feat: divide la fila de contexto del Excel exportado en 2 filas reales
+
+### Archivos modificados
+- app/06_reportes/reportes_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- La fila de contexto del Excel exportado (Módulo — Grupo — Docente —
+  Programa — Período — Jornada) quedaba como una sola línea muy ancha,
+  perdida visualmente en la hoja.
+
+### Decisiones
+- Se dividió en 2 filas: Fila 1 (Módulo — Grupo — Docente), Fila 2
+  (Programa — Período — Jornada), con los encabezados de columna y datos
+  de notas arrancando en la fila 3.
+- La exportación es 100% client-side (DataTables Buttons + JSZip), sin
+  PhpSpreadsheet ni manipulación propia de XML previa en el proyecto — no
+  bastaba con cambiar el string de la opción title, se reemplazó por la
+  API customize del botón excelHtml5, que edita directamente el XML de la
+  hoja (sheet1.xml) ya generado por el plugin: inserta 2 <row> nuevas al
+  inicio, reindexa todas las filas y celdas existentes (+2 posiciones), y
+  actualiza el rango declarado (dimension) de la hoja.
+- construirContextoTexto(g) pasó de devolver un string único a un objeto
+  { linea1, linea2 } — confirmado que no se usaba en ningún otro punto del
+  archivo (la vista en pantalla usa los spn_ctx_* directamente desde el
+  objeto g, de forma independiente).
+
+---
+
 ## [5611153] — 2026-08-15 — feat: eliminar/desactivar cohorte con verificación de dependencias
 
 ### Archivos modificados
