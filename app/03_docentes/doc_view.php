@@ -84,8 +84,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <input type="text" class="form-control texto-mayus" id="npt_doce_apellidos" autocomplete="off">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Sigla <span class="text-muted small">(máx. 10 caracteres)</span></label>
-                    <input type="text" class="form-control texto-mayus" id="npt_doce_sigla" maxlength="10" autocomplete="off">
+                    <label class="form-label">Sigla <span class="text-muted small">(máx. 6 caracteres)</span></label>
+                    <input type="text" class="form-control texto-mayus" id="npt_doce_sigla" maxlength="6" autocomplete="off">
+                    <div class="form-text">Sugerencia: una inicial por cada nombre y apellido, en orden. Ej: María Eugenia Rodríguez → MR. Máximo 6 caracteres, debe ser única.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Correo electrónico</label>

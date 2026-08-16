@@ -573,6 +573,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <label class="form-label">Sigla <span class="text-danger">*</span></label>
                     <input type="text" class="form-control texto-mayus" id="modu_sigla"
                            placeholder="Ej: ASO-AF1">
+                    <div class="form-text">Sugerencia: prefijo del programa + abreviatura del módulo. Ej: ASO-BIO, MD-IMD. Máximo 10 caracteres en total, debe ser única dentro del programa.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Orden (semestre/bloque) <span class="text-danger">*</span></label>

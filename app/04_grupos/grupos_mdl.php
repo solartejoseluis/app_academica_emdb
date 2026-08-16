@@ -827,7 +827,7 @@ switch ($accion) {
             $pdo = getConexion();
             $modu_id     = trim($_POST['modu_id'] ?? '');
             $modu_nombre = trim($_POST['modu_nombre'] ?? '');
-            $modu_sigla  = trim($_POST['modu_sigla'] ?? '');
+            $modu_sigla  = strtoupper(trim($_POST['modu_sigla'] ?? ''));
             $prog_id     = trim($_POST['prog_id'] ?? '');
             $modu_orden  = trim($_POST['modu_orden'] ?? '');
 
