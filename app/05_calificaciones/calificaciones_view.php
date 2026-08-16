@@ -71,9 +71,28 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
     <span class="navbar-brand fw-bold">EMDB Académica</span>
     <div class="d-flex align-items-center gap-3">
         <span class="text-light small"><?= htmlspecialchars($_SESSION['usua_email']) ?></span>
+        <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="offcanvas"
+                data-bs-target="#offcanvasAyuda" aria-controls="offcanvasAyuda">
+            ❓ Ayuda
+        </button>
         <a href="/app_academica_emdb/app/01_login/logout.php" class="btn btn-outline-light btn-sm">Cerrar Sesión</a>
     </div>
 </nav>
+
+<!-- Docente no pasa por navbar.php (roles 1/2 únicamente), pero sí necesita
+     el offcanvas de ayuda — 05_calificaciones es justo el piloto donde el
+     docente es la audiencia principal del contenido de ayuda. -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasAyuda" aria-labelledby="offcanvasAyudaLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="offcanvasAyudaLabel">Ayuda</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="contenido_ayuda_offcanvas">
+            <div class="text-muted small">Cargando...</div>
+        </div>
+    </div>
+</div>
 <?php endif; ?>
 
 <div class="container-fluid mt-4">
@@ -169,5 +188,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="calificaciones_ctrl.js"></script>
+<script>const MODULO_ACTUAL = '05_calificaciones';</script>
+<script src="../00_files/ayuda_sidebar.js"></script>
 </body>
 </html>

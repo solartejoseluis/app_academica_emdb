@@ -55,9 +55,26 @@ $role_id = (int)($_SESSION['role_id'] ?? 0);
         </ul>
         <div class="d-flex align-items-center gap-3">
             <span class="text-light small"><?= htmlspecialchars($_SESSION['usua_email']) ?></span>
+            <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="offcanvas"
+                    data-bs-target="#offcanvasAyuda" aria-controls="offcanvasAyuda">
+                ❓ Ayuda
+            </button>
             <a href="/app_academica_emdb/app/01_login/logout.php" class="btn btn-outline-light btn-sm">
                 Cerrar Sesión
             </a>
         </div>
     </div>
 </nav>
+
+<!-- ===== Offcanvas de Ayuda (compartido, contenido cargado vía ayuda_sidebar.js) ===== -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasAyuda" aria-labelledby="offcanvasAyudaLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="offcanvasAyudaLabel">Ayuda</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="contenido_ayuda_offcanvas">
+            <div class="text-muted small">Cargando...</div>
+        </div>
+    </div>
+</div>
