@@ -513,6 +513,24 @@ Ejemplo: `activar_periodo` en `04_grupos` y el parámetro `peri_id` opcional en 
 
 Ejemplo: `doc_mdl.php`, case `listar` (commit `7eba870`, 2026-08-15).
 
+### Módulo con CRUD exclusivo de Admin: replicar 08_admin, no el patrón multi-rol
+
+Cuando un módulo nuevo es exclusivo de un solo rol (ej. role_id === 1), replicar el patrón de 08_admin: guard único if ($role_id !== X) en la vista con redirect, y el mismo guard repetido en cada case del _mdl.php — no el patrón in_array($role_id, [1,2]) usado en módulos multi-rol como 04_grupos/05_calificaciones. La vista incluye el navbar compartido sin ningún condicional adicional (el navbar mismo decide qué enlaces mostrar por rol).
+
+Ejemplo: 10_ayudas (commit `f801bdb`, 2026-08-16), replicando 08_admin.
+
+### Endpoint de lectura abierto a todos los roles autenticados (sin chequeo de role_id)
+
+Cuando un dato debe ser legible por cualquier rol pero editable solo por uno (ej. contenido de ayuda: todos lo leen, solo Admin lo edita), el endpoint de lectura usa únicamente isset($_SESSION['usua_id']) como guard, sin chequeo de role_id — distinto de los patrones habituales del proyecto (in_array($role_id, [1,2]) o role_id !== 1). No aplicar este patrón por descuido: documentarlo inline en el código como decisión deliberada, no como guard olvidado.
+
+Ejemplo: listar_por_modulo en ayud_mdl.php (commit `fc9b56b`, 2026-08-16) — primer endpoint del proyecto con este patrón.
+
+### Componente offcanvas de Bootstrap para paneles deslizables compartidos
+
+Para contenido que debe aparecer como panel deslizable disponible desde cualquier página (ej. ayuda contextual), usar el componente offcanvas de Bootstrap 5.3 (ya incluido en bootstrap.bundle.min.js, sin script adicional) en vez de un modal — el offcanvas no bloquea la interacción con el resto de la página. El HTML del offcanvas puede vivir en un archivo compartido (ej. 00_files/navbar.php) e incluirse en cada vista, mientras que el JS que puebla su contenido debe ser un archivo aparte (00_files/ayuda_sidebar.js) para reutilizarse sin duplicar lógica. Cada vista que lo usa declara una variable global de contexto (ej. MODULO_ACTUAL) ANTES de incluir el script compartido, para que este sepa qué contenido cargar.
+
+Ejemplo: #offcanvasAyuda + ayuda_sidebar.js (commit `8947710`, 2026-08-16) — primer uso de offcanvas en el proyecto.
+
 ---
 
 ## Antipatrones a evitar
@@ -734,6 +752,12 @@ Corregido en `toggle_estado_docente` (commit `2dd4a55`, 2026-08-15): actualiza `
 - **Decisión:** Cada módulo que necesita poblar un select de catálogo (programas, períodos, docentes) implementa su propio endpoint listar_X, en vez de reutilizar el de otro módulo vía llamada AJAX cross-módulo. Existen implementaciones independientes de estos catálogos en 04_grupos, 03_docentes, 05_calificaciones, 02_estudiantes y 09_inscripcion_publica.
 - **Nota:** La duplicación (una query SELECT simple, sin lógica de negocio) se prefiere sobre el acoplamiento entre módulos — una llamada cross-módulo dependería de la estructura relativa de carpetas, y rompería silenciosamente si algún módulo se reorganiza. Aplicado explícitamente en 03_docentes (commit 7eba870, 2026-08-15) y en 05_calificaciones (commit 6c496e4, 2026-08-16), ambos con la misma justificación.
 - **Estado:** Activa. Si se detecta que 4+ módulos ya duplican el mismo catálogo con la misma query exacta, reevaluar si conviene extraer un endpoint central (ej. un módulo 00_catalogos) — no antes.
+
+### Vistas con navbar fallback propio (no navbar.php compartido) necesitan sus propios componentes globales duplicados
+
+- **Decisión:** navbar.php solo se incluye para roles 1/2 (Admin/Coordinador). Módulos multi-rol donde un rol adicional (ej. Docente en 05_calificaciones) no pasa por navbar.php tienen su propio `<nav>` fallback definido directamente en su _view.php. Cualquier componente global que se agregue a navbar.php (ej. el offcanvas de ayuda) y que también deba estar disponible para esos roles con navbar fallback debe duplicarse explícitamente en esa rama — no asumir que agregarlo solo a navbar.php cubre a todos los roles del sistema.
+- **Nota:** Ejemplo: el offcanvas de ayuda se duplicó en la rama Docente de calificaciones_view.php (commit `8947710`, 2026-08-16), ya que Docente es la audiencia principal de ese módulo piloto y no pasa por navbar.php.
+- **Estado:** Activa.
 
 ---
 

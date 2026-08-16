@@ -4,6 +4,55 @@
 
 ---
 
+## [fc9b56b, f801bdb, 8947710] — 2026-08-16 — feat: sidebar de ayuda con CRUD (10_ayudas) — 3 etapas
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/10_ayudas/ayud_mdl.php
+- app/10_ayudas/ayud_view.php
+- app/10_ayudas/ayud_ctrl.js
+- app/00_files/navbar.php
+- app/00_files/ayuda_sidebar.js
+- app/04_grupos/grupos_view.php
+- app/05_calificaciones/calificaciones_view.php
+
+### Cambios/Vulnerabilidad corregida
+- No existía ningún mecanismo para mostrar contenido de ayuda/instrucción
+  contextual dentro de la aplicación — los usuarios dependían enteramente
+  de soporte externo para dudas sobre el manejo de cada sección.
+
+### Decisiones
+- Etapa 1 (esquema + backend): nueva tabla ayudas, con ayud_seccion como
+  identificador de carpeta de módulo de la app (ej. "04_grupos") —
+  deliberadamente distinto de la tabla modulos (asignaturas académicas),
+  para evitar colisión de terminología. Múltiples entradas por sección
+  (título + contenido cada una), con ayud_orden para apilarlas. Backend
+  con guard role_id !== 1 (solo Admin) para todo el CRUD, excepto
+  listar_por_modulo — primer endpoint del proyecto sin chequeo de rol
+  (solo sesión activa), ya que cualquier rol autenticado debe poder leer
+  la ayuda de su sección.
+- Etapa 2 (UI de administración): módulo nuevo 10_ayudas, exclusivo de
+  Admin, replicando el patrón CRUD estándar del proyecto (mismo criterio
+  de acceso ya usado en 08_admin).
+- Etapa 3 (offcanvas + integración piloto): primer uso del componente
+  offcanvas de Bootstrap 5.3 en el proyecto. Botón "Ayuda" visible para
+  todos los roles, contenido cargado dinámicamente según una variable
+  MODULO_ACTUAL declarada por cada vista. Piloto en 2 módulos: 04_grupos
+  y 05_calificaciones. Ajuste no previsto originalmente:
+  calificaciones_view.php tiene un navbar fallback separado para Docente
+  (navbar.php solo cubre roles 1/2) — se duplicó el botón/offcanvas en esa
+  rama para no dejar sin acceso a la audiencia principal del piloto.
+- Contenido de ayuda renderizado con escape de HTML en el frontend,
+  previniendo XSS desde el textarea libre del CRUD.
+
+Probado end-to-end en las 3 etapas: backend vía curl con sesiones
+separadas (admin/docente reales, incluyendo validación cruzada de rol en
+listar_por_modulo), UI de administración completa (crear/editar/cambiar
+estado/eliminar), e integración de offcanvas en ambos módulos piloto
+(incluyendo el caso especial de Docente en calificaciones).
+
+---
+
 ## [6c496e4] — 2026-08-16 — feat: filtros de profesor/programa/período en calificaciones (Coordinador/Admin)
 
 ### Archivos modificados
