@@ -4,6 +4,45 @@
 
 ---
 
+## [3d59f06] — 2026-08-16 — fix: refresco de matriculados al editar + feat: cambiar clave de estudiante matriculado
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+- app/02_estudiantes/est_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- Al editar un estudiante ya matriculado y guardar, el listado de
+  matriculados no se actualizaba automáticamente — solo se recargaba
+  tablaAspirantes, nunca tablaMatriculados, a diferencia de los demás
+  handlers del módulo (subir_foto, matricular, guardar_ficha) que sí
+  recargaban ambas tablas.
+- No existía forma de cambiar la clave de acceso de un estudiante ya
+  matriculado — todo el manejo de clave vivía exclusivamente dentro del
+  flujo de matrícula inicial; una vez creado el acceso, no había ningún
+  mecanismo para resetearla.
+
+### Decisiones
+- Nuevo bloque opcional "Cambiar clave de acceso" dentro del mismo modal
+  de edición de estudiante, visible solo cuando el estudiante ya tiene
+  acceso creado — mismas 2 opciones que al matricular (automática vía
+  generarClaveAuto(), o manual).
+- El backend re-verifica server-side si el estudiante tiene usua_id
+  (SELECT propio) antes de aplicar cualquier cambio de clave — no confía
+  en el hidden field del cliente para esta decisión.
+- Cambio de clave dentro de la misma transacción que ya actualiza los
+  demás datos del estudiante; si no se marca ningún radio, no se toca
+  usua_passwordhash en absoluto.
+- Mismo patrón ya validado en admin_mdl.php (case editar): "vacío = no
+  cambiar".
+
+Probado: refresco automático de matriculados, bloque visible solo para
+estudiantes con acceso (oculto para aspirantes), clave automática y
+manual, validación de clave manual vacía, edición sin tocar la clave,
+regresión del flujo de creación de aspirante.
+
+---
+
 ## [f7f0ae3] — 2026-08-16 — feat: expande el sidebar de ayuda a los 5 módulos restantes
 
 ### Archivos modificados

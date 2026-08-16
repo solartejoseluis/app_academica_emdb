@@ -531,6 +531,12 @@ Para contenido que debe aparecer como panel deslizable disponible desde cualquie
 
 Ejemplo: #offcanvasAyuda + ayuda_sidebar.js (commit `8947710`, 2026-08-16) — primer uso de offcanvas en el proyecto.
 
+### Nunca confiar en el estado del cliente para decisiones que afectan seguridad/acceso
+
+Cuando el frontend necesita saber si una entidad tiene acceso de login (ej. si un estudiante ya tiene usua_id) para decidir si mostrar una funcionalidad sensible (ej. cambiar clave), el backend debe re-verificar esa condición con una consulta propia — nunca confiar en un hidden field o cualquier dato enviado por el cliente para tomar la decisión real. El frontend puede usar esos valores solo para decidir QUÉ MOSTRAR visualmente; la decisión de QUÉ EJECUTAR debe validarse siempre del lado del servidor, con su propia fuente de verdad.
+
+Ejemplo: en est_mdl.php (case guardar, commit `3d59f06`, 2026-08-16), el cambio de clave de un estudiante matriculado se permite solo tras un SELECT usua_id FROM estudiantes WHERE estu_id = ? ejecutado en el servidor — el hidden field #npt_estu_usua_id_actual del frontend solo se usa para decidir si mostrar el bloque de UI, nunca para autorizar el cambio en sí.
+
 ---
 
 ## Antipatrones a evitar
