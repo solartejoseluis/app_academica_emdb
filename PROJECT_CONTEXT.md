@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-16
-> Versión: 38 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias + fila de contexto del Excel exportado dividida en 2 filas + período activo (peri_activo) y conteo de grupos por docente + eliminar/desactivar docente y corrección de doce_activo desincronizado + texto de ayuda para siglas y corrección de maxlength/mayúsculas + filtros de profesor/programa/período en calificaciones + sidebar de ayuda con CRUD (10_ayudas)
+> Versión: 39 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias + fila de contexto del Excel exportado dividida en 2 filas + período activo (peri_activo) y conteo de grupos por docente + eliminar/desactivar docente y corrección de doce_activo desincronizado + texto de ayuda para siglas y corrección de maxlength/mayúsculas + filtros de profesor/programa/período en calificaciones + sidebar de ayuda con CRUD (10_ayudas) + sidebar de ayuda expandido a todos los módulos
 
 ---
 
@@ -391,6 +391,7 @@ necesidad de una cuenta completa.
 | `b489fa5` | feat: texto de ayuda para siglas (docente/módulo) + corrige maxlength de doce_sigla y mayúsculas de modu_sigla | 2026-08-16 |
 | `6c496e4` | feat: filtros de profesor/programa/período en calificaciones, exclusivos Coordinador/Admin (05_calificaciones) | 2026-08-16 |
 | `fc9b56b, f801bdb, 8947710` | feat: sidebar de ayuda con CRUD (10_ayudas) — 3 etapas: esquema+backend, UI de administración, offcanvas + integración piloto (04_grupos, 05_calificaciones) | 2026-08-16 |
+| `f7f0ae3` | feat: expande el sidebar de ayuda a los 5 módulos restantes (02_estudiantes, 03_docentes, 06_reportes, 07_coordinador, 08_admin) | 2026-08-16 |
 
 ---
 

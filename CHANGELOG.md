@@ -4,6 +4,41 @@
 
 ---
 
+## [f7f0ae3] — 2026-08-16 — feat: expande el sidebar de ayuda a los 5 módulos restantes
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/03_docentes/doc_view.php
+- app/06_reportes/reportes_view.php
+- app/07_coordinador/coordinador_view.php
+- app/08_admin/admin_view.php
+
+### Cambios/Vulnerabilidad corregida
+- El sidebar de ayuda (implementado como piloto en 04_grupos y
+  05_calificaciones, commits fc9b56b/f801bdb/8947710) no estaba disponible
+  en el resto de módulos funcionales del proyecto.
+
+### Decisiones
+- 4 módulos (02_estudiantes, 03_docentes, 07_coordinador, 08_admin) solo
+  requirieron declarar MODULO_ACTUAL + incluir ayuda_sidebar.js — el
+  offcanvas ya llegaba a todos sus roles vía navbar.php.
+- 06_reportes fue el único caso especial: el guard permite role_id 4
+  (Estudiante), que usa su propio navbar fallback en vez de navbar.php —
+  se duplicó el botón + offcanvas en esa rama, mismo patrón ya establecido
+  con Docente en calificaciones_view.php.
+- Todos los módulos funcionales ya tienen el sidebar disponible; solo
+  04_grupos y 05_calificaciones tienen contenido real cargado en BD hasta
+  el momento — el resto muestra "sin ayuda disponible" hasta que se cargue
+  contenido.
+
+Probado en navegador para 4 módulos simples, y con una cuenta de
+estudiante de prueba real (creada, matriculada, logueada, verificada por
+HTML crudo, y eliminada al final directamente en BD por el orden de FKs,
+ya que el proyecto no tiene endpoint de eliminación para estudiantes
+matriculados por diseño) para confirmar el caso especial de 06_reportes.
+
+---
+
 ## [fc9b56b, f801bdb, 8947710] — 2026-08-16 — feat: sidebar de ayuda con CRUD (10_ayudas) — 3 etapas
 
 ### Archivos modificados
