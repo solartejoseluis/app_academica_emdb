@@ -123,10 +123,20 @@ $(document).ready(function () {
                 { data: 'peri_semestre' },
                 { data: 'fechainicio', render: v => v || '—' },
                 { data: 'fechafin', render: v => v || '—' },
-                { data: 'peri_id', render: id =>
-                    `<button class="btn btn-sm btn-outline-primary"
-                        onclick="abrirEditarPeriodo(${id})">Editar</button>`
-                }
+                { data: 'peri_activo', render: v =>
+                    v == 1
+                        ? '<span class="badge bg-success">Activo</span>'
+                        : '<span class="badge bg-secondary">Inactivo</span>'
+                },
+                { data: null, render: (d, t, row) => {
+                    let botones = `<button class="btn btn-sm btn-outline-primary me-1"
+                        onclick="abrirEditarPeriodo(${row.peri_id})">Editar</button>`;
+                    if (row.peri_activo == 0) {
+                        botones += `<button class="btn btn-sm btn-outline-success"
+                            onclick="activarPeriodo(${row.peri_id})">Marcar como activo</button>`;
+                    }
+                    return botones;
+                }}
             ],
             language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
             responsive: true
@@ -973,6 +983,22 @@ function toggleEstadoCohorte(coho_id, nuevoEstado) {
         success: function (r) {
             if (r.status === 'ok') {
                 $('#tbl_cohortes').DataTable().ajax.reload(null, false);
+            } else {
+                alert('Error: ' + r.message);
+            }
+        }
+    });
+}
+
+function activarPeriodo(peri_id) {
+    $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=activar_periodo',
+        data: { peri_id: peri_id },
+        dataType: 'json',
+        success: function (r) {
+            if (r.status === 'ok') {
+                $('#tbl_periodos').DataTable().ajax.reload(null, false);
             } else {
                 alert('Error: ' + r.message);
             }

@@ -136,6 +136,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <th>Semestre</th>
                         <th>Fecha Inicio</th>
                         <th>Fecha Fin</th>
+                        <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>

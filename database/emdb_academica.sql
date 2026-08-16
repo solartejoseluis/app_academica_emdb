@@ -70,6 +70,7 @@ CREATE TABLE periodos (
   peri_semestre  TINYINT UNSIGNED  NOT NULL CHECK (peri_semestre IN (1, 2)),
   fechainicio    DATE              DEFAULT NULL,
   fechafin       DATE              DEFAULT NULL,
+  peri_activo    TINYINT(1)        NOT NULL DEFAULT 0,
   PRIMARY KEY (peri_id),
   UNIQUE KEY uq_peri_codigo (peri_codigo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

@@ -18,17 +18,53 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
+
+            $peri_id = (int)($_POST['peri_id'] ?? 0);
+            if ($peri_id === 0) {
+                $stmtPeri = $pdo->prepare("SELECT peri_id FROM periodos WHERE peri_activo = 1 LIMIT 1");
+                $stmtPeri->execute();
+                $peri_id = (int)($stmtPeri->fetchColumn() ?: 0);
+            }
+
             $sql = "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla,
-                           u.usua_email, u.usua_activo
+                           u.usua_email, u.usua_activo,
+                           (SELECT COUNT(*) FROM gruposmodulos gm
+                            INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                            WHERE gm.doce_id = d.doce_id AND gs.peri_id = ? AND gm.grmo_activo = 1) AS total_grupos,
+                           (SELECT peri_codigo FROM periodos WHERE peri_id = ?) AS peri_codigo
                     FROM docentes d
                     INNER JOIN usuarios u ON d.usua_id = u.usua_id
                     ORDER BY d.doce_apellidos ASC";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute();
+            $stmt->execute([$peri_id, $peri_id]);
             $rows = $stmt->fetchAll();
             echo json_encode(['status' => 'ok', 'data' => $rows]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al listar docentes']);
+        }
+        break;
+
+    case 'listar_periodos':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT peri_id, peri_codigo, peri_activo
+                FROM periodos
+                ORDER BY peri_anio DESC, peri_semestre DESC
+            ");
+            $stmt->execute();
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al listar períodos']);
         }
         break;
 

@@ -566,7 +566,7 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
-                SELECT peri_id, peri_codigo, peri_anio, peri_semestre, fechainicio, fechafin
+                SELECT peri_id, peri_codigo, peri_anio, peri_semestre, fechainicio, fechafin, peri_activo
                 FROM periodos
                 ORDER BY peri_id DESC
             ");
@@ -664,6 +664,40 @@ switch ($accion) {
                 ? ['status' => 'ok', 'data' => $row]
                 : ['status' => 'error', 'message' => 'No encontrado']);
         } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'activar_periodo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $peri_id = (int)($_POST['peri_id'] ?? 0);
+
+        if ($peri_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de período inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+            $pdo->beginTransaction();
+
+            $pdo->exec("UPDATE periodos SET peri_activo = 0");
+
+            $stmt = $pdo->prepare("UPDATE periodos SET peri_activo = 1 WHERE peri_id = ?");
+            $stmt->execute([$peri_id]);
+
+            $pdo->commit();
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            $pdo->rollBack();
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
         break;

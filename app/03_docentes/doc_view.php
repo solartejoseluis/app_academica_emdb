@@ -38,6 +38,11 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
         <button class="btn btn-primary btn-sm" id="btn_nuevo_docente">+ Nuevo Docente</button>
     </div>
 
+    <div class="mb-3" style="max-width: 260px;">
+        <label class="form-label">Período consultado</label>
+        <select class="form-select form-select-sm" id="slct_peri_docentes"></select>
+    </div>
+
     <div class="card border-0 shadow-sm">
         <div class="card-body">
             <table id="tbl_docentes" class="table table-hover table-bordered w-100">
@@ -49,6 +54,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <th>Sigla</th>
                         <th>Correo</th>
                         <th>Estado</th>
+                        <th>Grupos (período)</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>

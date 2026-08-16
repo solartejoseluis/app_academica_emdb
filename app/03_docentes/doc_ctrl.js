@@ -2,7 +2,33 @@ $(document).ready(function () {
 
     let tablaDocentes;
 
-    cargarTabla();
+    cargarPeriodos().then(function () {
+        cargarTabla();
+    });
+
+    $('#slct_peri_docentes').on('change', function () {
+        tablaDocentes.ajax.reload(null, false);
+    });
+
+    function cargarPeriodos() {
+        return $.ajax({
+            type: 'POST',
+            url: 'doc_mdl.php?accion=listar_periodos',
+            dataType: 'json'
+        }).then(function (r) {
+            if (r.status !== 'ok') return;
+            let opts = '';
+            let activoId = '';
+            r.data.forEach(function (p) {
+                opts += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                if (p.peri_activo == 1) activoId = p.peri_id;
+            });
+            $('#slct_peri_docentes').html(opts);
+            if (activoId !== '') {
+                $('#slct_peri_docentes').val(activoId);
+            }
+        });
+    }
 
     $('#btn_nuevo_docente').click(function () {
         limpiarFormulario();
@@ -60,6 +86,9 @@ $(document).ready(function () {
             ajax: {
                 url: 'doc_mdl.php?accion=listar',
                 type: 'POST',
+                data: function (d) {
+                    d.peri_id = $('#slct_peri_docentes').val();
+                },
                 dataSrc: 'data'
             },
             destroy: true,
@@ -84,6 +113,13 @@ $(document).ready(function () {
                         return data == 1
                             ? '<span class="badge bg-success">Activo</span>'
                             : '<span class="badge bg-secondary">Inactivo</span>';
+                    }
+                },
+                {
+                    data: 'total_grupos',
+                    width: '110px',
+                    render: function (data, type, row) {
+                        return `<span class="badge bg-info text-dark" title="Período: ${row.peri_codigo}">${data} grupos</span>`;
                     }
                 },
                 {
