@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-08-15
-> Versión: 35 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias + fila de contexto del Excel exportado dividida en 2 filas + período activo (peri_activo) y conteo de grupos por docente + eliminar/desactivar docente y corrección de doce_activo desincronizado
+> Última actualización: 2026-08-16
+> Versión: 36 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias + fila de contexto del Excel exportado dividida en 2 filas + período activo (peri_activo) y conteo de grupos por docente + eliminar/desactivar docente y corrección de doce_activo desincronizado + texto de ayuda para siglas y corrección de maxlength/mayúsculas
 
 ---
 
@@ -388,6 +388,7 @@ necesidad de una cuenta completa.
 | `7fe1151` | feat: divide la fila de contexto del Excel exportado en 2 filas reales, vía customize del botón excelHtml5 (06_reportes) | 2026-08-15 |
 | `7eba870` | feat: período activo (peri_activo, uno solo a la vez) + conteo de grupos por docente en período seleccionado (04_grupos + 03_docentes) | 2026-08-15 |
 | `2dd4a55` | feat: eliminar/desactivar docente + corrige desincronización de doce_activo/usua_activo (KPI de 07_coordinador) | 2026-08-15 |
+| `b489fa5` | feat: texto de ayuda para siglas (docente/módulo) + corrige maxlength de doce_sigla y mayúsculas de modu_sigla | 2026-08-16 |
 
 ---
 

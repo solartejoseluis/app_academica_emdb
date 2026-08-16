@@ -4,6 +4,38 @@
 
 ---
 
+## [b489fa5] — 2026-08-16 — feat: texto de ayuda para siglas + corrige maxlength y mayúsculas
+
+### Archivos modificados
+- app/03_docentes/doc_view.php
+- app/04_grupos/grupos_view.php
+- app/04_grupos/grupos_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- Los campos de sigla (docente y módulo) no tenían ninguna indicación de
+  cómo formarlas correctamente, dejando al usuario sin referencia sobre la
+  convención esperada.
+- npt_doce_sigla tenía maxlength=10 en el frontend, mientras que la
+  columna real doce_sigla es VARCHAR(6) — un valor de 7-10 caracteres
+  habría fallado al guardar (error no capturado explícitamente en el
+  frontend, solo al hacer el INSERT/UPDATE).
+- modu_sigla no se normalizaba a mayúsculas en el backend (a diferencia de
+  doce_sigla, que sí lo hacía) — un valor pegado en minúscula quedaba
+  guardado tal cual pese a verse en mayúscula por CSS (texto-mayus).
+
+### Decisiones
+- Texto de ayuda redactado a partir de la convención real ya usada en los
+  datos existentes (confirmada por diagnóstico, no asumida): iniciales de
+  nombre+apellido para docentes (ej. María Eugenia Rodríguez → MR),
+  prefijo de programa + abreviatura para módulos (ej. ASO-BIO, MD-IMD).
+  Redactado como sugerencia, no como regla — ninguno de los dos campos
+  tiene validación de formato real en el backend, solo de unicidad.
+- maxlength corregido a 6 en npt_doce_sigla.
+- Agregado strtoupper() a modu_sigla en grupos_mdl.php, mismo patrón ya
+  usado para doce_sigla.
+
+---
+
 ## [2dd4a55] — 2026-08-15 — feat: eliminar/desactivar docente + corrige desincronización de doce_activo
 
 ### Archivos modificados
