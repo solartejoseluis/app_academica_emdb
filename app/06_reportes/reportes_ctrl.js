@@ -112,7 +112,7 @@ $(document).ready(function () {
                     tablaReporte = null;
                 }
 
-                const contextoTexto = construirContextoTexto(r.grupo);
+                const contexto = construirContextoTexto(r.grupo);
                 mostrarInfoReporteGrupo(r.grupo);
 
                 const tbody = $('#tbody_reporte');
@@ -134,7 +134,36 @@ $(document).ready(function () {
                     buttons: [
                         {
                             extend: 'excel',
-                            title: contextoTexto
+                            customize: function (xlsx) {
+                                const sheet = xlsx.xl.worksheets['sheet1.xml'];
+
+                                const fila1 = '<row r="1"><c r="A1" t="inlineStr"><is><t>' +
+                                    escaparXml(contexto.linea1) + '</t></is></c></row>';
+                                const fila2 = '<row r="2"><c r="A2" t="inlineStr"><is><t>' +
+                                    escaparXml(contexto.linea2) + '</t></is></c></row>';
+
+                                $('row', sheet).eq(0).before(fila1 + fila2);
+
+                                // Reindexar TODAS las filas (las 2 nuevas + las que ya
+                                // existían) — cada <row r="N"> y cada <c r="colN"> deben
+                                // quedar consistentes tras el corrimiento de 2 posiciones.
+                                $('row', sheet).each(function (i) {
+                                    const nuevaFila = i + 1;
+                                    $(this).attr('r', nuevaFila);
+                                    $('c', this).each(function () {
+                                        const col = $(this).attr('r').replace(/[0-9]/g, '');
+                                        $(this).attr('r', col + nuevaFila);
+                                    });
+                                });
+
+                                // Actualizar el rango declarado de la hoja (dimension)
+                                // para reflejar las 2 filas nuevas al inicio.
+                                const filas = $('row', sheet);
+                                const ultimaCelda = $('c', filas.eq(filas.length - 1)).last().attr('r');
+                                if (ultimaCelda) {
+                                    $('dimension', sheet).attr('ref', 'A1:' + ultimaCelda);
+                                }
+                            }
                         },
                         {
                             text: '📄 Descargar PDF',
@@ -158,13 +187,20 @@ $(document).ready(function () {
     }
 
     function construirContextoTexto(g) {
-        if (!g) return '';
-        return 'Módulo: ' + g.modu_nombre + ' (' + g.modu_sigla + ') — ' +
-               'Grupo: ' + g.grse_codigo + ' — ' +
-               'Docente: ' + g.doce_nombres + ' ' + g.doce_apellidos + ' — ' +
-               'Programa: ' + g.prog_nombre + ' — ' +
-               'Período: ' + g.peri_codigo + ' — ' +
-               'Jornada: ' + (g.grse_jornada || '—');
+        if (!g) return { linea1: '', linea2: '' };
+        return {
+            linea1: 'Módulo: ' + g.modu_nombre + ' (' + g.modu_sigla + ') — Grupo: ' + g.grse_codigo + ' — Docente: ' + g.doce_nombres + ' ' + g.doce_apellidos,
+            linea2: 'Programa: ' + g.prog_nombre + ' — Período: ' + g.peri_codigo + ' — Jornada: ' + (g.grse_jornada || '—')
+        };
+    }
+
+    // Escapa & < > para insertarlos como texto plano dentro de un <t> XML
+    // del sheet1.xml exportado (nombres de docente/módulo son texto libre).
+    function escaparXml(texto) {
+        return String(texto)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     function mostrarInfoReporteGrupo(g) {
