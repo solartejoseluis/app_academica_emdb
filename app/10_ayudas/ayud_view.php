@@ -64,8 +64,13 @@ if ($_SESSION['role_id'] !== 1) {
                     <select class="form-select" id="slct_ayud_seccion">
                         <option value="">-- Seleccionar --</option>
                         <!-- Agregar aquí nuevas secciones cuando se expanda a más módulos -->
+                        <option value="02_estudiantes">02_estudiantes — Estudiantes</option>
+                        <option value="03_docentes">03_docentes — Docentes</option>
                         <option value="04_grupos">04_grupos — Grupos</option>
                         <option value="05_calificaciones">05_calificaciones — Calificaciones</option>
+                        <option value="06_reportes">06_reportes — Reportes</option>
+                        <option value="07_coordinador">07_coordinador — Dashboard</option>
+                        <option value="08_admin">08_admin — Usuarios</option>
                     </select>
                 </div>
                 <div class="mb-3">
