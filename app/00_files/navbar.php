@@ -46,6 +46,11 @@ $role_id = (int)($_SESSION['role_id'] ?? 0);
                     ⚙️ Usuarios
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/app_academica_emdb/app/10_ayudas/ayud_view.php">
+                    ❓ Ayudas
+                </a>
+            </li>
             <?php endif; ?>
         </ul>
         <div class="d-flex align-items-center gap-3">
