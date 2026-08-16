@@ -4,6 +4,33 @@
 
 ---
 
+## [6c496e4] — 2026-08-16 — feat: filtros de profesor/programa/período en calificaciones (Coordinador/Admin)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php
+- app/05_calificaciones/calificaciones_view.php
+- app/05_calificaciones/calificaciones_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- El listado de grupos en 05_calificaciones no tenía forma de filtrar por
+  profesor, programa ni período, obligando a Coordinador/Admin a revisar
+  el listado completo sin ninguna forma de acotarlo.
+
+### Decisiones
+- Filtros exclusivos de Coordinador/Admin (envueltos en el mismo
+  condicional PHP server-side ya usado en el archivo para el navbar) — la
+  rama Docente no se modificó.
+- listar_grupos construye el WHERE dinámicamente sobre columnas ya
+  disponibles en los JOIN existentes, sin necesidad de ningún JOIN nuevo.
+- Se duplicaron 3 catálogos (programas, períodos, docentes) dentro de
+  calificaciones_mdl.php en vez de reutilizar los equivalentes de
+  04_grupos vía llamada cross-módulo — misma convención ya aplicada en el
+  commit 7eba870 (03_docentes replicó su propio listar_periodos por el
+  mismo motivo: módulos independientes, evitar acoplamiento frágil entre
+  carpetas).
+
+---
+
 ## [b489fa5] — 2026-08-16 — feat: texto de ayuda para siglas + corrige maxlength y mayúsculas
 
 ### Archivos modificados

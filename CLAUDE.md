@@ -729,6 +729,12 @@ Corregido en `toggle_estado_docente` (commit `2dd4a55`, 2026-08-15): actualiza `
 - **Nota:** Si en el futuro se necesita mostrar o filtrar por jornada, la fuente de verdad es `grse_jornada` — `cohortes` ya no tiene ningún campo relacionado (columna `coho_jornada` eliminada en el commit `5bef1ef`, 2026-08-15).
 - **Estado:** Activa.
 
+### Catálogos compartidos (programas, períodos, docentes) se duplican por módulo, no se centralizan
+
+- **Decisión:** Cada módulo que necesita poblar un select de catálogo (programas, períodos, docentes) implementa su propio endpoint listar_X, en vez de reutilizar el de otro módulo vía llamada AJAX cross-módulo. Existen implementaciones independientes de estos catálogos en 04_grupos, 03_docentes, 05_calificaciones, 02_estudiantes y 09_inscripcion_publica.
+- **Nota:** La duplicación (una query SELECT simple, sin lógica de negocio) se prefiere sobre el acoplamiento entre módulos — una llamada cross-módulo dependería de la estructura relativa de carpetas, y rompería silenciosamente si algún módulo se reorganiza. Aplicado explícitamente en 03_docentes (commit 7eba870, 2026-08-15) y en 05_calificaciones (commit 6c496e4, 2026-08-16), ambos con la misma justificación.
+- **Estado:** Activa. Si se detecta que 4+ módulos ya duplican el mismo catálogo con la misma query exacta, reevaluar si conviene extraer un endpoint central (ej. un módulo 00_catalogos) — no antes.
+
 ---
 
 ## Frontend stack
