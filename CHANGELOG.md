@@ -4,6 +4,50 @@
 
 ---
 
+## [7eba870] — 2026-08-15 — feat: período activo (peri_activo) + conteo de grupos por docente
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/04_grupos/grupos_view.php
+- app/04_grupos/grupos_ctrl.js
+- app/04_grupos/grupos_mdl.php
+- app/03_docentes/doc_view.php
+- app/03_docentes/doc_ctrl.js
+- app/03_docentes/doc_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- La tabla periodos no tenía forma de marcar cuál es el período académico
+  vigente, lo que impedía calcular indicadores dependientes de "el período
+  actual" (ej. carga docente).
+- El listado de docentes no mostraba cuántos grupos tenía asignados cada
+  uno, obligando a revisarlo módulo por módulo en 04_grupos.
+
+### Decisiones
+- Nueva columna peri_activo (uno solo activo a la vez, garantizado por
+  transacción de aplicación, no por constraint de BD — ninguna columna de
+  este tipo en el proyecto tiene esa garantía a nivel de esquema).
+  Migración inicial marcó peri_id=4 (2027-1, el más reciente por
+  peri_anio/peri_semestre) como activo por defecto; durante las pruebas se
+  reasignó manualmente a 2026-2 (el período con datos reales de
+  gruposmodulos) usando el nuevo botón 'Marcar como activo' — 2026-2 quedó
+  como el período activo vigente al cierre de esta tarea.
+- Nuevo case activar_periodo en grupos_mdl.php: transacción PDO que
+  desactiva todos y activa solo el elegido.
+- Columna Estado + botón "Marcar como activo" en tbl_periodos, mismo
+  patrón visual que cohortes/módulos.
+- doc_mdl.php (listar) ahora acepta un peri_id opcional; si no viene,
+  resuelve el período activo con una query separada. El conteo de grupos
+  usa subconsulta correlacionada (gruposmodulos JOIN gruposemestres,
+  filtrando grmo_activo=1), mismo patrón que evitó fan-out en cohortes.
+- Se usó bind posicional (?) en vez de placeholder nombrado reutilizado
+  (:peri_id dos veces), porque PDO::ATTR_EMULATE_PREPARES=false en
+  00_connect/pdo.php hace que reutilizar un placeholder nombrado sea poco
+  confiable con prepares nativos de MySQL.
+- 03_docentes replica su propio case listar_periodos en vez de reutilizar
+  el de 04_grupos — son módulos independientes sin JS/estado compartido.
+
+---
+
 ## [7fe1151] — 2026-08-15 — feat: divide la fila de contexto del Excel exportado en 2 filas reales
 
 ### Archivos modificados

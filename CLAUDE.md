@@ -499,6 +499,20 @@ Para insertar contenido estructurado (múltiples filas, formato específico) ant
 
 Ejemplo: `reportes_ctrl.js` (commit `7fe1151`, 2026-08-15) — la fila de contexto (Módulo/Grupo/Docente/Programa/Período/Jornada) se dividió en 2 filas reales de la hoja usando este patrón, con los encabezados de columna arrancando en la fila 3.
 
+### Flag de "único activo" (peri_activo, coho_activa, etc.) garantizado por transacción de aplicación, no por constraint de BD
+
+Ningún flag de este tipo en el proyecto (peri_activo, coho_activa, modu_activo, usua_activo, grmo_activo) tiene una constraint de BD que garantice invariantes (ej. "solo uno activo a la vez" en periodos). Esa garantía vive exclusivamente en la capa de aplicación. Patrón para "solo uno activo a la vez": dentro de una transacción PDO (beginTransaction/commit/rollBack), primero UPDATE tabla SET flag = 0 (todos), luego UPDATE tabla SET flag = 1 WHERE id = ? (el elegido).
+
+Patrón relacionado para "resolver el activo por defecto": un endpoint que depende de "el X actual" (ej. listar_docentes necesita saber el período actual para contar grupos) debe aceptar el id como parámetro opcional y, si no viene, resolverlo con una query separada (SELECT id FROM tabla WHERE flag_activo = 1 LIMIT 1) antes del SELECT principal — no asumir que siempre habrá un valor "activo" garantizado por esquema.
+
+Ejemplo: `activar_periodo` en `04_grupos` y el parámetro `peri_id` opcional en `listar` (`03_docentes`), commit `7eba870` (2026-08-15).
+
+### Preferir bind posicional (?) sobre placeholder nombrado reutilizado, por EMULATE_PREPARES=false
+
+`app/00_connect/pdo.php` configura `PDO::ATTR_EMULATE_PREPARES => false` (prepares nativos de MySQL, no emulados por PHP). Reutilizar el mismo placeholder nombrado (ej. `:peri_id`) dos veces en una misma query es un caso poco confiable con prepares nativos. Cuando una query necesita el mismo valor en dos puntos distintos del SQL (ej. una subconsulta de conteo y otra de código legible), usar placeholders posicionales (`?`) y pasar el valor repetido en el array de `execute([$valor, $valor])` — consistente además con el estilo ya usado en la mayoría de queries del proyecto.
+
+Ejemplo: `doc_mdl.php`, case `listar` (commit `7eba870`, 2026-08-15).
+
 ---
 
 ## Antipatrones a evitar
