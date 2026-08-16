@@ -1,3 +1,8 @@
+// doce_id pendiente de confirmación de borrado — accesible tanto desde el
+// scope de $(document).ready como desde las funciones globales de abajo,
+// que se invocan vía onclick inline desde el HTML renderizado por DataTables.
+let docenteIdPendienteEliminar = null;
+
 $(document).ready(function () {
 
     let tablaDocentes;
@@ -81,6 +86,25 @@ $(document).ready(function () {
         });
     });
 
+    $('#btn_confirmar_eliminar_docente').click(function () {
+        if (!docenteIdPendienteEliminar) return;
+        $.ajax({
+            type: 'POST',
+            url: 'doc_mdl.php?accion=eliminar_docente',
+            data: { doce_id: docenteIdPendienteEliminar },
+            dataType: 'json',
+            success: function (response) {
+                bootstrap.Modal.getInstance(document.getElementById('mdl_confirmar_eliminar_docente')).hide();
+                if (response.status === 'ok') {
+                    tablaDocentes.ajax.reload(null, false);
+                } else {
+                    alert(response.message);
+                }
+                docenteIdPendienteEliminar = null;
+            }
+        });
+    });
+
     function cargarTabla() {
         tablaDocentes = $('#tbl_docentes').DataTable({
             ajax: {
@@ -125,10 +149,22 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
-                    width: '80px',
+                    width: '190px',
                     render: function (data, type, row) {
-                        return `<button class="btn btn-sm btn-outline-primary"
+                        let botones = `<button class="btn btn-sm btn-outline-primary me-1"
                                         onclick="abrirEditar(${row.doce_id})">Editar</button>`;
+                        const nombreCompleto = (row.doce_nombres + ' ' + row.doce_apellidos).replace(/'/g, "\\'");
+                        if (row.doce_activo == 1 && row.total_grupos_historico == 0) {
+                            botones += `<button class="btn btn-sm btn-outline-danger"
+                                onclick="confirmarEliminarDocente(${row.doce_id}, '${nombreCompleto}')">Eliminar</button>`;
+                        } else if (row.doce_activo == 1 && row.total_grupos_historico > 0) {
+                            botones += `<button class="btn btn-sm btn-outline-warning"
+                                onclick="toggleEstadoDocente(${row.doce_id}, 0)">Desactivar</button>`;
+                        } else {
+                            botones += `<button class="btn btn-sm btn-outline-success"
+                                onclick="toggleEstadoDocente(${row.doce_id}, 1)">Activar</button>`;
+                        }
+                        return botones;
                     }
                 }
             ]
@@ -193,6 +229,28 @@ function abrirEditar(doce_id) {
                 new bootstrap.Modal(document.getElementById('mdl_docente')).show();
             } else {
                 alert('No se pudo cargar el docente.');
+            }
+        }
+    });
+}
+
+function confirmarEliminarDocente(doce_id, nombre) {
+    docenteIdPendienteEliminar = doce_id;
+    $('#spn_nombre_eliminar_docente').text(nombre);
+    new bootstrap.Modal('#mdl_confirmar_eliminar_docente').show();
+}
+
+function toggleEstadoDocente(doce_id, nuevoEstado) {
+    $.ajax({
+        type: 'POST',
+        url: 'doc_mdl.php?accion=toggle_estado_docente',
+        data: { doce_id: doce_id, nuevo_estado: nuevoEstado },
+        dataType: 'json',
+        success: function (r) {
+            if (r.status === 'ok') {
+                $('#tbl_docentes').DataTable().ajax.reload(null, false);
+            } else {
+                alert('Error: ' + r.message);
             }
         }
     });
