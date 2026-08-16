@@ -474,6 +474,18 @@ Un endpoint `listar_X` que alimenta tanto una tabla/listado como un modal de edi
 
 Caso real: `listar_modulos_grupo` en `04_grupos` solo devolvía nombres resueltos por JOIN, lo que impedía precargar los selects de Módulo/Docente al editar (corregido en el commit `f46d9d9`, 2026-08-15) — agregar `gm.modu_id` y `gm.doce_id` al SELECT resolvió el problema sin afectar el uso existente del endpoint para el listado.
 
+### Subconsultas escalares para contar múltiples relaciones 1:N sobre la misma fila
+
+Cuando una entidad tiene DOS O MÁS tablas dependientes independientes que se necesitan contar en el mismo SELECT (ej. cohortes tiene estudiantes Y gruposemestres), usar subconsultas escalares correlacionadas — `(SELECT COUNT(*) FROM tabla_x WHERE tabla_x.fk = t.id) AS total_x` — en vez de múltiples `LEFT JOIN` + `GROUP BY`. Un `LEFT JOIN` simultáneo a dos tablas 1:N distintas produce fan-out (producto cartesiano parcial): si una fila tiene 3 registros en una tabla y 2 en otra, cada `COUNT()` queda inflado por las filas del otro JOIN, dando conteos falsos. Con UNA sola tabla dependiente, el patrón `LEFT JOIN` + `GROUP BY` sigue siendo válido (ver `listar_modulos`, que solo cuenta `gruposmodulos`).
+
+Ejemplo: `listar_cohortes` en `04_grupos` (commit `5611153`, 2026-08-15) cuenta `total_estudiantes` y `total_grupos` con dos subconsultas independientes, sin `GROUP BY`.
+
+### Funciones de refresh invocadas desde onclick inline deben usar la API de DataTables directamente
+
+Las funciones que se invocan vía `onclick` inline desde HTML generado por DataTables (ej. botones de fila) deben estar declaradas en el scope global (fuera de `$(document).ready`), porque `onclick` inline solo puede llamar funciones accesibles desde `window`. Si esa función necesita refrescar la tabla tras una acción, NO debe llamar a una función `cargarTablaX()` declarada dentro de `$(document).ready` — esa función es local a ese closure y lanza `ReferenceError` en tiempo de ejecución (el error ocurre dentro del callback `success` del AJAX, después de que el backend ya respondió éxito, por lo que el dato persiste en BD pero la UI no se actualiza). En su lugar, usar directamente `$('#tbl_X').DataTable().ajax.reload(null, false)`, que recupera la instancia ya inicializada vía el propio DOM, sin depender de ninguna variable de scope local.
+
+Ejemplo: bug real en `toggleEstadoCohorte` (04_grupos), corregido en el mismo commit `5611153` tras detectarse en pruebas manuales — `toggleEstadoModulo` ya usaba el patrón correcto desde antes.
+
 ---
 
 ## Antipatrones a evitar

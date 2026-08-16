@@ -4,6 +4,42 @@
 
 ---
 
+## [5611153] — 2026-08-15 — feat: eliminar/desactivar cohorte con verificación de dependencias
+
+### Archivos modificados
+- app/04_grupos/grupos_view.php
+- app/04_grupos/grupos_ctrl.js
+- app/04_grupos/grupos_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- No existía forma de eliminar una cohorte desde 04_grupos, solo editar.
+- Ninguna FK entrante a cohortes es RESTRICT (estudiantes.coho_id y
+  gruposemestres.coho_id son ambas ON DELETE SET NULL), por lo que la
+  verificación de aplicación es la única protección real contra pérdida de
+  trazabilidad al eliminar.
+
+### Decisiones
+- Nuevo case eliminar_cohorte: bloquea el DELETE si la cohorte tiene
+  estudiantes matriculados o grupos semestre asociados, con mensaje de
+  error específico para cada caso.
+- listar_cohortes ahora calcula total_estudiantes y total_grupos con
+  subconsultas escalares correlacionadas, no LEFT JOIN — dos relaciones
+  1:N sobre la misma fila producirían fan-out (conteos inflados) con JOIN
+  simultáneo.
+- Columna Acciones de tbl_cohortes con lógica de 3 ramas (Eliminar/
+  Desactivar/Activar), mismo patrón ya usado en tbl_modulos.
+- Nuevo modal de confirmación mdl_confirmar_eliminar_cohorte, replicando
+  el patrón de fila de tabla (mdl_confirmar_eliminar_modulo), no el de
+  modal anidado (mdl_confirmar_eliminar_grmo) — son flujos de UI distintos.
+- Bug propio corregido en la misma iteración: toggleEstadoCohorte llamaba
+  a cargarTablaCohortes(), función local al closure de $(document).ready
+  e inaccesible desde el scope global donde vive la función (necesario
+  para el onclick inline de DataTables) — corregido a
+  $('#tbl_cohortes').DataTable().ajax.reload(null, false), mismo patrón
+  que toggleEstadoModulo.
+
+---
+
 ## [f46d9d9] — 2026-08-15 — fix: precarga módulo/docente al editar + permite cambiar módulo + eliminar módulo-grupo con confirmación
 
 ### Archivos modificados

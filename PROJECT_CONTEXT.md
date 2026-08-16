@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-08-15
-> Versión: 31 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos)
+> Versión: 32 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias
 
 ---
 
@@ -384,6 +384,7 @@ necesidad de una cuenta completa.
 | `0eddadf` | fix: valida sesión en listar_grupos (05_calificaciones) — hallazgo colateral detectado al verificar el fix de est_mdl.php | 2026-08-15 |
 | `5bef1ef` | refactor: mueve jornada de cohorte a grupo semestre (4 etapas: schema, migración de datos, backend, frontend, reportes/PDFs) | 2026-08-15 |
 | `f46d9d9` | fix: precarga módulo/docente al editar + permite cambiar módulo + eliminar módulo-grupo con confirmación (04_grupos) | 2026-08-15 |
+| `5611153` | feat: eliminar/desactivar cohorte con verificación de dependencias (estudiantes + gruposemestres), botón condicional Eliminar/Desactivar/Activar (04_grupos) | 2026-08-15 |
 
 ---
 
