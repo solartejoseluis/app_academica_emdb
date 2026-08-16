@@ -210,7 +210,9 @@ $(document).ready(function () {
             estu_ocupacion:         $('#npt_estu_ocupacion').val().trim(),
             estu_estadocivil:       $('#slct_estu_estadocivil').val(),
             estu_discapacidad:      $('#slct_estu_discapacidad').val(),
-            estu_multiculturalidad: obtenerMulticulturalidad()
+            estu_multiculturalidad: obtenerMulticulturalidad(),
+            tipo_clave_estudiante:  $('input[name="tipo_clave_estudiante"]:checked').val() || '',
+            clave_manual_estudiante: $('#npt_clave_manual_estudiante').val().trim()
         };
 
         $.ajax({
@@ -222,7 +224,12 @@ $(document).ready(function () {
                 if (response.status === 'ok') {
                     bootstrap.Modal.getInstance(document.getElementById('mdl_estudiante')).hide();
                     tablaAspirantes.ajax.reload(null, false);
-                    alert(estu_id === '' ? 'Aspirante registrado correctamente.' : 'Estudiante actualizado correctamente.');
+                    tablaMatriculados.ajax.reload(null, false);
+                    let mensaje = estu_id === '' ? 'Aspirante registrado correctamente.' : 'Estudiante actualizado correctamente.';
+                    if (response.clave_generada) {
+                        mensaje += '\n\nClave asignada: ' + response.clave_generada + '\nAnote esta clave — no se volverá a mostrar.';
+                    }
+                    alert(mensaje);
                 } else {
                     alert(response.message);
                 }
@@ -300,6 +307,15 @@ $(document).ready(function () {
             $('#bloque_clave_manual').removeClass('d-none');
         } else {
             $('#bloque_clave_manual').addClass('d-none');
+        }
+    });
+
+    // --- Radio tipo_clave_estudiante (cambiar clave desde el modal de edición) ---
+    $('input[name="tipo_clave_estudiante"]').change(function () {
+        if ($(this).val() === 'manual') {
+            $('#bloque_clave_manual_estudiante').removeClass('d-none');
+        } else {
+            $('#bloque_clave_manual_estudiante').addClass('d-none');
         }
     });
 
@@ -681,6 +697,11 @@ $(document).ready(function () {
 
     function limpiarFormulario() {
         $('#npt_estu_id').val('');
+        $('#npt_estu_usua_id_actual').val('');
+        $('input[name="tipo_clave_estudiante"]').prop('checked', false);
+        $('#npt_clave_manual_estudiante').val('');
+        $('#bloque_clave_manual_estudiante').addClass('d-none');
+        $('#bloque_cambiar_clave_estudiante').addClass('d-none');
         $('#slct_estu_tipodoc').val('');
         $('#npt_estu_numerodoc').val('');
         $('#npt_estu_nombres').val('');
@@ -734,6 +755,15 @@ function abrirEditar(estu_id, esAspirante) {
                 let d = response.data;
                 $('#btn_eliminar_aspirante').toggleClass('d-none', !esAspirante);
                 $('#npt_estu_id').val(d.estu_id);
+                $('#npt_estu_usua_id_actual').val(d.usua_id || '');
+
+                // Bloque "Cambiar clave" — solo visible si el estudiante ya tiene
+                // acceso creado (usua_id no nulo). Reset en cada apertura para no
+                // arrastrar la selección de una edición anterior.
+                $('input[name="tipo_clave_estudiante"]').prop('checked', false);
+                $('#npt_clave_manual_estudiante').val('');
+                $('#bloque_clave_manual_estudiante').addClass('d-none');
+                $('#bloque_cambiar_clave_estudiante').toggleClass('d-none', !d.usua_id);
                 $('#slct_estu_tipodoc').val(d.estu_tipodoc);
                 $('#npt_estu_numerodoc').val(d.estu_numerodoc);
                 $('#npt_estu_nombres').val(d.estu_nombres);

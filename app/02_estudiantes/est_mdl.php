@@ -218,6 +218,8 @@ switch ($accion) {
         $estu_estadocivil       = trim($_POST['estu_estadocivil'] ?? '');
         $estu_discapacidad      = trim($_POST['estu_discapacidad'] ?? '');
         $estu_multiculturalidad = trim($_POST['estu_multiculturalidad'] ?? '');
+        $tipo_clave_estudiante   = trim($_POST['tipo_clave_estudiante'] ?? '');
+        $clave_manual_estudiante = trim($_POST['clave_manual_estudiante'] ?? '');
 
         if ($estu_tipodoc === '' || $estu_numerodoc === '' || $estu_nombres === '' || $estu_apellidos === ''
             || $fechanacimiento === '' || $estu_sexo === '' || $estu_telefono === '' || $estu_email === ''
@@ -287,8 +289,37 @@ switch ($accion) {
                     $estu_estadocivil, $estu_discapacidad, $estu_multiculturalidad,
                     $estu_id_int
                 ]);
+
+                // Cambio opcional de clave — solo si el estudiante ya tiene acceso
+                // creado (usua_id) y se envió una intención de cambio de clave.
+                $clave_generada_estudiante = null;
+                if ($tipo_clave_estudiante !== '') {
+                    $stmtUsua = $pdo->prepare("SELECT usua_id FROM estudiantes WHERE estu_id = ?");
+                    $stmtUsua->execute([$estu_id_int]);
+                    $usua_id_actual = $stmtUsua->fetchColumn();
+
+                    if ($usua_id_actual) {
+                        if ($tipo_clave_estudiante === 'manual' && $clave_manual_estudiante === '') {
+                            $pdo->rollBack();
+                            echo json_encode(['status' => 'error', 'message' => 'Ingrese la clave manual']);
+                            break;
+                        }
+                        $clave_generada_estudiante = ($tipo_clave_estudiante === 'automatica')
+                            ? generarClaveAuto($estu_apellidos, $fechanacimiento)
+                            : $clave_manual_estudiante;
+
+                        $hash = password_hash($clave_generada_estudiante, PASSWORD_BCRYPT);
+                        $stmtPass = $pdo->prepare("UPDATE usuarios SET usua_passwordhash = ? WHERE usua_id = ?");
+                        $stmtPass->execute([$hash, $usua_id_actual]);
+                    }
+                }
+
                 $pdo->commit();
-                echo json_encode(['status' => 'ok', 'rows' => 1]);
+                $response = ['status' => 'ok', 'rows' => 1];
+                if ($clave_generada_estudiante !== null) {
+                    $response['clave_generada'] = $clave_generada_estudiante;
+                }
+                echo json_encode($response);
             }
 
         } catch (PDOException $e) {
@@ -323,7 +354,7 @@ switch ($accion) {
                         fechanacimiento, estu_sexo, estu_telefono, estu_email,
                         estu_ciudad, estu_direccion, estu_barrio, estu_estrato, estu_eps, estu_foto,
                         estu_expedidoen, estu_ciudadnac, estu_ocupacion,
-                        estu_estadocivil, estu_discapacidad, estu_multiculturalidad
+                        estu_estadocivil, estu_discapacidad, estu_multiculturalidad, usua_id
                  FROM estudiantes
                  WHERE estu_id = ?"
             );

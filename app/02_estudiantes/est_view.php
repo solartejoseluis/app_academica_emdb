@@ -105,6 +105,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             </div>
             <div class="modal-body">
                 <input type="hidden" id="npt_estu_id" value="">
+                <input type="hidden" id="npt_estu_usua_id_actual" value="">
 
                 <div id="bloque_foto_estudiante" class="mb-3 d-none">
                     <label class="form-label d-block">Foto del estudiante</label>
@@ -273,6 +274,22 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <input class="form-check-input chk-multicultural" type="checkbox" id="chk_multi_reinsertado" data-valor="REINSERTADO">
                         <label class="form-check-label" for="chk_multi_reinsertado">Reinsertado</label>
                     </div>
+                </div>
+
+                <div class="mb-3 d-none" id="bloque_cambiar_clave_estudiante">
+                    <h6 class="text-muted border-bottom pb-2 mb-2">Cambiar clave de acceso</h6>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="tipo_clave_estudiante" id="radio_clave_automatica_estudiante" value="automatica">
+                        <label class="form-check-label" for="radio_clave_automatica_estudiante">Generar clave automática</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="tipo_clave_estudiante" id="radio_clave_manual_estudiante" value="manual">
+                        <label class="form-check-label" for="radio_clave_manual_estudiante">Asignar clave manual</label>
+                    </div>
+                    <div class="mb-2 mt-2 d-none" id="bloque_clave_manual_estudiante">
+                        <input type="text" class="form-control" id="npt_clave_manual_estudiante" placeholder="Ingrese la nueva clave" autocomplete="off">
+                    </div>
+                    <div class="form-text">Dejar en blanco para no cambiar la clave actual.</div>
                 </div>
             </div>
             <div class="modal-footer">
