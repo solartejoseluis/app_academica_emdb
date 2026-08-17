@@ -39,6 +39,9 @@ switch ($accion) {
                     ORDER BY gs.grse_semestre ASC, m.modu_nombre ASC
                 ");
                 $stmt->execute([$usua_id]);
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+                break;
             } else {
                 // Coordinador/Admin: todos los grupos, con filtros opcionales (doce_id, prog_id, peri_id)
                 $doce_id_filtro = trim($_POST['doce_id'] ?? '');
