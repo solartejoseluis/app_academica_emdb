@@ -4,6 +4,30 @@
 
 ---
 
+## [1edb887] — 2026-08-16 — fix: agrega las 5 secciones faltantes al select del modal de ayuda
+
+### Archivos modificados
+- app/10_ayudas/ayud_view.php
+
+### Cambios/Vulnerabilidad corregida
+- El select "Sección" del modal Nueva/Editar Ayuda solo tenía las 2
+  opciones piloto originales (04_grupos, 05_calificaciones) desde la
+  Etapa 2 del sidebar de ayuda. Cuando se expandió el contenido real a
+  los 5 módulos restantes (commit f7f0ae3, cargado directo por SQL), el
+  select nunca se actualizó — un usuario admin no podía crear una nueva
+  entrada de ayuda para esas secciones desde el navegador, aunque el
+  backend ya las soportaba sin restricción.
+
+### Decisiones
+- Agregadas las 5 opciones faltantes (02_estudiantes, 03_docentes,
+  06_reportes, 07_coordinador, 08_admin), reordenado el bloque completo
+  para seguir el mismo orden del navbar (02 a 08).
+
+Cambio puramente de HTML estático. Probado en navegador: las 7 secciones
+aparecen correctamente en el select.
+
+---
+
 ## [3d59f06] — 2026-08-16 — fix: refresco de matriculados al editar + feat: cambiar clave de estudiante matriculado
 
 ### Archivos modificados
