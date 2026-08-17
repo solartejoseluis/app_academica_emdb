@@ -1,4 +1,5 @@
 # CLAUDE.md — app_academica_emdb
+> Última actualización: 2026-08-16 — último commit citado: 1edb887
 
 ## Reglas de documentación
 
