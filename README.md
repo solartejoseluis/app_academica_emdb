@@ -130,9 +130,9 @@ programas ──< modulos
 ```
 gruposemestres (programa + periodo + jornada)
     │
-    ├──< grseestudiantes >── estudiantes
-    │
     └──< gruposmodulos (modulo + docente + fechas)
+             │
+             └──< grmoestudiantes >── estudiantes
 ```
 
 ### Registro de calificaciones
