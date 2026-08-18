@@ -5,6 +5,7 @@
 let cacheModulos = {};
 let moduloIdPendienteEliminar = null;
 let cohorteIdPendienteEliminar = null;
+let periodoActivoId = '';
 
 $(document).ready(function () {
 
@@ -199,22 +200,6 @@ $(document).ready(function () {
                     opts += `<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                 });
                 $('#slct_prog_cohorte, #slct_prog_grupo, #slct_prog_modulo').html(opts);
-            }
-        });
-    }
-
-    function cargarPeriodosSelector() {
-        $.ajax({
-            type: 'POST',
-            url: 'grupos_mdl.php?accion=listar_periodos',
-            dataType: 'json',
-            success: function (r) {
-                if (r.status !== 'ok') return;
-                let opts = '<option value="">-- Seleccionar --</option>';
-                r.data.forEach(p => {
-                    opts += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
-                });
-                $('#slct_peri_grupo').html(opts);
             }
         });
     }
@@ -545,7 +530,8 @@ $(document).ready(function () {
     $('#btn_nuevo_grupo').on('click', function () {
         $('#grse_id').val('');
         $('#grse_codigo, #grse_fechainicio, #grse_fechafin').val('');
-        $('#slct_prog_grupo, #slct_coho_grupo, #slct_peri_grupo').val('');
+        $('#slct_prog_grupo, #slct_coho_grupo').val('');
+        $('#slct_peri_grupo').val(periodoActivoId || '');
         $('#grse_semestre').val('1');
         $('#grse_jornada').val('Semana');
         $('#bloque_activo_grupo').addClass('d-none');
@@ -990,6 +976,25 @@ function toggleEstadoCohorte(coho_id, nuevoEstado) {
     });
 }
 
+function cargarPeriodosSelector() {
+    $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=listar_periodos',
+        dataType: 'json',
+        success: function (r) {
+            if (r.status !== 'ok') return;
+            let opts = '<option value="">-- Seleccionar --</option>';
+            let activoId = '';
+            r.data.forEach(p => {
+                opts += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                if (p.peri_activo == 1) activoId = p.peri_id;
+            });
+            $('#slct_peri_grupo').html(opts);
+            periodoActivoId = activoId;
+        }
+    });
+}
+
 function activarPeriodo(peri_id) {
     $.ajax({
         type: 'POST',
@@ -999,6 +1004,7 @@ function activarPeriodo(peri_id) {
         success: function (r) {
             if (r.status === 'ok') {
                 $('#tbl_periodos').DataTable().ajax.reload(null, false);
+                cargarPeriodosSelector();
             } else {
                 alert('Error: ' + r.message);
             }
