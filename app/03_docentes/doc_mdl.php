@@ -200,6 +200,13 @@ switch ($accion) {
                     break;
                 }
 
+                $checkSigla = $pdo->prepare("SELECT doce_id FROM docentes WHERE doce_sigla = ?");
+                $checkSigla->execute([$doce_sigla]);
+                if ($checkSigla->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ya existe un docente con esa sigla']);
+                    break;
+                }
+
                 $hash = password_hash($usua_password, PASSWORD_BCRYPT);
 
                 $pdo->beginTransaction();
@@ -228,6 +235,13 @@ switch ($accion) {
 
                 if (!$rowDoc) {
                     echo json_encode(['status' => 'error', 'message' => 'Docente no encontrado']);
+                    break;
+                }
+
+                $checkSigla = $pdo->prepare("SELECT doce_id FROM docentes WHERE doce_sigla = ? AND doce_id != ?");
+                $checkSigla->execute([$doce_sigla, $doce_id_int]);
+                if ($checkSigla->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ya existe un docente con esa sigla']);
                     break;
                 }
 
