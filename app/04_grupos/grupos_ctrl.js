@@ -197,7 +197,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 let opts = '<option value="">-- Seleccionar --</option>';
                 r.data.forEach(p => {
-                    opts += `<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
+                    opts += `<option value="${p.prog_id}" data-sigla="${p.prog_sigla}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                 });
                 $('#slct_prog_cohorte, #slct_prog_grupo, #slct_prog_modulo').html(opts);
             }
@@ -521,6 +521,29 @@ $(document).ready(function () {
                 }
             }
         });
+    });
+
+    // ════════════════════════════════════════════════════════════════════════
+    // MODAL GRUPO — autogenerar código (prog_sigla_peri_codigo_Ssemestre_jornada)
+    // El campo es readonly permanente — siempre 100% autogenerado, sin edición
+    // manual (a diferencia de periodoCodigoManual en el modal Período, que sí
+    // permite ajuste manual).
+    // ════════════════════════════════════════════════════════════════════════
+
+    function generarSugerenciaCodigoGrupo() {
+        const prog_sigla = $('#slct_prog_grupo option:selected').data('sigla');
+        const peri_codigo = $('#slct_peri_grupo option:selected').text().trim();
+        const grse_semestre = $('#grse_semestre').val();
+        const jornadaMap = { 'Semana': 'SEM', 'Sabados': 'SAB' };
+        const jornada_abrev = jornadaMap[$('#grse_jornada').val()];
+
+        if (!prog_sigla || !peri_codigo || !grse_semestre || !jornada_abrev) return;
+
+        $('#grse_codigo').val(`${prog_sigla}_${peri_codigo}_S${grse_semestre}_${jornada_abrev}`);
+    }
+
+    $('#slct_prog_grupo, #slct_peri_grupo, #grse_semestre, #grse_jornada').on('change', function () {
+        generarSugerenciaCodigoGrupo();
     });
 
     // ════════════════════════════════════════════════════════════════════════

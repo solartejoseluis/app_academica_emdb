@@ -371,7 +371,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 
 <!-- MODAL GRUPO SEMESTRE -->
 <div class="modal fade" id="mdl_grupo" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title" id="mdl_grupo_titulo">Nuevo Grupo Semestre</h5>
@@ -411,8 +411,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Código <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control texto-mayus" id="grse_codigo"
-                               placeholder="Ej: ASO-2025B-S1">
+                        <input type="text" class="form-control" id="grse_codigo" readonly
+                               placeholder="Se autogenera automáticamente">
+                        <div class="form-text">Autogenerado automáticamente.</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Jornada <span class="text-danger">*</span></label>
