@@ -212,7 +212,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 let opts = '<option value="">-- Seleccionar --</option>';
                 r.data.forEach(d => {
-                    opts += `<option value="${d.doce_id}">${d.doce_apellidos}, ${d.doce_nombres}</option>`;
+                    opts += `<option value="${d.doce_id}">${d.doce_apellidos}, ${d.doce_nombres} (${d.total_grupos} grupos)</option>`;
                 });
                 $('#slct_doce_grupo').html(opts);
             }

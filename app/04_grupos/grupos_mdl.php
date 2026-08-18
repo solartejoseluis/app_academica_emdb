@@ -773,14 +773,22 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
+
+            $stmtPeri = $pdo->prepare("SELECT peri_id FROM periodos WHERE peri_activo = 1 LIMIT 1");
+            $stmtPeri->execute();
+            $peri_id = (int)($stmtPeri->fetchColumn() ?: 0);
+
             $stmt = $pdo->prepare("
-                SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla
+                SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla,
+                       (SELECT COUNT(*) FROM gruposmodulos gm
+                        INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                        WHERE gm.doce_id = d.doce_id AND gs.peri_id = ? AND gm.grmo_activo = 1) AS total_grupos
                 FROM docentes d
                 INNER JOIN usuarios u ON d.usua_id = u.usua_id
                 WHERE u.usua_activo = 1
                 ORDER BY d.doce_apellidos ASC
             ");
-            $stmt->execute();
+            $stmt->execute([$peri_id]);
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
