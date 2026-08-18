@@ -145,10 +145,15 @@ switch ($accion) {
                 break;
             }
 
+            $pdo->beginTransaction();
             $stmt = $pdo->prepare("DELETE FROM cohortes WHERE coho_id = ?");
             $stmt->execute([$coho_id]);
+            $pdo->commit();
             echo json_encode(['status' => 'ok']);
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar: existen datos asociados a la cohorte']);
         }
         break;
