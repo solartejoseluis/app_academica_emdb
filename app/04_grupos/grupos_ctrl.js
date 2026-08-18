@@ -13,7 +13,6 @@ $(document).ready(function () {
     let tablaCohortes, tablaGrupos, tablaPeriodos, tablaModulos;
     let grmo_id_activo = null;
     let coho_id_activo = null;
-    let periodoCodigoManual = false;
 
     // ── Inicialización ───────────────────────────────────────────────────────
     cargarTablaCohortes();
@@ -464,21 +463,13 @@ $(document).ready(function () {
     // MODAL PERÍODO — botones
     // ════════════════════════════════════════════════════════════════════════
 
-    // Autogenerar Código (AAAA-N) desde Año + Semestre, mientras el usuario
-    // no lo haya editado manualmente
+    // Autogenerar Código (AAAA-N) desde Año + Semestre — readonly permanente
     $('#peri_anio, #peri_semestre').on('change', function () {
         const anio = $('#peri_anio').val();
         const sem  = $('#peri_semestre').val();
         if (anio && sem) {
-            $('#peri_codigo').prop('readonly', false);
-            if (!periodoCodigoManual) {
-                $('#peri_codigo').val(`${anio}-${sem}`);
-            }
+            $('#peri_codigo').val(`${anio}-${sem}`);
         }
-    });
-
-    $('#peri_codigo').on('input', function () {
-        periodoCodigoManual = true;
     });
 
     $('#btn_nuevo_periodo').on('click', function () {
@@ -486,7 +477,6 @@ $(document).ready(function () {
         $('#peri_anio, #peri_fechainicio, #peri_fechafin').val('');
         $('#peri_codigo').val('').prop('readonly', true);
         $('#peri_semestre').val('1');
-        periodoCodigoManual = false;
         $('#mdl_periodo_titulo').text('Nuevo Período');
         new bootstrap.Modal('#mdl_periodo').show();
     });
@@ -526,8 +516,7 @@ $(document).ready(function () {
     // ════════════════════════════════════════════════════════════════════════
     // MODAL GRUPO — autogenerar código (prog_sigla_peri_codigo_Ssemestre_jornada)
     // El campo es readonly permanente — siempre 100% autogenerado, sin edición
-    // manual (a diferencia de periodoCodigoManual en el modal Período, que sí
-    // permite ajuste manual).
+    // manual (mismo criterio que #peri_codigo en el modal Período).
     // ════════════════════════════════════════════════════════════════════════
 
     function generarSugerenciaCodigoGrupo() {
@@ -845,10 +834,9 @@ function abrirEditarPeriodo(peri_id) {
             $('#peri_id').val(d.peri_id);
             $('#peri_anio').val(d.peri_anio);
             $('#peri_semestre').val(d.peri_semestre);
-            $('#peri_codigo').val(d.peri_codigo).prop('readonly', false);
+            $('#peri_codigo').val(d.peri_codigo);
             $('#peri_fechainicio').val(d.fechainicio);
             $('#peri_fechafin').val(d.fechafin);
-            periodoCodigoManual = true; // no autogenerar sobre un código ya guardado
             $('#mdl_periodo_titulo').text('Editar Período');
             new bootstrap.Modal('#mdl_periodo').show();
         }

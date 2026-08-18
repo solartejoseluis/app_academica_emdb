@@ -346,7 +346,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <label class="form-label">Código <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="peri_codigo" readonly
                            placeholder="Se autogenera desde Año y Semestre">
-                    <div class="form-text">Formato: AAAA-N. Se autogenera; puede editarlo manualmente después.</div>
+                    <div class="form-text">Formato: AAAA-N. Se autogenera automáticamente.</div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
