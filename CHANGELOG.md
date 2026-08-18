@@ -4,6 +4,179 @@
 
 ---
 
+## [17f42aa] — 2026-08-17 — feat(grupos): muestra conteo de carga de docente en selector de asignación de módulo
+
+### Archivos modificados
+- app/04_grupos/grupos_mdl.php
+- app/04_grupos/grupos_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- El selector de docente en el modal "Asignar Módulo al Grupo" no mostraba
+  ninguna indicación de carga académica, a diferencia del listado de
+  03_docentes (commit 7eba870) — dificultaba detectar sobrecarga de un
+  docente antes de asignarle un módulo más.
+
+### Decisiones
+- Replicada la subconsulta escalar total_grupos ya usada en doc_mdl.php
+  (filtrada por gs.peri_id = ? AND gm.grmo_activo = 1), resolviendo el
+  período activo institucional con el mismo patrón "resolver activo por
+  defecto" ya documentado (SELECT peri_id FROM periodos WHERE peri_activo
+  = 1 LIMIT 1) — sin total_grupos_historico ni peri_codigo, innecesarios
+  para este selector.
+- cargarDocentesSelector() no cambió su ciclo de invocación (sigue
+  llamándose una sola vez al cargar la página) — el conteo refleja la
+  carga en el período activo institucional, no el período específico del
+  grupo semestre que se esté editando en ese momento.
+
+Verificado con php -l y balance de llaves/paréntesis en el JS.
+
+---
+
+## [3efb73f] — 2026-08-17 — fix(grupos): envuelve eliminar_cohorte en transacción PDO para cerrar ventana de condición de carrera
+
+### Archivos modificados
+- app/04_grupos/grupos_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- case eliminar_cohorte (commit 5611153) hacía DELETE físico con
+  verificación previa (SELECT COUNT(*) sobre estudiantes y
+  gruposemestres) pero sin transacción PDO — ventana teórica entre el
+  COUNT y el DELETE.
+
+### Decisiones
+- Replicado el patrón ya usado en eliminar_aspirante (02_estudiantes) y
+  en el guardar de doc_mdl.php: beginTransaction() después de los SELECT
+  de verificación, commit() tras el DELETE exitoso, catch (PDOException)
+  con guard isset($pdo) && $pdo->inTransaction() antes de rollBack().
+  Mensaje de error existente sin cambios.
+
+---
+
+## [cfab7bf] — 2026-08-17 — fix(docentes): valida unicidad de doce_sigla con mensaje claro antes de guardar
+
+### Archivos modificados
+- app/03_docentes/doc_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- doce_sigla ya tenía UNIQUE KEY en BD (uq_doce_sigla, existente desde el
+  DDL original) pero sin chequeo explícito en case guardar — un
+  duplicado caía en el catch genérico de PDOException, mostrando "Error
+  al guardar el docente" sin indicar la causa real.
+
+### Decisiones
+- Agregado SELECT doce_id FROM docentes WHERE doce_sigla = ? (rama
+  crear) y la misma consulta con AND doce_id != ? (rama editar, excluye
+  el propio registro), replicando el patrón ya usado para modu_sigla en
+  grupos_mdl.php. Mensaje específico: "Ya existe un docente con esa
+  sigla". Sin cambios en doc_ctrl.js — ya mostraba response.message
+  correctamente. Sin duplicados reales en BD verificados antes del
+  cambio, y sin necesidad de ALTER TABLE.
+
+---
+
+## [034d663] — 2026-08-17 — fix(grupos): corrige scope de periodoCodigoManual (bug que rompía Editar Período) y simplifica peri_codigo a readonly permanente
+
+### Archivos modificados
+- app/04_grupos/grupos_ctrl.js
+- app/04_grupos/grupos_view.php
+
+### Cambios/Vulnerabilidad corregida
+- abrirEditarPeriodo() (función global, invocada vía onclick inline)
+  escribía periodoCodigoManual = true, pero esa variable estaba
+  declarada dentro del closure de $(document).ready — ReferenceError en
+  tiempo de ejecución que interrumpía el callback antes de mostrar el
+  modal. "Editar Período" no abría el modal en producción.
+
+### Decisiones
+- Se decidió simplificar peri_codigo a readonly permanente (nunca
+  editable, siempre 100% autogenerado desde Año + Semestre) en vez de
+  solo corregir el scope — elimina por completo periodoCodigoManual
+  (declaración, guard, listener input, reset y precarga en modo
+  edición), replicando la misma simplificación ya aplicada a grse_codigo
+  (commit 04345ea). form-text actualizado, quitando la mención a edición
+  manual.
+
+---
+
+## [04345ea] — 2026-08-17 — feat(grupos): autogenerar grse_codigo (readonly) desde programa+período+semestre+jornada y ampliar modal a modal-xl
+
+### Archivos modificados
+- app/04_grupos/grupos_ctrl.js
+- app/04_grupos/grupos_view.php
+
+### Cambios/Vulnerabilidad corregida
+- grse_codigo era 100% manual, sin autogenerado ni validación de
+  formato — los registros reales existentes eran inconsistentes entre
+  sí (ninguno seguía el patrón del placeholder del formulario).
+- El modal "Nuevo/Editar Grupo Semestre" (ya en modal-lg) se veía
+  apretado: nombres de módulo/docente partidos en 2 líneas, campo Código
+  cortado.
+
+### Decisiones
+- Autogeneración readonly permanente (no editable), fórmula
+  {prog_sigla}_{peri_codigo}_S{grse_semestre}_{jornada_abrev}
+  (ej. ASO_2026-2_S2_SEM), disparada por change en programa/período/
+  semestre/jornada. prog_sigla expuesto vía data-sigla en el <option>
+  del selector de programa (no estaba disponible antes). peri_codigo se
+  lee directo del texto visible del <option> de período.
+  jornadaMap: Semana→SEM, Sabados→SAB.
+- Modal ampliado de modal-lg a modal-xl — el segundo uso de ese tamaño
+  en todo el proyecto (el primero es mdl_ficha, Ficha Familiar AC-FO-02).
+  La tabla de módulos asignados (w-100, fluida) se beneficia
+  automáticamente del ancho extra.
+
+---
+
+## [624b44c] — 2026-08-17 — feat(grupos): preseleccionar período activo en modal Nuevo Grupo Semestre y sincronizar tras activar_periodo
+
+### Archivos modificados
+- app/04_grupos/grupos_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- El modal "Nuevo Grupo Semestre" reseteaba #slct_peri_grupo a vacío en
+  vez de preseleccionar el período activo del sistema (peri_activo=1),
+  pese a existir ya esa información.
+- Tras usar "Marcar como activo" en la pestaña Períodos, el selector de
+  período del modal de grupo no reflejaba el cambio hasta recargar la
+  página manualmente.
+
+### Decisiones
+- cargarPeriodosSelector() y la nueva variable periodoActivoId se
+  movieron a scope global (junto a cacheModulos, moduloIdPendienteEliminar,
+  cohorteIdPendienteEliminar) — activarPeriodo() es una función global
+  invocada vía onclick inline y no tiene acceso a variables/funciones
+  declaradas dentro de $(document).ready, mismo patrón de bug ya
+  documentado y corregido antes para toggleEstadoCohorte/
+  toggleEstadoModulo.
+- activarPeriodo() ahora llama a cargarPeriodosSelector() tras el
+  reload() de la tabla de períodos.
+
+---
+
+## [2780dff] — 2026-08-17 — fix(seguridad): agregar guard de autorización por rol en listar_grupos
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- case listar_grupos tenía guard de autenticación (isset usua_id) pero
+  no de autorización por rol — cualquier role_id distinto de 3 (Docente)
+  caía en la rama "Coordinador/Admin: todos los grupos" sin verificar
+  que fuera realmente 1 o 2. Un Estudiante (role_id 4) autenticado, o
+  una sesión con role_id ausente/corrupto (0), recibía el listado
+  completo de todos los grupos con nombres de docentes incluidos.
+
+### Decisiones
+- Agregado elseif (!in_array($role_id, [1, 2], true)) { ... Sin
+  autorización ..., 'data' => [] ...} entre la rama de Docente y la
+  rama de Coordinador/Admin, replicando el patrón ya usado en
+  listar_calificaciones y guardar_nota del mismo archivo. Verificado con
+  6 pruebas reales vía curl con cookies de sesión (admin, coordinador,
+  docente, estudiante, role_id=0, role_id=99) — los 6 casos coincidieron
+  con el comportamiento esperado.
+
+---
+
 ## [1edb887] — 2026-08-16 — fix: agrega las 5 secciones faltantes al select del modal de ayuda
 
 ### Archivos modificados

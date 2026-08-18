@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-08-16
-> Versión: 41 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias + fila de contexto del Excel exportado dividida en 2 filas + período activo (peri_activo) y conteo de grupos por docente + eliminar/desactivar docente y corrección de doce_activo desincronizado + texto de ayuda para siglas y corrección de maxlength/mayúsculas + filtros de profesor/programa/período en calificaciones + sidebar de ayuda con CRUD (10_ayudas) + sidebar de ayuda expandido a todos los módulos + fix refresco matriculados + cambio de clave para estudiantes matriculados + fix del select de sección en el modal de ayuda
+> Última actualización: 2026-08-17
+> Versión: 42 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias + fila de contexto del Excel exportado dividida en 2 filas + período activo (peri_activo) y conteo de grupos por docente + eliminar/desactivar docente y corrección de doce_activo desincronizado + texto de ayuda para siglas y corrección de maxlength/mayúsculas + filtros de profesor/programa/período en calificaciones + sidebar de ayuda con CRUD (10_ayudas) + sidebar de ayuda expandido a todos los módulos + fix refresco matriculados + cambio de clave para estudiantes matriculados + fix del select de sección en el modal de ayuda + guard de autorización por rol en listar_grupos (05_calificaciones) + período activo preseleccionado y sincronizado en modal Grupo Semestre + grse_codigo y peri_codigo autogenerados readonly permanente + modal Grupo Semestre ampliado a modal-xl + validación de unicidad de doce_sigla + eliminar_cohorte envuelto en transacción PDO + conteo de carga de docente en selector de asignación de módulo
 
 ---
 
@@ -167,7 +167,7 @@ app_academica_emdb/
 8.  modulos            — modu_id, prog_id(FK), modu_nombre, modu_sigla, modu_orden
 9.  matriculas         — matr_id, estu_id(FK), prog_id(FK), peri_id(FK), matr_estado
 10. gruposemestres     — grse_id, prog_id(FK), peri_id(FK), grse_codigo, grse_semestre
-11. grseestudiantes    — grse_id(FK), estu_id(FK)  [tabla puente N:M]
+11. grmoestudiantes    — grmo_id(FK), estu_id(FK)  [tabla puente N:M]
 12. gruposmodulos      — grmo_id, grse_id(FK), modu_id(FK), doce_id(FK)
 13. calificaciones     — cali_id, grmo_id(FK), estu_id(FK), N1-N4, sup_N1/N2/N4, cali_nota_final, cali_habilitacion, cali_definitiva
 14. horariosgrupo      — hora_id, grse_id(FK), hora_diasemana, hora_horainicio
@@ -394,6 +394,13 @@ necesidad de una cuenta completa.
 | `f7f0ae3` | feat: expande el sidebar de ayuda a los 5 módulos restantes (02_estudiantes, 03_docentes, 06_reportes, 07_coordinador, 08_admin) | 2026-08-16 |
 | `3d59f06` | fix: refresco de tabla matriculados al editar + feat: cambiar clave de estudiante matriculado (02_estudiantes) | 2026-08-16 |
 | `1edb887` | fix: agrega las 5 secciones faltantes al select del modal de ayuda (10_ayudas) | 2026-08-16 |
+| `2780dff` | fix(seguridad): agrega guard de autorización por rol en listar_grupos (05_calificaciones) — cerraba brecha que exponía todos los grupos a roles no autorizados | 2026-08-17 |
+| `624b44c` | feat(grupos): preselecciona período activo en modal Nuevo Grupo Semestre y sincroniza tras activar_periodo | 2026-08-17 |
+| `04345ea` | feat(grupos): autogenera grse_codigo (readonly) desde programa+período+semestre+jornada y amplía modal a modal-xl | 2026-08-17 |
+| `034d663` | fix(grupos): corrige scope de periodoCodigoManual (bug que rompía Editar Período) y simplifica peri_codigo a readonly permanente | 2026-08-17 |
+| `cfab7bf` | fix(docentes): valida unicidad de doce_sigla con mensaje claro antes de guardar | 2026-08-17 |
+| `3efb73f` | fix(grupos): envuelve eliminar_cohorte en transacción PDO para cerrar ventana de condición de carrera | 2026-08-17 |
+| `17f42aa` | feat(grupos): muestra conteo de carga de docente en selector de asignación de módulo | 2026-08-17 |
 
 ---
 
