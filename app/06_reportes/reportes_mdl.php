@@ -95,7 +95,7 @@ switch ($accion) {
             $pdo = getConexion();
             $usua_id = (int)($_SESSION['usua_id'] ?? 0);
             $stmt = $pdo->prepare("
-                SELECT DISTINCT m.modu_id, m.modu_nombre, m.modu_sigla,
+                SELECT m.modu_id, m.modu_nombre, m.modu_sigla,
                        gs.grse_codigo, gm.grmo_id
                 FROM grmoestudiantes ge
                 JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
