@@ -111,6 +111,8 @@ app_academica_emdb/
 | **Docente** | Módulo de calificaciones | Solo sus grupos asignados — ingreso y edición de notas |
 | **Estudiante** | Módulo de consulta | Solo lectura de sus propias calificaciones en tiempo real |
 
+**Acceso de estudiantes:** al matricular a un estudiante, el sistema crea su acceso usando el correo electrónico real registrado en su ficha (no un correo interno generado) y una clave inicial autogenerada.
+
 ---
 
 ## Modelo de datos

@@ -538,6 +538,17 @@ Cuando el frontend necesita saber si una entidad tiene acceso de login (ej. si u
 
 Ejemplo: en est_mdl.php (case guardar, commit `3d59f06`, 2026-08-16), el cambio de clave de un estudiante matriculado se permite solo tras un SELECT usua_id FROM estudiantes WHERE estu_id = ? ejecutado en el servidor — el hidden field #npt_estu_usua_id_actual del frontend solo se usa para decidir si mostrar el bloque de UI, nunca para autorizar el cambio en sí.
 
+### Validación de unicidad contra dos tablas relacionadas antes de guardar (formato + unicidad cruzada)
+
+Cuando un campo de una entidad (ej. `estudiantes.estu_email`) debe ser único a nivel de negocio pero también podría colisionar con un campo equivalente en una tabla relacionada de distinta entidad (ej. `usuarios.usua_email`), validar unicidad contra AMBAS tablas antes de persistir — no solo contra la tabla que se está editando. Patrón:
+
+1. Validar formato primero (`filter_var($valor, FILTER_VALIDATE_EMAIL)`), devolviendo el envelope de error de inmediato si falla — antes de tocar la BD.
+2. `SELECT` de unicidad contra la tabla propia (excluyendo el propio ID en la rama editar).
+3. `SELECT` de unicidad contra la tabla relacionada — si la entidad ya tiene una fila vinculada (ej. el estudiante ya tiene `usua_id`), excluir también ese ID relacionado para no autobloquear el guardado de un valor que la entidad ya tenía.
+4. Solo si ambos chequeos pasan, proceder con el guardado.
+
+Ejemplo: case `guardar` (crear y editar) en `est_mdl.php` y case `registrar` en `insc_mdl.php` (`09_inscripcion_publica`), commit `d62dde6` (2026-08-19) — valida `estu_email` contra `estudiantes.estu_email` y `usuarios.usua_email` antes de crear/editar un aspirante, excluyendo el propio `usua_id` en la rama editar.
+
 ---
 
 ## Antipatrones a evitar
@@ -652,6 +663,19 @@ imagedestroy($img);
 ```
 
 El warning de deprecación se imprime antes del `json_encode()` si `display_errors` está activo, rompiendo la respuesta JSON del envelope. GD libera la memoria automáticamente desde PHP 8.0 — omitir la llamada.
+
+### ❌ SELECT DISTINCT combinado con ORDER BY sobre columna ausente del SELECT (MySQL 8 ONLY_FULL_GROUP_BY)
+
+```php
+// PROHIBIDO — MySQL 8 rechaza esta combinación bajo ONLY_FULL_GROUP_BY (SQLSTATE 3065)
+$sql = "SELECT DISTINCT gm.grmo_id, modu_nombre
+        FROM gruposmodulos gm ...
+        ORDER BY modu_orden"; // modu_orden no está en el SELECT
+```
+
+Si cada fila ya es única por su propia clave (ej. `gm.grmo_id`), el `DISTINCT` es redundante — quitarlo en vez de agregar la columna del `ORDER BY` al `SELECT`. Mismo riesgo silencioso que `imagedestroy()`/`curl_close()`: la excepción PDO rompe el `json_encode()` del envelope, y sin el detalle del error visible (catch genérico), el frontend recibe una respuesta vacía o inválida sin ningún aviso.
+
+Ejemplo: case `mis_modulos` en `06_reportes/reportes_mdl.php` — bug preexistente (no introducido en el commit que lo corrigió), corregido en `35d6672` (2026-08-19). Dejaba el selector de módulos del estudiante vacío sin ningún error visible en pantalla.
 
 ### ❌ Asumir que Dompdf puede leer cualquier archivo local
 
