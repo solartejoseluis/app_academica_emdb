@@ -106,6 +106,12 @@ $html = '
     table.ficha td.centro { text-align: center; }
     table.estado td { border: 1px solid #adb5bd; padding: 8px; font-size: 12px; font-weight: bold; text-align: center; }
     .leyenda { margin-top: 14px; font-size: 9px; text-align: center; color: #495057; }
+    .nota-supletorios {
+        margin-top: 10px;
+        font-size: 8px;
+        color: #6c757d;
+        padding: 0 4px;
+    }
 </style>
 </head>
 <body>
@@ -179,6 +185,10 @@ $html = '
         <span style="display:inline-block; width:10px; height:10px; background-color:#f8d7da; border-radius:50%;"></span> No aprobado (&lt; 3.0)
         &nbsp;&nbsp;
         <span style="display:inline-block; width:10px; height:10px; background-color:#d4edda; border-radius:50%;"></span> Aprobado (≥ 3.0)
+    </div>
+
+    <div class="nota-supletorios">
+        Notas de recuperación (supletorio): se habilita solo si la nota original (N1, N2 o N4) es 0.0 — es decir, el estudiante no presentó la prueba. N3 no tiene supletorio, por corresponder a trabajos, actividades y exposiciones en clase. Nota Final = N1(20%)+N2(20%)+N3(20%)+N4(40%). Si es menor a 3.0, se activa Habilitación; la Definitiva es el valor oficial final.
     </div>
 </body>
 </html>
