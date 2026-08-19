@@ -204,7 +204,7 @@ switch ($accion) {
                 INNER JOIN estudiantes e ON ge.estu_id = e.estu_id
                 LEFT JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = e.estu_id
                 WHERE ge.grmo_id = ?
-                ORDER BY e.estu_apellidos ASC
+                ORDER BY e.estu_apellidos ASC, e.estu_nombres ASC
             ");
             $stmt->execute([$grmo_id]);
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
