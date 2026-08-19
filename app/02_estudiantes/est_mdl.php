@@ -230,6 +230,11 @@ switch ($accion) {
             break;
         }
 
+        if (!filter_var($estu_email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['status' => 'error', 'message' => 'Correo electrónico inválido']);
+            break;
+        }
+
         try {
             $pdo = getConexion();
 
@@ -238,6 +243,19 @@ switch ($accion) {
                 $check->execute([$estu_numerodoc]);
                 if ($check->fetch()) {
                     echo json_encode(['status' => 'error', 'message' => 'El número de documento ya está registrado']);
+                    break;
+                }
+
+                $checkEmailEstu = $pdo->prepare("SELECT estu_id FROM estudiantes WHERE estu_email = ?");
+                $checkEmailEstu->execute([$estu_email]);
+                if ($checkEmailEstu->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso']);
+                    break;
+                }
+                $checkEmailUsua = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_email = ?");
+                $checkEmailUsua->execute([$estu_email]);
+                if ($checkEmailUsua->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso']);
                     break;
                 }
 
@@ -268,6 +286,29 @@ switch ($accion) {
                 $check->execute([$estu_numerodoc, $estu_id_int]);
                 if ($check->fetch()) {
                     echo json_encode(['status' => 'error', 'message' => 'El número de documento ya está registrado por otro estudiante']);
+                    break;
+                }
+
+                $checkEmailEstu = $pdo->prepare("SELECT estu_id FROM estudiantes WHERE estu_email = ? AND estu_id != ?");
+                $checkEmailEstu->execute([$estu_email, $estu_id_int]);
+                if ($checkEmailEstu->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso']);
+                    break;
+                }
+
+                $stmtUsuaPropio = $pdo->prepare("SELECT usua_id FROM estudiantes WHERE estu_id = ?");
+                $stmtUsuaPropio->execute([$estu_id_int]);
+                $usua_id_propio = $stmtUsuaPropio->fetchColumn();
+
+                if ($usua_id_propio) {
+                    $checkEmailUsua = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_email = ? AND usua_id != ?");
+                    $checkEmailUsua->execute([$estu_email, $usua_id_propio]);
+                } else {
+                    $checkEmailUsua = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_email = ?");
+                    $checkEmailUsua->execute([$estu_email]);
+                }
+                if ($checkEmailUsua->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso']);
                     break;
                 }
 
@@ -419,7 +460,7 @@ switch ($accion) {
             $pdo = getConexion();
 
             $stmtEstu = $pdo->prepare(
-                "SELECT estu_numerodoc, estu_apellidos, fechanacimiento, usua_id
+                "SELECT estu_numerodoc, estu_apellidos, fechanacimiento, usua_id, estu_email
                  FROM estudiantes WHERE estu_id = ?"
             );
             $stmtEstu->execute([$estu_id]);
@@ -452,6 +493,11 @@ switch ($accion) {
                         : $clave_manual;
                 } else {
                     $crear_acceso = false;
+                }
+
+                if ($crear_acceso && trim($estudiante['estu_email'] ?? '') === '') {
+                    echo json_encode(['status' => 'error', 'message' => 'Este estudiante no tiene correo registrado. Edítalo antes de crear el acceso.']);
+                    break;
                 }
             }
 
@@ -502,7 +548,7 @@ switch ($accion) {
             if ($crear_acceso && $clave_generada !== null) {
                 $hash        = password_hash($clave_generada, PASSWORD_BCRYPT);
                 $numerodoc   = $estudiante['estu_numerodoc'];
-                $usua_email  = $numerodoc . '@emdb.local';
+                $usua_email  = $estudiante['estu_email'];
 
                 $stmtU = $pdo->prepare(
                     "INSERT INTO usuarios (role_id, usua_login, usua_email, usua_passwordhash) VALUES (4, ?, ?, ?)"
@@ -519,6 +565,7 @@ switch ($accion) {
             $response = ['status' => 'ok', 'rows' => 1];
             if ($clave_generada !== null) {
                 $response['clave_generada'] = $clave_generada;
+                $response['usua_email']     = $usua_email;
             }
             echo json_encode($response);
 

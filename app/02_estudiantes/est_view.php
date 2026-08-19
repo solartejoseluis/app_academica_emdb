@@ -384,6 +384,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <input type="text" class="form-control" id="npt_clave_manual" placeholder="Ingrese la clave" autocomplete="off">
                 </div>
                 <div class="alert alert-success d-none" id="div_clave_generada">
+                    Usuario (correo de acceso): <strong id="spn_usua_email_valor"></strong><br>
                     Clave asignada: <strong id="spn_clave_valor"></strong>
                     <div class="mt-1 small text-muted">Anote esta clave — no se volverá a mostrar.</div>
                 </div>

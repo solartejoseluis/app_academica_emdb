@@ -361,6 +361,7 @@ $(document).ready(function () {
                 if (response.status === 'ok') {
                     if (response.clave_generada) {
                         $('#spn_clave_valor').text(response.clave_generada);
+                        $('#spn_usua_email_valor').text(response.usua_email);
                         $('#div_clave_generada').removeClass('d-none');
                         $('#btn_confirmar_matricula').addClass('d-none');
                         $('#btn_cerrar_matricula').removeClass('d-none');

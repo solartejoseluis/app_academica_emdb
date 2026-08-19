@@ -73,6 +73,11 @@ switch ($_GET['accion'] ?? '') {
             break;
         }
 
+        if (!filter_var($estu_email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['status' => 'error', 'message' => 'Correo electrónico inválido']);
+            break;
+        }
+
         $verificacion = verificarRecaptcha($recaptcha_token, $_SERVER['REMOTE_ADDR'] ?? '');
         if (!$verificacion['ok']) {
             echo json_encode(['status' => 'error', 'message' => $verificacion['message']]);
@@ -86,6 +91,19 @@ switch ($_GET['accion'] ?? '') {
             $check->execute([$estu_numerodoc]);
             if ($check->fetch()) {
                 echo json_encode(['status' => 'error', 'message' => 'El número de documento ya está registrado']);
+                break;
+            }
+
+            $checkEmailEstu = $pdo->prepare("SELECT estu_id FROM estudiantes WHERE estu_email = ?");
+            $checkEmailEstu->execute([$estu_email]);
+            if ($checkEmailEstu->fetch()) {
+                echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso']);
+                break;
+            }
+            $checkEmailUsua = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_email = ?");
+            $checkEmailUsua->execute([$estu_email]);
+            if ($checkEmailUsua->fetch()) {
+                echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso']);
                 break;
             }
 

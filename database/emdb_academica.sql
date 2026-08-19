@@ -179,6 +179,7 @@ CREATE TABLE estudiantes (
   fechacreacion        TIMESTAMP         DEFAULT current_timestamp(),
   PRIMARY KEY (estu_id),
   UNIQUE KEY uq_estu_numerodoc (estu_numerodoc),
+  UNIQUE KEY uq_estu_email (estu_email),
   CONSTRAINT fk_estu_usua FOREIGN KEY (usua_id) REFERENCES usuarios (usua_id)
     ON UPDATE CASCADE ON DELETE SET NULL,
   CONSTRAINT fk_estu_coho FOREIGN KEY (coho_id) REFERENCES cohortes (coho_id)
