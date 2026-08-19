@@ -4,6 +4,86 @@
 
 ---
 
+## [35d6672] — 2026-08-19 — fix(reportes): elimina DISTINCT redundante que rompía el selector de módulos del estudiante
+
+### Archivos modificados
+- app/06_reportes/reportes_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- case mis_modulos combinaba SELECT DISTINCT con ORDER BY sobre una
+  columna (modu_orden) ausente del SELECT — MySQL 8 lo rechaza bajo
+  ONLY_FULL_GROUP_BY (SQLSTATE 3065). El catch genérico silenciaba la
+  excepción y el selector de módulos quedaba vacío sin ningún aviso.
+  Bug preexistente, no introducido en esta sesión — afectaba a
+  cualquier estudiante que intentara ver sus módulos.
+
+### Decisiones
+- Cada fila ya es única por gm.grmo_id, así que el DISTINCT era
+  redundante; se elimina en vez de agregar modu_orden al SELECT,
+  manteniendo el mismo orden de salida sin reintroducir el conflicto
+  con ONLY_FULL_GROUP_BY.
+
+---
+
+## [d62dde6] — 2026-08-19 — feat(estudiantes): migra autenticación de estudiantes al correo real
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+- app/02_estudiantes/est_view.php
+- app/09_inscripcion_publica/insc_mdl.php
+- database/emdb_academica.sql
+
+### Cambios/Vulnerabilidad corregida
+- El acceso de estudiantes matriculados se creaba con un correo
+  sintético `{numerodoc}@emdb.local`, no comunicable ni verificable —
+  reemplazado por el correo real capturado en `estudiantes.estu_email`.
+- case `matricular` (02_estudiantes) ahora usa `estu_email` real para
+  crear el usuario; bloquea la creación de acceso con mensaje explícito
+  si el estudiante no tiene correo registrado.
+- El modal de confirmación de matrícula ahora muestra el correo de
+  acceso junto a la clave generada — antes solo mostraba la clave,
+  comunicando una credencial incompleta.
+
+### Decisiones
+- `UNIQUE KEY uq_estu_email` agregada a `estudiantes.estu_email`.
+- Validación de formato con `FILTER_VALIDATE_EMAIL` y de unicidad
+  contra **ambas** tablas (`estudiantes.estu_email` y
+  `usuarios.usua_email`) antes de guardar/editar un aspirante, en
+  02_estudiantes (crear y editar) y en el formulario público
+  09_inscripcion_publica — evita que dos aspirantes/estudiantes o un
+  aspirante y un usuario ya existente colisionen en el correo.
+- En la rama editar, la verificación contra `usuarios` excluye el
+  propio `usua_id` del estudiante cuando ya tiene acceso creado
+  (`SELECT usua_id FROM estudiantes WHERE estu_id = ?` primero),
+  para no autobloquear el guardado de un estudiante que conserva su
+  correo actual.
+- Migrados manualmente los 3 usuarios existentes (`usua_id` 4, 15, 17)
+  del correo sintético a su correo real, ya capturado previamente en
+  `estudiantes.estu_email`.
+- La lógica de generación de clave (4 letras del apellido + año de
+  nacimiento) no cambió — solo el correo usado como `usua_email`/login.
+
+---
+
+## [d39ad68] — 2026-08-19 — fix(calificaciones): agrega desempate por nombres en orden alfabético
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- El `ORDER BY` de `listar_calificaciones` no coincidía con el ya usado
+  en `reportes_mdl.php` y `pdf_grupo.php` — dos estudiantes con el
+  mismo apellido podían aparecer en orden distinto entre la planilla de
+  notas y los reportes/PDF del mismo grupo.
+
+### Decisiones
+- Igualado a `ORDER BY estu_apellidos, estu_nombres`, el mismo criterio
+  ya usado en `reportes_mdl.php` y `pdf_grupo.php`, sin introducir un
+  tercer criterio de orden distinto para este endpoint.
+
+---
+
 ## [17f42aa] — 2026-08-17 — feat(grupos): muestra conteo de carga de docente en selector de asignación de módulo
 
 ### Archivos modificados
