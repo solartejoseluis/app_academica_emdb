@@ -4,6 +4,65 @@
 
 ---
 
+## [b0e6660] — 2026-08-20 — feat(estudiantes): filtros por Programa/Período/Grupo/Módulo + columnas Cohorte/Módulos en Matriculados
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- La pestaña Matriculados no tenía forma de acotar el listado por
+  programa, período, grupo o módulo — con el sistema creciendo en
+  número de estudiantes matriculados, revisar un subconjunto obligaba
+  a recorrer toda la tabla a ojo. Se agrega una fila de 4 filtros
+  (Programa, Período, Grupo, Módulo), visible solo para roles 1/2,
+  encima de `tbl_matriculados`.
+- Los filtros se envían juntos en cada `ajax.reload()` del DataTable
+  (función `data` de la config `ajax`) y se resuelven en el servidor
+  con `WHERE`/`EXISTS` dinámico dentro de `listar_matriculados` — mismo
+  patrón de "agregar condición solo si el filtro llegó por POST" ya
+  usado en `listar_grupos` de `05_calificaciones`. A diferencia de ese
+  precedente (filtros de una sola tabla vía `JOIN` directo), Grupo y
+  Módulo se resuelven con subconsultas `EXISTS` contra
+  `grmoestudiantes`/`gruposmodulos`, porque el vínculo estudiante↔grupo
+  vive en esas tablas, no en `matriculas`.
+- Nueva columna "Cohorte" (`coho_codigo`), agregada vía
+  `LEFT JOIN cohortes co ON e.coho_id = co.coho_id` — antes no se
+  mostraba, aunque el dato ya existía en `estudiantes.coho_id`.
+- Nueva columna "Módulos": conteo de módulos activos del estudiante
+  mediante una subconsulta escalar correlacionada
+  (`grmoestudiantes → gruposmodulos → gruposemestres`), filtrado por el
+  período seleccionado en el filtro de Período si hay uno activo, o
+  contando todos los períodos si no hay filtro. El número es un botón
+  que abre el modal `#mdl_modulos_estudiante` con el detalle (módulo,
+  grupo, período, docente) de cada asignación.
+- 3 cases nuevos en `est_mdl.php`: `listar_grupos_filtro` (catálogo de
+  `gruposemestres` activos), `listar_modulos_filtro` (catálogo de
+  `modulos` activos) y `listar_modulos_estudiante` (detalle por
+  `estu_id`, con el mismo filtro opcional de `peri_id`).
+
+### Decisiones
+- El modal de detalle reutiliza exactamente el mismo `peri_id` que está
+  seleccionado en el filtro de Período de la tabla al momento de abrir
+  el modal — así el número mostrado en la columna "Módulos" y las filas
+  del detalle siempre coinciden, sin que el usuario tenga que
+  sincronizar manualmente dos filtros distintos.
+- `listar_modulos_estudiante` no reutiliza `mis_modulos`
+  (`06_reportes/reportes_mdl.php`) porque ese endpoint está diseñado
+  para el propio estudiante autenticado (`WHERE est.usua_id = $_SESSION['usua_id']`,
+  rol 4 exclusivo) y no expone `doce_nombres`/`doce_apellidos`/
+  `peri_codigo` — se implementa un case nuevo, parametrizado por
+  `estu_id` y restringido a roles 1/2, en vez de forzar un segundo modo
+  sobre un endpoint pensado para otro caso de uso.
+- El parámetro de la subconsulta `total_modulos` (cuando hay filtro de
+  período) se coloca primero en el array de `execute()`, respetando el
+  orden exacto en que aparece su placeholder `?` dentro del `SELECT`
+  final — antes de los placeholders del `WHERE` dinámico (prog_id,
+  peri_id, grse_id, modu_id, en ese orden).
+
+---
+
 ## [cac382a] — 2026-08-20 — feat(estudiantes): columna de correo en Matriculados + cascada Programa→Cohorte→Período en modal de matrícula
 
 ### Archivos modificados
