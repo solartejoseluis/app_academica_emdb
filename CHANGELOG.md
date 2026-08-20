@@ -4,6 +4,67 @@
 
 ---
 
+## [7340d6e] — 2026-08-20 — feat(estudiantes): edición de matrícula + fix de causa raíz en Asignación Estudiantes
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+- app/04_grupos/grupos_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- **Bug detectado por el usuario:** un estudiante matriculado en el
+  programa/período `ASO-2027-1` aparecía como "disponible" en el panel
+  de Estudiantes Disponibles de un módulo perteneciente al grupo
+  semestre `MD-2026-2` — un módulo de un programa y período distintos
+  al de su matrícula real.
+- **Causa raíz:** `listar_estudiantes_disponibles`
+  (`04_grupos/grupos_mdl.php`) filtraba únicamente por
+  `estudiantes.coho_id`, sin verificar en ningún momento la matrícula
+  real del estudiante (`matriculas.prog_id`/`peri_id`). Como `coho_id`
+  y la matrícula son datos independientes en el esquema (`matriculas`
+  no tiene columna `coho_id` propia), cualquier estudiante con la
+  cohorte "correcta" pasaba el filtro sin importar en qué programa o
+  período estuviera realmente matriculado.
+- **Fix:** la query ahora exige `matr_estado = 'matriculado'` con
+  `prog_id`/`peri_id` coincidentes con el grupo semestre del `grmo_id`
+  recibido (derivado vía `gruposmodulos → gruposemestres`), sin tocar
+  nada del frontend de `04_grupos` — el fix es 100% backend.
+- Nuevo modal "Editar Matrícula" en la pestaña Matriculados de
+  `02_estudiantes`, para corregir Programa/Cohorte/Período de una
+  matrícula ya creada (misma cascada Programa→Cohorte que "Completar
+  Matrícula").
+- 2 cases nuevos en `est_mdl.php`: `obtener_matricula` (lectura por
+  `matr_id`) y `editar_matricula` — transacción que actualiza
+  `matriculas.prog_id`/`peri_id` y `estudiantes.coho_id`, y **retira
+  automáticamente** al estudiante de cualquier módulo
+  (`grmoestudiantes`) cuyo grupo semestre ya no corresponda al nuevo
+  programa+período, mediante un `DELETE` con `JOIN` contra
+  `gruposmodulos`/`gruposemestres`.
+
+### Decisiones
+- `editar_matricula` opera por `matr_id` (no por la tripleta natural
+  `estu_id+prog_id+peri_id` que usa `matricular`) — necesario porque
+  cambiar `prog_id`/`peri_id` con el patrón de `matricular` hubiera
+  creado una fila nueva en vez de modificar la existente, dejando la
+  original huérfana sin retirar.
+- `cargarCohortesPorPrograma()` se movió de función local (dentro de
+  `$(document).ready`) a función global, con un tercer parámetro
+  `callback` opcional — necesario porque `abrirEditarMatricula()` se
+  invoca desde un `onclick` inline renderizado por el DataTable de
+  Matriculados, y una función local hubiera lanzado `ReferenceError`
+  al intentar llamarla (mismo patrón de scope ya documentado en
+  CLAUDE.md para funciones invocadas desde onclick inline). El
+  `callback` permite preseleccionar la cohorte recibida de forma
+  determinista tras cargar el catálogo filtrado, sin depender de
+  `setTimeout`.
+- El llamado ya existente en el modal "Completar Matrícula"
+  (`cargarCohortesPorPrograma(prog_id)`, sin segundo/tercer argumento)
+  no requirió cambios — `selectorDestino` cae en su valor por defecto
+  `'#slct_coho_id'`, preservando el comportamiento original.
+
+---
+
 ## [b0e6660] — 2026-08-20 — feat(estudiantes): filtros por Programa/Período/Grupo/Módulo + columnas Cohorte/Módulos en Matriculados
 
 ### Archivos modificados
