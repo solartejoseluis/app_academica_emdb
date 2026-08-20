@@ -4,6 +4,56 @@
 
 ---
 
+## [cac382a] — 2026-08-20 — feat(estudiantes): columna de correo en Matriculados + cascada Programa→Cohorte→Período en modal de matrícula
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- La tabla de Matriculados no mostraba el correo del estudiante
+  (`estu_email`) — se agrega como columna "Correo", entre Documento y
+  Programa, tanto en el `<thead>` como en el `SELECT` de
+  `listar_matriculados` y en el array `columns` del DataTable.
+- El modal "Completar Matrícula" pedía Programa y Período pero el
+  select de Cohorte se poblaba con **todas** las cohortes activas del
+  sistema, sin filtrar por el programa elegido — un coordinador podía
+  matricular a un estudiante en una cohorte de un programa distinto al
+  seleccionado. Se reordena el modal a la secuencia Programa → Cohorte
+  → Período, con cascada real: Cohorte queda `disabled` hasta elegir
+  un Programa y se repuebla vía AJAX al cambiarlo.
+- Nuevo case `listar_cohortes_por_programa` en `est_mdl.php`: recibe
+  `prog_id` por POST y filtra `cohortes` por `prog_id` y
+  `coho_activa = 1` — duplicado deliberado de la query equivalente ya
+  existente en `grupos_mdl.php` (mismo criterio ya documentado en
+  CLAUDE.md de no reutilizar endpoints cross-módulo para catálogos).
+- Cohorte pasa de campo opcional a **obligatorio**: se agrega su propia
+  validación (`alert()` + `return false`) en el handler de
+  `btn_confirmar_matricula`, junto a las ya existentes de Programa y
+  Período.
+- `abrirMatricular(estu_id)` ahora resetea y deshabilita los 3 selects
+  a su estado inicial en cada apertura del modal — antes podía
+  arrastrar la selección de Programa/Cohorte/Período del estudiante
+  matriculado anteriormente si el modal no se había cerrado mediante
+  el evento `hidden.bs.modal`.
+
+### Decisiones
+- Se reemplaza por completo `cargarCohortes()` (sin filtro, llamada
+  una sola vez en `document.ready`) por
+  `cargarCohortesPorPrograma(prog_id)` (llamada bajo demanda desde el
+  listener `change` de `slct_prog_id`) — verificado con `grep` que
+  `cargarCohortes()` no tenía ningún otro punto de uso en el archivo
+  antes de eliminarla, evitando dejar código muerto.
+- El nuevo endpoint `listar_cohortes_por_programa` se implementa
+  duplicado en `est_mdl.php` en vez de invocar
+  `grupos_mdl.php?accion=listar_cohortes_por_programa` (que ya existía
+  con la misma query) — consistente con la decisión arquitectónica
+  activa "Catálogos compartidos (programas, períodos, docentes) se
+  duplican por módulo, no se centralizan".
+
+---
+
 ## [00a22fc] — 2026-08-19 — feat(grupos): agrega CRUD de Programas y reordena pestañas de 04_grupos
 
 ### Archivos modificados
