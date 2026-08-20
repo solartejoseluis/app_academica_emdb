@@ -4,6 +4,70 @@
 
 ---
 
+## [a83cb43] — 2026-08-20 — feat(grupos): agrega eliminación de Períodos (DELETE condicionado, mismo patrón de Módulos/Cohortes/Programas)
+
+### Archivos modificados
+- app/04_grupos/grupos_mdl.php
+- app/04_grupos/grupos_view.php
+- app/04_grupos/grupos_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- La pestaña Períodos de `04_grupos` no tenía ninguna opción de
+  eliminación — un período creado por error, o un período de prueba,
+  quedaba para siempre en la tabla `periodos` sin forma de retirarlo.
+- Nuevo case `eliminar_periodo` en `grupos_mdl.php`, siguiendo el mismo
+  patrón "DELETE condicionado" ya usado en `eliminar_modulo`,
+  `eliminar_cohorte` y `eliminar_programa`: bloquea el `DELETE` si el
+  período tiene `gruposemestres` o `matriculas` asociadas.
+- `listar_periodos` ahora incluye dos subconsultas escalares
+  (`total_gruposemestres`, `total_matriculas`) para que el frontend
+  decida si mostrar el botón Eliminar, mismo criterio ya usado en
+  `listar_programas_crud`/`listar_modulos`.
+- Nuevo modal de confirmación `mdl_confirmar_eliminar_periodo`
+  (`modal-sm`), mismo patrón visual y de nomenclatura de ids que los
+  modales equivalentes de Módulos/Cohortes/Programas
+  (`spn_nombre_eliminar_periodo`, `btn_confirmar_eliminar_periodo`,
+  `periodoIdPendienteEliminar`, `confirmarEliminarPeriodo()`).
+
+### Decisiones
+- **Sin alternativa reversible tipo "desactivar", a diferencia de
+  Módulos/Cohortes/Programas.** En esos tres, `modu_activo`/
+  `coho_activa`/`prog_activo` son flags de archivado por registro
+  (cualquier fila puede desactivarse individualmente y reactivarse
+  después, sin afectar a las demás). `periodos.peri_activo` tiene una
+  semántica completamente distinta: "único período activo
+  institucional a la vez" (patrón ya documentado en CLAUDE.md,
+  gestionado por `activar_periodo` — desactiva todos, activa uno). No
+  existe un `toggle_estado_periodo` boolean por-fila, y no tendría
+  sentido crear uno solo para esta función: "desactivar" un período ya
+  significa otra cosa en este esquema. El DELETE condicionado de
+  Períodos queda entonces **sin alternativa reversible — solo
+  bloqueo**, con mensaje explicando la causa (dependientes asociados),
+  no una sugerencia de acción alternativa como en los otros tres casos.
+- **Salvaguarda adicional: el período activo nunca puede eliminarse,
+  incluso si está vacío (sin `gruposemestres` ni `matriculas`).** Esta
+  verificación se ejecuta **antes** del conteo de dependientes —
+  primero un `SELECT peri_activo FROM periodos WHERE peri_id = ?`; si
+  `peri_activo = 1`, el `DELETE` se bloquea de inmediato con el mensaje
+  "No se puede eliminar el período activo institucional. Active otro
+  período primero.", sin siquiera llegar a contar `gruposemestres`/
+  `matriculas`. Necesario porque un período recién creado y activado
+  (sin ningún grupo semestre ni matrícula todavía) pasaría el chequeo
+  de dependientes limpio, pero eliminarlo dejaría al sistema sin
+  ningún período activo institucional — un estado inconsistente que
+  rompería cualquier lógica que dependa de "resolver el período activo
+  por defecto" (ya documentado en CLAUDE.md).
+- En el frontend, el botón Eliminar exige ambas condiciones a la vez
+  (`totalDependientes === 0 && row.peri_activo == 0`) — replica en el
+  cliente la misma doble verificación del backend, para que el botón
+  ni siquiera se muestre en un caso que el servidor rechazaría de
+  todas formas.
+- Verificado en el mismo ciclo que `eliminar_programa` (commit
+  `00a22fc`) sigue íntegro en disco, sin ninguna alteración accidental
+  desde su implementación original.
+
+---
+
 ## [7340d6e] — 2026-08-20 — feat(estudiantes): edición de matrícula + fix de causa raíz en Asignación Estudiantes
 
 ### Archivos modificados
