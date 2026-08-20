@@ -457,6 +457,44 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </div>
 
+<!-- Modal Editar Matrícula (Programa/Cohorte/Período) -->
+<div class="modal fade" id="mdl_editar_matricula" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mdl_editar_matricula_titulo">Editar Matrícula</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="npt_matr_id_editar" value="">
+                <div class="alert alert-warning small" id="aviso_editar_matricula" style="display:none;"></div>
+                <div class="mb-3">
+                    <label class="form-label">Programa <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_editar_prog_id">
+                        <option value="">-- Seleccionar --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Cohorte <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_editar_coho_id" disabled>
+                        <option value="">-- Primero seleccione un programa --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Período <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_editar_peri_id">
+                        <option value="">-- Seleccionar --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn_guardar_editar_matricula">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Ficha Familiar (AC-FO-02) -->
 <div class="modal fade" id="mdl_ficha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">

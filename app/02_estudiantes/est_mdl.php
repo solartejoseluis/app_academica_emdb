@@ -735,6 +735,98 @@ switch ($accion) {
         }
         break;
 
+    case 'obtener_matricula':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $matr_id = (int)($_POST['matr_id'] ?? 0);
+        if ($matr_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de matrícula inválido']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT m.matr_id, m.prog_id, m.peri_id, m.estu_id,
+                       e.coho_id, e.estu_nombres, e.estu_apellidos
+                FROM matriculas m
+                INNER JOIN estudiantes e ON m.estu_id = e.estu_id
+                WHERE m.matr_id = ?
+            ");
+            $stmt->execute([$matr_id]);
+            $matricula = $stmt->fetch();
+            if (!$matricula) {
+                echo json_encode(['status' => 'error', 'message' => 'Matrícula no encontrada']);
+                break;
+            }
+            echo json_encode(['status' => 'ok', 'data' => $matricula]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'editar_matricula':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $matr_id = (int)($_POST['matr_id'] ?? 0);
+        $prog_id = (int)($_POST['prog_id'] ?? 0);
+        $peri_id = (int)($_POST['peri_id'] ?? 0);
+        $coho_id = (int)($_POST['coho_id'] ?? 0);
+        if ($matr_id === 0 || $prog_id === 0 || $peri_id === 0 || $coho_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Programa, cohorte y período son requeridos']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $pdo->beginTransaction();
+
+            $stmtEstu = $pdo->prepare("SELECT estu_id FROM matriculas WHERE matr_id = ?");
+            $stmtEstu->execute([$matr_id]);
+            $estu_id = $stmtEstu->fetchColumn();
+            if (!$estu_id) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'Matrícula no encontrada']);
+                break;
+            }
+
+            $stmtM = $pdo->prepare("UPDATE matriculas SET prog_id = ?, peri_id = ? WHERE matr_id = ?");
+            $stmtM->execute([$prog_id, $peri_id, $matr_id]);
+
+            $stmtE = $pdo->prepare("UPDATE estudiantes SET coho_id = ? WHERE estu_id = ?");
+            $stmtE->execute([$coho_id, $estu_id]);
+
+            $stmtDel = $pdo->prepare("
+                DELETE ge FROM grmoestudiantes ge
+                JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
+                JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                WHERE ge.estu_id = ? AND (gs.prog_id != ? OR gs.peri_id != ?)
+            ");
+            $stmtDel->execute([$estu_id, $prog_id, $peri_id]);
+            $modulos_retirados = $stmtDel->rowCount();
+
+            $pdo->commit();
+            echo json_encode(['status' => 'ok', 'modulos_retirados' => $modulos_retirados]);
+        } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al editar la matrícula']);
+        }
+        break;
+
     case 'obtener_ficha':
         if (!isset($_SESSION['usua_id'])) {
             echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);

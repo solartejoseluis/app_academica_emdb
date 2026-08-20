@@ -508,6 +508,38 @@ $(document).ready(function () {
         $('#slct_peri_id').val('');
     });
 
+    // --- Guardar cambios en Editar Matrícula ---
+    $('#btn_guardar_editar_matricula').click(function () {
+        const matr_id = $('#npt_matr_id_editar').val();
+        const prog_id = $('#slct_editar_prog_id').val();
+        const coho_id = $('#slct_editar_coho_id').val();
+        const peri_id = $('#slct_editar_peri_id').val();
+
+        if (!prog_id) { alert('Seleccione el programa.'); return false; }
+        if (!coho_id) { alert('Seleccione la cohorte.');  return false; }
+        if (!peri_id) { alert('Seleccione el período.');  return false; }
+
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=editar_matricula',
+            data: { matr_id: matr_id, prog_id: prog_id, coho_id: coho_id, peri_id: peri_id },
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    if (response.modulos_retirados > 0) {
+                        alert('Se guardaron los cambios. Se retiraron ' + response.modulos_retirados + ' módulo(s) que ya no correspondían al nuevo programa/período.');
+                    } else {
+                        alert('Cambios guardados.');
+                    }
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_editar_matricula')).hide();
+                    tablaMatriculados.ajax.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            }
+        });
+    });
+
     // -------------------------------------------------------------------------
     // Funciones internas
     // -------------------------------------------------------------------------
@@ -650,12 +682,13 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
-                    width: '200px',
+                    width: '260px',
                     render: function (data, type, row) {
                         const mapaColorFicha = { sin_iniciar: '#dc3545', incompleta: '#ffc107', completa: '#28a745' };
                         const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
                         const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
                         const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
+                        const botonEditarMatricula = `<button class="btn btn-sm btn-outline-warning me-1" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>`;
                         const botonPdf = row.estado_ficha === 'completa'
                             ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
                             : '';
@@ -663,7 +696,7 @@ $(document).ready(function () {
                                         onclick="abrirEditar(${row.estu_id}, false)">Editar</button>
                                 <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
-                                </button>${botonPdf}`;
+                                </button>${botonEditarMatricula}${botonPdf}`;
                     }
                 }
             ]
@@ -681,7 +714,7 @@ $(document).ready(function () {
                     response.data.forEach(function (p) {
                         opciones += `<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                     });
-                    $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id').append(opciones);
+                    $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id, #slct_editar_prog_id').append(opciones);
                 }
             }
         });
@@ -700,6 +733,7 @@ $(document).ready(function () {
                     });
                     $('#slct_peri_id').append(opciones);
                     $('#slct_filtro_matr_peri_id').append(opciones);
+                    $('#slct_editar_peri_id').append(opciones);
                 }
             }
         });
@@ -737,27 +771,6 @@ $(document).ready(function () {
         });
     }
 
-    function cargarCohortesPorPrograma(prog_id) {
-        $.ajax({
-            type: 'POST',
-            url: 'est_mdl.php?accion=listar_cohortes_por_programa',
-            data: { prog_id: prog_id },
-            dataType: 'json',
-            success: function (response) {
-                let sel = $('#slct_coho_id');
-                if (response.status === 'ok' && response.data.length > 0) {
-                    let opciones = '<option value="">-- Seleccionar --</option>';
-                    response.data.forEach(function (c) {
-                        opciones += `<option value="${c.coho_id}">${c.coho_codigo}</option>`;
-                    });
-                    sel.html(opciones);
-                } else {
-                    sel.html('<option value="">-- Sin cohortes activas para este programa --</option>');
-                }
-            }
-        });
-    }
-
     $('#slct_prog_id').on('change', function () {
         const prog_id = $(this).val();
         $('#slct_coho_id').html('<option value="">-- Seleccionar --</option>');
@@ -766,6 +779,17 @@ $(document).ready(function () {
             cargarCohortesPorPrograma(prog_id);
         } else {
             $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
+        }
+    });
+
+    $('#slct_editar_prog_id').on('change', function () {
+        const prog_id = $(this).val();
+        $('#slct_editar_coho_id').html('<option value="">-- Seleccionar --</option>');
+        if (prog_id) {
+            $('#slct_editar_coho_id').prop('disabled', false);
+            cargarCohortesPorPrograma(prog_id, '#slct_editar_coho_id');
+        } else {
+            $('#slct_editar_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
         }
     });
 
@@ -903,6 +927,58 @@ function abrirMatricular(estu_id) {
     $('#slct_prog_id, #slct_peri_id').val('');
     $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
     new bootstrap.Modal(document.getElementById('mdl_matricular')).show();
+}
+
+// Global (no dentro de $(document).ready) — se invoca desde el onclick inline
+// del botón "✏️ Matrícula" renderizado por el DataTable, y también desde los
+// listeners de change de #slct_prog_id / #slct_editar_prog_id dentro de ready.
+function cargarCohortesPorPrograma(prog_id, selectorDestino, callback) {
+    selectorDestino = selectorDestino || '#slct_coho_id';
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=listar_cohortes_por_programa',
+        data: { prog_id: prog_id },
+        dataType: 'json',
+        success: function (response) {
+            let sel = $(selectorDestino);
+            if (response.status === 'ok' && response.data.length > 0) {
+                let opciones = '<option value="">-- Seleccionar --</option>';
+                response.data.forEach(function (c) {
+                    opciones += `<option value="${c.coho_id}">${c.coho_codigo}</option>`;
+                });
+                sel.html(opciones);
+            } else {
+                sel.html('<option value="">-- Sin cohortes activas para este programa --</option>');
+            }
+            if (typeof callback === 'function') callback();
+        }
+    });
+}
+
+function abrirEditarMatricula(matr_id) {
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=obtener_matricula',
+        data: { matr_id: matr_id },
+        dataType: 'json',
+        success: function (response) {
+            if (response.status !== 'ok') {
+                alert('Error: ' + response.message);
+                return;
+            }
+            const d = response.data;
+            $('#npt_matr_id_editar').val(d.matr_id);
+            $('#mdl_editar_matricula_titulo').text('Editar Matrícula de ' + d.estu_nombres + ' ' + d.estu_apellidos);
+            $('#aviso_editar_matricula').hide();
+            $('#slct_editar_prog_id').val(d.prog_id);
+            $('#slct_editar_peri_id').val(d.peri_id);
+            $('#slct_editar_coho_id').prop('disabled', false).html('<option value="">-- Seleccionar --</option>');
+            cargarCohortesPorPrograma(d.prog_id, '#slct_editar_coho_id', function () {
+                $('#slct_editar_coho_id').val(d.coho_id);
+            });
+            new bootstrap.Modal(document.getElementById('mdl_editar_matricula')).show();
+        }
+    });
 }
 
 function descargarFichaPdf(estu_id) {

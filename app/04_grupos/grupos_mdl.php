@@ -437,17 +437,20 @@ switch ($accion) {
             $pdo = getConexion();
             $grmo_id = (int)($_POST['grmo_id'] ?? 0);
             $coho_id = (int)($_POST['coho_id'] ?? 0);
-            // Estudiantes matriculados en esa cohorte que NO están ya en ese módulo
+            // Estudiantes cuya matrícula (prog_id + peri_id) coincide con el
+            // programa+período del grupo semestre de este grmo_id, que NO
+            // están ya asignados a ese módulo.
             $stmt = $pdo->prepare("
                 SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc
                 FROM estudiantes e
-                WHERE e.coho_id = ?
-                  AND e.estu_id NOT IN (
-                      SELECT ge.estu_id FROM grmoestudiantes ge WHERE ge.grmo_id = ?
-                  )
+                INNER JOIN matriculas mt ON mt.estu_id = e.estu_id AND mt.matr_estado = 'matriculado'
+                INNER JOIN gruposmodulos gm ON gm.grmo_id = ?
+                INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                WHERE mt.prog_id = gs.prog_id AND mt.peri_id = gs.peri_id
+                  AND e.estu_id NOT IN (SELECT ge.estu_id FROM grmoestudiantes ge WHERE ge.grmo_id = ?)
                 ORDER BY e.estu_apellidos ASC
             ");
-            $stmt->execute([$coho_id, $grmo_id]);
+            $stmt->execute([$grmo_id, $grmo_id]);
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
