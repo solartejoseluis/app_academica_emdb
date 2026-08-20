@@ -469,6 +469,8 @@ Cuando una entidad ya tiene un flag booleano de activo/inactivo (ej. `modu_activ
 
 Ejemplo: `eliminar_modulo` / `toggle_estado_modulo` en `04_grupos` — un módulo con historial en `gruposmodulos` no puede eliminarse, pero sí desactivarse (`modu_activo=0`), lo que lo excluye de los selects activos (`listar_modulos_por_programa`) sin perder la trazabilidad de calificaciones o grupos pasados que ya lo referencian.
 
+Variación con verificación contra múltiples tablas dependientes: `eliminar_programa` / `toggle_estado_programa` en `04_grupos` (commit `00a22fc`, 2026-08-19) — a diferencia de `eliminar_modulo` (una sola tabla dependiente, `gruposmodulos`), un programa puede tener historial en **tres** tablas independientes (`modulos`, `cohortes`, `matriculas`). El `SELECT COUNT(*)` previo sigue siendo una sola query, pero suma las tres subconsultas de conteo en un solo `total` — si cualquiera de las tres es mayor que cero, el DELETE se bloquea y el mensaje sugiere desactivar (`prog_activo=0`) en su lugar. La misma suma de tres subconsultas se reutiliza en `listar_programas_crud` para decidir en el frontend si mostrar el botón Eliminar o Desactivar.
+
 ### Endpoints `listar_X` que alimentan también un modal de edición
 
 Un endpoint `listar_X` que alimenta tanto una tabla/listado como un modal de edición debe devolver los IDs crudos de las relaciones (ej. `modu_id`, `doce_id`), no solo los valores ya resueltos por JOIN (`modu_nombre`, `doce_nombres`). Sin los IDs, el frontend no tiene con qué preseleccionar los `<select>` del modal de edición.

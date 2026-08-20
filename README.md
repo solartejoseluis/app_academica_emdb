@@ -87,7 +87,7 @@ app_academica_emdb/
     01_login/          — Autenticación y redirección por rol ✅
     02_estudiantes/    — Registro, edición y matrícula de estudiantes; Ficha Familiar (AC-FO-02) y foto del estudiante ✅
     03_docentes/       — Gestión del cuerpo docente ✅
-    04_grupos/         — Cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
+    04_grupos/         — Programas (CRUD), cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) ✅
     06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador (con contexto de curso y docente) + boletín PDF estudiante + PDF de Ficha Familiar ✅
     07_coordinador/    — Dashboard de seguimiento académico ✅
@@ -158,7 +158,7 @@ gruposmodulos ──< calificaciones >── estudiantes
 | `usuarios` | Credenciales de acceso. Vinculado 1:1 con docentes o estudiantes |
 | `estudiantes` | Datos personales + cohorte de ingreso |
 | `docentes` | Datos personales + sigla única para códigos de grupo |
-| `programas` | Técnico en ASO y Técnico en MD — con resolución vigente |
+| `programas` | Técnico en ASO y Técnico en MD — con resolución, fecha de aprobación/vencimiento, descripción y estado activo/inactivo |
 | `modulos` | Asignaturas de cada programa (17 en ASO, 19 en MD) |
 | `cohortes` | Grupos de admisión: formato `CH-ASO-2026A` |
 | `gruposemestres` | Instancia de un programa en un período y jornada |
