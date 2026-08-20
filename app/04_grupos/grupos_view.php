@@ -640,6 +640,24 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </div>
 
+<div class="modal fade" id="mdl_confirmar_eliminar_periodo" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar período</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Eliminar el período <strong id="spn_nombre_eliminar_periodo"></strong> de forma permanente? Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_periodo">Eliminar definitivamente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL CREAR/EDITAR PROGRAMA -->
 <div class="modal fade" id="mdl_programa" tabindex="-1">
     <div class="modal-dialog">

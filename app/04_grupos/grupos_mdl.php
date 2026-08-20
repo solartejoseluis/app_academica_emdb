@@ -574,7 +574,9 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
-                SELECT peri_id, peri_codigo, peri_anio, peri_semestre, fechainicio, fechafin, peri_activo
+                SELECT peri_id, peri_codigo, peri_anio, peri_semestre, fechainicio, fechafin, peri_activo,
+                       (SELECT COUNT(*) FROM gruposemestres gs WHERE gs.peri_id = periodos.peri_id) AS total_gruposemestres,
+                       (SELECT COUNT(*) FROM matriculas mt WHERE mt.peri_id = periodos.peri_id) AS total_matriculas
                 FROM periodos
                 ORDER BY peri_id DESC
             ");
@@ -707,6 +709,56 @@ switch ($accion) {
         } catch (Exception $e) {
             $pdo->rollBack();
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'eliminar_periodo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $peri_id = (int)($_POST['peri_id'] ?? 0);
+
+        if ($peri_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de período inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            $stmtCheckActivo = $pdo->prepare("SELECT peri_activo FROM periodos WHERE peri_id = ?");
+            $stmtCheckActivo->execute([$peri_id]);
+            $peri_activo_actual = $stmtCheckActivo->fetchColumn();
+            if ($peri_activo_actual === false) {
+                echo json_encode(['status' => 'error', 'message' => 'Período no encontrado']);
+                break;
+            }
+            if ((int)$peri_activo_actual === 1) {
+                echo json_encode(['status' => 'error', 'message' => 'No se puede eliminar el período activo institucional. Active otro período primero.']);
+                break;
+            }
+
+            $check = $pdo->prepare("
+                SELECT
+                    (SELECT COUNT(*) FROM gruposemestres gs WHERE gs.peri_id = ?) +
+                    (SELECT COUNT(*) FROM matriculas mt WHERE mt.peri_id = ?) AS total
+            ");
+            $check->execute([$peri_id, $peri_id]);
+            if ((int)$check->fetchColumn() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Este período tiene grupos semestre o matrículas asociadas, no puede eliminarse.']);
+                break;
+            }
+            $stmt = $pdo->prepare("DELETE FROM periodos WHERE peri_id = ?");
+            $stmt->execute([$peri_id]);
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar: existen datos asociados al período']);
         }
         break;
 

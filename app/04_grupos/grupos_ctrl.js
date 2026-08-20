@@ -8,6 +8,7 @@ let cohorteIdPendienteEliminar = null;
 let periodoActivoId = '';
 let cacheProgramas = {};
 let programaIdPendienteEliminar = null;
+let periodoIdPendienteEliminar = null;
 
 $(document).ready(function () {
 
@@ -136,8 +137,13 @@ $(document).ready(function () {
                     let botones = `<button class="btn btn-sm btn-outline-primary me-1"
                         onclick="abrirEditarPeriodo(${row.peri_id})">Editar</button>`;
                     if (row.peri_activo == 0) {
-                        botones += `<button class="btn btn-sm btn-outline-success"
+                        botones += `<button class="btn btn-sm btn-outline-success me-1"
                             onclick="activarPeriodo(${row.peri_id})">Marcar como activo</button>`;
+                    }
+                    const totalDependientes = Number(row.total_gruposemestres) + Number(row.total_matriculas);
+                    if (totalDependientes === 0 && row.peri_activo == 0) {
+                        botones += `<button class="btn btn-sm btn-outline-danger"
+                            onclick="confirmarEliminarPeriodo(${row.peri_id}, '${row.peri_codigo}')">Eliminar</button>`;
                     }
                     return botones;
                 }}
@@ -854,6 +860,26 @@ $(document).ready(function () {
         });
     });
 
+    $('#btn_confirmar_eliminar_periodo').on('click', function () {
+        if (!periodoIdPendienteEliminar) return;
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=eliminar_periodo',
+            data: { peri_id: periodoIdPendienteEliminar },
+            dataType: 'json',
+            success: function (r) {
+                bootstrap.Modal.getInstance('#mdl_confirmar_eliminar_periodo').hide();
+                if (r.status === 'ok') {
+                    cargarTablaPeriodos();
+                    cargarPeriodosSelector();
+                } else {
+                    alert(r.message);
+                }
+                periodoIdPendienteEliminar = null;
+            }
+        });
+    });
+
     // Eliminar vive como acción de fila en la tabla (no dentro del modal de
     // edición) — mismo patrón que btn_confirmar_eliminar_modulo.
     $('#btn_confirmar_eliminar_cohorte').on('click', function () {
@@ -1115,6 +1141,12 @@ function confirmarEliminarPrograma(prog_id, nombre) {
     programaIdPendienteEliminar = prog_id;
     $('#spn_nombre_eliminar_programa').text(nombre);
     new bootstrap.Modal('#mdl_confirmar_eliminar_programa').show();
+}
+
+function confirmarEliminarPeriodo(peri_id, codigo) {
+    periodoIdPendienteEliminar = peri_id;
+    $('#spn_nombre_eliminar_periodo').text(codigo);
+    new bootstrap.Modal('#mdl_confirmar_eliminar_periodo').show();
 }
 
 function toggleEstadoPrograma(prog_id, nuevoEstado) {
