@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-08-19
-> Versión: 43 — Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias + fila de contexto del Excel exportado dividida en 2 filas + período activo (peri_activo) y conteo de grupos por docente + eliminar/desactivar docente y corrección de doce_activo desincronizado + texto de ayuda para siglas y corrección de maxlength/mayúsculas + filtros de profesor/programa/período en calificaciones + sidebar de ayuda con CRUD (10_ayudas) + sidebar de ayuda expandido a todos los módulos + fix refresco matriculados + cambio de clave para estudiantes matriculados + fix del select de sección en el modal de ayuda + guard de autorización por rol en listar_grupos (05_calificaciones) + período activo preseleccionado y sincronizado en modal Grupo Semestre + grse_codigo y peri_codigo autogenerados readonly permanente + modal Grupo Semestre ampliado a modal-xl + validación de unicidad de doce_sigla + eliminar_cohorte envuelto en transacción PDO + conteo de carga de docente en selector de asignación de módulo + desempate alfabético en listar_calificaciones + autenticación de estudiantes migrada a correo real (estu_email UNIQUE) + fix del selector de módulos del estudiante (DISTINCT + ONLY_FULL_GROUP_BY)
+> Última actualización: 2026-08-20
+> Versión: 44 — CRUD de Programas en 04_grupos + reordenamiento de pestañas (Programas, Módulos, Períodos, Cohortes, Grupos Semestre, Asignación Estudiantes) + Ficha Familiar obligatoria + indicador de 3 estados (Fase 5 formulario público) + zona horaria America/Bogota en Docker + select de Reportes con nombre de módulo e inicial de docente + eliminar aspirante desde 02_estudiantes + CRUD completo de módulos en 04_grupos + fix de sesión faltante en listar_grupos (05_calificaciones) + jornada movida de cohorte a grupo semestre (grse_jornada) + fix de precarga/edición/eliminación en modal de módulo-grupo (04_grupos) + eliminar/desactivar cohorte con verificación de dependencias + fila de contexto del Excel exportado dividida en 2 filas + período activo (peri_activo) y conteo de grupos por docente + eliminar/desactivar docente y corrección de doce_activo desincronizado + texto de ayuda para siglas y corrección de maxlength/mayúsculas + filtros de profesor/programa/período en calificaciones + sidebar de ayuda con CRUD (10_ayudas) + sidebar de ayuda expandido a todos los módulos + fix refresco matriculados + cambio de clave para estudiantes matriculados + fix del select de sección en el modal de ayuda + guard de autorización por rol en listar_grupos (05_calificaciones) + período activo preseleccionado y sincronizado en modal Grupo Semestre + grse_codigo y peri_codigo autogenerados readonly permanente + modal Grupo Semestre ampliado a modal-xl + validación de unicidad de doce_sigla + eliminar_cohorte envuelto en transacción PDO + conteo de carga de docente en selector de asignación de módulo + desempate alfabético en listar_calificaciones + autenticación de estudiantes migrada a correo real (estu_email UNIQUE) + fix del selector de módulos del estudiante (DISTINCT + ONLY_FULL_GROUP_BY)
 
 ---
 
@@ -158,7 +158,7 @@ app_academica_emdb/
 
 ```
 1.  roles              — role_id, role_nombre
-2.  programas          — prog_id, prog_nombre, prog_sigla, prog_resolucion
+2.  programas          — prog_id, prog_nombre, prog_sigla, prog_resolucion, prog_fechaaprobacion, prog_fechavencimiento, prog_duracion_semestres, prog_descripcion, prog_activo
 3.  periodos           — peri_id, peri_codigo, peri_anio, peri_semestre
 4.  usuarios           — usua_id, role_id(FK), usua_email, usua_passwordhash, usua_activo
 5.  cohortes           — coho_id, prog_id(FK), coho_codigo, fechainicio
@@ -404,6 +404,7 @@ necesidad de una cuenta completa.
 | `d39ad68` | fix(calificaciones): agrega desempate por nombres en orden alfabético — iguala ORDER BY con reportes_mdl.php/pdf_grupo.php | 2026-08-19 |
 | `d62dde6` | feat(estudiantes): migra autenticación de estudiantes al correo real — UNIQUE estu_email, validación de formato/unicidad, matricular usa estu_email real, migrados usua_id 4/15/17 | 2026-08-19 |
 | `35d6672` | fix(reportes): elimina DISTINCT redundante que rompía el selector de módulos del estudiante (SQLSTATE 3065, ONLY_FULL_GROUP_BY) | 2026-08-19 |
+| `00a22fc` | feat(grupos): agrega CRUD de Programas (listar_programas_crud/guardar/eliminar/toggle_estado) + reordena pestañas de 04_grupos (Programas primero) — prog_vigencia renombrada a prog_fechavencimiento, agrega prog_fechaaprobacion/prog_descripcion/prog_activo | 2026-08-19 |
 
 ---
 

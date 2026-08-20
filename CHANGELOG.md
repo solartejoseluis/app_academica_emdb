@@ -4,6 +4,56 @@
 
 ---
 
+## [00a22fc] — 2026-08-19 — feat(grupos): agrega CRUD de Programas y reordena pestañas de 04_grupos
+
+### Archivos modificados
+- app/04_grupos/grupos_ctrl.js
+- app/04_grupos/grupos_mdl.php
+- app/04_grupos/grupos_view.php
+- database/emdb_academica.sql
+
+### Cambios/Vulnerabilidad corregida
+- La tabla `programas` no tenía ningún CRUD en la aplicación — Programa
+  ASO y MD solo existían por el seed inicial, igual que `periodos` antes
+  del commit `35831fe`. Cualquier programa nuevo (o corrección de
+  resolución/vigencia) debía insertarse manualmente vía SQL/phpMyAdmin.
+- Esquema: `prog_vigencia` renombrada a `prog_fechavencimiento`;
+  agregadas `prog_fechaaprobacion` (DATE), `prog_descripcion` (TEXT) y
+  `prog_activo` (TINYINT(1) DEFAULT 1).
+- Backend (`grupos_mdl.php`): nuevos case `listar_programas_crud`,
+  `guardar_programa`, `eliminar_programa`, `toggle_estado_programa`,
+  replicando el patrón CRUD ya usado para Módulos. El case
+  `listar_programas` (selector simple `prog_id`/`prog_nombre`/
+  `prog_sigla`) queda intacto — sigue alimentando los 3 selectores de
+  programa que ya dependían de él (Cohortes, Grupos Semestre, Módulos).
+- Frontend: nueva pestaña "Programas" (ahora primera y activa por
+  defecto), con tabla DataTable, modal CRUD y modal de confirmación de
+  borrado, siguiendo el mismo patrón visual de Módulos.
+- Pestañas de `04_grupos` reordenadas: Programas, Módulos, Períodos,
+  Cohortes, Grupos Semestre, Asignación Estudiantes.
+
+### Decisiones
+- `guardar_programa` bloquea el cambio de `prog_sigla` si el programa
+  ya tiene módulos, cohortes o matrículas asociadas — evita
+  inconsistencia con códigos ya generados (`grse_codigo`, etc.) que
+  incluyen la sigla del programa.
+- `eliminar_programa` sigue el patrón "DELETE condicionado + alternativa
+  reversible" ya documentado en CLAUDE.md: bloquea el DELETE físico si
+  hay dependientes en `modulos`, `cohortes` o `matriculas` (misma
+  subconsulta de conteo usada en `listar_programas_crud` para decidir
+  qué botón de acción mostrar), y el mensaje de error sugiere
+  explícitamente desactivar el programa en su lugar
+  (`toggle_estado_programa`, sin modal de confirmación, reversible en
+  cualquier momento).
+- `listar_programas` se mantiene deliberadamente sin tocar para no
+  afectar el comportamiento ya validado de los 3 selectores que
+  dependen de él — el nuevo listado completo para el DataTable de este
+  CRUD usa el nombre `listar_programas_crud`, mismo criterio de
+  nombrado ya usado en el archivo entre `listar_modulos` y
+  `listar_modulos_por_programa`.
+
+---
+
 ## [35d6672] — 2026-08-19 — fix(reportes): elimina DISTINCT redundante que rompía el selector de módulos del estudiante
 
 ### Archivos modificados
