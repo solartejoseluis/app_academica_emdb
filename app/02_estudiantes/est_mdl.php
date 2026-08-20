@@ -97,7 +97,7 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
-                           e.estu_tipodoc, e.estu_numerodoc, e.estu_foto,
+                           e.estu_tipodoc, e.estu_numerodoc, e.estu_email, e.estu_foto,
                            p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
@@ -185,6 +185,31 @@ switch ($accion) {
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al cargar cohortes']);
+        }
+        break;
+
+    case 'listar_cohortes_por_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        $prog_id = (int)($_POST['prog_id'] ?? 0);
+        if ($prog_id === 0) {
+            echo json_encode(['status' => 'ok', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("SELECT coho_id, coho_codigo FROM cohortes WHERE prog_id = ? AND coho_activa = 1 ORDER BY coho_codigo DESC");
+            $stmt->execute([$prog_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);
         }
         break;
 

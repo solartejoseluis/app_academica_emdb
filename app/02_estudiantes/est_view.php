@@ -81,6 +81,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                                 <th>Nombres</th>
                                 <th>Apellidos</th>
                                 <th>Documento</th>
+                                <th>Correo</th>
                                 <th>Programa</th>
                                 <th>Período</th>
                                 <th>Estado</th>
@@ -339,16 +340,16 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Período <span class="text-danger">*</span></label>
-                        <select class="form-select" id="slct_peri_id">
-                            <option value="">-- Seleccionar --</option>
+                        <label class="form-label">Cohorte <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_coho_id" disabled>
+                            <option value="">-- Primero seleccione un programa --</option>
                         </select>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">Cohorte</label>
-                        <select class="form-select" id="slct_coho_id">
+                        <label class="form-label">Período <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_peri_id">
                             <option value="">-- Seleccionar --</option>
                         </select>
                     </div>

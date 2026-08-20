@@ -103,7 +103,6 @@ $(document).ready(function () {
     cargarTablas();
     cargarProgramas();
     cargarPeriodos();
-    cargarCohortes();
 
     // Ajustar columnas al cambiar de tab (soluciona render en tab oculto)
     $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
@@ -323,9 +322,11 @@ $(document).ready(function () {
     $('#btn_confirmar_matricula').click(function () {
         let estu_id  = $('#npt_estu_id_matricular').val();
         let prog_id  = $('#slct_prog_id').val();
+        let coho_id  = $('#slct_coho_id').val();
         let peri_id  = $('#slct_peri_id').val();
 
         if (!prog_id) { alert('Seleccione el programa.');  return false; }
+        if (!coho_id) { alert('Seleccione la cohorte.');   return false; }
         if (!peri_id) { alert('Seleccione el período.');   return false; }
 
         let tipo_acceso = $('input[name="tipo_acceso"]:checked').val();
@@ -608,6 +609,7 @@ $(document).ready(function () {
                         return tipo + (row.estu_numerodoc || '');
                     }
                 },
+                { data: 'estu_email' },
                 { data: 'prog_sigla', width: '70px' },
                 { data: 'peri_codigo', width: '80px' },
                 {
@@ -680,21 +682,37 @@ $(document).ready(function () {
         });
     }
 
-    function cargarCohortes() {
+    function cargarCohortesPorPrograma(prog_id) {
         $.ajax({
             type: 'POST',
-            url: 'est_mdl.php?accion=listar_cohortes',
+            url: 'est_mdl.php?accion=listar_cohortes_por_programa',
+            data: { prog_id: prog_id },
             dataType: 'json',
             success: function (response) {
-                if (response.status === 'ok') {
-                    let sel = $('#slct_coho_id');
+                let sel = $('#slct_coho_id');
+                if (response.status === 'ok' && response.data.length > 0) {
+                    let opciones = '<option value="">-- Seleccionar --</option>';
                     response.data.forEach(function (c) {
-                        sel.append(`<option value="${c.coho_id}">${c.coho_codigo}</option>`);
+                        opciones += `<option value="${c.coho_id}">${c.coho_codigo}</option>`;
                     });
+                    sel.html(opciones);
+                } else {
+                    sel.html('<option value="">-- Sin cohortes activas para este programa --</option>');
                 }
             }
         });
     }
+
+    $('#slct_prog_id').on('change', function () {
+        const prog_id = $(this).val();
+        $('#slct_coho_id').html('<option value="">-- Seleccionar --</option>');
+        if (prog_id) {
+            $('#slct_coho_id').prop('disabled', false);
+            cargarCohortesPorPrograma(prog_id);
+        } else {
+            $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
+        }
+    });
 
     function limpiarFormulario() {
         $('#npt_estu_id').val('');
@@ -827,6 +845,8 @@ function abrirEditar(estu_id, esAspirante) {
 
 function abrirMatricular(estu_id) {
     $('#npt_estu_id_matricular').val(estu_id);
+    $('#slct_prog_id, #slct_peri_id').val('');
+    $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
     new bootstrap.Modal(document.getElementById('mdl_matricular')).show();
 }
 
