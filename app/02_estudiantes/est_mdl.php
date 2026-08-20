@@ -96,8 +96,54 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
+
+            $prog_id_filtro = trim($_POST['prog_id'] ?? '');
+            $peri_id_filtro = trim($_POST['peri_id'] ?? '');
+            $grse_id_filtro = trim($_POST['grse_id'] ?? '');
+            $modu_id_filtro = trim($_POST['modu_id'] ?? '');
+
+            $params = [];
+
+            $condicionPeriodoModulos = '';
+            if ($peri_id_filtro !== '') {
+                $condicionPeriodoModulos = ' AND gs3.peri_id = ?';
+                $params[] = (int)$peri_id_filtro;
+            }
+
+            $where = "WHERE e.estu_activo = 1 AND m.matr_estado = 'matriculado'";
+
+            if ($prog_id_filtro !== '') {
+                $where .= " AND m.prog_id = ?";
+                $params[] = (int)$prog_id_filtro;
+            }
+            if ($peri_id_filtro !== '') {
+                $where .= " AND m.peri_id = ?";
+                $params[] = (int)$peri_id_filtro;
+            }
+            if ($grse_id_filtro !== '') {
+                $where .= " AND EXISTS (
+                    SELECT 1 FROM grmoestudiantes geg
+                    JOIN gruposmodulos gmg ON geg.grmo_id = gmg.grmo_id
+                    WHERE geg.estu_id = e.estu_id AND gmg.grse_id = ? AND gmg.grmo_activo = 1
+                )";
+                $params[] = (int)$grse_id_filtro;
+            }
+            if ($modu_id_filtro !== '') {
+                $where .= " AND EXISTS (
+                    SELECT 1 FROM grmoestudiantes gem
+                    JOIN gruposmodulos gmm ON gem.grmo_id = gmm.grmo_id
+                    WHERE gem.estu_id = e.estu_id AND gmm.modu_id = ? AND gmm.grmo_activo = 1
+                )";
+                $params[] = (int)$modu_id_filtro;
+            }
+
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_email, e.estu_foto,
+                           co.coho_codigo,
+                           (SELECT COUNT(*) FROM grmoestudiantes ge3
+                            JOIN gruposmodulos gm3 ON ge3.grmo_id = gm3.grmo_id
+                            JOIN gruposemestres gs3 ON gm3.grse_id = gs3.grse_id
+                            WHERE ge3.estu_id = e.estu_id AND gm3.grmo_activo = 1{$condicionPeriodoModulos}) AS total_modulos,
                            p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
@@ -111,12 +157,12 @@ switch ($accion) {
                     INNER JOIN matriculas m ON e.estu_id = m.estu_id
                     INNER JOIN programas p ON m.prog_id = p.prog_id
                     INNER JOIN periodos pe ON m.peri_id = pe.peri_id
+                    LEFT JOIN cohortes co ON e.coho_id = co.coho_id
                     LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
-                    WHERE e.estu_activo = 1
-                      AND m.matr_estado = 'matriculado'
+                    {$where}
                     ORDER BY e.estu_apellidos ASC, e.estu_nombres ASC";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute();
+            $stmt->execute($params);
             $rows = $stmt->fetchAll();
             foreach ($rows as &$row) {
                 $row['estado_ficha'] = calcularEstadoFicha($row);
@@ -207,6 +253,93 @@ switch ($accion) {
             $pdo = getConexion();
             $stmt = $pdo->prepare("SELECT coho_id, coho_codigo FROM cohortes WHERE prog_id = ? AND coho_activa = 1 ORDER BY coho_codigo DESC");
             $stmt->execute([$prog_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);
+        }
+        break;
+
+    // ── CATÁLOGOS PARA FILTROS DE listar_matriculados (Coordinador/Admin) ────
+
+    case 'listar_grupos_filtro':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("SELECT grse_id, grse_codigo FROM gruposemestres WHERE grse_activo = 1 ORDER BY grse_codigo DESC");
+            $stmt->execute();
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);
+        }
+        break;
+
+    case 'listar_modulos_filtro':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("SELECT modu_id, modu_sigla, modu_nombre FROM modulos WHERE modu_activo = 1 ORDER BY modu_sigla");
+            $stmt->execute();
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);
+        }
+        break;
+
+    // ── MODAL DE DETALLE: MÓDULOS ASIGNADOS A UN ESTUDIANTE ──────────────────
+
+    case 'listar_modulos_estudiante':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        $estu_id = (int)($_POST['estu_id'] ?? 0);
+        $peri_id_filtro = trim($_POST['peri_id'] ?? '');
+        if ($estu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de estudiante inválido', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $params = [$estu_id];
+            $condicionPeriodo = '';
+            if ($peri_id_filtro !== '') {
+                $condicionPeriodo = ' AND gs.peri_id = ?';
+                $params[] = (int)$peri_id_filtro;
+            }
+            $stmt = $pdo->prepare("
+                SELECT m.modu_sigla, m.modu_nombre, gs.grse_codigo, pe.peri_codigo,
+                       d.doce_nombres, d.doce_apellidos
+                FROM grmoestudiantes ge
+                JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
+                JOIN modulos m ON gm.modu_id = m.modu_id
+                JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                JOIN periodos pe ON gs.peri_id = pe.peri_id
+                JOIN docentes d ON gm.doce_id = d.doce_id
+                WHERE ge.estu_id = ? AND gm.grmo_activo = 1{$condicionPeriodo}
+                ORDER BY pe.peri_codigo DESC, m.modu_orden
+            ");
+            $stmt->execute($params);
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);

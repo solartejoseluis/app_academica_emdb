@@ -103,6 +103,12 @@ $(document).ready(function () {
     cargarTablas();
     cargarProgramas();
     cargarPeriodos();
+    cargarGruposFiltro();
+    cargarModulosFiltro();
+
+    $('#slct_filtro_matr_prog_id, #slct_filtro_matr_peri_id, #slct_filtro_matr_grse_id, #slct_filtro_matr_modu_id').on('change', function () {
+        tablaMatriculados.ajax.reload();
+    });
 
     // Ajustar columnas al cambiar de tab (soluciona render en tab oculto)
     $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
@@ -578,7 +584,13 @@ $(document).ready(function () {
             ajax: {
                 url: 'est_mdl.php?accion=listar_matriculados',
                 type: 'POST',
-                dataSrc: 'data'
+                dataSrc: 'data',
+                data: function (d) {
+                    d.prog_id = $('#slct_filtro_matr_prog_id').val();
+                    d.peri_id = $('#slct_filtro_matr_peri_id').val();
+                    d.grse_id = $('#slct_filtro_matr_grse_id').val();
+                    d.modu_id = $('#slct_filtro_matr_modu_id').val();
+                }
             },
             destroy: true,
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
@@ -610,8 +622,17 @@ $(document).ready(function () {
                     }
                 },
                 { data: 'estu_email' },
+                { data: 'coho_codigo', render: v => v || '—' },
                 { data: 'prog_sigla', width: '70px' },
                 { data: 'peri_codigo', width: '80px' },
+                {
+                    data: 'total_modulos',
+                    orderable: false,
+                    width: '90px',
+                    render: function (data, type, row) {
+                        return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosEstudiante(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">${data}</button>`;
+                    }
+                },
                 {
                     data: 'matr_estado',
                     width: '100px',
@@ -660,7 +681,7 @@ $(document).ready(function () {
                     response.data.forEach(function (p) {
                         opciones += `<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                     });
-                    $('#slct_prog_id, #slct_finc_prog_id').append(opciones);
+                    $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id').append(opciones);
                 }
             }
         });
@@ -673,9 +694,43 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (response) {
                 if (response.status === 'ok') {
-                    let sel = $('#slct_peri_id');
+                    let opciones = '';
                     response.data.forEach(function (p) {
-                        sel.append(`<option value="${p.peri_id}">${p.peri_codigo}</option>`);
+                        opciones += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                    });
+                    $('#slct_peri_id').append(opciones);
+                    $('#slct_filtro_matr_peri_id').append(opciones);
+                }
+            }
+        });
+    }
+
+    function cargarGruposFiltro() {
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=listar_grupos_filtro',
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    let sel = $('#slct_filtro_matr_grse_id');
+                    response.data.forEach(function (g) {
+                        sel.append(`<option value="${g.grse_id}">${g.grse_codigo}</option>`);
+                    });
+                }
+            }
+        });
+    }
+
+    function cargarModulosFiltro() {
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=listar_modulos_filtro',
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    let sel = $('#slct_filtro_matr_modu_id');
+                    response.data.forEach(function (m) {
+                        sel.append(`<option value="${m.modu_id}">${m.modu_sigla} — ${m.modu_nombre}</option>`);
                     });
                 }
             }
@@ -852,6 +907,38 @@ function abrirMatricular(estu_id) {
 
 function descargarFichaPdf(estu_id) {
     window.open('../06_reportes/pdf_ficha.php?estu_id=' + estu_id, '_blank');
+}
+
+function verModulosEstudiante(estu_id, nombreCompleto) {
+    $('#mdl_modulos_estudiante_titulo').text('Módulos de ' + nombreCompleto);
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=listar_modulos_estudiante',
+        data: { estu_id: estu_id, peri_id: $('#slct_filtro_matr_peri_id').val() },
+        dataType: 'json',
+        success: function (response) {
+            const tbody = $('#tbody_modulos_estudiante');
+            tbody.empty();
+            if (response.status === 'ok' && response.data.length > 0) {
+                response.data.forEach(function (m) {
+                    tbody.append(`
+                        <tr>
+                            <td>${m.modu_sigla} — ${m.modu_nombre}</td>
+                            <td>${m.grse_codigo}</td>
+                            <td>${m.peri_codigo}</td>
+                            <td>${m.doce_apellidos}, ${m.doce_nombres}</td>
+                        </tr>
+                    `);
+                });
+            } else {
+                const mensaje = $('#slct_filtro_matr_peri_id').val()
+                    ? 'Sin módulos asignados para el período filtrado'
+                    : 'Sin módulos asignados';
+                tbody.append(`<tr><td colspan="4" class="text-muted text-center">${mensaje}</td></tr>`);
+            }
+            new bootstrap.Modal(document.getElementById('mdl_modulos_estudiante')).show();
+        }
+    });
 }
 
 function abrirFicha(estu_id, nombreCompleto) {

@@ -73,6 +73,34 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
         <div class="tab-pane fade" id="pane-matriculados">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
+                    <?php if (in_array((int)$_SESSION['role_id'], [1, 2])): ?>
+                    <div class="row mb-2" id="bloque_filtros_matriculados">
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Programa</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_prog_id">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Período</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_peri_id">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Grupo</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_grse_id">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Módulo</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_modu_id">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     <table id="tbl_matriculados" class="table table-hover table-bordered w-100">
                         <thead class="table-dark">
                             <tr>
@@ -82,8 +110,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                                 <th>Apellidos</th>
                                 <th>Documento</th>
                                 <th>Correo</th>
+                                <th>Cohorte</th>
                                 <th>Programa</th>
                                 <th>Período</th>
+                                <th>Módulos</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
@@ -394,6 +424,34 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success d-none" id="btn_cerrar_matricula">Cerrar y actualizar lista</button>
                 <button type="button" class="btn btn-primary" id="btn_confirmar_matricula">Confirmar Matrícula</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Módulos Asignados (detalle de conteo en Matriculados) -->
+<div class="modal fade" id="mdl_modulos_estudiante" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mdl_modulos_estudiante_titulo">Módulos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Módulo</th>
+                            <th>Grupo</th>
+                            <th>Período</th>
+                            <th>Docente</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_modulos_estudiante"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
