@@ -489,6 +489,8 @@ Las funciones que se invocan vía `onclick` inline desde HTML generado por DataT
 
 Ejemplo: bug real en `toggleEstadoCohorte` (04_grupos), corregido en el mismo commit `5611153` tras detectarse en pruebas manuales — `toggleEstadoModulo` ya usaba el patrón correcto desde antes.
 
+Variación con función auxiliar (no de refresco de tabla, pero mismo requisito de scope): `cargarCohortesPorPrograma()` en `02_estudiantes` (commit `7340d6e`, 2026-08-20) — originalmente declarada dentro de `$(document).ready` para la cascada Programa→Cohorte del modal "Completar Matrícula". Al agregar el modal "Editar Matrícula", la función global `abrirEditarMatricula()` (invocada vía `onclick` inline desde el botón de fila del DataTable) necesitaba llamarla también para precargar la cohorte del registro editado — se movió a scope global por el mismo motivo que `toggleEstadoModulo`/`toggleEstadoCohorte`. A diferencia de esos ejemplos (que solo refrescan una tabla), aquí la función global necesitaba además **encadenar una acción posterior** (preseleccionar `coho_id` una vez cargadas las opciones): se resolvió agregando un tercer parámetro `callback` opcional a `cargarCohortesPorPrograma(prog_id, selectorDestino, callback)`, invocado al final del `success` del AJAX — evita depender de `setTimeout` (que no garantiza que la respuesta ya haya llegado) para sincronizar una acción que depende de un resultado asíncrono. Los dos llamados ya existentes (`cargarCohortesPorPrograma(prog_id)`, sin argumentos adicionales) no requirieron cambios porque `selectorDestino` y `callback` tienen valores por defecto que preservan el comportamiento original.
+
 ### Personalizar exportación Excel vía customize del botón excelHtml5 (DataTables Buttons)
 
 La exportación a Excel del proyecto es 100% client-side, generada por el plugin DataTables Buttons (buttons.html5.min.js + JSZip) — no hay PhpSpreadsheet ni ninguna librería de generación de .xlsx en el backend. La opción `title` del botón `{ extend: 'excel' }` solo acepta un string plano que se convierte en UNA fila de título; no soporta múltiples líneas como filas independientes.
@@ -703,6 +705,24 @@ Bug real detectado el 2026-08-15: `docentes.doce_activo` se usaba como fuente de
 Lección: cuando una entidad tiene el estado duplicado en dos tablas relacionadas (ej. `docentes.doce_activo` y `usuarios.usua_activo` para la misma persona), CUALQUIER endpoint que cambie el estado de esa entidad debe actualizar AMBOS campos en la misma operación — no asumir que un campo "espejo" se mantiene sincronizado solo porque existe. Antes de crear un nuevo campo de estado, buscar (grep) si ya existe un campo equivalente en una tabla relacionada, y si el nuevo código solo actualiza uno de los dos, es una señal de alerta.
 
 Corregido en `toggle_estado_docente` (commit `2dd4a55`, 2026-08-15): actualiza `docentes.doce_activo` y `usuarios.usua_activo` en la misma transacción, siempre al mismo valor.
+
+### ❌ Filtrar por un campo "proxy" en vez del dato de negocio real
+
+```php
+// PROHIBIDO — coho_id es un dato independiente de la matrícula real del estudiante
+$stmt = $pdo->prepare("
+    SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc
+    FROM estudiantes e
+    WHERE e.coho_id = ?   -- asume que coho_id garantiza prog_id/peri_id correctos — no lo garantiza
+      AND e.estu_id NOT IN (SELECT ge.estu_id FROM grmoestudiantes ge WHERE ge.grmo_id = ?)
+");
+```
+
+Cuando dos datos están relacionados solo por convención de captura (ej. la cohorte que el coordinador escribe al matricular y el programa/período reales de esa matrícula), y no por una FK ni una columna compartida entre sus tablas, filtrar por uno asumiendo que garantiza el otro es un antipatrón silencioso. `estudiantes.coho_id` y `matriculas.prog_id`/`peri_id` son exactamente ese caso: `matriculas` no tiene columna `coho_id` propia, así que nada en el esquema impide que ambos datos diverjan.
+
+Bug real: `listar_estudiantes_disponibles` en `04_grupos/grupos_mdl.php` filtraba el panel de Estudiantes Disponibles solo por `estudiantes.coho_id`, sin verificar en ningún momento `matriculas.matr_estado`/`prog_id`/`peri_id`. Esto permitió asignar a un estudiante matriculado en `ASO-2027-1` a un módulo del grupo semestre `MD-2026-2` — programa y período distintos a su matrícula real — sin ningún error visible en pantalla. Corregido en el commit `7340d6e` (2026-08-20): la query ahora exige `mt.matr_estado = 'matriculado'` con `mt.prog_id`/`mt.peri_id` coincidentes con el `gruposemestres` del `grmo_id` recibido — el dato de negocio real, no su proxy.
+
+Lección: antes de usar un campo como filtro de pertenencia, verificar si existe una FK o columna compartida que realmente garantice la relación asumida — si la relación depende solo de que dos formularios se llenen de forma consistente, no es una garantía del esquema y puede divergir sin que nada lo impida.
 
 ---
 
