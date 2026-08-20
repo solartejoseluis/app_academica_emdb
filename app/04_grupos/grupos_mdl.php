@@ -948,6 +948,207 @@ switch ($accion) {
         }
         break;
 
+    // ── PROGRAMAS (CRUD) ─────────────────────────────────────────────────────
+    // Nota: 'listar_programas' ya existe arriba (selector simple prog_id/
+    // prog_nombre/prog_sigla, usado por cargarProgramasSelectores() para
+    // poblar los <select> de Cohortes/Grupos/Módulos). El listado completo
+    // para el DataTable de este CRUD usa el nombre 'listar_programas_crud'
+    // para no colisionar con ese case existente — mismo criterio de
+    // nombrado ya usado en el archivo entre listar_modulos y
+    // listar_modulos_por_programa.
+
+    case 'listar_programas_crud':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT p.prog_id, p.prog_nombre, p.prog_sigla, p.prog_duracion_semestres,
+                       p.prog_resolucion, p.prog_fechaaprobacion, p.prog_fechavencimiento,
+                       p.prog_descripcion, p.prog_activo,
+                       (SELECT COUNT(*) FROM modulos m WHERE m.prog_id = p.prog_id) AS total_modulos,
+                       (SELECT COUNT(*) FROM cohortes c WHERE c.prog_id = p.prog_id) AS total_cohortes,
+                       (SELECT COUNT(*) FROM matriculas mt WHERE mt.prog_id = p.prog_id) AS total_matriculas
+                FROM programas p
+                ORDER BY p.prog_nombre
+            ");
+            $stmt->execute();
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);
+        }
+        break;
+
+    case 'guardar_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $prog_id                 = trim($_POST['prog_id'] ?? '');
+            $prog_nombre              = trim($_POST['prog_nombre'] ?? '');
+            $prog_sigla               = strtoupper(trim($_POST['prog_sigla'] ?? ''));
+            $prog_duracion_semestres  = trim($_POST['prog_duracion_semestres'] ?? '');
+            $prog_resolucion          = trim($_POST['prog_resolucion'] ?? '');
+            $prog_fechaaprobacion     = trim($_POST['prog_fechaaprobacion'] ?? '');
+            $prog_fechavencimiento    = trim($_POST['prog_fechavencimiento'] ?? '');
+            $prog_descripcion         = trim($_POST['prog_descripcion'] ?? '');
+
+            if ($prog_nombre === '' || $prog_sigla === '' || $prog_duracion_semestres === '') {
+                echo json_encode(['status' => 'error', 'message' => 'Nombre, sigla y duración son requeridos']);
+                break;
+            }
+
+            $prog_duracion_int   = (int)$prog_duracion_semestres;
+            $prog_resolucion_db  = $prog_resolucion !== '' ? $prog_resolucion : null;
+            $prog_fechaapr_db    = $prog_fechaaprobacion !== '' ? $prog_fechaaprobacion : null;
+            $prog_fechaven_db    = $prog_fechavencimiento !== '' ? $prog_fechavencimiento : null;
+            $prog_descripcion_db = $prog_descripcion !== '' ? $prog_descripcion : null;
+
+            if ($prog_id === '') {
+                $check = $pdo->prepare("SELECT prog_id FROM programas WHERE prog_sigla = ?");
+                $check->execute([$prog_sigla]);
+                if ($check->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ya existe un programa con esa sigla']);
+                    break;
+                }
+                $stmt = $pdo->prepare("
+                    INSERT INTO programas
+                        (prog_nombre, prog_sigla, prog_duracion_semestres, prog_resolucion,
+                         prog_fechaaprobacion, prog_fechavencimiento, prog_descripcion, prog_activo)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                ");
+                $stmt->execute([
+                    $prog_nombre, $prog_sigla, $prog_duracion_int, $prog_resolucion_db,
+                    $prog_fechaapr_db, $prog_fechaven_db, $prog_descripcion_db
+                ]);
+            } else {
+                $prog_id_int = (int)$prog_id;
+
+                $stmtActual = $pdo->prepare("SELECT prog_sigla FROM programas WHERE prog_id = ?");
+                $stmtActual->execute([$prog_id_int]);
+                $sigla_actual = $stmtActual->fetchColumn();
+
+                if ($sigla_actual !== false && $prog_sigla !== $sigla_actual) {
+                    $checkDep = $pdo->prepare("
+                        SELECT
+                            (SELECT COUNT(*) FROM modulos m WHERE m.prog_id = ?) +
+                            (SELECT COUNT(*) FROM cohortes c WHERE c.prog_id = ?) +
+                            (SELECT COUNT(*) FROM matriculas mt WHERE mt.prog_id = ?) AS total
+                    ");
+                    $checkDep->execute([$prog_id_int, $prog_id_int, $prog_id_int]);
+                    if ((int)$checkDep->fetchColumn() > 0) {
+                        echo json_encode(['status' => 'error', 'message' => 'No se puede modificar la sigla: el programa ya tiene módulos, cohortes o matrículas asociadas.']);
+                        break;
+                    }
+
+                    $checkSigla = $pdo->prepare("SELECT prog_id FROM programas WHERE prog_sigla = ? AND prog_id != ?");
+                    $checkSigla->execute([$prog_sigla, $prog_id_int]);
+                    if ($checkSigla->fetch()) {
+                        echo json_encode(['status' => 'error', 'message' => 'Ya existe un programa con esa sigla']);
+                        break;
+                    }
+                }
+
+                $stmt = $pdo->prepare("
+                    UPDATE programas
+                    SET prog_nombre = ?, prog_sigla = ?, prog_duracion_semestres = ?,
+                        prog_resolucion = ?, prog_fechaaprobacion = ?, prog_fechavencimiento = ?,
+                        prog_descripcion = ?
+                    WHERE prog_id = ?
+                ");
+                $stmt->execute([
+                    $prog_nombre, $prog_sigla, $prog_duracion_int, $prog_resolucion_db,
+                    $prog_fechaapr_db, $prog_fechaven_db, $prog_descripcion_db, $prog_id_int
+                ]);
+            }
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'eliminar_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $prog_id = (int)($_POST['prog_id'] ?? 0);
+
+        if ($prog_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de programa inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            $check = $pdo->prepare("
+                SELECT
+                    (SELECT COUNT(*) FROM modulos m WHERE m.prog_id = ?) +
+                    (SELECT COUNT(*) FROM cohortes c WHERE c.prog_id = ?) +
+                    (SELECT COUNT(*) FROM matriculas mt WHERE mt.prog_id = ?) AS total
+            ");
+            $check->execute([$prog_id, $prog_id, $prog_id]);
+            if ((int)$check->fetchColumn() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Este programa tiene módulos, cohortes o matrículas asociadas, no puede eliminarse — puedes desactivarlo en su lugar.']);
+                break;
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM programas WHERE prog_id = ?");
+            $stmt->execute([$prog_id]);
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar: existen datos asociados al programa']);
+        }
+        break;
+
+    case 'toggle_estado_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $prog_id     = (int)($_POST['prog_id'] ?? 0);
+        $prog_activo = (int)($_POST['prog_activo'] ?? 0);
+
+        if ($prog_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de programa inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("UPDATE programas SET prog_activo = ? WHERE prog_id = ?");
+            $stmt->execute([$prog_activo, $prog_id]);
+            echo json_encode(['status' => 'ok']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;

@@ -50,8 +50,11 @@ CREATE TABLE programas (
   prog_nombre      VARCHAR(120)      NOT NULL,
   prog_sigla       VARCHAR(10)       NOT NULL,
   prog_resolucion  VARCHAR(80)       DEFAULT NULL,
-  prog_vigencia    DATE             DEFAULT NULL,
+  prog_fechaaprobacion   DATE        DEFAULT NULL,
+  prog_fechavencimiento  DATE        DEFAULT NULL,
   prog_duracion_semestres TINYINT UNSIGNED NOT NULL DEFAULT 4,
+  prog_descripcion TEXT             DEFAULT NULL,
+  prog_activo      TINYINT(1)       NOT NULL DEFAULT 1,
   PRIMARY KEY (prog_id),
   UNIQUE KEY uq_prog_sigla (prog_sigla)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

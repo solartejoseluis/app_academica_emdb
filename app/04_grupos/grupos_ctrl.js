@@ -6,11 +6,13 @@ let cacheModulos = {};
 let moduloIdPendienteEliminar = null;
 let cohorteIdPendienteEliminar = null;
 let periodoActivoId = '';
+let cacheProgramas = {};
+let programaIdPendienteEliminar = null;
 
 $(document).ready(function () {
 
     // ── Variables globales de estado ─────────────────────────────────────────
-    let tablaCohortes, tablaGrupos, tablaPeriodos, tablaModulos;
+    let tablaCohortes, tablaGrupos, tablaPeriodos, tablaModulos, tablaProgramas;
     let grmo_id_activo = null;
     let coho_id_activo = null;
 
@@ -19,6 +21,7 @@ $(document).ready(function () {
     cargarTablaGrupos();
     cargarTablaPeriodos();
     cargarTablaModulos();
+    cargarTablaProgramas();
     cargarProgramasSelectores();
     cargarPeriodosSelector();
     cargarDocentesSelector();
@@ -30,6 +33,7 @@ $(document).ready(function () {
         if (tablaGrupos) tablaGrupos.columns.adjust();
         if (tablaPeriodos) tablaPeriodos.columns.adjust();
         if (tablaModulos) tablaModulos.columns.adjust();
+        if (tablaProgramas) tablaProgramas.columns.adjust();
     });
 
     // ════════════════════════════════════════════════════════════════════════
@@ -178,6 +182,53 @@ $(document).ready(function () {
                     } else {
                         botones += `<button class="btn btn-sm btn-outline-success"
                             onclick="toggleEstadoModulo(${row.modu_id}, 1)">Activar</button>`;
+                    }
+                    return botones;
+                }}
+            ],
+            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            responsive: true
+        });
+    }
+
+    function cargarTablaProgramas() {
+        if (tablaProgramas) { tablaProgramas.ajax.reload(); return; }
+        tablaProgramas = $('#tbl_programas').DataTable({
+            ajax: {
+                url: 'grupos_mdl.php?accion=listar_programas_crud',
+                type: 'POST',
+                dataSrc: function (json) {
+                    if (json.status !== 'ok') return [];
+                    cacheProgramas = {};
+                    json.data.forEach(p => { cacheProgramas[p.prog_id] = p; });
+                    return json.data;
+                }
+            },
+            columns: [
+                { data: 'prog_nombre' },
+                { data: 'prog_sigla' },
+                { data: 'prog_duracion_semestres' },
+                { data: 'prog_resolucion', render: v => v || '' },
+                { data: 'prog_fechaaprobacion', render: v => v || '' },
+                { data: 'prog_fechavencimiento', render: v => v || '' },
+                { data: 'prog_activo', render: v =>
+                    v == 1
+                        ? '<span class="badge bg-success">Activo</span>'
+                        : '<span class="badge bg-secondary">Inactivo</span>'
+                },
+                { data: null, render: (d, t, row) => {
+                    const totalDependientes = Number(row.total_modulos) + Number(row.total_cohortes) + Number(row.total_matriculas);
+                    let botones = `<button class="btn btn-sm btn-outline-primary me-1"
+                        onclick="abrirEditarPrograma(${row.prog_id})">Editar</button>`;
+                    if (row.prog_activo == 1 && totalDependientes === 0) {
+                        botones += `<button class="btn btn-sm btn-outline-danger"
+                            onclick="confirmarEliminarPrograma(${row.prog_id}, '${row.prog_nombre.replace(/'/g, "\\'")}')">Eliminar</button>`;
+                    } else if (row.prog_activo == 1 && totalDependientes > 0) {
+                        botones += `<button class="btn btn-sm btn-outline-warning"
+                            onclick="toggleEstadoPrograma(${row.prog_id}, 0)">Desactivar</button>`;
+                    } else {
+                        botones += `<button class="btn btn-sm btn-outline-success"
+                            onclick="toggleEstadoPrograma(${row.prog_id}, 1)">Activar</button>`;
                     }
                     return botones;
                 }}
@@ -740,6 +791,69 @@ $(document).ready(function () {
         });
     });
 
+    $('#btn_nuevo_programa').on('click', function () {
+        $('#prog_id').val('');
+        $('#prog_nombre, #prog_sigla, #prog_duracion_semestres, #prog_resolucion, #prog_fechaaprobacion, #prog_fechavencimiento, #prog_descripcion').val('');
+        $('#prog_sigla').prop('readonly', false);
+        $('#txt_ayuda_prog_sigla').text('La sigla no puede modificarse si el programa ya tiene módulos, cohortes o matrículas asociadas.');
+        $('#mdl_programa_titulo').text('Nuevo Programa');
+        new bootstrap.Modal('#mdl_programa').show();
+    });
+
+    $('#btn_guardar_programa').on('click', function () {
+        const nombre   = $('#prog_nombre').val().trim();
+        const sigla    = $('#prog_sigla').val().trim();
+        const duracion = $('#prog_duracion_semestres').val();
+        if (!nombre || !sigla || !duracion) {
+            alert('Complete los campos obligatorios');
+            return;
+        }
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=guardar_programa',
+            data: {
+                prog_id:                 $('#prog_id').val(),
+                prog_nombre:             nombre,
+                prog_sigla:              sigla,
+                prog_duracion_semestres: duracion,
+                prog_resolucion:         $('#prog_resolucion').val().trim(),
+                prog_fechaaprobacion:    $('#prog_fechaaprobacion').val(),
+                prog_fechavencimiento:   $('#prog_fechavencimiento').val(),
+                prog_descripcion:        $('#prog_descripcion').val().trim()
+            },
+            dataType: 'json',
+            success: function (r) {
+                if (r.status === 'ok') {
+                    bootstrap.Modal.getInstance('#mdl_programa').hide();
+                    cargarTablaProgramas();
+                } else {
+                    alert('Error: ' + r.message);
+                }
+            }
+        });
+    });
+
+    // Eliminar vive como acción de fila en la tabla (no dentro del modal de
+    // edición) — mismo patrón que btn_confirmar_eliminar_modulo.
+    $('#btn_confirmar_eliminar_programa').on('click', function () {
+        if (!programaIdPendienteEliminar) return;
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=eliminar_programa',
+            data: { prog_id: programaIdPendienteEliminar },
+            dataType: 'json',
+            success: function (r) {
+                bootstrap.Modal.getInstance('#mdl_confirmar_eliminar_programa').hide();
+                if (r.status === 'ok') {
+                    cargarTablaProgramas();
+                } else {
+                    alert(r.message);
+                }
+                programaIdPendienteEliminar = null;
+            }
+        });
+    });
+
     // Eliminar vive como acción de fila en la tabla (no dentro del modal de
     // edición) — mismo patrón que btn_confirmar_eliminar_modulo.
     $('#btn_confirmar_eliminar_cohorte').on('click', function () {
@@ -964,6 +1078,54 @@ function toggleEstadoModulo(modu_id, nuevoEstado) {
         success: function (r) {
             if (r.status === 'ok') {
                 $('#tbl_modulos').DataTable().ajax.reload(null, false);
+            } else {
+                alert('Error: ' + r.message);
+            }
+        }
+    });
+}
+
+// Sin segundo AJAX — reutiliza la fila ya cacheada por listar_programas_crud.
+function abrirEditarPrograma(prog_id) {
+    const d = cacheProgramas[prog_id];
+    if (!d) { alert('Programa no encontrado'); return; }
+    $('#prog_id').val(d.prog_id);
+    $('#prog_nombre').val(d.prog_nombre);
+    $('#prog_sigla').val(d.prog_sigla);
+    $('#prog_duracion_semestres').val(d.prog_duracion_semestres);
+    $('#prog_resolucion').val(d.prog_resolucion);
+    $('#prog_fechaaprobacion').val(d.prog_fechaaprobacion);
+    $('#prog_fechavencimiento').val(d.prog_fechavencimiento);
+    $('#prog_descripcion').val(d.prog_descripcion);
+
+    const totalDependientes = Number(d.total_modulos) + Number(d.total_cohortes) + Number(d.total_matriculas);
+    if (totalDependientes > 0) {
+        $('#prog_sigla').prop('readonly', true);
+        $('#txt_ayuda_prog_sigla').text('La sigla no puede modificarse: este programa ya tiene módulos, cohortes o matrículas asociadas.');
+    } else {
+        $('#prog_sigla').prop('readonly', false);
+        $('#txt_ayuda_prog_sigla').text('La sigla no puede modificarse si el programa ya tiene módulos, cohortes o matrículas asociadas.');
+    }
+
+    $('#mdl_programa_titulo').text('Editar Programa');
+    new bootstrap.Modal('#mdl_programa').show();
+}
+
+function confirmarEliminarPrograma(prog_id, nombre) {
+    programaIdPendienteEliminar = prog_id;
+    $('#spn_nombre_eliminar_programa').text(nombre);
+    new bootstrap.Modal('#mdl_confirmar_eliminar_programa').show();
+}
+
+function toggleEstadoPrograma(prog_id, nuevoEstado) {
+    $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=toggle_estado_programa',
+        data: { prog_id: prog_id, prog_activo: nuevoEstado },
+        dataType: 'json',
+        success: function (r) {
+            if (r.status === 'ok') {
+                $('#tbl_programas').DataTable().ajax.reload(null, false);
             } else {
                 alert('Error: ' + r.message);
             }

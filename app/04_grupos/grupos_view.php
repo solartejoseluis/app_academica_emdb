@@ -75,11 +75,19 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <ul class="nav nav-tabs mb-3" id="tabsGrupos">
         <li class="nav-item">
             <button class="nav-link active" data-bs-toggle="tab"
-                    data-bs-target="#tab_cohortes">Cohortes</button>
+                    data-bs-target="#tab_programas">Programas</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab"
+                    data-bs-target="#tab_modulos">Módulos</button>
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab"
                     data-bs-target="#tab_periodos">Períodos</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab"
+                    data-bs-target="#tab_cohortes">Cohortes</button>
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab"
@@ -89,33 +97,57 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             <button class="nav-link" data-bs-toggle="tab"
                     data-bs-target="#tab_asignacion">Asignación Estudiantes</button>
         </li>
-        <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="tab"
-                    data-bs-target="#tab_modulos">Módulos</button>
-        </li>
     </ul>
 
     <div class="tab-content">
 
-        <!-- TAB 1: COHORTES -->
-        <div class="tab-pane fade show active" id="tab_cohortes">
+        <!-- TAB: PROGRAMAS -->
+        <div class="tab-pane fade show active" id="tab_programas">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="mb-0">Cohortes</h5>
-                <button class="btn btn-primary btn-sm" id="btn_nueva_cohorte">
-                    + Nueva Cohorte
+                <h5 class="mb-0">Programas</h5>
+                <button class="btn btn-primary btn-sm" id="btn_nuevo_programa">
+                    + Nuevo Programa
                 </button>
             </div>
-            <table id="tbl_cohortes" class="table table-bordered table-hover w-100">
+            <table id="tbl_programas" class="table table-bordered table-hover w-100">
                 <thead class="table-dark">
                     <tr>
-                        <th>#</th>
-                        <th>Código</th>
-                        <th>Programa</th>
-                        <th>Fecha Inicio</th>
+                        <th>Nombre</th>
+                        <th>Sigla</th>
+                        <th>Duración (semestres)</th>
+                        <th>Resolución</th>
+                        <th>Fecha Aprobación</th>
+                        <th>Fecha Vencimiento</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TAB: MÓDULOS -->
+        <div class="tab-pane fade" id="tab_modulos">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Módulos</h5>
+                <button class="btn btn-primary btn-sm" id="btn_nuevo_modulo">
+                    + Nuevo Módulo
+                </button>
+            </div>
+            <table id="tbl_modulos" class="table table-bordered table-hover w-100">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Programa</th>
+                        <th>Sigla</th>
+                        <th>Nombre</th>
+                        <th>Orden</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
             </table>
         </div>
 
@@ -136,6 +168,28 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <th>Semestre</th>
                         <th>Fecha Inicio</th>
                         <th>Fecha Fin</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <!-- TAB 1: COHORTES -->
+        <div class="tab-pane fade" id="tab_cohortes">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Cohortes</h5>
+                <button class="btn btn-primary btn-sm" id="btn_nueva_cohorte">
+                    + Nueva Cohorte
+                </button>
+            </div>
+            <table id="tbl_cohortes" class="table table-bordered table-hover w-100">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Código</th>
+                        <th>Programa</th>
+                        <th>Fecha Inicio</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
@@ -243,30 +297,6 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             <div id="msg_seleccione" class="text-muted mt-3">
                 Seleccione un grupo y un módulo para gestionar estudiantes.
             </div>
-        </div>
-
-        <!-- TAB: MÓDULOS -->
-        <div class="tab-pane fade" id="tab_modulos">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="mb-0">Módulos</h5>
-                <button class="btn btn-primary btn-sm" id="btn_nuevo_modulo">
-                    + Nuevo Módulo
-                </button>
-            </div>
-            <table id="tbl_modulos" class="table table-bordered table-hover w-100">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Programa</th>
-                        <th>Sigla</th>
-                        <th>Nombre</th>
-                        <th>Orden</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
         </div>
 
     </div><!-- /tab-content -->
@@ -605,6 +635,78 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_modulo">Eliminar definitivamente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CREAR/EDITAR PROGRAMA -->
+<div class="modal fade" id="mdl_programa" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="mdl_programa_titulo">Nuevo Programa</h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="prog_id">
+                <div class="mb-3">
+                    <label class="form-label">Nombre del programa <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="prog_nombre"
+                           placeholder="Ej: Técnico Laboral en Auxiliar en Salud Oral">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sigla <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control texto-mayus" id="prog_sigla"
+                           maxlength="10" placeholder="Ej: ASO">
+                    <div class="form-text" id="txt_ayuda_prog_sigla">La sigla no puede modificarse si el programa ya tiene módulos, cohortes o matrículas asociadas.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Duración (semestres) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="prog_duracion_semestres" min="1" max="10">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Número de resolución</label>
+                    <input type="text" class="form-control" id="prog_resolucion">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fecha de aprobación</label>
+                    <input type="date" class="form-control" id="prog_fechaaprobacion">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fecha de vencimiento</label>
+                    <input type="date" class="form-control" id="prog_fechavencimiento">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descripción</label>
+                    <textarea class="form-control" id="prog_descripcion" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary"
+                        id="btn_guardar_programa">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR PROGRAMA -->
+<div class="modal fade" id="mdl_confirmar_eliminar_programa" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar programa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Eliminar el programa <strong id="spn_nombre_eliminar_programa"></strong> de forma permanente? Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_programa">Eliminar definitivamente</button>
             </div>
         </div>
     </div>
