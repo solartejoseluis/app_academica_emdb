@@ -4,6 +4,53 @@
 
 ---
 
+## [ef79791] — 2026-08-22 — feat(02_estudiantes): precarga Programa y Jornada declarados en Completar Matrícula
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- `fichas_inscripcion` (Programa y Jornada declarados por el aspirante en
+  la Ficha Familiar) y el modal "Completar Matrícula" no compartían
+  ningún dato — el coordinador debía volver a elegir Programa/Cohorte
+  desde cero aunque el aspirante ya los hubiera declarado.
+- Nuevo case `obtener_defaults_matricula` en `est_mdl.php`: recibe
+  `estu_id`, guard de sesión estándar (`isset($_SESSION['usua_id'])` +
+  `in_array($role_id, [1, 2], true)`), lee `prog_id`/`jornada` de
+  `fichas_inscripcion` con `getConexion()` (mismo patrón que los demás
+  20 case del archivo). Devuelve `data: null` (con `status: 'ok'`)
+  cuando el aspirante no tiene ficha diligenciada — el modal queda
+  como antes, sin precargar nada.
+- Nuevo select `#slct_jornada_declarada` (`disabled`, sin input oculto
+  pareado) en el modal `mdl_matricular` de `est_view.php` — puramente
+  informativo, no sigue el patrón select→input del proyecto porque
+  nunca se envía al servidor.
+- `abrirMatricular(estu_id)` en `est_ctrl.js` ahora llama a
+  `obtener_defaults_matricula` al abrir el modal: si hay `prog_id`,
+  preselecciona `#slct_prog_id` y dispara `.trigger('change')` (reutiliza
+  la cascada existente de `cargarCohortesPorPrograma()`, sin duplicar
+  lógica); si hay `jornada`, la muestra en `#slct_jornada_declarada`.
+  Agrega además un callback `error` (no `.fail()`, seguido el patrón ya
+  usado en la subida de foto de `est_ctrl.js`) que hace `console.warn()`
+  ante un fallo de red — el modal sigue abierto y usable igual que para
+  un aspirante sin ficha, sin `alert()` ni limpieza adicional.
+
+### Decisiones
+- `matriculas` no gana columna de jornada. El campo es puramente
+  informativo/de referencia para el coordinador al crear el Grupo
+  Semestre — no se persiste en ningún lado. La jornada operativa del
+  sistema sigue siendo exclusivamente `gruposemestres.grse_jornada`
+  (decisión ya activa en CLAUDE.md, sin cambios).
+- Programa se preselecciona pero queda editable por el coordinador —no
+  se bloquea el select ni se fuerza el valor— porque el aspirante pudo
+  haber cambiado de programa entre la inscripción (Ficha Familiar) y la
+  matrícula real.
+- No se modificaron `mdl_ficha`, `guardar_ficha` ni `obtener_ficha` — el
+  flujo de captura de la Ficha Familiar queda intacto; este cambio solo
+  consume ese dato ya existente desde un endpoint nuevo, de solo lectura.
+
 ## [a83cb43] — 2026-08-20 — feat(grupos): agrega eliminación de Períodos (DELETE condicionado, mismo patrón de Módulos/Cohortes/Programas)
 
 ### Archivos modificados
