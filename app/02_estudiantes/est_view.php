@@ -377,6 +377,17 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
                 <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Jornada declarada (Ficha de Inscripción)</label>
+                        <select class="form-select" id="slct_jornada_declarada" disabled>
+                            <option value="">-- Seleccionar --</option>
+                            <option value="SEMANA">Semana</option>
+                            <option value="SABADOS">Sábados</option>
+                        </select>
+                        <div class="form-text">Informativa — no se guarda en la matrícula. Sirve de referencia al crear el Grupo Semestre.</div>
+                    </div>
+                </div>
+                <div class="row">
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Período <span class="text-danger">*</span></label>
                         <select class="form-select" id="slct_peri_id">

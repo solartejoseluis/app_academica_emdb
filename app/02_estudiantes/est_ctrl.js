@@ -926,6 +926,32 @@ function abrirMatricular(estu_id) {
     $('#npt_estu_id_matricular').val(estu_id);
     $('#slct_prog_id, #slct_peri_id').val('');
     $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
+    $('#slct_jornada_declarada').val('');
+
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=obtener_defaults_matricula',
+        data: { estu_id: estu_id },
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 'ok' && response.data) {
+                if (response.data.prog_id) {
+                    $('#slct_prog_id').val(response.data.prog_id).trigger('change');
+                    // el 'change' ya dispara cargarCohortesPorPrograma() vía el
+                    // handler existente — no duplicar esa llamada aquí
+                }
+                if (response.data.jornada) {
+                    $('#slct_jornada_declarada').val(response.data.jornada);
+                }
+            }
+            // Si data es null (aspirante sin ficha diligenciada): el modal
+            // queda como hoy, sin precargar nada.
+        },
+        error: function () {
+            console.warn('No se pudieron precargar los datos de la Ficha de Inscripción (no crítico).');
+        }
+    });
+
     new bootstrap.Modal(document.getElementById('mdl_matricular')).show();
 }
 

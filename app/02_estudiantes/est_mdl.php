@@ -571,6 +571,35 @@ switch ($accion) {
         }
         break;
 
+    case 'obtener_defaults_matricula':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => null]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => null]);
+            break;
+        }
+        $estu_id = (int)($_POST['estu_id'] ?? $_GET['estu_id'] ?? 0);
+
+        if ($estu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de estudiante inválido', 'data' => null]);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("SELECT prog_id, jornada FROM fichas_inscripcion WHERE estu_id = :estu_id LIMIT 1");
+            $stmt->execute(['estu_id' => $estu_id]);
+            $row = $stmt->fetch();
+
+            echo json_encode(['status' => 'ok', 'data' => $row ?: null]);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al obtener valores por defecto', 'data' => null]);
+        }
+        break;
+
     case 'matricular':
         if (!isset($_SESSION['usua_id'])) {
             echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
