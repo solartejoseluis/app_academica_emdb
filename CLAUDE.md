@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-16 — último commit citado: 1edb887
+> Última actualización: 2026-08-22 — último commit citado: ef79791
 
 ## Reglas de documentación
 
@@ -372,6 +372,21 @@ $('#slct_prog_id').change(function(){
 });
 ```
 
+### Select informativo (`disabled`, sin input pareado)
+
+Excepción al patrón "Select → Input bridge" de arriba: cuando un `<select>` muestra un dato de solo referencia visual para quien opera el formulario — no un valor que el formulario vaya a enviar — se marca `disabled` y **no** lleva `<input type="hidden">` pareado. Sin el `change` handler ni el input oculto, ese valor nunca puede llegar al `_mdl.php` por accidente (un select `disabled` ni siquiera se serializa en un submit nativo, y aquí tampoco participa del objeto plano armado a mano). No usar este patrón para ningún select cuyo valor se necesite persistir — para eso sigue aplicando el bridge estándar.
+
+```html
+<select class="form-select" id="slct_jornada_declarada" disabled>
+    <option value="">-- Seleccionar --</option>
+    <option value="SEMANA">Semana</option>
+    <option value="SABADOS">Sábados</option>
+</select>
+<div class="form-text">Informativa — no se guarda. Sirve de referencia.</div>
+```
+
+Primer uso: `#slct_jornada_declarada` en el modal "Completar Matrícula" de `02_estudiantes` (commit `ef79791`, 2026-08-22) — muestra la jornada que el aspirante declaró en su Ficha Familiar (`fichas_inscripcion.jornada`) como referencia para el coordinador al crear el Grupo Semestre; `gruposemestres.grse_jornada` sigue siendo la única fuente operativa (ver la decisión "Jornada como atributo de grupo semestre" más abajo).
+
 ### Subida de archivos (FormData)
 
 Única excepción al patrón de objeto plano de datos usado en el resto del proyecto. Se usa exclusivamente cuando el AJAX debe subir un archivo real (ej. foto de estudiante) — nunca para formularios de texto/select normales, que siguen usando el objeto plano estándar.
@@ -727,6 +742,10 @@ Cuando dos datos están relacionados solo por convención de captura (ej. la coh
 Bug real: `listar_estudiantes_disponibles` en `04_grupos/grupos_mdl.php` filtraba el panel de Estudiantes Disponibles solo por `estudiantes.coho_id`, sin verificar en ningún momento `matriculas.matr_estado`/`prog_id`/`peri_id`. Esto permitió asignar a un estudiante matriculado en `ASO-2027-1` a un módulo del grupo semestre `MD-2026-2` — programa y período distintos a su matrícula real — sin ningún error visible en pantalla. Corregido en el commit `7340d6e` (2026-08-20): la query ahora exige `mt.matr_estado = 'matriculado'` con `mt.prog_id`/`mt.peri_id` coincidentes con el `gruposemestres` del `grmo_id` recibido — el dato de negocio real, no su proxy.
 
 Lección: antes de usar un campo como filtro de pertenencia, verificar si existe una FK o columna compartida que realmente garantice la relación asumida — si la relación depende solo de que dos formularios se llenen de forma consistente, no es una garantía del esquema y puede divergir sin que nada lo impida.
+
+**Principio general (no solo para filtros SQL):** cualquier campo "declarado" en una etapa temprana de un flujo (ej. `fichas_inscripcion.prog_id`/`jornada`, capturado en la inscripción) y su equivalente "operativo" en una etapa posterior (ej. `matriculas.prog_id`, `gruposemestres.grse_jornada`) son la misma clase de riesgo que `coho_id` vs matrícula real — sin FK ni columna compartida entre ambas tablas, nada del esquema impide que diverjan. La forma correcta de usar el dato declarado NO es tratarlo como fuente de verdad (ni para filtrar, ni para auto-guardar sin revisión): es ofrecerlo como **sugerencia editable** (precargar un select que el usuario puede corregir) o como **referencia visual de solo lectura** (ver "Select informativo" en Convenciones HTML/JS), nunca persistirlo automáticamente en la tabla operativa ni asumir que coincide.
+
+Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes` (commit `ef79791`, 2026-08-22) — precarga `#slct_prog_id` desde `fichas_inscripcion.prog_id` en el modal Completar Matrícula, pero el select queda editable (el coordinador puede corregirlo si el aspirante cambió de programa) y `jornada` se muestra solo como referencia (`#slct_jornada_declarada`, disabled) — ninguno de los dos se persiste o asume como correcto sin que el coordinador lo confirme al guardar. Queda como ítem de análisis pendiente (ver PROJECT_CONTEXT.md) si conviene además advertir cuando el valor guardado en `matriculas` termina divergiendo del declarado — no implementado todavía, no confundir con la mitigación ya aplicada.
 
 ---
 
