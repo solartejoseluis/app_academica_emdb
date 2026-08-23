@@ -603,7 +603,9 @@ $(document).ready(function () {
                         return `<button class="btn btn-sm btn-outline-success me-1"
                                         onclick="abrirMatricular(${row.estu_id})">Matricular</button>
                                 <button class="btn btn-sm btn-outline-primary me-1"
-                                        onclick="abrirEditar(${row.estu_id}, true)">Editar</button>
+                                        onclick="abrirEditar(${row.estu_id}, true)" title="${tituloFicha}">
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
+                                </button>
                                 <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
                                 </button>${botonPdf}`;
@@ -693,7 +695,9 @@ $(document).ready(function () {
                             ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
                             : '';
                         return `<button class="btn btn-sm btn-outline-primary me-1"
-                                        onclick="abrirEditar(${row.estu_id}, false)">Editar</button>
+                                        onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
+                                </button>
                                 <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
                                 </button>${botonEditarMatricula}${botonPdf}`;
