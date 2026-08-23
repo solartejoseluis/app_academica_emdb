@@ -4,6 +4,51 @@
 
 ---
 
+## [7cef01a] — 2026-08-23 — feat: agrega columna Edad en Matriculados con resaltado para menores
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- Nueva columna "Edad" en `tbl_matriculados`, posición 6 (entre "Documento"
+  y "Correo"), con formato `"17 (23 sep)"` — edad calculada + fecha de
+  cumpleaños abreviada.
+- `est_mdl.php`, case `listar_matriculados`: se agrega `e.fechanacimiento`
+  al SELECT existente, sin tocar `FROM`/`WHERE`/`ORDER BY`.
+- `est_ctrl.js`: la edad se calcula en el `render()` de la columna a
+  partir de `fechanacimiento` y la fecha actual, ajustando por mes/día
+  (no solo la resta de años) — un estudiante no cumple años hasta que
+  el mes/día actual alcanza o supera su mes/día de nacimiento.
+- El mes de cumpleaños se abrevia a 3 letras (`ene`...`dic`) con un
+  array local declarado en el propio `render()` — no hay extensión
+  `intl` ni librería de fechas cargada en el proyecto.
+- Si `fechanacimiento` es `NULL` (permitido a nivel de esquema, aunque
+  hoy 0 registros lo tienen), la celda muestra `—` — mismo criterio
+  defensivo ya usado en `estu_telefono`/`coho_codigo` de este archivo.
+- Si la edad calculada es menor a 18, el texto se envuelve en un
+  `<span style="background-color:#cfe2ff;padding:2px 6px;border-radius:4px;">`
+  embebido directamente en el `render()` — mismo patrón de estilo
+  inline ya usado en la Fase A (punto de color de `estado_ficha`), sin
+  agregar clases CSS externas nuevas.
+- `tablaAspirantes` queda sin cambios — la columna Edad es específica
+  de Matriculados.
+
+### Decisiones
+- Color celeste (`#cfe2ff`, tipo `bg-info-subtle` de Bootstrap) elegido
+  deliberadamente distinto del semáforo amarillo/rojo de
+  `05_calificaciones` — evita mezclar semánticas ("dato a tener en
+  cuenta" vs. "alerta de problema").
+- Sin librería de fechas ni extensión `intl` disponibles en el proyecto
+  (confirmado en el diagnóstico previo) — se optó por un array local
+  de 12 abreviaturas de mes en español en vez de agregar una
+  dependencia nueva.
+- Fase B de 6 (A–F) del plan de unificación de ficha de estudiante —
+  completada.
+
+---
+
 ## [38e1809] — 2026-08-23 — feat(02_estudiantes): unifica botón Editar/Ficha en "📝 Datos Estudiante"
 
 ### Archivos modificados
