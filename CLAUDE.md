@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: ffb6a6c
+> Última actualización: 2026-08-23 — último commit citado: 5de9a9e
 
 ## Reglas de documentación
 
@@ -1013,6 +1013,8 @@ necesita una restricción UNIQUE (hoy no la tiene).
 | 2.8.F2 | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ✅ 2026-08-23 (commit `ffb6a6c`) |
 
 **Plan completo (A–F) cerrado el 2026-08-23** — las 6 fases (A, B, C1+C2, D, E, F1+F2) quedaron implementadas y verificadas en navegador.
+
+**Deuda técnica de C1/C2 resuelta (commit `5de9a9e`, 2026-08-23):** los 4 cases sin llamadores (`guardar`, `obtener`, `obtener_ficha`, `guardar_ficha`) y el código JS asociado (`abrirFicha()`, handler `btn_guardar_ficha`) — documentados como pendientes de limpieza desde `42e4175`/`76f90c5` — fueron eliminados.
 
 ### Phase 3 — Validación TRL5
 
