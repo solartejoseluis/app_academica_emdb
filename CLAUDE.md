@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: afdcfc1
+> Última actualización: 2026-08-23 — último commit citado: c34b780
 
 ## Reglas de documentación
 
@@ -526,7 +526,7 @@ Ejemplo: commit `38e1809` (2026-08-23) — el botón "Editar" (renombrado a "�
 
 El proyecto no tiene la extensión `intl` de PHP instalada (confirmado en el contenedor `app`, PHP 8.5.9) ni ninguna librería de fechas cargada en el frontend (`moment`/`dayjs`). Todo el formato de fecha existente antes de este cambio era numérico (`date('d/m/Y')` en PHP, valores crudos de MySQL sin formatear en JS) — no había ningún precedente de nombre/abreviatura de mes en español en el proyecto. Cuando se necesite mostrar un mes en español (nombre completo o abreviado), la solución del proyecto es un array local de 12 posiciones (`['ene', 'feb', ..., 'dic']`, indexado por `Date.getMonth()` en JS o `(int)date('n', $ts) - 1` en PHP) declarado en el punto de uso — no asumir que `Intl.DateTimeFormat('es-CO', ...)` o `IntlDateFormatter` están disponibles sin verificarlo primero.
 
-Ejemplo: commit `7cef01a` (2026-08-23) — columna Edad de `tablaMatriculados` (`est_ctrl.js`), formato `"17 (23 sep)"`, con el array de abreviaturas declarado dentro del propio `render()` de la columna. Relevante para la Fase 2.8.F (PDF Hoja de Matrícula, AC-FO-09) si esa exportación necesita mostrar una fecha en español — mismo array reutilizable, sin agregar la extensión `intl` al Dockerfile.
+Ejemplo: commit `7cef01a` (2026-08-23) — columna Edad de `tablaMatriculados` (`est_ctrl.js`), formato `"17 (23 sep)"`, con el array de abreviaturas declarado dentro del propio `render()` de la columna. Relevante para la Fase 2.8.F2 (PDF Hoja de Matrícula, AC-FO-09) si esa exportación necesita mostrar una fecha en español — mismo array reutilizable, sin agregar la extensión `intl` al Dockerfile.
 
 ### Dos transacciones PDO individualmente correctas no garantizan atomicidad entre sí
 
@@ -993,7 +993,8 @@ necesita una restricción UNIQUE (hoy no la tiene).
 | 2.8.C2 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — frontend: modal único `modal-xl`, botón "Guardar" único, foto arriba, ficha debajo, botón PDF trasladado al final del modal | ✅ 2026-08-23 (commit `76f90c5`) |
 | 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ✅ 2026-08-23 (commit `25530cc`) |
 | 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ✅ 2026-08-23 (commit `afdcfc1`) |
-| 2.8.F | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ⬜ |
+| 2.8.F1 | `usua_nombre` en `usuarios` — prerequisito para "Matriculado por" en el PDF | ✅ 2026-08-23 (commit `c34b780`) |
+| 2.8.F2 | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ⬜ |
 
 ### Phase 3 — Validación TRL5
 
