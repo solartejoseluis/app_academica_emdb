@@ -4,6 +4,64 @@
 
 ---
 
+## [ffb6a6c] — 2026-08-23 — feat: agrega PDF Hoja de Matrícula (AC-FO-09), cierra el plan de unificación de ficha de estudiante
+
+### Archivos modificados
+- app/06_reportes/pdf_hoja_matricula.php (nuevo)
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- Nuevo endpoint `pdf_hoja_matricula.php` (`06_reportes`), mismo patrón que
+  `pdf_ficha.php`: dompdf con `isRemoteEnabled=false` y `chroot` a la raíz
+  del proyecto para leer la foto local, guard de sesión + rol
+  (coordinador/admin), `estu_id` por GET. Tamaño Carta portrait (no
+  Oficio), excluye "Nivel" y el checklist de "Requisitos de Matrícula"
+  del formato original AC-FO-09.
+- Query combinada: `estudiantes` + `fichas_inscripcion` (LEFT JOIN) +
+  `matriculas` (INNER JOIN, requiere matrícula) + `programas` +
+  `cohortes` (vía `estudiantes.coho_id`, no vía `matriculas`) +
+  `periodos` + `configuracion`. Como `matriculas` es 1:N por estudiante,
+  se resuelve con `ORDER BY m.matr_id DESC LIMIT 1` — la matrícula más
+  reciente.
+- Validación server-side de `matr_estado === 'matriculado'` — el backend
+  responde con error explícito si no lo está, sin depender de que el
+  frontend haya ocultado el botón.
+- Asignación seleccionada de `matr_numero` bajo concurrencia (solo si
+  aún es `NULL`): transacción PDO con `SELECT matr_numero_inicial FROM
+  configuracion WHERE config_id = 1 FOR UPDATE`, luego `SELECT
+  MAX(matr_numero) FROM matriculas`, calcula el siguiente valor
+  (`matr_numero_inicial` si no hay ninguno asignado aún, o
+  `MAX(matr_numero)+1` si es mayor), persiste con `UPDATE` y hace
+  `commit()`. Descargas posteriores reutilizan el valor ya persistido.
+- `est_mdl.php` (case `obtener_completo`): agrega `m.matr_estado` al
+  `SELECT`, vía el mismo `LEFT JOIN matriculas` + `ORDER BY matr_id DESC
+  LIMIT 1` por la misma razón (relación 1:N, no 1:1).
+- `est_view.php`/`est_ctrl.js`: nuevo botón "🖨️ Hoja de Matrícula" en el
+  footer del modal unificado (`#mdl_estudiante`), oculto por defecto,
+  visible solo si `matr_estado === 'matriculado'` (mismo criterio que el
+  botón de Ficha Inscripción con `estado_ficha`); abre el PDF con
+  `window.open(...)`, mismo patrón que `descargarFichaPdf()`.
+
+### Decisiones
+- Primer uso del patrón `SELECT ... FOR UPDATE` en el proyecto, aplicado
+  sobre la fila única de `configuracion` por ser la más barata de
+  lockear.
+- `matr_numero` se asigna solo la primera vez (si es `NULL`); descargas
+  posteriores reutilizan el valor ya persistido.
+- Dirección/barrio/ciudad del bloque genérico interpretados como los del
+  estudiante (no del acudiente, que tiene su propio bloque separado).
+- "Nombre del padre/madre" simplificado a solo nombre+apellidos, sin
+  profesión/empresa/teléfono (formato de matrícula, no la Ficha Familiar
+  completa).
+- Verificado en navegador: 9/9 puntos de prueba, incluyendo revisión
+  visual de que todo el contenido cabe en una sola página Carta.
+- Fase F2 de 6 (A–F) del plan de unificación de ficha de estudiante —
+  completada. Cierra el plan completo: A, B, C (C1+C2), D, E, F (F1+F2).
+
+---
+
 ## [c34b780] — 2026-08-23 — feat: agrega usua_nombre a usuarios, prerequisito para "Matriculado por" en Fase F2
 
 ### Archivos modificados
