@@ -139,6 +139,7 @@ switch ($accion) {
 
             $sql = "SELECT e.estu_id, e.estu_nombres, e.estu_apellidos,
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_email, e.estu_foto,
+                           e.fechanacimiento,
                            co.coho_codigo,
                            (SELECT COUNT(*) FROM grmoestudiantes ge3
                             JOIN gruposmodulos gm3 ON ge3.grmo_id = gm3.grmo_id

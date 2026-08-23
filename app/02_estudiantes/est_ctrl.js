@@ -655,6 +655,30 @@ $(document).ready(function () {
                         return tipo + (row.estu_numerodoc || '');
                     }
                 },
+                {
+                    data: 'fechanacimiento',
+                    width: '100px',
+                    render: function (data) {
+                        if (!data) return '—';
+
+                        const mesesAbrev = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                        const nacimiento = new Date(data + 'T00:00:00');
+                        const hoy = new Date();
+
+                        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+                        const noHaCumplidoAnioAun =
+                            hoy.getMonth() < nacimiento.getMonth() ||
+                            (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+                        if (noHaCumplidoAnioAun) edad--;
+
+                        const cumple = nacimiento.getDate() + ' ' + mesesAbrev[nacimiento.getMonth()];
+                        const texto = `${edad} (${cumple})`;
+
+                        return edad < 18
+                            ? `<span style="background-color:#cfe2ff;padding:2px 6px;border-radius:4px;">${texto}</span>`
+                            : texto;
+                    }
+                },
                 { data: 'estu_email' },
                 { data: 'coho_codigo', render: v => v || '—' },
                 { data: 'prog_sigla', width: '70px' },
