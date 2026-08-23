@@ -4,6 +4,57 @@
 
 ---
 
+## [42e4175] — 2026-08-23 — feat: agrega endpoint transaccional único guardar_completo/obtener_completo
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- Nuevo `case 'guardar_completo'`: unifica creación y edición de estudiante
+  + Ficha Familiar en una sola transacción PDO. Antes eran 2 transacciones
+  separadas (`guardar` + `guardar_ficha`), cada una en su propio request
+  HTTP, sin atomicidad real entre ambas — si `guardar_ficha` fallaba
+  después de que `guardar` ya hubiera hecho `commit()`, el sistema
+  quedaba con el estudiante creado/editado pero sin ficha consistente.
+- La Ficha Familiar pasa a ser **obligatoria siempre**, sin excepción
+  por modo creación/edición — antes solo era obligatoria al diligenciarse
+  por separado vía `guardar_ficha`, después de que el estudiante ya
+  existiera.
+- Rama creación (`estu_id` vacío): mismas validaciones de unicidad y
+  mismo INSERT que `guardar` (incluyendo `estu_origen = 'manual'`
+  hardcodeado), resolviendo el `estu_id` nuevo con `lastInsertId()`
+  para encadenar el guardado de la ficha en la misma transacción.
+- Rama edición: mismas validaciones y mismo UPDATE que `guardar`,
+  incluyendo el manejo opcional de cambio de clave.
+- Ambas ramas confluyen en el mismo bloque de Ficha Familiar — el
+  patrón SELECT-previo-para-decidir-INSERT/UPDATE que ya usaba
+  `guardar_ficha`, ahora dentro de la misma transacción que el paso
+  del estudiante, con un único `commit()`/`rollBack()`.
+- Nuevo `case 'obtener_completo'`: combina estudiante + ficha familiar
+  en un solo JSON vía `LEFT JOIN fichas_inscripcion` (mismo criterio
+  que `pdf_ficha.php`, tolera estudiantes sin ficha diligenciada aún),
+  con los mismos nombres de campo que ya usan `obtener`/`obtener_ficha`
+  por separado.
+- Los cases `guardar`, `guardar_ficha`, `obtener`, `obtener_ficha`
+  quedan como código muerto — sin llamadores desde el frontend
+  (`est_ctrl.js` no se tocó en este commit), pendientes de limpieza
+  en una fase posterior.
+
+### Decisiones
+- Ficha Familiar obligatoria también en creación de aspirante nuevo —
+  decisión explícita para la Fase C (antes era opcional/diferida hasta
+  después de crear el estudiante).
+- Los cases antiguos no se eliminan en esta fase, para no romper nada
+  mientras el frontend (Fase C2) sigue sin migrar — limpieza programada
+  como ítem pendiente.
+- Verificado manualmente vía fetch directo desde consola (creación,
+  lectura combinada, rollback en validación fallida, duplicado,
+  edición) antes de tocar el frontend.
+- Fase C1 de 6 (A–F) del plan de unificación de ficha de estudiante —
+  completada (backend); Fase C2 (frontend) pendiente.
+
+---
+
 ## [7cef01a] — 2026-08-23 — feat: agrega columna Edad en Matriculados con resaltado para menores
 
 ### Archivos modificados
