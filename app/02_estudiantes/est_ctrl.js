@@ -160,7 +160,7 @@ $(document).ready(function () {
         new bootstrap.Modal(document.getElementById('mdl_estudiante')).show();
     });
 
-    // --- Guardar estudiante (crear / editar) ---
+    // --- Guardar estudiante + Ficha Familiar en un solo submit (Fase C2) ---
     $('#btn_guardar_estudiante').click(function () {
         let primerCampoVacio = null;
 
@@ -186,6 +186,37 @@ $(document).ready(function () {
         }
 
         if (!multiculturalidadValida) {
+            alert('Por favor complete todos los campos antes de guardar.');
+            return;
+        }
+
+        // --- Validación de la Ficha Familiar — mismo criterio que tenía
+        // btn_guardar_ficha antes de la fusión (campos siempre requeridos +
+        // padre/madre condicionados a sus checkboxes "¿Vive?") ---
+        let camposFichaRequeridos = CAMPOS_FICHA_SIEMPRE.slice();
+        if (!$('#bloque_acud_parentesco').is(':visible')) {
+            camposFichaRequeridos = camposFichaRequeridos.filter(function (selector) {
+                return selector !== '#npt_acud_parentesco';
+            });
+        }
+        if ($('#npt_padr_vive').is(':checked')) {
+            camposFichaRequeridos = camposFichaRequeridos.concat(CAMPOS_FICHA_PADRE);
+        }
+        if ($('#npt_madr_vive').is(':checked')) {
+            camposFichaRequeridos = camposFichaRequeridos.concat(CAMPOS_FICHA_MADRE);
+        }
+
+        let primerCampoVacioFicha = null;
+        camposFichaRequeridos.forEach(function (selector) {
+            let $campo = $(selector);
+            marcarValidacion($campo);
+            if ($campo.hasClass('is-invalid') && primerCampoVacioFicha === null) {
+                primerCampoVacioFicha = $campo;
+            }
+        });
+
+        if (primerCampoVacioFicha !== null) {
+            primerCampoVacioFicha.focus();
             alert('Por favor complete todos los campos antes de guardar.');
             return;
         }
@@ -217,16 +248,56 @@ $(document).ready(function () {
             estu_discapacidad:      $('#slct_estu_discapacidad').val(),
             estu_multiculturalidad: obtenerMulticulturalidad(),
             tipo_clave_estudiante:  $('input[name="tipo_clave_estudiante"]:checked').val() || '',
-            clave_manual_estudiante: $('#npt_clave_manual_estudiante').val().trim()
+            clave_manual_estudiante: $('#npt_clave_manual_estudiante').val().trim(),
+
+            // --- Ficha Familiar (AC-FO-02) ---
+            prog_id:              $('#slct_finc_prog_id').val(),
+            jornada:              $('#npt_jornada').val().trim(),
+            fechainscripcion:     $('#npt_fechainscripcion').val(),
+            padr_vive:            $('#npt_padr_vive').is(':checked') ? 1 : 0,
+            padr_nombres:         $('#npt_padr_nombres').val().trim(),
+            padr_apellidos:       $('#npt_padr_apellidos').val().trim(),
+            padr_profesion:       $('#npt_padr_profesion').val().trim(),
+            padr_empresa:         $('#npt_padr_empresa').val().trim(),
+            padr_telefono:        $('#npt_padr_telefono').val().trim(),
+            padr_direccion:       $('#npt_padr_direccion').val().trim(),
+            padr_barrio:          $('#npt_padr_barrio').val().trim(),
+            padr_ciudad:          $('#npt_padr_ciudad').val().trim(),
+            madr_vive:            $('#npt_madr_vive').is(':checked') ? 1 : 0,
+            madr_nombres:         $('#npt_madr_nombres').val().trim(),
+            madr_apellidos:       $('#npt_madr_apellidos').val().trim(),
+            madr_profesion:       $('#npt_madr_profesion').val().trim(),
+            madr_empresa:         $('#npt_madr_empresa').val().trim(),
+            madr_telefono:        $('#npt_madr_telefono').val().trim(),
+            madr_direccion:       $('#npt_madr_direccion').val().trim(),
+            madr_barrio:          $('#npt_madr_barrio').val().trim(),
+            madr_ciudad:          $('#npt_madr_ciudad').val().trim(),
+            acud_es:              $('#slct_acud_es').val(),
+            acud_parentesco:      $('#npt_acud_parentesco').val().trim(),
+            acud_nombres:         $('#npt_acud_nombres').val().trim(),
+            acud_apellidos:       $('#npt_acud_apellidos').val().trim(),
+            acud_profesion:       $('#npt_acud_profesion').val().trim(),
+            acud_empresa:         $('#npt_acud_empresa').val().trim(),
+            acud_telefono:        $('#npt_acud_telefono').val().trim(),
+            acud_direccion:       $('#npt_acud_direccion').val().trim(),
+            acud_barrio:          $('#npt_acud_barrio').val().trim(),
+            acud_ciudad:          $('#npt_acud_ciudad').val().trim(),
+            estudio_tipo:         $('#npt_estudio_tipo').val().trim(),
+            estudio_titulo:       $('#npt_estudio_titulo').val().trim(),
+            estudio_institucion:  $('#npt_estudio_institucion').val().trim(),
+            estudio_aniofin:      $('#npt_estudio_aniofin').val()
         };
 
         $.ajax({
             type: 'POST',
-            url: 'est_mdl.php?accion=guardar',
+            url: 'est_mdl.php?accion=guardar_completo',
             data: data,
             dataType: 'json',
             success: function (response) {
                 if (response.status === 'ok') {
+                    if (estu_id === '') {
+                        $('#npt_estu_id').val(response.estu_id);
+                    }
                     bootstrap.Modal.getInstance(document.getElementById('mdl_estudiante')).hide();
                     tablaAspirantes.ajax.reload(null, false);
                     tablaMatriculados.ajax.reload(null, false);
@@ -304,6 +375,11 @@ $(document).ready(function () {
                 alert('Error al subir la foto.');
             }
         });
+    });
+
+    // --- Descargar Ficha de Inscripción en PDF desde el modal unificado ---
+    $('#btn_ficha_inscripcion_pdf').click(function () {
+        descargarFichaPdf($('#npt_estu_id').val());
     });
 
     // --- Radio tipo_acceso ---
@@ -597,18 +673,11 @@ $(document).ready(function () {
                         const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
                         const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
                         const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
-                        const botonPdf = row.estado_ficha === 'completa'
-                            ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
-                            : '';
                         return `<button class="btn btn-sm btn-outline-success me-1"
                                         onclick="abrirMatricular(${row.estu_id})">Matricular</button>
-                                <button class="btn btn-sm btn-outline-primary me-1"
-                                        onclick="abrirEditar(${row.estu_id}, true)" title="${tituloFicha}">
+                                <button class="btn btn-sm btn-outline-primary" onclick="abrirEditar(${row.estu_id}, true)" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
-                                </button>
-                                <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
-                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
-                                </button>${botonPdf}`;
+                                </button>`;
                     }
                 }
             ]
@@ -714,17 +783,11 @@ $(document).ready(function () {
                         const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
                         const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
                         const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
-                        const botonEditarMatricula = `<button class="btn btn-sm btn-outline-warning me-1" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>`;
-                        const botonPdf = row.estado_ficha === 'completa'
-                            ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="descargarFichaPdf(${row.estu_id})" title="Descargar ficha en PDF">🖨️ PDF</button>`
-                            : '';
+                        const botonEditarMatricula = `<button class="btn btn-sm btn-outline-warning" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>`;
                         return `<button class="btn btn-sm btn-outline-primary me-1"
                                         onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
-                                </button>
-                                <button class="btn btn-sm btn-outline-info" onclick="abrirFicha(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')" title="${tituloFicha}">
-                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📋 Ficha
-                                </button>${botonEditarMatricula}${botonPdf}`;
+                                </button>${botonEditarMatricula}`;
                     }
                 }
             ]
@@ -858,6 +921,10 @@ $(document).ready(function () {
         $('#bloque_foto_estudiante').addClass('d-none');
         $('#img_preview_foto').attr('src', '').addClass('d-none');
         $('#npt_foto_estudiante').val('');
+
+        // Ficha Familiar (AC-FO-02) — mismo modal unificado desde la Fase C2.
+        limpiarFormularioFicha();
+        $('#btn_ficha_inscripcion_pdf').addClass('d-none');
     }
 
     function obtenerMulticulturalidad() {
@@ -873,7 +940,7 @@ $(document).ready(function () {
 function abrirEditar(estu_id, esAspirante) {
     $.ajax({
         type: 'POST',
-        url: 'est_mdl.php?accion=obtener',
+        url: 'est_mdl.php?accion=obtener_completo',
         data: { estu_id: estu_id },
         dataType: 'json',
         success: function (response) {
@@ -931,6 +998,61 @@ function abrirEditar(estu_id, esAspirante) {
                     }
                 });
 
+                // --- Ficha Familiar (AC-FO-02) — mismo modal unificado desde la Fase C2 ---
+                $('#slct_finc_prog_id').val(d.prog_id);
+                $('#npt_jornada').val(d.jornada);
+                $('#npt_fechainscripcion').val(d.fechainscripcion);
+                $('#npt_padr_vive').prop('checked', d.padr_vive == 1);
+                $('#npt_padr_nombres').val(d.padr_nombres);
+                $('#npt_padr_apellidos').val(d.padr_apellidos);
+                $('#npt_padr_profesion').val(d.padr_profesion);
+                $('#npt_padr_empresa').val(d.padr_empresa);
+                $('#npt_padr_telefono').val(d.padr_telefono);
+                $('#npt_padr_direccion').val(d.padr_direccion);
+                $('#npt_padr_barrio').val(d.padr_barrio);
+                $('#npt_padr_ciudad').val(d.padr_ciudad);
+                $('#npt_madr_vive').prop('checked', d.madr_vive == 1);
+                $('#npt_madr_nombres').val(d.madr_nombres);
+                $('#npt_madr_apellidos').val(d.madr_apellidos);
+                $('#npt_madr_profesion').val(d.madr_profesion);
+                $('#npt_madr_empresa').val(d.madr_empresa);
+                $('#npt_madr_telefono').val(d.madr_telefono);
+                $('#npt_madr_direccion').val(d.madr_direccion);
+                $('#npt_madr_barrio').val(d.madr_barrio);
+                $('#npt_madr_ciudad').val(d.madr_ciudad);
+                $('#npt_acud_parentesco').val(d.acud_parentesco);
+                $('#npt_acud_nombres').val(d.acud_nombres);
+                $('#npt_acud_apellidos').val(d.acud_apellidos);
+                $('#npt_acud_profesion').val(d.acud_profesion);
+                $('#npt_acud_empresa').val(d.acud_empresa);
+                $('#npt_acud_telefono').val(d.acud_telefono);
+                $('#npt_acud_direccion').val(d.acud_direccion);
+                $('#npt_acud_barrio').val(d.acud_barrio);
+                $('#npt_acud_ciudad').val(d.acud_ciudad);
+                $('#npt_estudio_tipo').val(d.estudio_tipo);
+                $('#npt_estudio_titulo').val(d.estudio_titulo);
+                $('#npt_estudio_institucion').val(d.estudio_institucion);
+                $('#npt_estudio_aniofin').val(d.estudio_aniofin);
+
+                actualizarVisibilidadPadreMadre();
+                actualizarSelectAcudiente();
+                $('#slct_acud_es').val(d.acud_es);
+                manejarCambioAcudiente();
+
+                // Marca validación de los campos de ficha ya cargados — el chequeo
+                // :visible solo es correcto una vez el modal ya está mostrado
+                // (mientras el modal es display:none, todo su contenido reporta
+                // :visible === false), por eso se difiere igual que hacía
+                // abrirFicha() con su propio modal antes de la fusión.
+                $('#mdl_estudiante').one('shown.bs.modal', function () {
+                    CAMPOS_FICHA_SIEMPRE.concat(CAMPOS_FICHA_PADRE, CAMPOS_FICHA_MADRE)
+                        .forEach(function (selector) {
+                            if ($(selector).is(':visible')) {
+                                marcarValidacion($(selector));
+                            }
+                        });
+                });
+
                 $('#bloque_foto_estudiante').removeClass('d-none');
                 $('#npt_foto_estudiante').val('');
                 if (d.estu_foto) {
@@ -940,6 +1062,8 @@ function abrirEditar(estu_id, esAspirante) {
                 } else {
                     $('#img_preview_foto').attr('src', '').addClass('d-none');
                 }
+
+                $('#btn_ficha_inscripcion_pdf').toggleClass('d-none', d.estado_ficha !== 'completa');
 
                 $('#mdl_estudiante_titulo').text('Editar Estudiante');
                 new bootstrap.Modal(document.getElementById('mdl_estudiante')).show();

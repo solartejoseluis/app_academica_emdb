@@ -129,7 +129,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 
 <!-- Modal Nuevo Aspirante / Editar Estudiante -->
 <div class="modal fade" id="mdl_estudiante" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="mdl_estudiante_titulo">Nuevo Aspirante</h5>
@@ -308,225 +308,13 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
 
-                <div class="mb-3 d-none" id="bloque_cambiar_clave_estudiante">
-                    <h6 class="text-muted border-bottom pb-2 mb-2">Cambiar clave de acceso</h6>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="tipo_clave_estudiante" id="radio_clave_automatica_estudiante" value="automatica">
-                        <label class="form-check-label" for="radio_clave_automatica_estudiante">Generar clave automática</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="tipo_clave_estudiante" id="radio_clave_manual_estudiante" value="manual">
-                        <label class="form-check-label" for="radio_clave_manual_estudiante">Asignar clave manual</label>
-                    </div>
-                    <div class="mb-2 mt-2 d-none" id="bloque_clave_manual_estudiante">
-                        <input type="text" class="form-control" id="npt_clave_manual_estudiante" placeholder="Ingrese la nueva clave" autocomplete="off">
-                    </div>
-                    <div class="form-text">Dejar en blanco para no cambiar la clave actual.</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-danger me-auto d-none" id="btn_eliminar_aspirante">Eliminar aspirante</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn_guardar_estudiante">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Confirmar Eliminar Aspirante -->
-<div class="modal fade" id="mdl_confirmar_eliminar_aspirante" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Eliminar aspirante</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>¿Eliminar a <strong id="spn_nombre_eliminar_aspirante"></strong> de forma permanente? Esta acción no se puede deshacer.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_aspirante">Eliminar definitivamente</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Completar Matrícula -->
-<div class="modal fade" id="mdl_matricular" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Completar Matrícula</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="npt_estu_id_matricular" value="">
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Programa <span class="text-danger">*</span></label>
-                        <select class="form-select" id="slct_prog_id">
-                            <option value="">-- Seleccionar --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Cohorte <span class="text-danger">*</span></label>
-                        <select class="form-select" id="slct_coho_id" disabled>
-                            <option value="">-- Primero seleccione un programa --</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Jornada declarada (Ficha de Inscripción)</label>
-                        <select class="form-select" id="slct_jornada_declarada" disabled>
-                            <option value="">-- Seleccionar --</option>
-                            <option value="SEMANA">Semana</option>
-                            <option value="SABADOS">Sábados</option>
-                        </select>
-                        <div class="form-text">Informativa — no se guarda en la matrícula. Sirve de referencia al crear el Grupo Semestre.</div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Período <span class="text-danger">*</span></label>
-                        <select class="form-select" id="slct_peri_id">
-                            <option value="">-- Seleccionar --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <h6 class="text-muted border-bottom pb-2 mb-2">Requisitos entregados</h6>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_copiadiploma"><label class="form-check-label" for="npt_req_copiadiploma">Copia diploma</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_actagrado"><label class="form-check-label" for="npt_req_actagrado">Acta de grado</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_documento"><label class="form-check-label" for="npt_req_documento">Documento identidad</label></div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_carnetsalud"><label class="form-check-label" for="npt_req_carnetsalud">Carné de salud</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_examenmedico"><label class="form-check-label" for="npt_req_examenmedico">Examen médico</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_fotos"><label class="form-check-label" for="npt_req_fotos">Fotos</label></div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_carpeta"><label class="form-check-label" for="npt_req_carpeta">Carpeta</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_vacunastetano"><label class="form-check-label" for="npt_req_vacunastetano">Vacuna tétano</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_hepatitisb"><label class="form-check-label" for="npt_req_hepatitisb">Hepatitis B</label></div>
-                    </div>
-                </div>
-
-                <h6 class="text-muted border-bottom pb-2 mb-2">Crear acceso al sistema</h6>
-                <div class="mb-2">
-                    <div class="form-check"><input class="form-check-input" type="radio" name="tipo_acceso" id="radio_automatica" value="automatica"><label class="form-check-label" for="radio_automatica">Generar clave automática</label></div>
-                    <div class="form-check"><input class="form-check-input" type="radio" name="tipo_acceso" id="radio_manual" value="manual"><label class="form-check-label" for="radio_manual">Asignar clave manual</label></div>
-                    <div class="form-check"><input class="form-check-input" type="radio" name="tipo_acceso" id="radio_no" value="no" checked><label class="form-check-label" for="radio_no">No crear acceso</label></div>
-                </div>
-                <div class="mb-3 d-none" id="bloque_clave_manual">
-                    <label class="form-label">Clave</label>
-                    <input type="text" class="form-control" id="npt_clave_manual" placeholder="Ingrese la clave" autocomplete="off">
-                </div>
-                <div class="alert alert-success d-none" id="div_clave_generada">
-                    Usuario (correo de acceso): <strong id="spn_usua_email_valor"></strong><br>
-                    Clave asignada: <strong id="spn_clave_valor"></strong>
-                    <div class="mt-1 small text-muted">Anote esta clave — no se volverá a mostrar.</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success d-none" id="btn_cerrar_matricula">Cerrar y actualizar lista</button>
-                <button type="button" class="btn btn-primary" id="btn_confirmar_matricula">Confirmar Matrícula</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Módulos Asignados (detalle de conteo en Matriculados) -->
-<div class="modal fade" id="mdl_modulos_estudiante" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="mdl_modulos_estudiante_titulo">Módulos</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <table class="table table-sm table-bordered">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Módulo</th>
-                            <th>Grupo</th>
-                            <th>Período</th>
-                            <th>Docente</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody_modulos_estudiante"></tbody>
-                </table>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Editar Matrícula (Programa/Cohorte/Período) -->
-<div class="modal fade" id="mdl_editar_matricula" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="mdl_editar_matricula_titulo">Editar Matrícula</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="npt_matr_id_editar" value="">
-                <div class="alert alert-warning small" id="aviso_editar_matricula" style="display:none;"></div>
-                <div class="mb-3">
-                    <label class="form-label">Programa <span class="text-danger">*</span></label>
-                    <select class="form-select" id="slct_editar_prog_id">
-                        <option value="">-- Seleccionar --</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Cohorte <span class="text-danger">*</span></label>
-                    <select class="form-select" id="slct_editar_coho_id" disabled>
-                        <option value="">-- Primero seleccione un programa --</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Período <span class="text-danger">*</span></label>
-                    <select class="form-select" id="slct_editar_peri_id">
-                        <option value="">-- Seleccionar --</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn_guardar_editar_matricula">Guardar Cambios</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Ficha Familiar (AC-FO-02) -->
-<div class="modal fade" id="mdl_ficha" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title mb-0">Ficha Familiar (AC-FO-02)</h5>
-                    <div class="text-muted small" id="ficha_nombre_estudiante"></div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="npt_estu_id_ficha" value="">
-
+                <h6 class="text-muted border-bottom pb-2 mb-3">Ficha Familiar (AC-FO-02)</h6>
                 <div class="alert alert-info mb-3">
                     <strong>Instrucciones:</strong> Diligencie esta ficha con los datos
                     actualizados del aspirante y su núcleo familiar. Complete todos los
                     campos visibles — si el padre o la madre no viven, desmarque la
                     casilla correspondiente y esos campos se ocultarán automáticamente.
-                    Al finalizar, pulse "Guardar Ficha".
+                    Al finalizar, pulse "Guardar".
                 </div>
 
                 <h6 class="text-muted border-bottom pb-2 mb-2">Información general</h6>
@@ -710,10 +498,202 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <input type="text" class="form-control texto-mayus" id="npt_estudio_institucion" autocomplete="off">
                     </div>
                 </div>
+
+                <div class="mb-3 d-none" id="bloque_cambiar_clave_estudiante">
+                    <h6 class="text-muted border-bottom pb-2 mb-2">Cambiar clave de acceso</h6>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="tipo_clave_estudiante" id="radio_clave_automatica_estudiante" value="automatica">
+                        <label class="form-check-label" for="radio_clave_automatica_estudiante">Generar clave automática</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="tipo_clave_estudiante" id="radio_clave_manual_estudiante" value="manual">
+                        <label class="form-check-label" for="radio_clave_manual_estudiante">Asignar clave manual</label>
+                    </div>
+                    <div class="mb-2 mt-2 d-none" id="bloque_clave_manual_estudiante">
+                        <input type="text" class="form-control" id="npt_clave_manual_estudiante" placeholder="Ingrese la nueva clave" autocomplete="off">
+                    </div>
+                    <div class="form-text">Dejar en blanco para no cambiar la clave actual.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto d-none" id="btn_eliminar_aspirante">Eliminar aspirante</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn_guardar_estudiante">Guardar</button>
+                <button type="button" class="btn btn-outline-danger d-none" id="btn_ficha_inscripcion_pdf">🖨️ Ficha Inscripción</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar Aspirante -->
+<div class="modal fade" id="mdl_confirmar_eliminar_aspirante" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar aspirante</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Eliminar a <strong id="spn_nombre_eliminar_aspirante"></strong> de forma permanente? Esta acción no se puede deshacer.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn_guardar_ficha">Guardar Ficha</button>
+                <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_aspirante">Eliminar definitivamente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Completar Matrícula -->
+<div class="modal fade" id="mdl_matricular" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Completar Matrícula</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="npt_estu_id_matricular" value="">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Programa <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_prog_id">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Cohorte <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_coho_id" disabled>
+                            <option value="">-- Primero seleccione un programa --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Jornada declarada (Ficha de Inscripción)</label>
+                        <select class="form-select" id="slct_jornada_declarada" disabled>
+                            <option value="">-- Seleccionar --</option>
+                            <option value="SEMANA">Semana</option>
+                            <option value="SABADOS">Sábados</option>
+                        </select>
+                        <div class="form-text">Informativa — no se guarda en la matrícula. Sirve de referencia al crear el Grupo Semestre.</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Período <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_peri_id">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h6 class="text-muted border-bottom pb-2 mb-2">Requisitos entregados</h6>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_copiadiploma"><label class="form-check-label" for="npt_req_copiadiploma">Copia diploma</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_actagrado"><label class="form-check-label" for="npt_req_actagrado">Acta de grado</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_documento"><label class="form-check-label" for="npt_req_documento">Documento identidad</label></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_carnetsalud"><label class="form-check-label" for="npt_req_carnetsalud">Carné de salud</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_examenmedico"><label class="form-check-label" for="npt_req_examenmedico">Examen médico</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_fotos"><label class="form-check-label" for="npt_req_fotos">Fotos</label></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_carpeta"><label class="form-check-label" for="npt_req_carpeta">Carpeta</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_vacunastetano"><label class="form-check-label" for="npt_req_vacunastetano">Vacuna tétano</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_hepatitisb"><label class="form-check-label" for="npt_req_hepatitisb">Hepatitis B</label></div>
+                    </div>
+                </div>
+
+                <h6 class="text-muted border-bottom pb-2 mb-2">Crear acceso al sistema</h6>
+                <div class="mb-2">
+                    <div class="form-check"><input class="form-check-input" type="radio" name="tipo_acceso" id="radio_automatica" value="automatica"><label class="form-check-label" for="radio_automatica">Generar clave automática</label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="tipo_acceso" id="radio_manual" value="manual"><label class="form-check-label" for="radio_manual">Asignar clave manual</label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="tipo_acceso" id="radio_no" value="no" checked><label class="form-check-label" for="radio_no">No crear acceso</label></div>
+                </div>
+                <div class="mb-3 d-none" id="bloque_clave_manual">
+                    <label class="form-label">Clave</label>
+                    <input type="text" class="form-control" id="npt_clave_manual" placeholder="Ingrese la clave" autocomplete="off">
+                </div>
+                <div class="alert alert-success d-none" id="div_clave_generada">
+                    Usuario (correo de acceso): <strong id="spn_usua_email_valor"></strong><br>
+                    Clave asignada: <strong id="spn_clave_valor"></strong>
+                    <div class="mt-1 small text-muted">Anote esta clave — no se volverá a mostrar.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success d-none" id="btn_cerrar_matricula">Cerrar y actualizar lista</button>
+                <button type="button" class="btn btn-primary" id="btn_confirmar_matricula">Confirmar Matrícula</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Módulos Asignados (detalle de conteo en Matriculados) -->
+<div class="modal fade" id="mdl_modulos_estudiante" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mdl_modulos_estudiante_titulo">Módulos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Módulo</th>
+                            <th>Grupo</th>
+                            <th>Período</th>
+                            <th>Docente</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_modulos_estudiante"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Matrícula (Programa/Cohorte/Período) -->
+<div class="modal fade" id="mdl_editar_matricula" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mdl_editar_matricula_titulo">Editar Matrícula</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="npt_matr_id_editar" value="">
+                <div class="alert alert-warning small" id="aviso_editar_matricula" style="display:none;"></div>
+                <div class="mb-3">
+                    <label class="form-label">Programa <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_editar_prog_id">
+                        <option value="">-- Seleccionar --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Cohorte <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_editar_coho_id" disabled>
+                        <option value="">-- Primero seleccione un programa --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Período <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_editar_peri_id">
+                        <option value="">-- Seleccionar --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn_guardar_editar_matricula">Guardar Cambios</button>
             </div>
         </div>
     </div>

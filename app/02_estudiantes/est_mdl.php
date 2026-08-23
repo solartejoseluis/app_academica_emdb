@@ -1575,6 +1575,8 @@ switch ($accion) {
                 break;
             }
 
+            $row['estado_ficha'] = calcularEstadoFicha($row);
+
             echo json_encode(['status' => 'ok', 'data' => $row]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al obtener los datos del estudiante']);
