@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: 25530cc
+> Última actualización: 2026-08-23 — último commit citado: afdcfc1
 
 ## Reglas de documentación
 
@@ -613,6 +613,12 @@ Cuando un campo de una entidad (ej. `estudiantes.estu_email`) debe ser único a 
 
 Ejemplo: case `guardar` (crear y editar) en `est_mdl.php` y case `registrar` en `insc_mdl.php` (`09_inscripcion_publica`), commit `d62dde6` (2026-08-19) — valida `estu_email` contra `estudiantes.estu_email` y `usuarios.usua_email` antes de crear/editar un aspirante, excluyendo el propio `usua_id` en la rama editar.
 
+### Remover un campo solo de la UI (dejando columna + backend intactos) cuando pertenece a una etapa fuera del alcance actual
+
+Cuando un campo de BD ya tiene su columna y su wiring de backend (`_mdl.php`) funcionando, pero pertenece a una etapa del proceso que todavía no está en el alcance del sprint/fase actual (ej. datos de certificación antes de que exista el flujo de certificación), remover el campo solo de la UI (`_view.php`/`_ctrl.js`) es preferible a eliminar la columna o dejar código muerto sin explicar por qué. La columna sigue recibiendo `NULL`/vacío en cada guardado (el backend no cambia), y el campo queda listo para reactivarse con un cambio de alcance mínimo — solo HTML + JS, sin tocar BD ni PHP — el día en que esa etapa entre en alcance. La condición para que esto valga la pena (en vez de eliminar todo el feature) es que la remoción se documente explícitamente en el commit que la hace, con la razón y la expectativa de reactivación — sin esa nota, un campo sin UI es indistinguible de un descuido o código muerto real.
+
+Ejemplo: `matr_folio`/`matr_numero` en `02_estudiantes` — removidos de la UI de "Completar Matrícula" en el commit `29b6ca6` (2026-08-07) con la decisión explícita registrada en el CHANGELOG ("se mantienen en est_mdl.php y en la tabla `matriculas` como campos opcionales, sin usarse desde la UI... listos para reactivarse sin cambios de backend/BD si se retoman en el futuro"). La Fase E (commit `afdcfc1`, 2026-08-23) confirmó que la estrategia funcionó: reactivar `matr_folio` fue solo agregar el input en ambos modales y el campo en el payload JS, sin tocar el `case 'matricular'` para ese campo específico — el backend ya lo esperaba desde 16 días antes.
+
 ---
 
 ## Antipatrones a evitar
@@ -986,7 +992,7 @@ necesita una restricción UNIQUE (hoy no la tiene).
 | 2.8.C1 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — backend: case `guardar_completo` (1 transacción PDO para estudiante + ficha, Ficha Familiar obligatoria siempre) + case `obtener_completo` (LEFT JOIN); cases antiguos sin llamadores, pendientes de limpieza | ✅ 2026-08-23 (commit `42e4175`) |
 | 2.8.C2 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — frontend: modal único `modal-xl`, botón "Guardar" único, foto arriba, ficha debajo, botón PDF trasladado al final del modal | ✅ 2026-08-23 (commit `76f90c5`) |
 | 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ✅ 2026-08-23 (commit `25530cc`) |
-| 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ⬜ |
+| 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ✅ 2026-08-23 (commit `afdcfc1`) |
 | 2.8.F | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ⬜ |
 
 ### Phase 3 — Validación TRL5
