@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: 42e4175
+> Última actualización: 2026-08-23 — último commit citado: 76f90c5
 
 ## Reglas de documentación
 
@@ -423,6 +423,12 @@ Ciclo estándar para operaciones Crear/Editar en todos los módulos:
 5. `recolectarDatos()` → objeto JS plano con todos los valores del formulario
 6. `$.ajax POST` → `_mdl.php?accion=xxx`
 7. `success`: verificar `response.status === 'ok'` → `DataTable.ajax.reload()`
+
+### Marcado de validación con `:visible` dentro de un modal recién abierto debe diferirse a `shown.bs.modal`
+
+`new bootstrap.Modal(el).show()` no es síncrono-completo — el modal sigue en `display:none` durante uno o más ticks mientras la transición de Bootstrap termina. Cualquier código que dependa del selector jQuery `:visible` (ej. un loop que marca campos como `is-invalid` solo si están visibles, para no marcar un bloque Padre/Madre oculto por `actualizarVisibilidadPadreMadre()`) evaluado inmediatamente después de poblar los campos y antes de que el modal termine de mostrarse siempre ve `:visible === false` para todo — el marcado se salta en silencio, sin ningún error visible. La corrección es envolver ese bloque en `$('#mdl_x').one('shown.bs.modal', function () { ... })`, que solo dispara una vez que el modal ya está completamente visible en el DOM.
+
+Ejemplo: `abrirEditar()` en `02_estudiantes` (commit `76f90c5`, 2026-08-23) — el marcado de validación de los campos de la Ficha Familiar (ahora fusionados dentro de `mdl_estudiante`) se detectó saltándose en silencio durante el desarrollo, antes de llegar a pruebas de navegador, y se corrigió diferiéndolo a `shown.bs.modal`. Antes de escribir un loop de marcado de validación (u cualquier otra lógica que inspeccione `:visible`/dimensiones reales) justo después de poblar un modal recién abierto, verificar si ese código corre antes o después del evento `shown.bs.modal`.
 
 ### DataTable como vista de listado
 
@@ -961,7 +967,7 @@ necesita una restricción UNIQUE (hoy no la tiene).
 | 2.8.A | Botón "📝 Datos Estudiante" — unifica "Editar"/"Ficha", adopta el indicador de completitud (`estado_ficha`) en `tablaMatriculados` y `tablaAspirantes` (`02_estudiantes`) | ✅ 2026-08-23 (commit `38e1809`) |
 | 2.8.B | Columna Edad en Matriculados — formato "17 (23 sep)", resaltado celeste `#cfe2ff` para menores de 18 | ✅ 2026-08-23 (commit `7cef01a`) |
 | 2.8.C1 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — backend: case `guardar_completo` (1 transacción PDO para estudiante + ficha, Ficha Familiar obligatoria siempre) + case `obtener_completo` (LEFT JOIN); cases antiguos sin llamadores, pendientes de limpieza | ✅ 2026-08-23 (commit `42e4175`) |
-| 2.8.C2 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — frontend: modal único `modal-xl`, botón "Guardar" único, foto arriba, ficha debajo, botón PDF trasladado al final del modal | ⬜ |
+| 2.8.C2 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — frontend: modal único `modal-xl`, botón "Guardar" único, foto arriba, ficha debajo, botón PDF trasladado al final del modal | ✅ 2026-08-23 (commit `76f90c5`) |
 | 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ⬜ |
 | 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ⬜ |
 | 2.8.F | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ⬜ |

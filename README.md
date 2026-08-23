@@ -85,7 +85,7 @@ app_academica_emdb/
     00_img/            — Recursos estáticos: logo, iconos
     00_files/          — Componentes PHP compartidos: `navbar.php` (navbar unificado roles 1 y 2), `estilos.css` (texto-mayus), favicon, robots.txt, .htaccess
     01_login/          — Autenticación y redirección por rol ✅
-    02_estudiantes/    — Registro, edición y matrícula de estudiantes; Ficha Familiar (AC-FO-02) y foto del estudiante ✅
+    02_estudiantes/    — Registro, matrícula y ficha completa del estudiante (datos personales + Ficha Familiar AC-FO-02 en un solo modal) con foto y descarga en PDF ✅
     03_docentes/       — Gestión del cuerpo docente ✅
     04_grupos/         — Programas (CRUD), cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) ✅
@@ -238,6 +238,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 | Phase 3 | Validación TRL5 con usuarios reales | ⬜ Pendiente |
 
 > **Formulario público de inscripción:** 5 de 5 fases completas (reCAPTCHA, Ficha Familiar interna, migración `estu_origen`, formulario público en dos pasos, columna Origen en listado de Aspirantes, Ficha Familiar obligatoria + indicador de 3 estados con pruebas extremo a extremo).
+
+> **Ficha del estudiante unificada:** los datos personales del estudiante y su Ficha Familiar (AC-FO-02) se editan ahora desde un único modal, con descarga en PDF integrada — antes eran dos pantallas separadas.
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
