@@ -89,7 +89,7 @@ app_academica_emdb/
     03_docentes/       — Gestión del cuerpo docente ✅
     04_grupos/         — Programas (CRUD), cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) ✅
-    06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador (con contexto de curso y docente) + boletín PDF estudiante + PDF de Ficha Familiar ✅
+    06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador (con contexto de curso y docente) + boletín PDF estudiante + PDF de Ficha Familiar + PDF de Hoja de Matrícula (AC-FO-09) ✅
     07_coordinador/    — Dashboard de seguimiento académico ✅
     08_admin/          — Gestión de usuarios del sistema ✅
   database/
@@ -239,7 +239,7 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Formulario público de inscripción:** 5 de 5 fases completas (reCAPTCHA, Ficha Familiar interna, migración `estu_origen`, formulario público en dos pasos, columna Origen en listado de Aspirantes, Ficha Familiar obligatoria + indicador de 3 estados con pruebas extremo a extremo).
 
-> **Ficha del estudiante unificada:** los datos personales del estudiante y su Ficha Familiar (AC-FO-02) se editan ahora desde un único modal, con descarga en PDF integrada — antes eran dos pantallas separadas.
+> **Ficha del estudiante unificada:** los datos personales del estudiante y su Ficha Familiar (AC-FO-02) se editan ahora desde un único modal, con descarga en PDF integrada — antes eran dos pantallas separadas. La matrícula del estudiante (folio, fecha, observaciones, número institucional) y la configuración de la institución (Director, Secretario(a), número de matrícula inicial) alimentan la exportación en PDF de la Hoja de Matrícula (AC-FO-09), con el número de matrícula asignado automáticamente la primera vez que se genera el documento.
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 

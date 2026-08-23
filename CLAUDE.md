@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: c34b780
+> Última actualización: 2026-08-23 — último commit citado: ffb6a6c
 
 ## Reglas de documentación
 
@@ -572,6 +572,22 @@ El `CHECK (config_id = 1)` hace imposible un `INSERT` con cualquier otro valor d
 
 Ejemplo: tabla `configuracion` en `08_admin` (commit `25530cc`, 2026-08-23) — `matr_numero_inicial`, `director_nombre`, `secretario_nombre`, seed inicial con `config_id=1`. Antes de replicar este patrón para un nuevo conjunto de valores globales, evaluar primero si conviene una tabla nueva de fila única (este patrón, mejor cuando los valores son pocos y fijos) o agregar columnas a esta misma tabla `configuracion` si el nuevo valor es igual de global e institucional.
 
+### Asignación segura de un contador institucional bajo concurrencia: `SELECT ... FOR UPDATE` sobre la fila de configuración, no sobre la tabla completa
+
+Cuando un valor se calcula como "el siguiente número" a partir de un contador global (ej. un número de matrícula, folio o acta institucional) y dos usuarios podrían disparar la asignación casi simultáneamente, el cálculo (`MAX(...)`+1 u otro) y la escritura deben protegerse contra condición de carrera — sin este cuidado, dos requests concurrentes pueden leer el mismo `MAX` antes de que cualquiera de los dos escriba, y terminar asignando el mismo número dos veces (violando además cualquier `UNIQUE KEY` sobre esa columna, o peor, fallando en silencio si no la hay). Patrón:
+
+1. Dentro de una transacción PDO (`beginTransaction`/`commit`/`rollBack`), lockear con `SELECT ... FOR UPDATE` la fila que sirve de "ancla" del cálculo — no la tabla completa cuyo `MAX()` se está calculando. Si existe una tabla de configuración de fila única (ver patrón anterior), esa fila es el candidato natural: ya es una sola fila, barata de lockear, y cualquier segunda transacción concurrente que intente el mismo `SELECT ... FOR UPDATE` queda bloqueada hasta que la primera haga `commit()`/`rollBack()`.
+2. Dentro de la misma transacción, calcular el siguiente valor (ej. `SELECT MAX(columna) FROM tabla_destino`, comparado con el valor base de configuración) y persistirlo con un `UPDATE` normal sobre la fila destino real.
+3. Solo asignar si el valor aún no existe (`IS NULL`) — una asignación ya hecha nunca se recalcula ni se sobreescribe en descargas/ejecuciones posteriores.
+
+Ejemplo: `pdf_hoja_matricula.php` (`06_reportes`, commit `ffb6a6c`, 2026-08-23) — `matr_numero` se asigna la primera vez que se genera el PDF de un estudiante matriculado, lockeando `configuracion` (`SELECT matr_numero_inicial FROM configuracion WHERE config_id = 1 FOR UPDATE`) antes de calcular `GREATEST(MAX(matriculas.matr_numero)+1, matr_numero_inicial)` y persistirlo — primer uso de `SELECT ... FOR UPDATE` en el proyecto. Antes de replicar este patrón, confirmar que el valor realmente necesita esta protección — para un valor editado manualmente por un solo coordinador a la vez (como la mayoría de campos del proyecto), la transacción PDO simple ya documentada en otras partes de este archivo sigue siendo suficiente.
+
+### Resolver una relación 1:N no anticipada con `ORDER BY <pk> DESC LIMIT 1` cuando no hay desambiguación explícita
+
+Cuando una query necesita "el" registro relacionado de una tabla que en realidad es 1:N respecto a la entidad consultada (ej. `matriculas` es 1:N por `estu_id` — un estudiante puede tener más de una fila a lo largo del tiempo), y ni el esquema ni la lógica de negocio ofrecen un criterio explícito de cuál usar, el criterio por defecto del proyecto es tomar el más reciente: `ORDER BY <pk_autoincremental> DESC LIMIT 1` (o el `JOIN` equivalente con esa cláusula aplicada a toda la consulta de una sola fila). Esto evita tanto un resultado no determinista (dejar que MySQL devuelva cualquier fila coincidente sin orden explícito) como una duplicación silenciosa de la fila principal cuando se usa `fetch()` esperando una sola fila.
+
+Ejemplo: `case 'obtener_completo'` en `est_mdl.php` y `pdf_hoja_matricula.php` (ambos del commit `ffb6a6c`, 2026-08-23) — ninguno de los dos fue diseñado originalmente para lidiar con más de una matrícula por estudiante; al descubrirse la relación 1:N durante la implementación, ambos usan `LEFT`/`INNER JOIN matriculas m ... ORDER BY m.matr_id DESC LIMIT 1` para quedarse con la matrícula más reciente. Antes de replicar este patrón, evaluar si existe un criterio de negocio más específico que "el más reciente" (ej. "el activo", "el del período actual") — este patrón es el default cuando no lo hay, no una regla absoluta.
+
 ### Preferir bind posicional (?) sobre placeholder nombrado reutilizado, por EMULATE_PREPARES=false
 
 `app/00_connect/pdo.php` configura `PDO::ATTR_EMULATE_PREPARES => false` (prepares nativos de MySQL, no emulados por PHP). Reutilizar el mismo placeholder nombrado (ej. `:peri_id`) dos veces en una misma query es un caso poco confiable con prepares nativos. Cuando una query necesita el mismo valor en dos puntos distintos del SQL (ej. una subconsulta de conteo y otra de código legible), usar placeholders posicionales (`?`) y pasar el valor repetido en el array de `execute([$valor, $valor])` — consistente además con el estilo ya usado en la mayoría de queries del proyecto.
@@ -994,7 +1010,9 @@ necesita una restricción UNIQUE (hoy no la tiene).
 | 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ✅ 2026-08-23 (commit `25530cc`) |
 | 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ✅ 2026-08-23 (commit `afdcfc1`) |
 | 2.8.F1 | `usua_nombre` en `usuarios` — prerequisito para "Matriculado por" en el PDF | ✅ 2026-08-23 (commit `c34b780`) |
-| 2.8.F2 | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ⬜ |
+| 2.8.F2 | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ✅ 2026-08-23 (commit `ffb6a6c`) |
+
+**Plan completo (A–F) cerrado el 2026-08-23** — las 6 fases (A, B, C1+C2, D, E, F1+F2) quedaron implementadas y verificadas en navegador.
 
 ### Phase 3 — Validación TRL5
 
