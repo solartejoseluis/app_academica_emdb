@@ -4,6 +4,60 @@
 
 ---
 
+## [25530cc] — 2026-08-23 — feat: agrega configuración institucional (número de matrícula inicial, Director, Secretario)
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/08_admin/admin_mdl.php
+- app/08_admin/admin_view.php
+- app/08_admin/admin_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- Nueva tabla `configuracion` (BLOQUE 6C del `.sql`) — fila única con
+  `config_id` fijo en 1 (`CONSTRAINT chk_configuracion_fila_unica CHECK
+  (config_id = 1)`), columnas tipadas `matr_numero_inicial` (INT),
+  `director_nombre` y `secretario_nombre` (VARCHAR(150)). Seed 9.7 inserta
+  la fila inicial (`config_id=1, matr_numero_inicial=1, nombres vacíos`).
+  Aplicada también manualmente contra la BD de Docker en ejecución, ya que
+  el `.sql` solo se re-ejecuta si el volumen se recrea desde cero.
+- `admin_mdl.php`: 2 cases nuevos, con el mismo guard exacto (sesión +
+  `role_id !== 1`) ya usado en los 5 cases existentes de CRUD de usuarios.
+  `obtener_configuracion`: `SELECT * FROM configuracion WHERE config_id =
+  1`. `guardar_configuracion`: valida en servidor que
+  `matr_numero_inicial` sea entero positivo y que `director_nombre`/
+  `secretario_nombre` no estén vacíos, luego `UPDATE ... WHERE config_id =
+  1` sin transacción (una sola tabla, un solo UPDATE).
+- `admin_view.php`: bloque nuevo "Configuración Institucional" debajo de
+  la tabla de usuarios, sin modal ni tabs — formulario simple con 3 campos
+  y botón "Guardar configuración", con texto de ayuda bajo el campo de
+  número de matrícula inicial explicando que solo aplica hacia adelante
+  (no afecta matrículas ya generadas).
+- `admin_ctrl.js`: precarga los 3 campos al cargar la página
+  (`cargarConfiguracion()`), handler de `#btn_guardar_configuracion` con
+  validación cliente + `$.ajax` a `guardar_configuracion`, confirmación
+  con `alert()` (mismo patrón ya usado en este archivo para crear/editar
+  usuario).
+- Fix incidental: `admin_view.php` nunca había incluido `estilos.css` (la
+  hoja que define `.texto-mayus`) — se agregó al `<head>`, necesario para
+  que los campos Director/Secretario se muestren en mayúsculas.
+
+### Decisiones
+- Fila única con columnas tipadas fijas, no key-value — consistente con
+  el resto del esquema del proyecto, que siempre usa columnas tipadas en
+  vez de un esquema genérico.
+- Sin tabs en `admin_view.php` — bloque adicional visible de inmediato,
+  ya que son solo 3 campos y no ameritan una pestaña separada.
+- Primer caso en el proyecto de "un registro de configuración fijo" (sin
+  PK variable recibida del cliente, `WHERE config_id = 1` hardcodeado) —
+  sin precedente previo en ningún otro módulo.
+- Verificado en navegador: persistencia de los 3 campos, validación de
+  campos vacíos/número no positivo, fila única confirmada en BD,
+  regresión de CRUD de usuarios sin cambios.
+- Fase D de 6 (A–F) del plan de unificación de ficha de estudiante —
+  completada.
+
+---
+
 ## [76f90c5] — 2026-08-23 — feat: fusiona modales Editar Estudiante + Ficha Familiar en uno solo
 
 ### Archivos modificados
