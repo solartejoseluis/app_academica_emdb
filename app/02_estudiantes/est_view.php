@@ -608,6 +608,22 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
 
+                <h6 class="text-muted border-bottom pb-2 mb-2">Datos de matrícula</h6>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Folio</label>
+                        <input type="text" class="form-control" id="npt_matr_folio" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Fecha de matrícula</label>
+                        <input type="date" class="form-control" id="npt_fechamatricula">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Observaciones</label>
+                    <textarea class="form-control" id="npt_matr_observacion" rows="2"></textarea>
+                </div>
+
                 <h6 class="text-muted border-bottom pb-2 mb-2">Crear acceso al sistema</h6>
                 <div class="mb-2">
                     <div class="form-check"><input class="form-check-input" type="radio" name="tipo_acceso" id="radio_automatica" value="automatica"><label class="form-check-label" for="radio_automatica">Generar clave automática</label></div>
@@ -690,6 +706,23 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <option value="">-- Seleccionar --</option>
                     </select>
                 </div>
+
+                <h6 class="text-muted border-bottom pb-2 mb-2">Datos de matrícula</h6>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Folio</label>
+                        <input type="text" class="form-control" id="npt_editar_matr_folio" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Fecha de matrícula</label>
+                        <input type="date" class="form-control" id="npt_editar_fechamatricula">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Observaciones</label>
+                    <textarea class="form-control" id="npt_editar_matr_observacion" rows="2"></textarea>
+                </div>
+                <div class="form-text" id="spn_editar_matr_numero">Número de matrícula: (sin asignar aún)</div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

@@ -422,6 +422,9 @@ $(document).ready(function () {
             prog_id:           prog_id,
             peri_id:           peri_id,
             coho_id:           $('#slct_coho_id').val(),
+            matr_folio:        $('#npt_matr_folio').val().trim(),
+            fechamatricula:    $('#npt_fechamatricula').val(),
+            matr_observacion:  $('#npt_matr_observacion').val().trim(),
             tipo_acceso:       tipo_acceso,
             clave_manual:      $('#npt_clave_manual').val().trim(),
             req_copiadiploma:  $('#npt_req_copiadiploma').is(':checked') ? 1 : 0,
@@ -582,6 +585,9 @@ $(document).ready(function () {
         $('#slct_coho_id').val('');
         $('#slct_prog_id').val('');
         $('#slct_peri_id').val('');
+        $('#npt_matr_folio').val('');
+        $('#npt_fechamatricula').val('');
+        $('#npt_matr_observacion').val('');
     });
 
     // --- Guardar cambios en Editar Matrícula ---
@@ -595,10 +601,22 @@ $(document).ready(function () {
         if (!coho_id) { alert('Seleccione la cohorte.');  return false; }
         if (!peri_id) { alert('Seleccione el período.');  return false; }
 
+        const matr_folio       = $('#npt_editar_matr_folio').val().trim();
+        const fechamatricula   = $('#npt_editar_fechamatricula').val();
+        const matr_observacion = $('#npt_editar_matr_observacion').val().trim();
+
         $.ajax({
             type: 'POST',
             url: 'est_mdl.php?accion=editar_matricula',
-            data: { matr_id: matr_id, prog_id: prog_id, coho_id: coho_id, peri_id: peri_id },
+            data: {
+                matr_id: matr_id,
+                prog_id: prog_id,
+                coho_id: coho_id,
+                peri_id: peri_id,
+                matr_folio: matr_folio,
+                fechamatricula: fechamatricula,
+                matr_observacion: matr_observacion
+            },
             dataType: 'json',
             success: function (response) {
                 if (response.status === 'ok') {
@@ -1079,6 +1097,9 @@ function abrirMatricular(estu_id) {
     $('#slct_prog_id, #slct_peri_id').val('');
     $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
     $('#slct_jornada_declarada').val('');
+    $('#npt_matr_folio').val('');
+    $('#npt_matr_observacion').val('');
+    $('#npt_fechamatricula').val(new Date().toISOString().slice(0, 10));
 
     $.ajax({
         type: 'POST',
@@ -1150,6 +1171,10 @@ function abrirEditarMatricula(matr_id) {
             $('#aviso_editar_matricula').hide();
             $('#slct_editar_prog_id').val(d.prog_id);
             $('#slct_editar_peri_id').val(d.peri_id);
+            $('#npt_editar_matr_folio').val(d.matr_folio || '');
+            $('#npt_editar_fechamatricula').val(d.fechamatricula || '');
+            $('#npt_editar_matr_observacion').val(d.matr_observacion || '');
+            $('#spn_editar_matr_numero').text('Número de matrícula: ' + (d.matr_numero || '(sin asignar aún)'));
             $('#slct_editar_coho_id').prop('disabled', false).html('<option value="">-- Seleccionar --</option>');
             cargarCohortesPorPrograma(d.prog_id, '#slct_editar_coho_id', function () {
                 $('#slct_editar_coho_id').val(d.coho_id);

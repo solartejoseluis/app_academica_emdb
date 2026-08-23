@@ -237,7 +237,7 @@ CREATE TABLE matriculas (
   matr_estado          ENUM('aspirante','matriculado','retirado','graduado')
                        NOT NULL DEFAULT 'aspirante',
   matr_folio           VARCHAR(20)       DEFAULT NULL,
-  matr_numero          VARCHAR(20)       DEFAULT NULL,
+  matr_numero          INT UNSIGNED      DEFAULT NULL,
   matr_matriculadopor  VARCHAR(80)       DEFAULT NULL,
   fechainscripcion     DATE              DEFAULT NULL,
   fechamatricula       DATE              DEFAULT NULL,
@@ -253,6 +253,7 @@ CREATE TABLE matriculas (
   matr_observacion     TEXT              DEFAULT NULL,
   PRIMARY KEY (matr_id),
   UNIQUE KEY uq_matr_estu_peri_prog (estu_id, peri_id, prog_id),
+  UNIQUE KEY uq_matr_numero (matr_numero),
   CONSTRAINT fk_matr_estu FOREIGN KEY (estu_id) REFERENCES estudiantes (estu_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT fk_matr_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)

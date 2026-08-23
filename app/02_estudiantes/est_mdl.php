@@ -628,9 +628,10 @@ switch ($accion) {
             break;
         }
 
-        $coho_id     = (int)($_POST['coho_id'] ?? 0) ?: null;
-        $matr_folio  = trim($_POST['matr_folio'] ?? '') ?: null;
-        $matr_numero = trim($_POST['matr_numero'] ?? '') ?: null;
+        $coho_id          = (int)($_POST['coho_id'] ?? 0) ?: null;
+        $matr_folio       = trim($_POST['matr_folio'] ?? '') ?: null;
+        $fechamatricula   = trim($_POST['fechamatricula'] ?? '') ?: null;
+        $matr_observacion = trim($_POST['matr_observacion'] ?? '') ?: null;
 
         $req = [
             'req_copiadiploma'  => (int)($_POST['req_copiadiploma'] ?? 0),
@@ -694,15 +695,15 @@ switch ($accion) {
             if ($existingMatr) {
                 $stmtM = $pdo->prepare(
                     "UPDATE matriculas
-                     SET matr_estado = 'matriculado', matr_folio = ?, matr_numero = ?,
-                         fechamatricula = CURDATE(),
+                     SET matr_estado = 'matriculado', matr_folio = ?,
+                         fechamatricula = ?, matr_observacion = ?,
                          req_copiadiploma = ?, req_actagrado = ?, req_documento = ?,
                          req_carnetsalud = ?, req_examenmedico = ?, req_fotos = ?,
                          req_carpeta = ?, req_vacunastetano = ?, req_hepatitisb = ?
                      WHERE matr_id = ?"
                 );
                 $stmtM->execute([
-                    $matr_folio, $matr_numero,
+                    $matr_folio, $fechamatricula, $matr_observacion,
                     $req['req_copiadiploma'], $req['req_actagrado'], $req['req_documento'],
                     $req['req_carnetsalud'], $req['req_examenmedico'], $req['req_fotos'],
                     $req['req_carpeta'], $req['req_vacunastetano'], $req['req_hepatitisb'],
@@ -711,17 +712,17 @@ switch ($accion) {
             } else {
                 $stmtM = $pdo->prepare(
                     "INSERT INTO matriculas
-                        (estu_id, prog_id, peri_id, matr_estado, matr_folio, matr_numero,
-                         fechainscripcion, fechamatricula,
+                        (estu_id, prog_id, peri_id, matr_estado, matr_folio,
+                         fechainscripcion, fechamatricula, matr_observacion,
                          req_copiadiploma, req_actagrado, req_documento,
                          req_carnetsalud, req_examenmedico, req_fotos,
                          req_carpeta, req_vacunastetano, req_hepatitisb)
-                     VALUES (?, ?, ?, 'matriculado', ?, ?, CURDATE(), CURDATE(),
+                     VALUES (?, ?, ?, 'matriculado', ?, CURDATE(), ?, ?,
                              ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 );
                 $stmtM->execute([
                     $estu_id, $prog_id, $peri_id,
-                    $matr_folio, $matr_numero,
+                    $matr_folio, $fechamatricula, $matr_observacion,
                     $req['req_copiadiploma'], $req['req_actagrado'], $req['req_documento'],
                     $req['req_carnetsalud'], $req['req_examenmedico'], $req['req_fotos'],
                     $req['req_carpeta'], $req['req_vacunastetano'], $req['req_hepatitisb']
@@ -784,6 +785,7 @@ switch ($accion) {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
                 SELECT m.matr_id, m.prog_id, m.peri_id, m.estu_id,
+                       m.matr_folio, m.fechamatricula, m.matr_observacion, m.matr_numero,
                        e.coho_id, e.estu_nombres, e.estu_apellidos
                 FROM matriculas m
                 INNER JOIN estudiantes e ON m.estu_id = e.estu_id
@@ -811,10 +813,13 @@ switch ($accion) {
             echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
             break;
         }
-        $matr_id = (int)($_POST['matr_id'] ?? 0);
-        $prog_id = (int)($_POST['prog_id'] ?? 0);
-        $peri_id = (int)($_POST['peri_id'] ?? 0);
-        $coho_id = (int)($_POST['coho_id'] ?? 0);
+        $matr_id          = (int)($_POST['matr_id'] ?? 0);
+        $prog_id          = (int)($_POST['prog_id'] ?? 0);
+        $peri_id          = (int)($_POST['peri_id'] ?? 0);
+        $coho_id          = (int)($_POST['coho_id'] ?? 0);
+        $matr_folio       = trim($_POST['matr_folio'] ?? '') ?: null;
+        $fechamatricula   = trim($_POST['fechamatricula'] ?? '') ?: null;
+        $matr_observacion = trim($_POST['matr_observacion'] ?? '') ?: null;
         if ($matr_id === 0 || $prog_id === 0 || $peri_id === 0 || $coho_id === 0) {
             echo json_encode(['status' => 'error', 'message' => 'Programa, cohorte y período son requeridos']);
             break;
@@ -832,8 +837,13 @@ switch ($accion) {
                 break;
             }
 
-            $stmtM = $pdo->prepare("UPDATE matriculas SET prog_id = ?, peri_id = ? WHERE matr_id = ?");
-            $stmtM->execute([$prog_id, $peri_id, $matr_id]);
+            $stmtM = $pdo->prepare(
+                "UPDATE matriculas
+                 SET prog_id = ?, peri_id = ?, matr_folio = ?,
+                     fechamatricula = ?, matr_observacion = ?
+                 WHERE matr_id = ?"
+            );
+            $stmtM->execute([$prog_id, $peri_id, $matr_folio, $fechamatricula, $matr_observacion, $matr_id]);
 
             $stmtE = $pdo->prepare("UPDATE estudiantes SET coho_id = ? WHERE estu_id = ?");
             $stmtE->execute([$coho_id, $estu_id]);
