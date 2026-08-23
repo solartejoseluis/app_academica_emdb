@@ -4,6 +4,50 @@
 
 ---
 
+## [c34b780] — 2026-08-23 — feat: agrega usua_nombre a usuarios, prerequisito para "Matriculado por" en Fase F2
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/08_admin/admin_mdl.php
+- app/08_admin/admin_view.php
+- app/08_admin/admin_ctrl.js
+- app/01_login/login_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- Nueva columna `usuarios.usua_nombre` (`VARCHAR(150) NOT NULL DEFAULT ''`),
+  agregada entre `usua_email` y `usua_passwordhash` — tanto en el `.sql`
+  como manualmente contra Docker (`ALTER TABLE ... ADD COLUMN ... AFTER
+  usua_email`). Seed del usuario admin actualizado con `'Administrador'`
+  en el `.sql` y con `UPDATE` puntual sobre el registro ya existente en
+  Docker; el resto de usuarios existentes quedó con `''` por defecto (sin
+  dato previo).
+- `admin_mdl.php`: los 4 cases del CRUD de usuarios (`listar`, `crear`,
+  `editar`, `obtener`) ahora leen/persisten/devuelven `usua_nombre`. La
+  validación de campo requerido se agregó de forma simétrica en `editar`
+  (el `case 'crear'` ya la tenía) en un fix posterior al mismo commit —
+  el `required` del HTML no protege contra una petición directa al
+  endpoint.
+- `admin_view.php`/`admin_ctrl.js`: campo "Nombre completo" (`texto-mayus`)
+  agregado en ambos modales (Nuevo Usuario/Editar Usuario), con su
+  payload de guardado y su precarga en edición.
+- `login_mdl.php`: `usua_nombre` agregado al `SELECT` de login y a
+  `$_SESSION['usua_nombre']`, junto a los demás valores de sesión ya
+  existentes (`usua_id`, `role_id`, `usua_email`).
+
+### Decisiones
+- Se descubrió durante el diagnóstico de la Fase F que no existía ningún
+  campo de nombre para Admin/Coordinador en el esquema — la decisión
+  original de autocompletar "Matriculado por" con el nombre en sesión no
+  era implementable sin este cambio previo.
+- Validación server-side agregada de forma simétrica en `editar` (el
+  `crear` ya la tenía) — el HTML `required` no protege contra peticiones
+  directas al endpoint.
+- Verificado en navegador: 6/6 puntos de prueba.
+- Fase F1 de 6 (A–F) del plan de unificación de ficha de estudiante —
+  completada (prerequisito de la Fase F2: PDF Hoja de Matrícula).
+
+---
+
 ## [afdcfc1] — 2026-08-23 — feat: reactiva folio/fecha/observaciones en Completar y Editar Matrícula, prepara matr_numero para Fase F
 
 ### Archivos modificados
