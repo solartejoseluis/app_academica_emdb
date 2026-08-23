@@ -18,7 +18,7 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
-            $sql = "SELECT u.usua_id, u.usua_email, r.role_nombre, u.usua_activo, u.fechacreacion
+            $sql = "SELECT u.usua_id, u.usua_email, u.usua_nombre, r.role_nombre, u.usua_activo, u.fechacreacion
                     FROM usuarios u
                     JOIN roles r ON u.role_id = r.role_id
                     WHERE u.role_id IN (1, 2)
@@ -64,10 +64,11 @@ switch ($accion) {
             break;
         }
         $email    = trim($_POST['usua_email'] ?? '');
+        $nombre   = trim($_POST['usua_nombre'] ?? '');
         $password = $_POST['usua_password'] ?? '';
         $role_id  = (int)($_POST['role_id'] ?? 0);
 
-        if ($email === '' || $password === '' || $role_id === 0) {
+        if ($email === '' || $nombre === '' || $password === '' || $role_id === 0) {
             echo json_encode(['status' => 'error', 'message' => 'Todos los campos son requeridos']);
             break;
         }
@@ -84,9 +85,9 @@ switch ($accion) {
 
             $hash = password_hash($password, PASSWORD_BCRYPT);
             $stmt = $pdo->prepare(
-                "INSERT INTO usuarios (role_id, usua_email, usua_passwordhash) VALUES (?, ?, ?)"
+                "INSERT INTO usuarios (role_id, usua_email, usua_nombre, usua_passwordhash) VALUES (?, ?, ?, ?)"
             );
-            $stmt->execute([$role_id, $email, $hash]);
+            $stmt->execute([$role_id, $email, $nombre, $hash]);
             echo json_encode(['status' => 'ok', 'usua_id' => $pdo->lastInsertId()]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al crear usuario']);
@@ -105,11 +106,12 @@ switch ($accion) {
         }
         $usua_id    = (int)($_POST['usua_id'] ?? 0);
         $email      = trim($_POST['usua_email'] ?? '');
+        $nombre     = trim($_POST['usua_nombre'] ?? '');
         $password   = $_POST['usua_password'] ?? '';
         $role_id    = (int)($_POST['role_id'] ?? 0);
         $usua_activo = (int)($_POST['usua_activo'] ?? 1);
 
-        if ($usua_id === 0 || $email === '' || $role_id === 0) {
+        if ($usua_id === 0 || $email === '' || $nombre === '' || $role_id === 0) {
             echo json_encode(['status' => 'error', 'message' => 'Datos incompletos']);
             break;
         }
@@ -121,17 +123,17 @@ switch ($accion) {
                 $hash = password_hash($password, PASSWORD_BCRYPT);
                 $stmt = $pdo->prepare(
                     "UPDATE usuarios
-                     SET role_id = ?, usua_email = ?, usua_passwordhash = ?, usua_activo = ?
+                     SET role_id = ?, usua_email = ?, usua_nombre = ?, usua_passwordhash = ?, usua_activo = ?
                      WHERE usua_id = ?"
                 );
-                $stmt->execute([$role_id, $email, $hash, $usua_activo, $usua_id]);
+                $stmt->execute([$role_id, $email, $nombre, $hash, $usua_activo, $usua_id]);
             } else {
                 $stmt = $pdo->prepare(
                     "UPDATE usuarios
-                     SET role_id = ?, usua_email = ?, usua_activo = ?
+                     SET role_id = ?, usua_email = ?, usua_nombre = ?, usua_activo = ?
                      WHERE usua_id = ?"
                 );
-                $stmt->execute([$role_id, $email, $usua_activo, $usua_id]);
+                $stmt->execute([$role_id, $email, $nombre, $usua_activo, $usua_id]);
             }
 
             echo json_encode(['status' => 'ok']);
@@ -160,7 +162,7 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare(
-                "SELECT usua_id, usua_email, role_id, usua_activo FROM usuarios WHERE usua_id = ?"
+                "SELECT usua_id, usua_email, usua_nombre, role_id, usua_activo FROM usuarios WHERE usua_id = ?"
             );
             $stmt->execute([$usua_id]);
             $row = $stmt->fetch();

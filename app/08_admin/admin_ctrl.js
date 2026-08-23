@@ -22,11 +22,12 @@ $(document).ready(function () {
 
     // ── Guardar nuevo usuario ─────────────────────────────────────────────
     $('#btn_guardar_usuario').click(function () {
+        let nombre   = $('#npt_nombre').val().trim();
         let email    = $('#npt_email').val().trim();
         let password = $('#npt_password').val();
         let role_id  = $('#npt_role_id').val();
 
-        if (!email || !password || !role_id) {
+        if (!nombre || !email || !password || !role_id) {
             alert('Todos los campos son requeridos.');
             return false;
         }
@@ -34,7 +35,7 @@ $(document).ready(function () {
         $.ajax({
             type: 'POST',
             url: 'admin_mdl.php?accion=crear',
-            data: { usua_email: email, usua_password: password, role_id: role_id },
+            data: { usua_nombre: nombre, usua_email: email, usua_password: password, role_id: role_id },
             dataType: 'json',
             success: function (response) {
                 if (response.status === 'ok') {
@@ -51,6 +52,7 @@ $(document).ready(function () {
     // ── Guardar edición ───────────────────────────────────────────────────
     $('#btn_guardar_editar').click(function () {
         let usua_id     = $('#npt_usua_id_editar').val();
+        let nombre      = $('#npt_nombre_editar').val().trim();
         let email       = $('#npt_email_editar').val().trim();
         let password    = $('#npt_password_editar').val();
         let role_id     = $('#npt_role_id_editar').val();
@@ -66,6 +68,7 @@ $(document).ready(function () {
             url: 'admin_mdl.php?accion=editar',
             data: {
                 usua_id: usua_id,
+                usua_nombre: nombre,
                 usua_email: email,
                 usua_password: password,
                 role_id: role_id,
@@ -168,6 +171,7 @@ $(document).ready(function () {
     }
 
     function limpiarFormularioNuevo() {
+        $('#npt_nombre').val('');
         $('#npt_email').val('');
         $('#npt_password').val('');
         $('#slct_role_id').val('').trigger('change');
@@ -199,6 +203,7 @@ function abrirEditar(usua_id) {
             if (response.status === 'ok') {
                 let u = response.data;
                 $('#npt_usua_id_editar').val(u.usua_id);
+                $('#npt_nombre_editar').val(u.usua_nombre);
                 $('#npt_email_editar').val(u.usua_email);
                 $('#npt_password_editar').val('');
                 $('#slct_role_id_editar').val(u.role_id).trigger('change');

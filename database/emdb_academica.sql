@@ -95,6 +95,7 @@ CREATE TABLE usuarios (
   role_id           TINYINT UNSIGNED NOT NULL,
   usua_login        VARCHAR(20)      DEFAULT NULL,
   usua_email        VARCHAR(100)     NOT NULL,
+  usua_nombre       VARCHAR(150)     NOT NULL DEFAULT '',
   usua_passwordhash VARCHAR(255)     NOT NULL,
   usua_activo       TINYINT(1)       NOT NULL DEFAULT 1,
   fechacreacion     TIMESTAMP        DEFAULT current_timestamp(),
@@ -657,8 +658,8 @@ INSERT INTO modulos (prog_id, modu_nombre, modu_sigla, modu_orden) VALUES
 -- Contraseña: Admin@2026 → hash bcrypt generado con cost=12
 -- IMPORTANTE: Cambiar esta contraseña inmediatamente en producción
 -- Para regenerar: php -r "echo password_hash('Admin@2026', PASSWORD_BCRYPT);"
-INSERT INTO usuarios (role_id, usua_email, usua_passwordhash) VALUES
-  (1, 'admin@emdb.edu.co', '$2y$12$QT8nad.2sgsm4rbRmCHUcOlyTXuT0kc0ft.BWv6/lwJ3Qo5HY8WiS');
+INSERT INTO usuarios (role_id, usua_email, usua_nombre, usua_passwordhash) VALUES
+  (1, 'admin@emdb.edu.co', 'Administrador', '$2y$12$QT8nad.2sgsm4rbRmCHUcOlyTXuT0kc0ft.BWv6/lwJ3Qo5HY8WiS');
 
 -- ----- 9.7 Configuración institucional inicial -----
 INSERT INTO configuracion (config_id, matr_numero_inicial, director_nombre, secretario_nombre)

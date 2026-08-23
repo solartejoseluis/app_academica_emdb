@@ -89,6 +89,10 @@ if ($_SESSION['role_id'] !== 1) {
             </div>
             <div class="modal-body">
                 <div class="mb-3">
+                    <label class="form-label">Nombre completo</label>
+                    <input type="text" class="form-control texto-mayus" id="npt_nombre" required autocomplete="off">
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Email</label>
                     <input type="email" class="form-control" id="npt_email" required autocomplete="off">
                 </div>
@@ -122,6 +126,10 @@ if ($_SESSION['role_id'] !== 1) {
             </div>
             <div class="modal-body">
                 <input type="hidden" id="npt_usua_id_editar" value="">
+                <div class="mb-3">
+                    <label class="form-label">Nombre completo</label>
+                    <input type="text" class="form-control texto-mayus" id="npt_nombre_editar" required autocomplete="off">
+                </div>
                 <div class="mb-3">
                     <label class="form-label">Email</label>
                     <input type="email" class="form-control" id="npt_email_editar" required autocomplete="off">

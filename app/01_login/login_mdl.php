@@ -18,7 +18,7 @@ if ($email === '' || $password === '') {
 try {
     $pdo = getConexion();
 
-    $sql = "SELECT u.usua_id, u.usua_email, u.usua_passwordhash, u.role_id, r.role_nombre
+    $sql = "SELECT u.usua_id, u.usua_email, u.usua_nombre, u.usua_passwordhash, u.role_id, r.role_nombre
             FROM usuarios u
             JOIN roles r ON u.role_id = r.role_id
             WHERE u.usua_email = ?";
@@ -35,6 +35,7 @@ try {
     $_SESSION['role_id']    = (int)$usuario['role_id'];
     $_SESSION['role_nombre']= $usuario['role_nombre'];
     $_SESSION['usua_email'] = $usuario['usua_email'];
+    $_SESSION['usua_nombre']= $usuario['usua_nombre'];
 
 
     if ($usuario['role_id'] == 3) {
