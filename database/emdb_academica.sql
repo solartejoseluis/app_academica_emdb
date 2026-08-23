@@ -538,6 +538,29 @@ CREATE TABLE ayudas (
   COMMENT='Contenido de ayuda por sección de la aplicación';
 
 -- =============================================================================
+-- BLOQUE 6C: CONFIGURACIÓN INSTITUCIONAL (fuera del dominio académico)
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 16. configuracion
+--     Fila única de valores institucionales (config_id fijo en 1) — número de
+--     matrícula inicial y nombres de Director/Secretario(a), usados por la
+--     exportación PDF de la Hoja de Matrícula (formato AC-FO-09, Fase 2.8.F).
+--     El número de matrícula inicial solo aplica hacia adelante: no afecta
+--     matrículas ya generadas con un número previo.
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS configuracion;
+CREATE TABLE configuracion (
+  config_id            INT(5)        NOT NULL DEFAULT 1,
+  matr_numero_inicial  INT(5)        NOT NULL DEFAULT 1,
+  director_nombre      VARCHAR(150)  NOT NULL DEFAULT '',
+  secretario_nombre    VARCHAR(150)  NOT NULL DEFAULT '',
+  PRIMARY KEY (config_id),
+  CONSTRAINT chk_configuracion_fila_unica CHECK (config_id = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Configuración institucional — fila única, config_id fijo en 1';
+
+-- =============================================================================
 -- BLOQUE 7–8: (eliminados) STORED PROCEDURE + TRIGGERS de cálculo de definitiva
 -- =============================================================================
 -- Este bloque contenía sp_calcular_definitiva() y los triggers
@@ -636,6 +659,10 @@ INSERT INTO modulos (prog_id, modu_nombre, modu_sigla, modu_orden) VALUES
 INSERT INTO usuarios (role_id, usua_email, usua_passwordhash) VALUES
   (1, 'admin@emdb.edu.co', '$2y$12$QT8nad.2sgsm4rbRmCHUcOlyTXuT0kc0ft.BWv6/lwJ3Qo5HY8WiS');
 
+-- ----- 9.7 Configuración institucional inicial -----
+INSERT INTO configuracion (config_id, matr_numero_inicial, director_nombre, secretario_nombre)
+VALUES (1, 1, '', '');
+
 -- =============================================================================
 -- RESTAURAR FOREIGN KEY CHECKS
 -- =============================================================================
@@ -653,6 +680,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =============================================================================
 -- FIN DEL SCRIPT
 -- emdb_academica.sql — v1.0.0 — 2026-04-30
--- Tablas creadas: 17
--- Registros semilla: 4 roles + 2 programas + 3 períodos + 36 módulos + 1 usuario admin
+-- Tablas creadas: 18
+-- Registros semilla: 4 roles + 2 programas + 3 períodos + 36 módulos + 1 usuario admin + 1 fila de configuración institucional
 -- =============================================================================

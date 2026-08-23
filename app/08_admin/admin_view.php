@@ -15,6 +15,7 @@ if ($_SESSION['role_id'] !== 1) {
     <title>Administración — EMDB Académica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/app_academica_emdb/app/00_files/estilos.css">
 </head>
 <body class="bg-light">
 
@@ -46,6 +47,34 @@ if ($_SESSION['role_id'] !== 1) {
                 </thead>
                 <tbody></tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Configuración institucional -->
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+        <h5 class="mb-0">Configuración Institucional</h5>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Número de matrícula inicial</label>
+                    <input type="number" class="form-control" id="npt_matr_numero_inicial" min="1" autocomplete="off">
+                    <div class="form-text">Solo aplica al primer estudiante matriculado desde que se guarda — las matrículas ya generadas con un número no se ven afectadas retroactivamente.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Nombre del Director</label>
+                    <input type="text" class="form-control texto-mayus" id="npt_director_nombre" autocomplete="off">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Nombre del Secretario(a)</label>
+                    <input type="text" class="form-control texto-mayus" id="npt_secretario_nombre" autocomplete="off">
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="button" class="btn btn-primary btn-sm" id="btn_guardar_configuracion">Guardar configuración</button>
+            </div>
         </div>
     </div>
 </div>

@@ -18,6 +18,7 @@ $(document).ready(function () {
 
     cargarRoles();
     cargarTabla();
+    cargarConfiguracion();
 
     // ── Guardar nuevo usuario ─────────────────────────────────────────────
     $('#btn_guardar_usuario').click(function () {
@@ -83,6 +84,36 @@ $(document).ready(function () {
         });
     });
 
+    // ── Guardar configuración institucional ─────────────────────────────────
+    $('#btn_guardar_configuracion').click(function () {
+        let matr_numero_inicial = $('#npt_matr_numero_inicial').val();
+        let director_nombre     = $('#npt_director_nombre').val().trim();
+        let secretario_nombre   = $('#npt_secretario_nombre').val().trim();
+
+        if (!matr_numero_inicial || matr_numero_inicial <= 0 || !director_nombre || !secretario_nombre) {
+            alert('Todos los campos son requeridos y el número inicial debe ser positivo.');
+            return false;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: 'admin_mdl.php?accion=guardar_configuracion',
+            data: {
+                matr_numero_inicial: matr_numero_inicial,
+                director_nombre: director_nombre,
+                secretario_nombre: secretario_nombre
+            },
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    alert('Configuración guardada correctamente.');
+                } else {
+                    alert(response.message);
+                }
+            }
+        });
+    });
+
     // ── Funciones ─────────────────────────────────────────────────────────
 
     function cargarRoles() {
@@ -140,6 +171,22 @@ $(document).ready(function () {
         $('#npt_email').val('');
         $('#npt_password').val('');
         $('#slct_role_id').val('').trigger('change');
+    }
+
+    function cargarConfiguracion() {
+        $.ajax({
+            type: 'POST',
+            url: 'admin_mdl.php?accion=obtener_configuracion',
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    let c = response.data;
+                    $('#npt_matr_numero_inicial').val(c.matr_numero_inicial);
+                    $('#npt_director_nombre').val(c.director_nombre);
+                    $('#npt_secretario_nombre').val(c.secretario_nombre);
+                }
+            }
+        });
     }
 });
 

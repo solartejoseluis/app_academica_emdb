@@ -176,6 +176,60 @@ switch ($accion) {
         }
         break;
 
+    case 'obtener_configuracion':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if ($role_id !== 1) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("SELECT * FROM configuracion WHERE config_id = 1");
+            $stmt->execute();
+            $row = $stmt->fetch();
+            echo json_encode(['status' => 'ok', 'data' => $row]);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al obtener configuración']);
+        }
+        break;
+
+    case 'guardar_configuracion':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if ($role_id !== 1) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $matr_numero_inicial = (int)($_POST['matr_numero_inicial'] ?? 0);
+        $director_nombre     = trim($_POST['director_nombre'] ?? '');
+        $secretario_nombre   = trim($_POST['secretario_nombre'] ?? '');
+
+        if ($matr_numero_inicial <= 0 || $director_nombre === '' || $secretario_nombre === '') {
+            echo json_encode(['status' => 'error', 'message' => 'Todos los campos son requeridos y el número inicial debe ser positivo']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare(
+                "UPDATE configuracion
+                 SET matr_numero_inicial = ?, director_nombre = ?, secretario_nombre = ?
+                 WHERE config_id = 1"
+            );
+            $stmt->execute([$matr_numero_inicial, $director_nombre, $secretario_nombre]);
+            echo json_encode(['status' => 'ok']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al guardar configuración']);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;
