@@ -4,6 +4,46 @@
 
 ---
 
+## [38e1809] — 2026-08-23 — feat(02_estudiantes): unifica botón Editar/Ficha en "📝 Datos Estudiante"
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- El botón "Editar" (texto plano, sin ícono ni indicador de completitud)
+  y el botón "📋 Ficha" (con punto de color rojo/amarillo/verde) convivían
+  como dos entradas separadas en la misma fila, sin que el estado de la
+  Ficha Familiar fuera visible desde el botón que abre los datos del
+  estudiante.
+- El botón "Editar" se renombra a "📝 Datos Estudiante" y adopta el mismo
+  `<span>` de punto de color (`colorFicha`) y el mismo
+  `title="${tituloFicha}"` que ya tenía el botón "Ficha" — reutiliza
+  `row.estado_ficha` y las constantes `mapaColorFicha`/`mapaTituloFicha`
+  ya calculadas en el mismo `render()`, sin duplicar lógica.
+- Aplicado en los dos bloques equivalentes de `est_ctrl.js`: la columna
+  de acciones de `tablaMatriculados` y la de `tablaAspirantes`.
+- `onclick="abrirEditar(${row.estu_id}, ...)"` no cambia — mismo
+  comportamiento, mismo modal "Editar Estudiante".
+- Sin cambios en `calcularEstadoFicha()` (`est_mdl.php`), ni en
+  `abrirEditar()`/`abrirFicha()` — el cambio es puramente de
+  renderizado del botón.
+
+### Decisiones
+- Ícono elegido: 📝 — evita duplicar el ✏️ ya usado en el botón
+  "✏️ Matrícula" de la misma fila.
+- El botón "📋 Ficha" se mantiene intacto, con su propio punto de
+  color — redundante de forma intencional en esta fase; se retira en
+  la Fase C, cuando se fusionen los modales "Editar Estudiante" y
+  "Ficha Familiar".
+- Fase A de un plan de 6 fases (A–F) para unificar la ficha del
+  estudiante: A (este cambio) → B (columna Edad en Matriculados) →
+  C (fusión de modales) → D (config institucional en `08_admin`:
+  número de matrícula inicial, Director, Secretario) → E (columnas
+  nuevas en `matriculas`: folio, fecha, observaciones, número) →
+  F (PDF Hoja de Matrícula, formato AC-FO-09).
+
+---
+
 ## [ef79791] — 2026-08-22 — feat(02_estudiantes): precarga Programa y Jornada declarados en Completar Matrícula
 
 ### Archivos modificados
