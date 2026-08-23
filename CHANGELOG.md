@@ -4,6 +4,72 @@
 
 ---
 
+## [76f90c5] — 2026-08-23 — feat: fusiona modales Editar Estudiante + Ficha Familiar en uno solo
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- `est_mdl.php`, case `obtener_completo`: agrega `estado_ficha` a la respuesta,
+  calculado con la función ya existente `calcularEstadoFicha($row)` (sin
+  duplicar lógica) — el frontend lo usa para decidir si mostrar el nuevo
+  botón de descarga de PDF.
+- `est_view.php`: `mdl_estudiante` ampliado de `modal-lg` a `modal-xl`. Todo
+  el contenido del `modal-body` de `mdl_ficha` (Información general, Padre,
+  Madre, Acudiente/Persona de contacto, Estudios anteriores) se trasladó
+  dentro de `mdl_estudiante`, entre el bloque de multiculturalidad y el
+  bloque de cambiar clave. El input oculto redundante `#npt_estu_id_ficha`
+  se eliminó — el formulario unificado reutiliza `#npt_estu_id` como única
+  referencia de ID. El modal `mdl_ficha` se eliminó por completo. Nuevo
+  botón de footer "🖨️ Ficha Inscripción" (mismo ícono que el botón PDF
+  anterior), visible únicamente si `estado_ficha === 'completa'`.
+- `est_ctrl.js`: `abrirEditar(estu_id, esAspirante)` ahora llama a
+  `obtener_completo` (antes `obtener`) y precarga en un solo flujo los
+  datos básicos del estudiante y los de la Ficha Familiar (incluyendo la
+  visibilidad condicional de los bloques Padre/Madre y la cascada del
+  select Acudiente); el marcado de validación de los campos de ficha queda
+  diferido a `shown.bs.modal` del modal unificado. `limpiarFormulario()`
+  ahora también resetea los campos de ficha y oculta el botón de PDF en
+  modo creación. Los handlers `btn_guardar_estudiante` y
+  `btn_guardar_ficha` se fusionaron en uno solo sobre
+  `#btn_guardar_estudiante`: valida los campos de ambos formularios
+  (`CAMPOS_ESTUDIANTE` + `CAMPOS_FICHA_SIEMPRE`/`CAMPOS_FICHA_PADRE`/
+  `CAMPOS_FICHA_MADRE`), arma un único payload y lo envía a
+  `guardar_completo`. Los botones de fila "📋 Ficha" y "🖨️ PDF" se
+  eliminaron de `tablaAspirantes` y `tablaMatriculados` — quedan
+  "Matricular" + "📝 Datos Estudiante" (Aspirantes) y "📝 Datos Estudiante"
+  + "✏️ Matrícula" (Matriculados).
+- Los cases `guardar`, `guardar_ficha`, `obtener`, `obtener_ficha`, la
+  función `abrirFicha()` y el handler `btn_guardar_ficha` quedan como
+  código muerto, sin ningún llamador activo — no se eliminaron en este
+  commit.
+
+### Decisiones
+- Payload como objeto plano (no `FormData`) — sigue la convención ya
+  documentada en CLAUDE.md de reservar `FormData` exclusivamente para
+  subida real de archivos; `guardar_completo` no sube archivos (la foto
+  sigue siendo un flujo separado vía `subir_foto`).
+- Bug corregido en el camino, antes de mostrar el diff: el marcado de
+  validación de los campos de ficha en `abrirEditar()` evaluaba `:visible`
+  de forma síncrona, mientras el modal aún estaba en `display:none` —
+  siempre reportaba `false` y no marcaba ningún campo. Se corrigió
+  diferiéndolo a `$('#mdl_estudiante').one('shown.bs.modal', ...)`, mismo
+  patrón que ya usaba el `abrirFicha()` original con su propio modal.
+- Ambas tablas (`tablaAspirantes`/`tablaMatriculados`) se refrescan
+  incondicionalmente tras guardar, mismo patrón ya establecido en el resto
+  del archivo — no se agregó lógica para detectar cuál pestaña está activa.
+- Verificado en navegador antes del commit: creación de aspirante nuevo,
+  edición de estudiante existente, toggle Padre/Madre, cambio de
+  Acudiente, subida de foto, descarga de PDF condicional al
+  `estado_ficha`, botones de fila en ambas tablas, regresión de
+  Matricular/Eliminar aspirante.
+- Cierra la Fase C completa (C1 backend + C2 frontend) del plan de
+  unificación de ficha de estudiante (6 fases A–F).
+
+---
+
 ## [42e4175] — 2026-08-23 — feat: agrega endpoint transaccional único guardar_completo/obtener_completo
 
 ### Archivos modificados
