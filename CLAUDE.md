@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: 7cef01a
+> Última actualización: 2026-08-23 — último commit citado: 42e4175
 
 ## Reglas de documentación
 
@@ -522,6 +522,12 @@ El proyecto no tiene la extensión `intl` de PHP instalada (confirmado en el con
 
 Ejemplo: commit `7cef01a` (2026-08-23) — columna Edad de `tablaMatriculados` (`est_ctrl.js`), formato `"17 (23 sep)"`, con el array de abreviaturas declarado dentro del propio `render()` de la columna. Relevante para la Fase 2.8.F (PDF Hoja de Matrícula, AC-FO-09) si esa exportación necesita mostrar una fecha en español — mismo array reutilizable, sin agregar la extensión `intl` al Dockerfile.
 
+### Dos transacciones PDO individualmente correctas no garantizan atomicidad entre sí
+
+Envolver un guardado en `beginTransaction()`/`commit()`/`rollBack()` solo garantiza atomicidad *dentro* de esa transacción — si dos guardados relacionados (ej. estudiante + su ficha familiar) viven en dos `case` distintos de `_mdl.php`, disparados por dos llamadas `$.ajax` separadas desde el cliente, no hay ninguna garantía de que ambos se completen juntos: cada transacción individual es atómica, pero el par no lo es. Si la segunda llamada falla (red, validación, excepción) después de que la primera ya hizo `commit()`, el sistema queda en un estado parcialmente guardado sin que el servidor lo sepa ni pueda revertirlo. La señal para fusionar dos `case` en uno solo (una única transacción que cubra ambos pasos) es que un guardado a medias sea un estado de negocio inválido — no una preferencia de estilo ni una optimización de menos requests.
+
+Ejemplo: commit `42e4175` (2026-08-23) — `guardar` (estudiantes) y `guardar_ficha` (fichas_inscripcion) en `02_estudiantes` ya usaban transacción cada uno por separado, pero como dos requests HTTP independientes no había atomicidad real entre ambos. Se fusionaron en un solo `case 'guardar_completo'`, con una única transacción que cubre el INSERT/UPDATE de `estudiantes` y el INSERT/UPDATE de `fichas_inscripcion`. Antes de replicar este patrón, verificar primero si el estado intermedio (A guardado, B no) es realmente inválido para el negocio — si no lo es (ej. dos guardados verdaderamente independientes que solo comparten pantalla por conveniencia de UI), mantenerlos separados es preferible y no amerita la fusión.
+
 ### Personalizar exportación Excel vía customize del botón excelHtml5 (DataTables Buttons)
 
 La exportación a Excel del proyecto es 100% client-side, generada por el plugin DataTables Buttons (buttons.html5.min.js + JSZip) — no hay PhpSpreadsheet ni ninguna librería de generación de .xlsx en el backend. La opción `title` del botón `{ extend: 'excel' }` solo acepta un string plano que se convierte en UNA fila de título; no soporta múltiples líneas como filas independientes.
@@ -954,7 +960,8 @@ necesita una restricción UNIQUE (hoy no la tiene).
 |---|---|---|
 | 2.8.A | Botón "📝 Datos Estudiante" — unifica "Editar"/"Ficha", adopta el indicador de completitud (`estado_ficha`) en `tablaMatriculados` y `tablaAspirantes` (`02_estudiantes`) | ✅ 2026-08-23 (commit `38e1809`) |
 | 2.8.B | Columna Edad en Matriculados — formato "17 (23 sep)", resaltado celeste `#cfe2ff` para menores de 18 | ✅ 2026-08-23 (commit `7cef01a`) |
-| 2.8.C | Fusión de modales "Editar Estudiante" + "Ficha Familiar" | ⬜ |
+| 2.8.C1 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — backend: case `guardar_completo` (1 transacción PDO para estudiante + ficha, Ficha Familiar obligatoria siempre) + case `obtener_completo` (LEFT JOIN); cases antiguos sin llamadores, pendientes de limpieza | ✅ 2026-08-23 (commit `42e4175`) |
+| 2.8.C2 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — frontend: modal único `modal-xl`, botón "Guardar" único, foto arriba, ficha debajo, botón PDF trasladado al final del modal | ⬜ |
 | 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ⬜ |
 | 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ⬜ |
 | 2.8.F | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ⬜ |
