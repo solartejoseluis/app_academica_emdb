@@ -1572,10 +1572,14 @@ switch ($accion) {
                         fi.madr_telefono, fi.madr_direccion, fi.madr_barrio, fi.madr_ciudad,
                         fi.acud_es, fi.acud_parentesco, fi.acud_nombres, fi.acud_apellidos, fi.acud_profesion,
                         fi.acud_empresa, fi.acud_telefono, fi.acud_direccion, fi.acud_barrio, fi.acud_ciudad,
-                        fi.estudio_tipo, fi.estudio_titulo, fi.estudio_institucion, fi.estudio_aniofin
+                        fi.estudio_tipo, fi.estudio_titulo, fi.estudio_institucion, fi.estudio_aniofin,
+                        m.matr_estado
                  FROM estudiantes e
                  LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
-                 WHERE e.estu_id = ?"
+                 LEFT JOIN matriculas m ON m.estu_id = e.estu_id
+                 WHERE e.estu_id = ?
+                 ORDER BY m.matr_id DESC
+                 LIMIT 1"
             );
             $stmt->execute([$estu_id]);
             $row = $stmt->fetch();

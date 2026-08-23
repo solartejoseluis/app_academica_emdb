@@ -520,6 +520,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btn_guardar_estudiante">Guardar</button>
                 <button type="button" class="btn btn-outline-danger d-none" id="btn_ficha_inscripcion_pdf">🖨️ Ficha Inscripción</button>
+                <button type="button" class="btn btn-outline-danger d-none" id="btn_hoja_matricula_pdf">🖨️ Hoja de Matrícula</button>
             </div>
         </div>
     </div>

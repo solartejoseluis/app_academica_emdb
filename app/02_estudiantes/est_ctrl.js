@@ -382,6 +382,11 @@ $(document).ready(function () {
         descargarFichaPdf($('#npt_estu_id').val());
     });
 
+    // --- Descargar Hoja de Matrícula en PDF desde el modal unificado ---
+    $('#btn_hoja_matricula_pdf').click(function () {
+        window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + $('#npt_estu_id').val(), '_blank');
+    });
+
     // --- Radio tipo_acceso ---
     $('input[name="tipo_acceso"]').change(function () {
         if ($(this).val() === 'manual') {
@@ -943,6 +948,7 @@ $(document).ready(function () {
         // Ficha Familiar (AC-FO-02) — mismo modal unificado desde la Fase C2.
         limpiarFormularioFicha();
         $('#btn_ficha_inscripcion_pdf').addClass('d-none');
+        $('#btn_hoja_matricula_pdf').addClass('d-none');
     }
 
     function obtenerMulticulturalidad() {
@@ -1082,6 +1088,7 @@ function abrirEditar(estu_id, esAspirante) {
                 }
 
                 $('#btn_ficha_inscripcion_pdf').toggleClass('d-none', d.estado_ficha !== 'completa');
+                $('#btn_hoja_matricula_pdf').toggleClass('d-none', d.matr_estado !== 'matriculado');
 
                 $('#mdl_estudiante_titulo').text('Editar Estudiante');
                 new bootstrap.Modal(document.getElementById('mdl_estudiante')).show();
