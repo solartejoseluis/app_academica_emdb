@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: 38e1809
+> Última actualización: 2026-08-23 — último commit citado: 7cef01a
 
 ## Reglas de documentación
 
@@ -516,6 +516,12 @@ Cuando una fila de DataTable calcula un indicador de estado derivado de un campo
 
 Ejemplo: commit `38e1809` (2026-08-23) — el botón "Editar" (renombrado a "📝 Datos Estudiante") en `tablaMatriculados`/`tablaAspirantes` de `est_ctrl.js` adopta el mismo `<span>` de punto de color y el mismo `title="${tituloFicha}"` que ya tenía el botón "Ficha" en la misma fila, sin duplicar `mapaColorFicha`/`mapaTituloFicha` ni tocar `calcularEstadoFicha()` (`est_mdl.php`). Antes de agregar un nuevo indicador visual a un botón de fila, revisar primero si la fila ya expone uno equivalente que pueda reutilizarse.
 
+### Formatear fechas en español (nombre/abreviatura de mes) sin `intl` ni librería de fechas
+
+El proyecto no tiene la extensión `intl` de PHP instalada (confirmado en el contenedor `app`, PHP 8.5.9) ni ninguna librería de fechas cargada en el frontend (`moment`/`dayjs`). Todo el formato de fecha existente antes de este cambio era numérico (`date('d/m/Y')` en PHP, valores crudos de MySQL sin formatear en JS) — no había ningún precedente de nombre/abreviatura de mes en español en el proyecto. Cuando se necesite mostrar un mes en español (nombre completo o abreviado), la solución del proyecto es un array local de 12 posiciones (`['ene', 'feb', ..., 'dic']`, indexado por `Date.getMonth()` en JS o `(int)date('n', $ts) - 1` en PHP) declarado en el punto de uso — no asumir que `Intl.DateTimeFormat('es-CO', ...)` o `IntlDateFormatter` están disponibles sin verificarlo primero.
+
+Ejemplo: commit `7cef01a` (2026-08-23) — columna Edad de `tablaMatriculados` (`est_ctrl.js`), formato `"17 (23 sep)"`, con el array de abreviaturas declarado dentro del propio `render()` de la columna. Relevante para la Fase 2.8.F (PDF Hoja de Matrícula, AC-FO-09) si esa exportación necesita mostrar una fecha en español — mismo array reutilizable, sin agregar la extensión `intl` al Dockerfile.
+
 ### Personalizar exportación Excel vía customize del botón excelHtml5 (DataTables Buttons)
 
 La exportación a Excel del proyecto es 100% client-side, generada por el plugin DataTables Buttons (buttons.html5.min.js + JSZip) — no hay PhpSpreadsheet ni ninguna librería de generación de .xlsx en el backend. La opción `title` del botón `{ extend: 'excel' }` solo acepta un string plano que se convierte en UNA fila de título; no soporta múltiples líneas como filas independientes.
@@ -947,7 +953,7 @@ necesita una restricción UNIQUE (hoy no la tiene).
 | Ítem | Descripción | Estado |
 |---|---|---|
 | 2.8.A | Botón "📝 Datos Estudiante" — unifica "Editar"/"Ficha", adopta el indicador de completitud (`estado_ficha`) en `tablaMatriculados` y `tablaAspirantes` (`02_estudiantes`) | ✅ 2026-08-23 (commit `38e1809`) |
-| 2.8.B | Columna Edad en Matriculados | ⬜ |
+| 2.8.B | Columna Edad en Matriculados — formato "17 (23 sep)", resaltado celeste `#cfe2ff` para menores de 18 | ✅ 2026-08-23 (commit `7cef01a`) |
 | 2.8.C | Fusión de modales "Editar Estudiante" + "Ficha Familiar" | ⬜ |
 | 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ⬜ |
 | 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ⬜ |
