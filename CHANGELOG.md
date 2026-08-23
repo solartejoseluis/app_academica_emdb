@@ -4,6 +4,41 @@
 
 ---
 
+## [5de9a9e] — 2026-08-23 — refactor: elimina código muerto tras el plan de unificación de ficha de estudiante
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- Eliminados los 4 cases `guardar`, `obtener`, `obtener_ficha`,
+  `guardar_ficha` de `est_mdl.php` — sin llamadores desde `est_ctrl.js`
+  desde la Fase C (documentado como pendiente de limpieza en los commits
+  `42e4175` y `76f90c5`).
+- Eliminados `abrirFicha()` y el handler `$('#btn_guardar_ficha').click(...)`
+  de `est_ctrl.js` — el selector `#btn_guardar_ficha` ya no coincidía con
+  ningún elemento del DOM desde que `mdl_ficha` se eliminó en la Fase C2.
+- `limpiarFormularioFicha()` se conservó intacta — tiene un llamador
+  activo real dentro de `limpiarFormulario()`, parte del flujo vivo de
+  "Nuevo Aspirante".
+- Actualizados 2 comentarios obsoletos en `est_ctrl.js` que aún
+  mencionaban `abrirFicha()`/`mdl_ficha` como si siguieran existiendo.
+- 587 líneas netas eliminadas.
+
+### Decisiones
+- Diagnóstico exhaustivo previo confirmó 0 llamadores reales en todos
+  los casos (`grep` en todo el proyecto, no solo en `02_estudiantes`).
+- `matriculas.matr_matriculadopor` (columna sin wiring desde el esquema
+  original) queda deliberadamente fuera de esta pasada — es una decisión
+  de diseño aparte (columna de esquema, no código confirmado muerto),
+  no una limpieza mecánica.
+- Verificado en navegador: 7/7 puntos de prueba (creación/edición de
+  aspirante, matrícula, edición de matrícula, ambos PDFs, sin errores de
+  consola).
+- Cierra la deuda técnica documentada durante las Fases C1/C2.
+
+---
+
 ## [ffb6a6c] — 2026-08-23 — feat: agrega PDF Hoja de Matrícula (AC-FO-09), cierra el plan de unificación de ficha de estudiante
 
 ### Archivos modificados
@@ -245,6 +280,7 @@
   función `abrirFicha()` y el handler `btn_guardar_ficha` quedan como
   código muerto, sin ningún llamador activo — no se eliminaron en este
   commit.
+  → eliminados en el commit `5de9a9e` (2026-08-23).
 
 ### Decisiones
 - Payload como objeto plano (no `FormData`) — sigue la convención ya
@@ -305,6 +341,7 @@
   quedan como código muerto — sin llamadores desde el frontend
   (`est_ctrl.js` no se tocó en este commit), pendientes de limpieza
   en una fase posterior.
+  → eliminados en el commit `5de9a9e` (2026-08-23).
 
 ### Decisiones
 - Ficha Familiar obligatoria también en creación de aspirante nuevo —
