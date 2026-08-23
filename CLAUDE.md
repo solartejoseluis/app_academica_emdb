@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: 76f90c5
+> Última actualización: 2026-08-23 — último commit citado: 25530cc
 
 ## Reglas de documentación
 
@@ -555,6 +555,23 @@ Patrón relacionado para "resolver el activo por defecto": un endpoint que depen
 
 Ejemplo: `activar_periodo` en `04_grupos` y el parámetro `peri_id` opcional en `listar` (`03_docentes`), commit `7eba870` (2026-08-15).
 
+### Tabla de configuración global como fila única con CHECK constraint (invariante garantizada por esquema, no por convención de aplicación)
+
+A diferencia del patrón anterior (flags "único activo" cuya invariante vive solo en la capa de aplicación), cuando una tabla existe para guardar un único conjunto de valores globales (ej. parámetros institucionales), la invariante "esta tabla nunca tiene más de una fila" se garantiza directamente en el esquema, no por convención del código PHP:
+
+```sql
+CREATE TABLE configuracion (
+  config_id  INT(5)  NOT NULL DEFAULT 1,
+  -- columnas tipadas del valor global ...
+  PRIMARY KEY (config_id),
+  CONSTRAINT chk_configuracion_fila_unica CHECK (config_id = 1)
+) ...
+```
+
+El `CHECK (config_id = 1)` hace imposible un `INSERT` con cualquier otro valor de PK — MySQL rechaza la fila antes de que el código PHP tenga oportunidad de introducir un bug que inserte una segunda fila por accidente. El backend nunca hace `INSERT`, solo `SELECT`/`UPDATE ... WHERE config_id = 1` (id hardcodeado, no recibido del cliente) — primer caso del proyecto de un guardado sobre un registro fijo conocido de antemano, sin PK variable.
+
+Ejemplo: tabla `configuracion` en `08_admin` (commit `25530cc`, 2026-08-23) — `matr_numero_inicial`, `director_nombre`, `secretario_nombre`, seed inicial con `config_id=1`. Antes de replicar este patrón para un nuevo conjunto de valores globales, evaluar primero si conviene una tabla nueva de fila única (este patrón, mejor cuando los valores son pocos y fijos) o agregar columnas a esta misma tabla `configuracion` si el nuevo valor es igual de global e institucional.
+
 ### Preferir bind posicional (?) sobre placeholder nombrado reutilizado, por EMULATE_PREPARES=false
 
 `app/00_connect/pdo.php` configura `PDO::ATTR_EMULATE_PREPARES => false` (prepares nativos de MySQL, no emulados por PHP). Reutilizar el mismo placeholder nombrado (ej. `:peri_id`) dos veces en una misma query es un caso poco confiable con prepares nativos. Cuando una query necesita el mismo valor en dos puntos distintos del SQL (ej. una subconsulta de conteo y otra de código legible), usar placeholders posicionales (`?`) y pasar el valor repetido en el array de `execute([$valor, $valor])` — consistente además con el estilo ya usado en la mayoría de queries del proyecto.
@@ -968,7 +985,7 @@ necesita una restricción UNIQUE (hoy no la tiene).
 | 2.8.B | Columna Edad en Matriculados — formato "17 (23 sep)", resaltado celeste `#cfe2ff` para menores de 18 | ✅ 2026-08-23 (commit `7cef01a`) |
 | 2.8.C1 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — backend: case `guardar_completo` (1 transacción PDO para estudiante + ficha, Ficha Familiar obligatoria siempre) + case `obtener_completo` (LEFT JOIN); cases antiguos sin llamadores, pendientes de limpieza | ✅ 2026-08-23 (commit `42e4175`) |
 | 2.8.C2 | Fusión de modales "Editar Estudiante" + "Ficha Familiar" — frontend: modal único `modal-xl`, botón "Guardar" único, foto arriba, ficha debajo, botón PDF trasladado al final del modal | ✅ 2026-08-23 (commit `76f90c5`) |
-| 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ⬜ |
+| 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ✅ 2026-08-23 (commit `25530cc`) |
 | 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ⬜ |
 | 2.8.F | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ⬜ |
 
