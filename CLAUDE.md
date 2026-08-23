@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-22 — último commit citado: ef79791
+> Última actualización: 2026-08-23 — último commit citado: 38e1809
 
 ## Reglas de documentación
 
@@ -510,6 +510,12 @@ Ejemplo: bug real en `toggleEstadoCohorte` (04_grupos), corregido en el mismo co
 
 Variación con función auxiliar (no de refresco de tabla, pero mismo requisito de scope): `cargarCohortesPorPrograma()` en `02_estudiantes` (commit `7340d6e`, 2026-08-20) — originalmente declarada dentro de `$(document).ready` para la cascada Programa→Cohorte del modal "Completar Matrícula". Al agregar el modal "Editar Matrícula", la función global `abrirEditarMatricula()` (invocada vía `onclick` inline desde el botón de fila del DataTable) necesitaba llamarla también para precargar la cohorte del registro editado — se movió a scope global por el mismo motivo que `toggleEstadoModulo`/`toggleEstadoCohorte`. A diferencia de esos ejemplos (que solo refrescan una tabla), aquí la función global necesitaba además **encadenar una acción posterior** (preseleccionar `coho_id` una vez cargadas las opciones): se resolvió agregando un tercer parámetro `callback` opcional a `cargarCohortesPorPrograma(prog_id, selectorDestino, callback)`, invocado al final del `success` del AJAX — evita depender de `setTimeout` (que no garantiza que la respuesta ya haya llegado) para sincronizar una acción que depende de un resultado asíncrono. Los dos llamados ya existentes (`cargarCohortesPorPrograma(prog_id)`, sin argumentos adicionales) no requirieron cambios porque `selectorDestino` y `callback` tienen valores por defecto que preservan el comportamiento original.
 
+### El indicador de completitud de una fila (color + title) puede reutilizarse en más de un botón
+
+Cuando una fila de DataTable calcula un indicador de estado derivado de un campo del `row` (ej. `row.estado_ficha` → `colorFicha`/`tituloFicha` vía `mapaColorFicha`/`mapaTituloFicha`, ya usado para el punto de color del botón "Ficha"), ese cálculo vive una sola vez por fila dentro del mismo `render()` — cualquier otro botón de esa misma fila que necesite mostrar el mismo estado (mismo punto de color, mismo `title`) debe reutilizar las mismas variables locales (`colorFicha`, `tituloFicha`), no volver a calcularlas ni duplicar el mapa. El indicador no es exclusivo del botón que lo originó — es un dato de la fila, no del botón.
+
+Ejemplo: commit `38e1809` (2026-08-23) — el botón "Editar" (renombrado a "📝 Datos Estudiante") en `tablaMatriculados`/`tablaAspirantes` de `est_ctrl.js` adopta el mismo `<span>` de punto de color y el mismo `title="${tituloFicha}"` que ya tenía el botón "Ficha" en la misma fila, sin duplicar `mapaColorFicha`/`mapaTituloFicha` ni tocar `calcularEstadoFicha()` (`est_mdl.php`). Antes de agregar un nuevo indicador visual a un botón de fila, revisar primero si la fila ya expone uno equivalente que pueda reutilizarse.
+
 ### Personalizar exportación Excel vía customize del botón excelHtml5 (DataTables Buttons)
 
 La exportación a Excel del proyecto es 100% client-side, generada por el plugin DataTables Buttons (buttons.html5.min.js + JSZip) — no hay PhpSpreadsheet ni ninguna librería de generación de .xlsx en el backend. La opción `title` del botón `{ extend: 'excel' }` solo acepta un string plano que se convierte en UNA fila de título; no soporta múltiples líneas como filas independientes.
@@ -935,6 +941,17 @@ Ver historial completo en CHANGELOG.md.
 para permitir que el aspirante retome el formulario sin necesidad de
 una cuenta completa. Al construir esta fase, evaluar si el campo
 necesita una restricción UNIQUE (hoy no la tiene).
+
+### Phase 2.8 — Unificación de ficha de estudiante (6 fases A–F, plan de sesión 2026-08-22)
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| 2.8.A | Botón "📝 Datos Estudiante" — unifica "Editar"/"Ficha", adopta el indicador de completitud (`estado_ficha`) en `tablaMatriculados` y `tablaAspirantes` (`02_estudiantes`) | ✅ 2026-08-23 (commit `38e1809`) |
+| 2.8.B | Columna Edad en Matriculados | ⬜ |
+| 2.8.C | Fusión de modales "Editar Estudiante" + "Ficha Familiar" | ⬜ |
+| 2.8.D | Configuración institucional en `08_admin` — número de matrícula inicial, Director, Secretario | ⬜ |
+| 2.8.E | Columnas nuevas en `matriculas` — folio, fecha, observaciones, número | ⬜ |
+| 2.8.F | Exportación PDF Hoja de Matrícula, formato AC-FO-09 | ⬜ |
 
 ### Phase 3 — Validación TRL5
 
