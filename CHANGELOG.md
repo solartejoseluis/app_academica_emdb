@@ -4,6 +4,50 @@
 
 ---
 
+## [afdcfc1] — 2026-08-23 — feat: reactiva folio/fecha/observaciones en Completar y Editar Matrícula, prepara matr_numero para Fase F
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- `matr_numero` cambia de `VARCHAR(20)` a `INT UNSIGNED`, con `UNIQUE KEY
+  uq_matr_numero` nueva — preparación de tipo para la asignación
+  autoincremental de la Fase F, sin implementar aún esa lógica.
+- `fechamatricula` deja de fijarse con `CURDATE()` hardcodeado en el case
+  `matricular` — ahora se lee de `$_POST['fechamatricula']`, precargada
+  con la fecha de hoy pero editable por el coordinador.
+- `matr_folio` y `matr_observacion` reactivados en ambos modales
+  ("Completar Matrícula" y "Editar Matrícula") tras haber sido removidos
+  deliberadamente de la UI en el commit `29b6ca6` (backend nunca se tocó
+  entonces, quedó listo para esto).
+- `case 'obtener_matricula'`: el `SELECT` ahora trae `matr_folio`,
+  `fechamatricula`, `matr_observacion` y `matr_numero` (de solo lectura).
+- `case 'editar_matricula'`: el `UPDATE` ahora incluye `matr_folio`,
+  `fechamatricula` y `matr_observacion` junto a `prog_id`/`peri_id`.
+- `matr_numero` permanece de solo lectura/no editable en ambos modales —
+  en "Editar Matrícula" se muestra como texto informativo
+  (`#spn_editar_matr_numero`), sin input editable ni lectura desde POST
+  en ningún case; sin lógica de asignación automática todavía.
+
+### Decisiones
+- Se confirmó con `SELECT` antes del `ALTER TABLE` que ningún registro
+  tenía `matr_numero` no vacío — conversión de tipo segura, sin pérdida
+  de datos.
+- MySQL/InnoDB permite múltiples `NULL` en una columna `UNIQUE` —
+  verificado empíricamente: el `ALTER TABLE` con la constraint nueva se
+  aplicó sin error sobre las 11 filas existentes, todas con
+  `matr_numero` `NULL`.
+- `matr_numero` deliberadamente no se lee del POST en ningún case — se
+  asignará server-side en la Fase F, nunca enviado por el cliente.
+- Verificado en navegador: 11/11 puntos de prueba.
+- Fase E de 6 (A–F) del plan de unificación de ficha de estudiante —
+  completada.
+
+---
+
 ## [25530cc] — 2026-08-23 — feat: agrega configuración institucional (número de matrícula inicial, Director, Secretario)
 
 ### Archivos modificados
