@@ -4,6 +4,56 @@
 
 ---
 
+## [f088466] — 2026-08-24 — refactor(estudiantes): reestructura el modal de creación de estudiante en "Ficha de Inscripción"
+
+### Archivos modificados
+- app/00_files/estilos.css
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- Título del modal `#mdl_estudiante` en modo creación cambia de "Nuevo
+  Aspirante" a "Ficha de Inscripción" (`est_view.php` y `est_ctrl.js`) —
+  el modo edición conserva "Editar Estudiante" sin cambios; ambos modos
+  siguen compartiendo el mismo modal, fusionado desde la Fase C del plan
+  de unificación de ficha de estudiante.
+- Nuevo bloque de encabezado "FICHA DE INSCRIPCIÓN — código AC-FO-02" con
+  instrucciones generales, insertado al inicio del `modal-body`, antes de
+  `#bloque_foto_estudiante` — incluye advertencia explícita de pérdida de
+  datos si el modal se cierra sin guardar.
+- Eliminado el bloque de instrucciones antiguo específico de "Ficha
+  Familiar (AC-FO-02)", redundante con el nuevo encabezado.
+- Las 5 secciones del modal quedan numeradas y reciben la nueva clase
+  `.seccion-titulo` (fondo azul, definida en `00_files/estilos.css`):
+  1. Datos del Estudiante
+  2. Multiculturalidad (`<label id="lbl_multiculturalidad">` conservado
+     intacto — solo se le agregó la clase y el número)
+  3. Información sobre Familiares (antes "Ficha Familiar (AC-FO-02)")
+  4. Estudios anteriores
+  5. Programa técnico al que ingresa (antes "Información general" — el
+     bloque Programa/Jornada/Fecha de inscripción se reubicó al final
+     del modal; antes estaba intercalado justo antes de Padre/Madre/
+     Acudiente)
+- Nueva clase `.campo-lleno` (fondo verde claro `#d1e7dd`) aplicada
+  dinámicamente vía nueva función `marcarCampoLleno()` (`est_ctrl.js`),
+  enganchada con un listener delegado — `$(document).on('input change',
+  '#mdl_estudiante input, #mdl_estudiante select, #mdl_estudiante
+  textarea', ...)` — que cubre también los campos que aparecen/
+  desaparecen dinámicamente (Padre/Madre/Acudiente). Capa visual
+  independiente de `marcarValidacion()`/`is-invalid`/`is-valid`, sin
+  modificarla.
+
+### Decisiones
+- Sin cambios en lógica de guardado, payload AJAX, `CAMPOS_ESTUDIANTE`,
+  `CAMPOS_FICHA_SIEMPRE` ni en `#bloque_foto_estudiante`.
+- Se evaluó agregar la subida de foto también al modo creación y se
+  descartó: el endpoint `subir_foto` requiere un `estu_id` ya existente,
+  que no existe hasta que el aspirante se guarda por primera vez. La
+  foto permanece exclusiva del modo edición, sin cambios.
+- Verificado en navegador: 8/8 puntos de prueba.
+
+---
+
 ## [5de9a9e] — 2026-08-23 — refactor: elimina código muerto tras el plan de unificación de ficha de estudiante
 
 ### Archivos modificados
