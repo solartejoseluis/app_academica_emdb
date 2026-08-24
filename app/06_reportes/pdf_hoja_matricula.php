@@ -87,6 +87,9 @@ if ($d['matr_numero'] === null) {
             $pdo->rollBack();
         }
         http_response_code(500);
+        if ($e instanceof PDOException && $e->getCode() === '23000') {
+            die('El número de matrícula ya fue asignado, intente nuevamente.');
+        }
         die('Error al asignar el número de matrícula');
     }
 }

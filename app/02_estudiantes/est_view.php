@@ -722,12 +722,16 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <label class="form-label">Fecha de matrícula</label>
                         <input type="date" class="form-control" id="npt_editar_fechamatricula">
                     </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Número de matrícula</label>
+                        <input type="number" class="form-control" id="npt_editar_matr_numero" min="1">
+                        <div class="form-text">Dejar en blanco si aún no se ha asignado.</div>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Observaciones</label>
                     <textarea class="form-control" id="npt_editar_matr_observacion" rows="2"></textarea>
                 </div>
-                <div class="form-text" id="spn_editar_matr_numero">Número de matrícula: (sin asignar aún)</div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

@@ -532,6 +532,7 @@ $(document).ready(function () {
         const matr_folio       = $('#npt_editar_matr_folio').val().trim();
         const fechamatricula   = $('#npt_editar_fechamatricula').val();
         const matr_observacion = $('#npt_editar_matr_observacion').val().trim();
+        const matr_numero      = $('#npt_editar_matr_numero').val() || null;
 
         $.ajax({
             type: 'POST',
@@ -543,7 +544,8 @@ $(document).ready(function () {
                 peri_id: peri_id,
                 matr_folio: matr_folio,
                 fechamatricula: fechamatricula,
-                matr_observacion: matr_observacion
+                matr_observacion: matr_observacion,
+                matr_numero: matr_numero
             },
             dataType: 'json',
             success: function (response) {
@@ -1106,7 +1108,7 @@ function abrirEditarMatricula(matr_id) {
             $('#npt_editar_matr_folio').val(d.matr_folio || '');
             $('#npt_editar_fechamatricula').val(d.fechamatricula || '');
             $('#npt_editar_matr_observacion').val(d.matr_observacion || '');
-            $('#spn_editar_matr_numero').text('Número de matrícula: ' + (d.matr_numero || '(sin asignar aún)'));
+            $('#npt_editar_matr_numero').val(d.matr_numero !== null && d.matr_numero !== undefined ? d.matr_numero : '');
             $('#slct_editar_coho_id').prop('disabled', false).html('<option value="">-- Seleccionar --</option>');
             cargarCohortesPorPrograma(d.prog_id, '#slct_editar_coho_id', function () {
                 $('#slct_editar_coho_id').val(d.coho_id);

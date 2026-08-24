@@ -595,6 +595,8 @@ switch ($accion) {
         $matr_folio       = trim($_POST['matr_folio'] ?? '') ?: null;
         $fechamatricula   = trim($_POST['fechamatricula'] ?? '') ?: null;
         $matr_observacion = trim($_POST['matr_observacion'] ?? '') ?: null;
+        $matr_numero_raw  = trim($_POST['matr_numero'] ?? '');
+        $matr_numero      = ($matr_numero_raw === '') ? null : (int)$matr_numero_raw;
         if ($matr_id === 0 || $prog_id === 0 || $peri_id === 0 || $coho_id === 0) {
             echo json_encode(['status' => 'error', 'message' => 'Programa, cohorte y período son requeridos']);
             break;
@@ -612,13 +614,23 @@ switch ($accion) {
                 break;
             }
 
+            if ($matr_numero !== null) {
+                $checkNumero = $pdo->prepare("SELECT matr_id FROM matriculas WHERE matr_numero = ? AND matr_id != ?");
+                $checkNumero->execute([$matr_numero, $matr_id]);
+                if ($checkNumero->fetch()) {
+                    $pdo->rollBack();
+                    echo json_encode(['status' => 'error', 'message' => 'El número de matrícula ya está asignado a otro estudiante.']);
+                    break;
+                }
+            }
+
             $stmtM = $pdo->prepare(
                 "UPDATE matriculas
                  SET prog_id = ?, peri_id = ?, matr_folio = ?,
-                     fechamatricula = ?, matr_observacion = ?
+                     fechamatricula = ?, matr_observacion = ?, matr_numero = ?
                  WHERE matr_id = ?"
             );
-            $stmtM->execute([$prog_id, $peri_id, $matr_folio, $fechamatricula, $matr_observacion, $matr_id]);
+            $stmtM->execute([$prog_id, $peri_id, $matr_folio, $fechamatricula, $matr_observacion, $matr_numero, $matr_id]);
 
             $stmtE = $pdo->prepare("UPDATE estudiantes SET coho_id = ? WHERE estu_id = ?");
             $stmtE->execute([$coho_id, $estu_id]);
