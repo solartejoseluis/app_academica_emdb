@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-23 — último commit citado: 5de9a9e
+> Última actualización: 2026-08-24 — último commit citado: f088466
 
 ## Reglas de documentación
 
@@ -407,6 +407,37 @@ $.ajax({
 ```
 
 `processData: false` y `contentType: false` son obligatorios: jQuery, por defecto, serializa `data` como querystring y fija `Content-Type: application/x-www-form-urlencoded`, lo que rompe el envío de archivos binarios.
+
+### Encabezado de sección numerado con resaltado de color (`.seccion-titulo`)
+
+Para modales largos con varias secciones temáticas (ej. un formulario que combina datos personales + datos familiares + datos académicos), cada encabezado de sección usa la clase `.seccion-titulo` (fondo azul `#0d6efd`, texto blanco, definida en `00_files/estilos.css`) en vez del patrón anterior `<h6 class="text-muted border-bottom pb-2 mb-3">`. El texto del encabezado se numera (`1. Datos del Estudiante`, `2. Multiculturalidad`, ...) para que el usuario sepa cuántas secciones tiene el formulario y en qué punto va. El tag HTML no es fijo — si el encabezado ya existía como otro elemento con `id` propio referenciado desde JS (ej. `<label id="lbl_multiculturalidad">`), se conserva ese tag y ese `id` intactos, agregando solo la clase y el número; no se fuerza a `<h6>` por consistencia visual si eso implica perder el `id`.
+
+```html
+<h6 class="seccion-titulo">1. Datos del Estudiante</h6>
+```
+
+Primer uso: las 5 secciones del modal `#mdl_estudiante` ("Ficha de Inscripción") en `02_estudiantes` (commit `f088466`, 2026-08-24). Antes de replicar este patrón en otro módulo, evaluar si el formulario es suficientemente largo/complejo como para justificar la numeración — para modales cortos de 1-2 secciones, el `<h6 class="text-muted border-bottom pb-2 mb-3">` original sigue siendo válido.
+
+### Fondo verde de "campo diligenciado" (`.campo-lleno`) — capa visual independiente de la validación funcional
+
+Distinta de `is-invalid`/`is-valid` (que indican si un campo **cumple** las reglas de negocio — obligatoriedad, formato), la clase `.campo-lleno` (fondo verde claro `#d1e7dd`, definida en `00_files/estilos.css`) indica únicamente que un campo **tiene algún valor**, sin importar si ese valor es válido. Son dos sistemas de retroalimentación visual deliberadamente separados y **no deben fusionarse**: un campo puede estar lleno y a la vez ser inválido (ej. un correo sin `@`), y ambos estados deben poder mostrarse a la vez sin que uno oculte al otro.
+
+```js
+function marcarCampoLleno($campo) {
+    const valor = ($campo.val() || '').toString().trim();
+    $campo.toggleClass('campo-lleno', valor !== '');
+}
+```
+
+Se engancha con un listener delegado sobre el contenedor del formulario, no por campo individual — necesario para cubrir también los campos que aparecen/desaparecen dinámicamente en el DOM (ej. bloques Padre/Madre/Acudiente):
+
+```js
+$(document).on('input change', '#mdl_estudiante input, #mdl_estudiante select, #mdl_estudiante textarea', function() {
+    marcarCampoLleno($(this));
+});
+```
+
+Primer uso: modal `#mdl_estudiante` en `02_estudiantes` (commit `f088466`, 2026-08-24). Antes de replicar este patrón en otro formulario, usar el mismo listener delegado sobre el contenedor (no un `.forEach` fijo sobre un array de selectores, como hace `marcarValidacion()` vía `CAMPOS_ESTUDIANTE`) si el formulario tiene bloques condicionales que aparecen/desaparecen.
 
 ---
 
@@ -899,6 +930,14 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Decisión:** navbar.php solo se incluye para roles 1/2 (Admin/Coordinador). Módulos multi-rol donde un rol adicional (ej. Docente en 05_calificaciones) no pasa por navbar.php tienen su propio `<nav>` fallback definido directamente en su _view.php. Cualquier componente global que se agregue a navbar.php (ej. el offcanvas de ayuda) y que también deba estar disponible para esos roles con navbar fallback debe duplicarse explícitamente en esa rama — no asumir que agregarlo solo a navbar.php cubre a todos los roles del sistema.
 - **Nota:** Ejemplo: el offcanvas de ayuda se duplicó en la rama Docente de calificaciones_view.php (commit `8947710`, 2026-08-16), ya que Docente es la audiencia principal de ese módulo piloto y no pasa por navbar.php.
 - **Estado:** Activa.
+
+### Subida de archivos condicionada a la PK del registro no se replica en el modo "crear" de un flujo crear/editar unificado
+
+- **Contexto:** El modal unificado de `02_estudiantes` (`#mdl_estudiante`, fusionado en la Fase C del plan de unificación de ficha de estudiante) comparte el mismo formulario entre modo creación ("Ficha de Inscripción") y modo edición ("Editar Estudiante"). El bloque de foto (`#bloque_foto_estudiante`) sube el archivo vía el endpoint `subir_foto`, que persiste el archivo asociado a un `estu_id` ya existente en BD.
+- **Decisión:** El bloque de foto permanece exclusivo del modo edición — oculto (`d-none`) en modo creación. Se evaluó habilitarlo también en modo creación y se descartó.
+- **Razón:** `estu_id` no existe hasta que el registro se guarda por primera vez (`guardar_completo`). Habilitar la subida de foto en modo creación exigiría rediseñar el flujo de guardado (ej. crear un registro parcial antes de completar el formulario, o subir el archivo a un área temporal sin `estu_id` y adjuntarlo después) — un cambio de arquitectura, no de UI, fuera del alcance de un ajuste de layout.
+- **Aplicación futura:** cualquier módulo nuevo con un flujo crear/editar unificado sobre el mismo formulario que necesite subir un archivo ligado a la PK del registro enfrenta la misma restricción — no habilitarlo en modo creación sin decidir explícitamente cómo resolver la dependencia de la PK todavía inexistente.
+- **Estado:** Activa. Evaluada y descartada explícitamente en el commit `f088466` (2026-08-24).
 
 ---
 
