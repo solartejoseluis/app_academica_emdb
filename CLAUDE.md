@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-24 — último commit citado: f088466
+> Última actualización: 2026-08-24 — último commit citado: 59775e4
 
 ## Reglas de documentación
 
@@ -648,6 +648,18 @@ Ejemplo: #offcanvasAyuda + ayuda_sidebar.js (commit `8947710`, 2026-08-16) — p
 Cuando el frontend necesita saber si una entidad tiene acceso de login (ej. si un estudiante ya tiene usua_id) para decidir si mostrar una funcionalidad sensible (ej. cambiar clave), el backend debe re-verificar esa condición con una consulta propia — nunca confiar en un hidden field o cualquier dato enviado por el cliente para tomar la decisión real. El frontend puede usar esos valores solo para decidir QUÉ MOSTRAR visualmente; la decisión de QUÉ EJECUTAR debe validarse siempre del lado del servidor, con su propia fuente de verdad.
 
 Ejemplo: en est_mdl.php (case guardar, commit `3d59f06`, 2026-08-16), el cambio de clave de un estudiante matriculado se permite solo tras un SELECT usua_id FROM estudiantes WHERE estu_id = ? ejecutado en el servidor — el hidden field #npt_estu_usua_id_actual del frontend solo se usa para decidir si mostrar el bloque de UI, nunca para autorizar el cambio en sí.
+
+### Validación de unicidad server-side antes de UPDATE/INSERT (SELECT previo, no catch genérico)
+
+Cuando un campo debe ser único dentro de su propia tabla (no contra una tabla relacionada — para eso ver el patrón siguiente) y ese campo puede editarse desde la UI, no basta con dejar que el `UNIQUE KEY` de la BD rechace el duplicado y caiga al `catch (PDOException $e)` genérico: el usuario recibiría un mensaje de error inespecífico sin saber cuál fue la causa real. Patrón: antes del `UPDATE`/`INSERT`, ejecutar un `SELECT <pk> FROM tabla WHERE campo_unico = ?` (agregando `AND <pk> != ?` en la rama editar, para no autobloquear el registro contra sí mismo) — si encuentra una fila, responder con el envelope de error y un mensaje específico, sin llegar a ejecutar la escritura ni depender del catch.
+
+Dos casos de uso conocidos, mismo patrón exacto:
+- `doce_sigla` en el case `guardar` de `doc_mdl.php` (crear: `SELECT doce_id FROM docentes WHERE doce_sigla = ?`; editar: agrega `AND doce_id != ?`).
+- `matr_numero` en el case `editar_matricula` de `est_mdl.php` (commit `59775e4`, 2026-08-24): `SELECT matr_id FROM matriculas WHERE matr_numero = ? AND matr_id != ?`, solo cuando `matr_numero` no es `null` — responde "El número de matrícula ya está asignado a otro estudiante." antes del `UPDATE`.
+
+**Variante cuando el SELECT previo sería redundante — capturar `SQLSTATE 23000` en el catch:** cuando la unicidad no depende de un valor que el usuario escribe en un formulario sino de un cálculo que ya se protege de otra forma (ej. una asignación automática de contador dentro de una transacción con `SELECT ... FOR UPDATE`, ver "Asignación segura de un contador institucional bajo concurrencia" más abajo), un `SELECT` previo de unicidad sería una verificación redundante con el propio cálculo. Ahí el patrón alternativo es capturar la excepción y verificar `$e->getCode() === '23000'` (SQLSTATE de violación de constraint `UNIQUE`/`CHECK` en MySQL vía PDO) para dar un mensaje específico solo en ese caso, dejando el mensaje genérico para el resto de errores — sin repetir la lógica de cálculo en un SELECT aparte.
+
+Ejemplo: `pdf_hoja_matricula.php` (commit `59775e4`, 2026-08-24) — el `catch` de la asignación automática de `matr_numero` verifica `$e instanceof PDOException && $e->getCode() === '23000'` para devolver "El número de matrícula ya fue asignado, intente nuevamente." en vez del mensaje genérico, cubriendo el caso de una colisión real (dos asignaciones automáticas concurrentes, o un valor recién asignado manualmente vía el campo de "Editar Matrícula") pese a que el `SELECT ... FOR UPDATE` ya protege el cálculo contra condición de carrera.
 
 ### Validación de unicidad contra dos tablas relacionadas antes de guardar (formato + unicidad cruzada)
 
