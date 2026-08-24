@@ -132,10 +132,21 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="mdl_estudiante_titulo">Nuevo Aspirante</h5>
+                <h5 class="modal-title" id="mdl_estudiante_titulo">Ficha de Inscripción</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <div class="mb-4">
+                    <h4 class="mb-2">FICHA DE INSCRIPCIÓN — código AC-FO-02</h4>
+                    <div class="alert alert-info mb-0">
+                        Diligencie esta ficha con los datos del aspirante y su núcleo familiar.
+                        Todos los campos marcados son obligatorios; si el padre, la madre o el
+                        acudiente no aplican, desmarque la casilla correspondiente y esos campos
+                        se ocultarán automáticamente. <strong>Tenga cuidado: si cierra esta
+                        ventana sin guardar, los datos ingresados se perderán.</strong> Revise
+                        la información antes de pulsar "Guardar".
+                    </div>
+                </div>
                 <input type="hidden" id="npt_estu_id" value="">
                 <input type="hidden" id="npt_estu_usua_id_actual" value="">
 
@@ -148,7 +159,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
 
-                <h6 class="text-muted border-bottom pb-2 mb-3">Datos del Estudiante</h6>
+                <h6 class="seccion-titulo">1. Datos del Estudiante</h6>
                 <div class="row">
                     <div class="col-md-2 mb-3">
                         <label class="form-label">Tipo/Documento</label>
@@ -273,7 +284,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label d-block" id="lbl_multiculturalidad">Multiculturalidad</label>
+                    <label class="form-label d-block seccion-titulo" id="lbl_multiculturalidad">2. Multiculturalidad</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input chk-multicultural" type="checkbox" id="chk_multi_no_aplica" data-valor="NO APLICA" checked>
                         <label class="form-check-label" for="chk_multi_no_aplica">No aplica</label>
@@ -308,36 +319,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
 
-                <h6 class="text-muted border-bottom pb-2 mb-3">Ficha Familiar (AC-FO-02)</h6>
-                <div class="alert alert-info mb-3">
-                    <strong>Instrucciones:</strong> Diligencie esta ficha con los datos
-                    actualizados del aspirante y su núcleo familiar. Complete todos los
-                    campos visibles — si el padre o la madre no viven, desmarque la
-                    casilla correspondiente y esos campos se ocultarán automáticamente.
-                    Al finalizar, pulse "Guardar".
-                </div>
-
-                <h6 class="text-muted border-bottom pb-2 mb-2">Información general</h6>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Programa</label>
-                        <select class="form-select" id="slct_finc_prog_id">
-                            <option value="">-- Seleccionar --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Jornada</label>
-                        <select class="form-select" id="npt_jornada">
-                            <option value="">-- Seleccionar --</option>
-                            <option value="SEMANA">Semana</option>
-                            <option value="SABADOS">Sábados</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Fecha de inscripción</label>
-                        <input type="date" class="form-control" id="npt_fechainscripcion">
-                    </div>
-                </div>
+                <h6 class="seccion-titulo">3. Información sobre Familiares</h6>
 
                 <h6 class="text-muted border-bottom pb-2 mb-2">Padre</h6>
                 <div class="row mb-3">
@@ -476,7 +458,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
 
-                <h6 class="text-muted border-bottom pb-2 mb-2">Estudios anteriores</h6>
+                <h6 class="seccion-titulo">4. Estudios anteriores</h6>
                 <p class="text-muted small">Escriba la última certificación que ha
                     recibido, en una institución formal (bachiller, técnico,
                     universitario, etc.).</p>
@@ -513,6 +495,28 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <input type="text" class="form-control" id="npt_clave_manual_estudiante" placeholder="Ingrese la nueva clave" autocomplete="off">
                     </div>
                     <div class="form-text">Dejar en blanco para no cambiar la clave actual.</div>
+                </div>
+
+                <h6 class="seccion-titulo">5. Programa técnico al que ingresa</h6>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Programa</label>
+                        <select class="form-select" id="slct_finc_prog_id">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Jornada</label>
+                        <select class="form-select" id="npt_jornada">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="SEMANA">Semana</option>
+                            <option value="SABADOS">Sábados</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha de inscripción</label>
+                        <input type="date" class="form-control" id="npt_fechainscripcion">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">

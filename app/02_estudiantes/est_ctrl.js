@@ -24,6 +24,11 @@ function validarFormatoEmail($campo) {
     }
 }
 
+function marcarCampoLleno($campo) {
+    const valor = ($campo.val() || '').toString().trim();
+    $campo.toggleClass('campo-lleno', valor !== '');
+}
+
 // --- Ficha Familiar: campos siempre obligatorios vs. condicionados a Padre/Madre ---
 const CAMPOS_FICHA_SIEMPRE = [
     '#slct_finc_prog_id', '#npt_jornada', '#npt_fechainscripcion',
@@ -152,10 +157,15 @@ $(document).ready(function () {
         }
     });
 
+    // --- Fondo verde para campos ya diligenciados (Ficha de Inscripción) ---
+    $(document).on('input change', '#mdl_estudiante input, #mdl_estudiante select, #mdl_estudiante textarea', function() {
+        marcarCampoLleno($(this));
+    });
+
     // --- Nuevo aspirante ---
     $('#btn_nuevo_aspirante').click(function () {
         limpiarFormulario();
-        $('#mdl_estudiante_titulo').text('Nuevo Aspirante');
+        $('#mdl_estudiante_titulo').text('Ficha de Inscripción');
         $('#btn_eliminar_aspirante').addClass('d-none');
         new bootstrap.Modal(document.getElementById('mdl_estudiante')).show();
     });
