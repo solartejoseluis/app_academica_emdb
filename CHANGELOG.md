@@ -4,6 +4,54 @@
 
 ---
 
+## [59775e4] — 2026-08-24 — feat(estudiantes): habilita edición manual de matr_numero en "Editar Matrícula"
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+- app/02_estudiantes/est_mdl.php
+- app/06_reportes/pdf_hoja_matricula.php
+
+### Cambios/Vulnerabilidad corregida
+- Modal "Editar Matrícula de..." (`#mdl_editar_matricula`, `est_view.php`):
+  reemplazado el texto informativo de solo lectura `#spn_editar_matr_numero`
+  por un campo editable real `#npt_editar_matr_numero` (`type="number"`,
+  `min="1"`), ubicado junto a Folio y Fecha de matrícula.
+- `est_ctrl.js`: la precarga del modal ahora usa `.val()` en vez de `.text()`
+  (input vacío si `matr_numero` es `null`); el payload de `editar_matricula`
+  agrega `matr_numero: $('#npt_editar_matr_numero').val() || null`.
+- `est_mdl.php`, case `editar_matricula`: recibe y normaliza `matr_numero`
+  (`null` si viene vacío). Antes del `UPDATE` principal, agrega una
+  validación de unicidad explícita — mismo patrón ya usado para
+  `doce_sigla` en `doc_mdl.php` — con `SELECT matr_id FROM matriculas
+  WHERE matr_numero = ? AND matr_id != ?`; si encuentra coincidencia,
+  responde con mensaje específico "El número de matrícula ya está
+  asignado a otro estudiante." en vez de depender del catch genérico de
+  `PDOException`. El `UPDATE` incluye `matr_numero` junto a los campos
+  ya existentes.
+- `pdf_hoja_matricula.php`: el `catch` de la asignación automática de
+  `matr_numero` ahora diferencia una colisión real de unicidad
+  (`PDOException` con `SQLSTATE 23000`) del resto de errores genéricos,
+  devolviendo el mensaje "El número de matrícula ya fue asignado,
+  intente nuevamente." en ese caso específico.
+
+### Decisiones
+- El mecanismo de asignación automática (`SELECT ... FOR UPDATE` sobre
+  `configuracion` + `MAX(matriculas.matr_numero)` + `GREATEST` contra
+  `matr_numero_inicial`, introducido en la Fase F2) **no se modificó**.
+  Conclusión del diagnóstico previo, dejada explícita para no reabrir
+  esta pregunta: ese mecanismo relee `MAX(matr_numero)` en vivo cada vez
+  que se ejecuta — no existe un contador cacheado en `configuracion`
+  (`matr_numero_inicial` es solo un piso mínimo, no un contador que
+  avanza) — por lo que habilitar la edición manual desde "Editar
+  Matrícula" no introduce ningún riesgo de desincronización entre ambos
+  mecanismos.
+- No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio
+  aplica exclusivamente a "Editar Matrícula".
+- Verificado en navegador: 8/8 puntos de prueba.
+
+---
+
 ## [f088466] — 2026-08-24 — refactor(estudiantes): reestructura el modal de creación de estudiante en "Ficha de Inscripción"
 
 ### Archivos modificados
