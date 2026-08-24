@@ -774,6 +774,34 @@
 
 ---
 
+## [a49b652] — 2026-08-19 — feat(reportes): agrega nota explicativa de supletorios al pie de los PDF
+
+### Archivos modificados
+- app/06_reportes/pdf_boletin.php
+- app/06_reportes/pdf_grupo.php
+
+### Cambios/Vulnerabilidad corregida
+- Nuevo párrafo `.nota-supletorios` agregado al pie de ambos PDFs (boletín
+  individual del estudiante y reporte de grupo GA-FO-04), explicando en
+  texto plano cómo funcionan las notas de recuperación: el supletorio se
+  activa únicamente si la nota original (N1, N2 o N4) es 0.0 — el
+  estudiante no presentó la prueba; N3 nunca tiene supletorio, por
+  corresponder a trabajos, actividades y exposiciones en clase; y cómo se
+  calculan Nota Final (N1 20% + N2 20% + N3 20% + N4 40%), Habilitación
+  (si la Nota Final es menor a 3.0) y Definitiva (valor oficial).
+- Mismo texto duplicado en ambos archivos, sin lógica nueva — solo
+  HTML/CSS estático (`.nota-supletorios`, agregado al `<style>` de cada
+  uno) insertado después de la leyenda de colores ya existente.
+
+### Decisiones
+- Texto aprobado directamente por el usuario antes de implementarse.
+- Sin lógica de cálculo nueva ni cambio de datos — la fórmula y las
+  reglas de supletorio que describe el párrafo ya eran las vigentes
+  desde el rediseño de Nota Final/Habilitación/Definitiva (commit
+  `58396d1`); este cambio solo las hace explícitas para quien lee el PDF.
+
+---
+
 ## [35d6672] — 2026-08-19 — fix(reportes): elimina DISTINCT redundante que rompía el selector de módulos del estudiante
 
 ### Archivos modificados
