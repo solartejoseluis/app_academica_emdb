@@ -4,6 +4,40 @@
 
 ---
 
+## [7374a0f] — 2026-08-24 — chore(ayudas): sincroniza contenido de 10_ayudas con el estado real del sistema
+
+### Archivos modificados
+- actualizar_ayudas.sql (nuevo)
+- Datos: tabla `ayudas` (5 UPDATE + 1 INSERT + 5 UPDATE de ayud_orden, vía script)
+
+### Cambios/Vulnerabilidad corregida
+- Diagnóstico encontró que las 26 entradas de `ayudas` no se habían actualizado
+  desde el 16-18 de agosto, mientras que entre el 19 y el 24 de agosto ocurrieron
+  12 commits sustanciales sobre `02_estudiantes` (plan de unificación de ficha de
+  estudiante, Fases A-F): modal renombrado a "Ficha de Inscripción", fusión de
+  Editar Estudiante + Ficha Familiar en un solo modal, Cohorte obligatoria en la
+  cascada de matrícula, folio/fecha/observaciones reactivados, número de matrícula
+  editable en "Editar Matrícula", y generación de Hoja de Matrícula en PDF
+  (AC-FO-09). Ninguno de estos cambios estaba reflejado en el contenido de ayuda.
+- `actualizar_ayudas.sql` corrige 5 entradas de `02_estudiantes` (ayud_id 28, 29,
+  30, 31, 44) con el flujo actual, y agrega 1 entrada nueva en `08_admin`
+  (ayud_id 49) documentando el bloque "Configuración Institucional" (número de
+  matrícula inicial, Director, Secretario), agregado en el commit `25530cc` y
+  sin ninguna entrada de ayuda hasta ahora.
+- Hallazgo colateral durante la verificación: dos pares de `ayud_orden` duplicados
+  en `04_grupos` (ayud_id 45/48 ambos en 2, y 19/20 ambos en 3) — corregidos a una
+  secuencia única y consecutiva 0-7, sin cambio de contenido.
+
+### Decisiones
+- Tarea puramente de datos, sin cambios de código — el script SQL se versiona en
+  git para trazabilidad, aunque su efecto ya se aplicó directamente contra la BD
+  en ejecución (mismo patrón ya usado para otros cambios de datos del proyecto,
+  ej. commit `25530cc`).
+- Verificado en navegador: las 6 entradas modificadas/nuevas se leen correctamente
+  en el sidebar de ayuda de sus respectivos módulos.
+
+---
+
 ## [0e098bb] — 2026-08-24 — refactor(inscripcion): unificar formulario público en un solo paso
 
 ### Archivos modificados
