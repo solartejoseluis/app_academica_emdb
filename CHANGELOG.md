@@ -4,6 +4,84 @@
 
 ---
 
+## [ac96f07] — 2026-08-25 — feat: registro y visualización de "último acceso" del usuario al sistema
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/00_files/helpers.php (nuevo)
+- app/01_login/login_mdl.php
+- app/00_files/navbar.php
+- app/03_docentes/doc_view.php
+- app/03_docentes/doc_mdl.php
+- app/03_docentes/doc_ctrl.js
+- app/05_calificaciones/calificaciones_view.php
+- app/06_reportes/reportes_view.php
+- app/08_admin/admin_mdl.php
+- app/08_admin/admin_view.php
+- app/08_admin/admin_ctrl.js
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- Nueva columna `usuarios.usua_ultimo_acceso` (`DATETIME NULL DEFAULT NULL`),
+  agregada tanto vía `ALTER TABLE` manual en Docker como en el DDL
+  versionado (`database/emdb_academica.sql`).
+- Nuevo helper compartido `formatearUltimoAcceso($ultimoAcceso,
+  $fechaCreacion)` en `00_files/helpers.php` (primer archivo de funciones
+  comunes del proyecto — antes `00_files/` solo tenía `navbar.php`,
+  `estilos.css` y `ayuda_sidebar.js`): si `usua_ultimo_acceso` es `NULL`,
+  usa `fechacreacion` como fallback; formato final `d/m/Y H:i`; devuelve
+  `'—'` si ambos son `NULL`.
+- `login_mdl.php` — en el único flujo de autenticación (sirve a los 4
+  roles sin duplicar lógica), después de `password_verify()` exitoso y
+  antes de la lógica condicional de `doce_id`/`estu_id` que ya existía: se
+  guarda en sesión el valor ANTERIOR de `usua_ultimo_acceso`
+  (`usua_ultimo_acceso_anterior`) junto con `fechacreacion`, y luego se
+  ejecuta `UPDATE usuarios SET usua_ultimo_acceso = NOW() WHERE usua_id =
+  ?`. El orden importa: lo que se muestra en el navbar durante la sesión
+  activa es el acceso previo, no el que se acaba de generar con este mismo
+  login.
+- Navbar — bloque `Nombre — Email — Último acceso: dd/mm/aaaa hh:mm`
+  agregado en tres puntos, mismo estilo (`text-light small`, mismo
+  separador ` — `) en los tres:
+  - `navbar.php` (roles 1 y 2).
+  - `calificaciones_view.php` (nav fallback real usado por Docente —
+    **no** `doc_view.php`: se intentó ahí primero, pero resultó ser
+    código inalcanzable para ese rol por el guard de sesión de esa vista,
+    que solo permite roles 1/2; revertido en el mismo ciclo de trabajo
+    antes de este commit).
+  - `reportes_view.php` (nav fallback de Estudiante).
+- Tabla Usuarios (`08_admin`) — columna "Último acceso" nueva; calculada
+  server-side en el `case 'listar'` de `admin_mdl.php`
+  (`$row['ultimo_acceso_fmt'] = formatearUltimoAcceso(...)` por fila,
+  mismo patrón ya usado para `estado_ficha` en `est_mdl.php`), consumida
+  en `admin_ctrl.js` como columna adicional del DataTable.
+- Tabla Matriculados (`02_estudiantes`) — columna "Último acceso" nueva;
+  requirió agregar `LEFT JOIN usuarios u ON e.usua_id = u.usua_id` al
+  `SELECT` de `listar_matriculados` (`LEFT` porque un estudiante puede no
+  tener `usua_id` todavía — a diferencia de Docentes, donde el `usua_id`
+  siempre existe).
+- Tabla Docentes (`03_docentes`) — columna "Último acceso" nueva,
+  reutilizando el `INNER JOIN usuarios` que ya existía en el `case
+  'listar'` de `doc_mdl.php` — sin agregar ningún `JOIN` nuevo ahí.
+
+### Decisiones
+- Verificación de sintaxis (`php -l`) sin errores en los 13 archivos PHP
+  tocados, vía el contenedor `app`.
+- Hallazgo colateral detectado durante la implementación, documentado como
+  deuda técnica y **no corregido en este commit**: además de
+  `doc_view.php`, los archivos `est_view.php` y `grupos_view.php` también
+  tienen un `<nav>` fallback con el mismo patrón (`navbar-dark bg-dark
+  px-3`) que resulta inalcanzable para Docente por el guard de roles de
+  esas vistas (solo permite 1 y 2) — inconsistencia preexistente, no
+  introducida por este cambio. Documentado en PROJECT_CONTEXT.md, sección
+  "Análisis pendiente". Pendiente de decisión futura: ¿vale la pena
+  limpiar ese código muerto o dejarlo así? No implementar sin decisión
+  explícita de Jose Luis.
+
+---
+
 ## [35c312a] — 2026-08-25 — feat(docentes): habilita cambio de contraseña en "Editar Docente"
 
 ### Archivos modificados
