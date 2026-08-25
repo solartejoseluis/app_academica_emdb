@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-24 — último commit citado: 59775e4
+> Última actualización: 2026-08-24 — último commit citado: 0e098bb
 
 ## Reglas de documentación
 
@@ -418,6 +418,8 @@ Para modales largos con varias secciones temáticas (ej. un formulario que combi
 
 Primer uso: las 5 secciones del modal `#mdl_estudiante` ("Ficha de Inscripción") en `02_estudiantes` (commit `f088466`, 2026-08-24). Antes de replicar este patrón en otro módulo, evaluar si el formulario es suficientemente largo/complejo como para justificar la numeración — para modales cortos de 1-2 secciones, el `<h6 class="text-muted border-bottom pb-2 mb-3">` original sigue siendo válido.
 
+Segundo uso, primera vez fuera de `02_estudiantes`: las 5 secciones de `insc_view.php` (`09_inscripcion_publica`, commit `0e098bb`, 2026-08-24) — confirma que el patrón es reutilizable a nivel de proyecto, no exclusivo del modal de estudiante.
+
 ### Fondo verde de "campo diligenciado" (`.campo-lleno`) — capa visual independiente de la validación funcional
 
 Distinta de `is-invalid`/`is-valid` (que indican si un campo **cumple** las reglas de negocio — obligatoriedad, formato), la clase `.campo-lleno` (fondo verde claro `#d1e7dd`, definida en `00_files/estilos.css`) indica únicamente que un campo **tiene algún valor**, sin importar si ese valor es válido. Son dos sistemas de retroalimentación visual deliberadamente separados y **no deben fusionarse**: un campo puede estar lleno y a la vez ser inválido (ej. un correo sin `@`), y ambos estados deben poder mostrarse a la vez sin que uno oculte al otro.
@@ -438,6 +440,8 @@ $(document).on('input change', '#mdl_estudiante input, #mdl_estudiante select, #
 ```
 
 Primer uso: modal `#mdl_estudiante` en `02_estudiantes` (commit `f088466`, 2026-08-24). Antes de replicar este patrón en otro formulario, usar el mismo listener delegado sobre el contenedor (no un `.forEach` fijo sobre un array de selectores, como hace `marcarValidacion()` vía `CAMPOS_ESTUDIANTE`) si el formulario tiene bloques condicionales que aparecen/desaparecen.
+
+Segundo uso, primera vez fuera de `02_estudiantes`: `#form_inscripcion` en `insc_ctrl.js` (`09_inscripcion_publica`, commit `0e098bb`, 2026-08-24), mismo listener delegado sobre el contenedor del formulario — confirma que el patrón es reutilizable a nivel de proyecto, no exclusivo del modal de estudiante.
 
 ---
 
@@ -565,6 +569,8 @@ Envolver un guardado en `beginTransaction()`/`commit()`/`rollBack()` solo garant
 
 Ejemplo: commit `42e4175` (2026-08-23) — `guardar` (estudiantes) y `guardar_ficha` (fichas_inscripcion) en `02_estudiantes` ya usaban transacción cada uno por separado, pero como dos requests HTTP independientes no había atomicidad real entre ambos. Se fusionaron en un solo `case 'guardar_completo'`, con una única transacción que cubre el INSERT/UPDATE de `estudiantes` y el INSERT/UPDATE de `fichas_inscripcion`. Antes de replicar este patrón, verificar primero si el estado intermedio (A guardado, B no) es realmente inválido para el negocio — si no lo es (ej. dos guardados verdaderamente independientes que solo comparten pantalla por conveniencia de UI), mantenerlos separados es preferible y no amerita la fusión.
 
+Segundo caso de uso: `insc_mdl.php` (`09_inscripcion_publica`, commit `0e098bb`, 2026-08-24) — el formulario público de inscripción tenía el mismo problema en su versión de 2 pasos: `crear_aspirante` (INSERT en `estudiantes` + INSERT parcial en `fichas_inscripcion`) y `completar_ficha` (UPDATE del resto de `fichas_inscripcion`) vivían en dos requests HTTP separados, disparados por dos pantallas distintas del formulario público. Se fusionaron en un solo `case 'crear_aspirante'`, con una única transacción que cubre el INSERT en `estudiantes` y el INSERT completo (ya no parcial) en `fichas_inscripcion` — el rediseño eliminó además el mecanismo de "retomar después" (`finc_codigotemporal`) que existía precisamente para tolerar ese estado intermedio, reforzando que dicho estado era inválido para el negocio (un aspirante a medias en un formulario público, sin sesión, es más difícil de recuperar que uno interno editado por el coordinador).
+
 ### Personalizar exportación Excel vía customize del botón excelHtml5 (DataTables Buttons)
 
 La exportación a Excel del proyecto es 100% client-side, generada por el plugin DataTables Buttons (buttons.html5.min.js + JSZip) — no hay PhpSpreadsheet ni ninguna librería de generación de .xlsx en el backend. La opción `title` del botón `{ extend: 'excel' }` solo acepta un string plano que se convierte en UNA fila de título; no soporta múltiples líneas como filas independientes.
@@ -677,6 +683,10 @@ Ejemplo: case `guardar` (crear y editar) en `est_mdl.php` y case `registrar` en 
 Cuando un campo de BD ya tiene su columna y su wiring de backend (`_mdl.php`) funcionando, pero pertenece a una etapa del proceso que todavía no está en el alcance del sprint/fase actual (ej. datos de certificación antes de que exista el flujo de certificación), remover el campo solo de la UI (`_view.php`/`_ctrl.js`) es preferible a eliminar la columna o dejar código muerto sin explicar por qué. La columna sigue recibiendo `NULL`/vacío en cada guardado (el backend no cambia), y el campo queda listo para reactivarse con un cambio de alcance mínimo — solo HTML + JS, sin tocar BD ni PHP — el día en que esa etapa entre en alcance. La condición para que esto valga la pena (en vez de eliminar todo el feature) es que la remoción se documente explícitamente en el commit que la hace, con la razón y la expectativa de reactivación — sin esa nota, un campo sin UI es indistinguible de un descuido o código muerto real.
 
 Ejemplo: `matr_folio`/`matr_numero` en `02_estudiantes` — removidos de la UI de "Completar Matrícula" en el commit `29b6ca6` (2026-08-07) con la decisión explícita registrada en el CHANGELOG ("se mantienen en est_mdl.php y en la tabla `matriculas` como campos opcionales, sin usarse desde la UI... listos para reactivarse sin cambios de backend/BD si se retoman en el futuro"). La Fase E (commit `afdcfc1`, 2026-08-23) confirmó que la estrategia funcionó: reactivar `matr_folio` fue solo agregar el input en ambos modales y el campo en el payload JS, sin tocar el `case 'matricular'` para ese campo específico — el backend ya lo esperaba desde 16 días antes.
+
+**Variante — eliminar el mecanismo por completo, no solo de la UI, cuando queda obsoleto por un cambio de diseño más amplio:** el patrón de arriba asume que la etapa que usa el campo va a llegar eventualmente (solo está fuera del alcance actual). Cuando en cambio un mecanismo completo (columna + lógica de generación/consumo) deja de tener sentido porque el diseño que lo motivó fue reemplazado —no pospuesto—, eliminarlo del todo (columna de BD, `_mdl.php`, `_ctrl.js`, `_view.php`) es preferible a dejarlo sin usar. Un campo sin UI pero con backend vivo comunica "listo para reactivarse pronto"; dejar un mecanismo completo sin usar cuando en realidad nunca va a reactivarse es indistinguible de código muerto real, el mismo riesgo que motiva remover código sin llamadores (ver "elimina código muerto tras el plan de unificación de ficha de estudiante", commit `5de9a9e`). Criterio para elegir: si hay expectativa concreta de que la etapa pendiente llegue con el mismo diseño, dejar el backend listo (patrón de arriba); si el mecanismo completo fue reemplazado por un diseño distinto que ya no lo necesita, eliminarlo del todo.
+
+Ejemplo: `finc_codigotemporal` en `fichas_inscripcion` — columna + `UNIQUE KEY` + `generarCodigoTemporal()` (con su lógica de reintento contra duplicado) existían como puente para que un aspirante retomara un formulario público de 2 pasos sin necesidad de cuenta. Al rediseñarse ese formulario como una sola pantalla con un solo guardado transaccional (commit `0e098bb`, 2026-08-24), el mecanismo de "retomar después" dejó de tener sentido por completo (no hay un paso intermedio que retomar) — se eliminó la columna, la constraint y toda la lógica asociada, en vez de dejarla sin usar "por si acaso".
 
 ---
 

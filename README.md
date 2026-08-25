@@ -237,7 +237,7 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 | Phase 2 | Gestión académica: calificaciones, reportes, coordinador | ✅ Completado |
 | Phase 3 | Validación TRL5 con usuarios reales | ⬜ Pendiente |
 
-> **Formulario público de inscripción:** 5 de 5 fases completas (reCAPTCHA, Ficha Familiar interna, migración `estu_origen`, formulario público en dos pasos, columna Origen en listado de Aspirantes, Ficha Familiar obligatoria + indicador de 3 estados con pruebas extremo a extremo).
+> **Formulario público de inscripción:** un aspirante sin cuenta diligencia su inscripción completa (datos personales, familiares y académicos) en una sola pantalla, con verificación reCAPTCHA y detección de duplicados por documento/correo, quedando pendiente de revisión y aprobación del coordinador. Rediseñado a un solo paso el 2026-08-24 — el diseño original en dos pasos (con código temporal para retomar después) fue reemplazado por un único formulario con un solo guardado.
 
 > **Ficha del estudiante unificada:** los datos personales del estudiante y su Ficha Familiar (AC-FO-02) se editan ahora desde un único modal, con descarga en PDF integrada — antes eran dos pantallas separadas. La matrícula del estudiante (folio, fecha, observaciones, número institucional) y la configuración de la institución (Director, Secretario(a), número de matrícula inicial) alimentan la exportación en PDF de la Hoja de Matrícula (AC-FO-09), con el número de matrícula asignado automáticamente la primera vez que se genera el documento.
 
