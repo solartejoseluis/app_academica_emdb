@@ -4,6 +4,49 @@
 
 ---
 
+## [35c312a] — 2026-08-25 — feat(docentes): habilita cambio de contraseña en "Editar Docente"
+
+### Archivos modificados
+- app/03_docentes/doc_view.php
+- app/03_docentes/doc_ctrl.js
+- app/03_docentes/doc_mdl.php
+
+### Cambios/Vulnerabilidad corregida
+- El campo de contraseña del modal `#mdl_docente` (bloque `bloque_password`)
+  ya no se oculta por completo en modo edición — replica el patrón ya usado
+  en `08_admin` (`admin_mdl.php`, case `editar`): campo opcional, vacío = no
+  se toca el hash, `password_hash()` con bcrypt si viene texto.
+- Label del campo cambiado de "Contraseña inicial" a "Contraseña" (sirve
+  para ambos modos); el placeholder se ajusta dinámicamente por JS —
+  "Contraseña inicial" en creación, "Dejar vacío para no cambiar" en
+  edición.
+- `abrirEditar()` (`doc_ctrl.js`) condiciona la visibilidad del campo a que
+  el docente tenga `usua_id` (acceso al sistema) — si `usua_id` es `NULL`,
+  el campo permanece oculto, igual que antes de este cambio.
+- `case 'obtener'` en `doc_mdl.php` agrega `d.usua_id` al `SELECT` para que
+  el frontend pueda tomar esa decisión.
+- `case 'guardar'` (rama edición) en `doc_mdl.php`: si llega
+  `usua_password` no vacía, genera
+  `password_hash($usua_password, PASSWORD_BCRYPT)` y actualiza
+  `usua_passwordhash` en el mismo `UPDATE` que `usua_activo`; si viene
+  vacía, mantiene el `UPDATE` original sin tocar el hash. Sin validación de
+  longitud mínima (mismo criterio que `08_admin`).
+
+### Decisiones
+- `case 'obtener'` sigue usando `INNER JOIN` entre `docentes` y `usuarios`,
+  sin cambios en este commit — un docente con `usua_id NULL` causaría
+  "Docente no encontrado" antes de llegar a abrir el modal, en vez de
+  abrirlo con el campo de contraseña oculto. Hoy no hay ningún docente en
+  esa condición en la BD (`SELECT COUNT(*) FROM docentes WHERE usua_id IS
+  NULL` → 0) — no es un bug activo. Queda documentado como deuda de diseño
+  pendiente en PROJECT_CONTEXT.md (sección "Análisis pendiente"), mismo
+  criterio ya usado para `matriculas.matr_matriculadopor` (commit
+  `5de9a9e`): una decisión de esquema/diseño aparte, no resuelta por no ser
+  mecánica.
+- Verificado en navegador por Jose Luis antes de commit.
+
+---
+
 ## [7374a0f] — 2026-08-24 — chore(ayudas): sincroniza contenido de 10_ayudas con el estado real del sistema
 
 ### Archivos modificados
