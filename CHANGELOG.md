@@ -4,6 +4,135 @@
 
 ---
 
+## [0e098bb] — 2026-08-24 — refactor(inscripcion): unificar formulario público en un solo paso
+
+### Archivos modificados
+- app/09_inscripcion_publica/insc_view.php
+- app/09_inscripcion_publica/insc_ctrl.js
+- app/09_inscripcion_publica/insc_mdl.php
+- database/emdb_academica.sql
+
+### Archivos eliminados
+- app/09_inscripcion_publica/fam_view.php
+- app/09_inscripcion_publica/fam_mdl.php
+- app/09_inscripcion_publica/fam_ctrl.js
+
+### Cambios/Vulnerabilidad corregida
+- **insc_view.php** — reescrito por completo. Pasa de ser solo el Paso 1
+  (datos del aspirante + búsqueda por código) a contener el formulario
+  público completo en una sola pantalla, con el mismo diseño visual del
+  modal interno "Ficha de Inscripción" de `02_estudiantes` (commit
+  `f088466`): 5 secciones numeradas con la clase `.seccion-titulo`
+  (fondo azul, `00_files/estilos.css`):
+  1. Datos del Aspirante (18 campos originales del Paso 1, sin cambios)
+  2. Multiculturalidad (8 checkboxes, sin cambios)
+  3. Información sobre Familiares (bloque Padre/Madre/Acudiente fusionado
+     desde `fam_view.php`, sin cambios de campos)
+  4. Estudios anteriores (fusionado desde `fam_view.php`)
+  5. Programa técnico al que ingresa (`slct_finc_prog_id`, `npt_jornada`)
+  - Eliminados de la UI: `#bloque_codigo`, `#npt_codigo_busqueda`,
+    `#btn_buscar_codigo`, `#error_codigo` — ya no existe un código que
+    buscar.
+  - reCAPTCHA reubicado justo antes del único botón de envío final
+    (`#btn_enviar_inscripcion`).
+  - `#bloque_confirmacion` reescrito sin ninguna referencia a código —
+    mensaje de bienvenida + próximos pasos (contacto de la coordinación
+    para confirmar matrícula).
+- **insc_ctrl.js** — reescrito por completo. Absorbe toda la lógica de
+  `fam_ctrl.js`:
+  - `actualizarVisibilidadPadreMadre()`, `actualizarSelectAcudiente()`,
+    `MAPEO_ACUDIENTE`, `limpiarYHabilitarCamposAcudiente()`,
+    `manejarCambioAcudiente()` — cascada Padre/Madre/Acudiente sin
+    cambios de comportamiento.
+  - Carga del catálogo de Programas movida a
+    `insc_mdl.php?accion=listar_programas` (antes en `fam_mdl.php`).
+  - Nueva función `marcarCampoLleno()` con listener delegado —
+    `$(document).on('input change', '#form_inscripcion input, select,
+    textarea', ...)` — mismo patrón ya usado en `02_estudiantes`
+    (commit `f088466`), aplicado por primera vez fuera de ese módulo.
+  - Máscaras existentes (documento con puntos de miles, email en
+    minúsculas, exclusión mutua de multiculturalidad) intactas.
+  - Un solo handler de envío (`#btn_enviar_inscripcion`): valida
+    `CAMPOS_ESTUDIANTE` + los campos de Ficha Familiar condicionales
+    según Padre/Madre "¿Vive?" y Acudiente, valida multiculturalidad y
+    reCAPTCHA, arma un único objeto de datos con todos los campos
+    (aspirante + ficha), y hace un solo POST a
+    `insc_mdl.php?accion=crear_aspirante`. El callback `success` ya no
+    lee `response.codigo` — solo verifica `response.status === 'ok'` y
+    alterna `#form_inscripcion`/`#bloque_confirmacion`.
+- **insc_mdl.php** — reescrito por completo:
+  - Nuevo case `listar_programas` (movido desde `fam_mdl.php`).
+  - `case 'crear_aspirante'` ahora valida los 19 campos del aspirante Y
+    todos los campos de Ficha Familiar (antes repartidos entre
+    `crear_aspirante` y `completar_ficha`) antes de tocar la BD;
+    `verificarRecaptcha()` se ejecuta después de que ambos bloques de
+    validación pasan y antes de cualquier query. Las validaciones de
+    unicidad de documento y de email cruzada contra `estudiantes` y
+    `usuarios` se conservan sin cambios.
+  - Una sola transacción PDO (`beginTransaction`/`commit`/`rollBack`)
+    ejecuta el `INSERT INTO estudiantes` (`estu_origen = 'web'`,
+    igual que antes) seguido de un único `INSERT INTO
+    fichas_inscripcion` con los 35 campos completos (antes: `INSERT`
+    parcial en `crear_aspirante` + `UPDATE` posterior en
+    `completar_ficha`, en dos requests HTTP separados sin atomicidad
+    real entre sí). `fechainscripcion` se fija con `CURDATE()`.
+  - `generarCodigoTemporal()` y su lógica de reintento contra duplicado
+    eliminados por completo — ya no hay código que generar.
+  - La respuesta de éxito ya no incluye la clave `codigo`.
+- **database/emdb_academica.sql** — eliminada la columna
+  `finc_codigotemporal VARCHAR(20)` y su `UNIQUE KEY
+  uq_finc_codigotemporal` de la definición de `fichas_inscripcion`.
+  **`ALTER TABLE fichas_inscripcion DROP COLUMN finc_codigotemporal;`
+  ya se ejecutó manualmente contra el contenedor Docker existente el
+  2026-08-24** — `DESCRIBE fichas_inscripcion` confirmó la columna
+  eliminada. No es un pendiente.
+
+### Decisiones
+- **Arquitectura de archivos:** se fusionó todo dentro de `insc_*`,
+  eliminando `fam_view.php`/`fam_mdl.php`/`fam_ctrl.js` por completo,
+  en vez de mantener dos módulos de archivos separados. Se verificó
+  antes (diagnóstico previo) que no hay colisión de `id` entre ambos
+  formularios originales — la fusión es conceptualmente correcta porque
+  ambos formularios siempre representaron un único dominio (creación de
+  aspirante), separado artificialmente en 2 pasos solo para permitir
+  "retomar después".
+- **Transacción única, no dos transacciones separadas:** aplicando el
+  mismo principio ya documentado en CLAUDE.md para `guardar_completo`
+  (02_estudiantes, commit `42e4175`) — "dos transacciones
+  individualmente correctas no garantizan atomicidad entre sí" — se
+  fusionaron los dos INSERTs (antes en 2 requests HTTP separados,
+  `crear_aspirante` + `completar_ficha`) en una sola transacción PDO.
+  Un aspirante con `estudiantes` guardado pero sin `fichas_inscripcion`
+  ya no es un estado alcanzable.
+- **`finc_codigotemporal` eliminado, no solo dejado de usar:** columna
+  + `UNIQUE KEY` + toda la lógica de generación se removieron por
+  completo del esquema y del código — un formulario de un solo paso, un
+  solo guardado, no necesita ningún mecanismo de "retomar después".
+- **El formulario público sigue sin generar clave de acceso al
+  sistema.** Esto no cambió con esta refactorización — se confirmó
+  durante el diagnóstico previo (grep de `generarClaveAuto`,
+  `clave_generada`, `usua_passwordhash` en todo `09_inscripcion_publica/`,
+  sin resultados) que ese mecanismo nunca existió en el formulario
+  público: la generación de clave de acceso es y sigue siendo tarea
+  exclusiva del coordinador al matricular desde `02_estudiantes` (case
+  `matricular` en `est_mdl.php`). El único "código" que el formulario
+  entregaba antes de este cambio era `finc_codigotemporal` — un puente
+  técnico para retomar el Paso 2, nunca una credencial de acceso — y ya
+  no existe.
+- **`calcularEstadoFicha()` (est_mdl.php) no se modificó.** El
+  indicador de 3 estados (`sin_iniciar`/`incompleta`/`completa`) sigue
+  siendo válido sin cambios de código: con guardado transaccional
+  único, el estado `incompleta` ya no tiene ruta de origen desde el
+  formulario público (solo queda alcanzable si un coordinador edita
+  manualmente la ficha después y la deja a medias), pero el cálculo en
+  sí no depende de cómo se originó la fila.
+- No se tocó `02_estudiantes`, `est_mdl.php`, la lógica de matriculación
+  ni el mecanismo de generación de clave — fuera del alcance de este
+  cambio.
+- Verificado en navegador: 15/15 puntos de prueba.
+
+---
+
 ## [59775e4] — 2026-08-24 — feat(estudiantes): habilita edición manual de matr_numero en "Editar Matrícula"
 
 ### Archivos modificados
