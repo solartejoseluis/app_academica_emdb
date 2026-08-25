@@ -86,7 +86,7 @@ app_academica_emdb/
     00_files/          — Componentes PHP compartidos: `navbar.php` (navbar unificado roles 1 y 2), `estilos.css` (texto-mayus), favicon, robots.txt, .htaccess
     01_login/          — Autenticación y redirección por rol ✅
     02_estudiantes/    — Registro, matrícula y ficha completa del estudiante (datos personales + Ficha Familiar AC-FO-02 en un solo modal) con foto y descarga en PDF ✅
-    03_docentes/       — Gestión del cuerpo docente ✅
+    03_docentes/       — Gestión del cuerpo docente, incluye reseteo de contraseña de acceso ✅
     04_grupos/         — Programas (CRUD), cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) ✅
     06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador (con contexto de curso y docente) + boletín PDF estudiante + PDF de Ficha Familiar + PDF de Hoja de Matrícula (AC-FO-09) ✅
@@ -112,6 +112,8 @@ app_academica_emdb/
 | **Estudiante** | Módulo de consulta | Solo lectura de sus propias calificaciones en tiempo real |
 
 **Acceso de estudiantes:** al matricular a un estudiante, el sistema crea su acceso usando el correo electrónico real registrado en su ficha (no un correo interno generado) y una clave inicial autogenerada.
+
+**Acceso de docentes:** al crear un docente se genera su acceso con una contraseña inicial obligatoria; Administrador y Coordinador pueden resetearla en cualquier momento desde "Editar Docente" (campo opcional — vacío no cambia la contraseña actual).
 
 ---
 
