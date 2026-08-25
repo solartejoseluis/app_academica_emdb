@@ -1054,6 +1054,8 @@ Ver historial completo en CHANGELOG.md.
 | 2.7.4 | Integración — listado de Aspirantes muestra origen (Manual/Web) para que el coordinador sepa qué revisar | ✅ 2026-08-07 (commit f704901) |
 | 2.7.5 | Pruebas extremo a extremo + documentación | ✅ 2026-08-07 (commit 1531593) — pruebas detectaron hallazgo crítico (indicador binario de ficha completa daba falso positivo para aspirantes web que abandonaban tras el Paso 1); corregido con Ficha Familiar obligatoria + indicador de 3 estados |
 
+**⚠️ Superado por el commit `0e098bb` (2026-08-24).** El diseño de 2 pasos de esta tabla (`finc_codigotemporal`, `fam_view.php`/`fam_mdl.php`/`fam_ctrl.js` de la Fase 2.7.3) ya no existe en el código actual — se reemplazó por un solo formulario de una sola pantalla con un solo guardado transaccional, absorbido por completo dentro de `insc_view.php`/`insc_ctrl.js`/`insc_mdl.php`. Esta tabla se conserva como registro histórico de lo que se implementó y por qué; no interpretar como el diseño vigente. Ver el patrón resultante documentado en "Dos transacciones PDO individualmente correctas no garantizan atomicidad entre sí" (segundo caso de uso) y en "Remover un campo solo de la UI..." (variante de eliminar el mecanismo por completo), ambas en la sección "Patrones de ingeniería" de este mismo archivo.
+
 **Nota de diseño (Fase 2.7.3):** reutilizar `finc_codigotemporal`
 (existente en `fichas_inscripcion`, VARCHAR(20), sin usar hasta ahora)
 para permitir que el aspirante retome el formulario sin necesidad de
