@@ -39,6 +39,7 @@ $(document).ready(function () {
         limpiarFormulario();
         $('#mdl_docente_titulo').text('Nuevo Docente');
         $('#bloque_password').removeClass('d-none');
+        $('#npt_usua_password').attr('placeholder', 'Contraseña inicial');
         $('#bloque_activo').addClass('d-none');
         $('#npt_usua_email').prop('readonly', false);
         new bootstrap.Modal(document.getElementById('mdl_docente')).show();
@@ -60,12 +61,11 @@ $(document).ready(function () {
             doce_nombres:   doce_nombres,
             doce_apellidos: doce_apellidos,
             doce_sigla:     doce_sigla,
-            usua_email:     usua_email
+            usua_email:     usua_email,
+            usua_password:  $('#npt_usua_password').val()
         };
 
-        if (doce_id === '') {
-            data.usua_password = $('#npt_usua_password').val();
-        } else {
+        if (doce_id !== '') {
             data.usua_activo = $('#slct_usua_activo').val();
         }
 
@@ -224,7 +224,13 @@ function abrirEditar(doce_id) {
                 $('#npt_usua_email').val(d.usua_email).prop('readonly', true);
                 $('#slct_usua_activo').val(d.usua_activo);
                 $('#mdl_docente_titulo').text('Editar Docente');
-                $('#bloque_password').addClass('d-none');
+                $('#npt_usua_password').val('');
+                if (d.usua_id) {
+                    $('#bloque_password').removeClass('d-none');
+                    $('#npt_usua_password').attr('placeholder', 'Dejar vacío para no cambiar');
+                } else {
+                    $('#bloque_password').addClass('d-none');
+                }
                 $('#bloque_activo').removeClass('d-none');
                 new bootstrap.Modal(document.getElementById('mdl_docente')).show();
             } else {

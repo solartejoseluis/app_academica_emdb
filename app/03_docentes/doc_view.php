@@ -94,7 +94,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
 
                 <div class="mb-3" id="bloque_password">
-                    <label class="form-label">Contraseña inicial</label>
+                    <label class="form-label">Contraseña</label>
                     <input type="password" class="form-control" id="npt_usua_password"
                            placeholder="Contraseña inicial" autocomplete="new-password">
                 </div>

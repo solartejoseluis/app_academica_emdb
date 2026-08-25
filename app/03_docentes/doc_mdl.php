@@ -226,8 +226,9 @@ switch ($accion) {
                 echo json_encode(['status' => 'ok', 'rows' => 1]);
 
             } else {
-                $doce_id_int = (int)$doce_id;
-                $usua_activo = (int)($_POST['usua_activo'] ?? 1);
+                $doce_id_int   = (int)$doce_id;
+                $usua_activo   = (int)($_POST['usua_activo'] ?? 1);
+                $usua_password = $_POST['usua_password'] ?? '';
 
                 $stmtGetId = $pdo->prepare("SELECT usua_id FROM docentes WHERE doce_id = ?");
                 $stmtGetId->execute([$doce_id_int]);
@@ -253,10 +254,18 @@ switch ($accion) {
                 );
                 $stmtD->execute([$doce_nombres, $doce_apellidos, $doce_sigla, $doce_id_int]);
 
-                $stmtU = $pdo->prepare(
-                    "UPDATE usuarios SET usua_activo = ? WHERE usua_id = ?"
-                );
-                $stmtU->execute([$usua_activo, $rowDoc['usua_id']]);
+                if ($rowDoc['usua_id'] !== null && $usua_password !== '') {
+                    $hash = password_hash($usua_password, PASSWORD_BCRYPT);
+                    $stmtU = $pdo->prepare(
+                        "UPDATE usuarios SET usua_activo = ?, usua_passwordhash = ? WHERE usua_id = ?"
+                    );
+                    $stmtU->execute([$usua_activo, $hash, $rowDoc['usua_id']]);
+                } else {
+                    $stmtU = $pdo->prepare(
+                        "UPDATE usuarios SET usua_activo = ? WHERE usua_id = ?"
+                    );
+                    $stmtU->execute([$usua_activo, $rowDoc['usua_id']]);
+                }
                 $pdo->commit();
 
                 echo json_encode(['status' => 'ok', 'rows' => 1]);
@@ -290,7 +299,7 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare(
-                "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla,
+                "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla, d.usua_id,
                         u.usua_email, u.usua_activo
                  FROM docentes d
                  JOIN usuarios u ON d.usua_id = u.usua_id
