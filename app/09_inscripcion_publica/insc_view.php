@@ -22,9 +22,22 @@ require_once '../00_connect/recaptcha_config.php';
         <div class="card-body">
 
             <div id="form_inscripcion">
-                <h5 class="mb-3">Formulario de Inscripción</h5>
+                <div class="mb-4">
+                    <h4 class="mb-2">FICHA DE INSCRIPCIÓN — código AC-FO-02</h4>
+                    <div class="alert alert-info mb-0">
+                        Diligencia esta ficha con tus datos personales y los de tu
+                        núcleo familiar. Todos los campos marcados son obligatorios;
+                        si tu padre, tu madre o tu acudiente no aplican, desmarca la
+                        casilla correspondiente y esos campos se ocultarán
+                        automáticamente. <strong>Ten cuidado: si cierras o recargas
+                        esta página sin enviar el formulario, los datos ingresados se
+                        perderán</strong> — no hay un código para retomarlo más
+                        tarde, así que completa la ficha en una sola sesión. Revisa
+                        la información antes de pulsar "Enviar Inscripción".
+                    </div>
+                </div>
 
-                <h6 class="text-muted border-bottom pb-2 mb-3">Datos del Estudiante</h6>
+                <h6 class="seccion-titulo">1. Datos del Aspirante</h6>
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Tipo de documento</label>
@@ -148,8 +161,9 @@ require_once '../00_connect/recaptcha_config.php';
                         </select>
                     </div>
                 </div>
+
+                <label class="form-label d-block seccion-titulo" id="lbl_multiculturalidad">2. Multiculturalidad</label>
                 <div class="mb-3">
-                    <label class="form-label d-block" id="lbl_multiculturalidad">Multiculturalidad</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input chk-multicultural" type="checkbox" id="chk_multi_no_aplica" data-valor="NO APLICA" checked>
                         <label class="form-check-label" for="chk_multi_no_aplica">No aplica</label>
@@ -184,6 +198,186 @@ require_once '../00_connect/recaptcha_config.php';
                     </div>
                 </div>
 
+                <h6 class="seccion-titulo">3. Información sobre Familiares</h6>
+
+                <h6 class="text-muted border-bottom pb-2 mb-2">Padre</h6>
+                <div class="row mb-3">
+                    <div class="col-md-12 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="npt_padr_vive">
+                            <label class="form-check-label" for="npt_padr_vive">¿Vive?</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="bloque_padre_campos" class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nombres</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_padr_nombres" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Apellidos</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_padr_apellidos" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Profesión</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_padr_profesion" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Empresa</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_padr_empresa" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="npt_padr_telefono" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Barrio</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_padr_barrio" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ciudad</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_padr_ciudad" autocomplete="off">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Dirección</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_padr_direccion" autocomplete="off">
+                    </div>
+                </div>
+
+                <h6 class="text-muted border-bottom pb-2 mb-2">Madre</h6>
+                <div class="row mb-3">
+                    <div class="col-md-12 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="npt_madr_vive">
+                            <label class="form-check-label" for="npt_madr_vive">¿Vive?</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="bloque_madre_campos" class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nombres</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_madr_nombres" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Apellidos</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_madr_apellidos" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Profesión</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_madr_profesion" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Empresa</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_madr_empresa" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="npt_madr_telefono" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Barrio</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_madr_barrio" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ciudad</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_madr_ciudad" autocomplete="off">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Dirección</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_madr_direccion" autocomplete="off">
+                    </div>
+                </div>
+
+                <h6 class="text-muted border-bottom pb-2 mb-2">Acudiente / Persona de contacto</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Es</label>
+                        <select class="form-select" id="slct_acud_es">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="padre">Padre</option>
+                            <option value="madre">Madre</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3" id="bloque_acud_parentesco">
+                        <label class="form-label">Parentesco</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_parentesco" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nombres</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_nombres" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Apellidos</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_apellidos" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Profesión</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_profesion" autocomplete="off">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Empresa</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_empresa" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="npt_acud_telefono" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Barrio</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_barrio" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ciudad</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_ciudad" autocomplete="off">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Dirección</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_direccion" autocomplete="off">
+                    </div>
+                </div>
+
+                <h6 class="seccion-titulo">4. Estudios anteriores</h6>
+                <p class="text-muted small">Escriba la última certificación que ha
+                    recibido, en una institución formal (bachiller, técnico,
+                    universitario, etc.).</p>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Tipo</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estudio_tipo" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estudio_titulo" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Año de finalización</label>
+                        <input type="number" class="form-control" id="npt_estudio_aniofin" min="1900" max="2100" maxlength="4">
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Institución</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estudio_institucion" autocomplete="off">
+                    </div>
+                </div>
+
+                <h6 class="seccion-titulo">5. Programa técnico al que ingresa</h6>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Programa</label>
+                        <select class="form-select" id="slct_finc_prog_id">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Jornada</label>
+                        <select class="form-select" id="npt_jornada">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="SEMANA">Semana</option>
+                            <option value="SABADOS">Sábados</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <div class="g-recaptcha" data-sitekey="<?= RECAPTCHA_SITE_KEY ?>"></div>
                 </div>
@@ -194,10 +388,13 @@ require_once '../00_connect/recaptcha_config.php';
             <div id="bloque_confirmacion" class="d-none">
                 <div class="alert alert-success">
                     <h5 class="alert-heading">¡Inscripción registrada!</h5>
-                    <p>Guarda este código — lo necesitarás para continuar con los datos familiares:</p>
-                    <p class="fs-4 fw-bold"><span id="codigo_temporal_resultado"></span></p>
+                    <p>Gracias por inscribirte en la Escuela de Mecánica Dental
+                        Bolaños. Tu ficha de inscripción fue recibida
+                        correctamente.</p>
+                    <p class="mb-0">La coordinación revisará tu inscripción y se
+                        pondrá en contacto contigo para confirmar tu matrícula y los
+                        siguientes pasos a seguir.</p>
                 </div>
-                <a href="#" id="lnk_continuar_datos_familiares" class="btn btn-primary">Continuar con datos familiares</a>
             </div>
 
         </div>

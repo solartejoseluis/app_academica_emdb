@@ -312,13 +312,10 @@ CREATE TABLE fichas_inscripcion (
   estudio_titulo       VARCHAR(120)  DEFAULT NULL,
   estudio_institucion  VARCHAR(120)  DEFAULT NULL,
   estudio_aniofin      YEAR          DEFAULT NULL,
-  -- Código temporal de acceso al formulario público
-  finc_codigotemporal  VARCHAR(20)   DEFAULT NULL,
   finc_estado          ENUM('aspirante','matriculado') NOT NULL DEFAULT 'aspirante',
   fechacreacion        TIMESTAMP     DEFAULT current_timestamp(),
   PRIMARY KEY (finc_id),
   UNIQUE KEY uq_finc_estu (estu_id),
-  UNIQUE KEY uq_finc_codigotemporal (finc_codigotemporal),
   CONSTRAINT fk_finc_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT fk_finc_estu FOREIGN KEY (estu_id) REFERENCES estudiantes (estu_id)
