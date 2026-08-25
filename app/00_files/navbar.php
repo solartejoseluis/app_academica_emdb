@@ -1,6 +1,7 @@
 <?php
 // Navbar compartido para roles 1 y 2 (Admin y Coordinador)
 // Requiere que $_SESSION['role_id'] y $_SESSION['usua_email'] estén disponibles
+require_once 'helpers.php';
 $role_id = (int)($_SESSION['role_id'] ?? 0);
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
@@ -54,7 +55,9 @@ $role_id = (int)($_SESSION['role_id'] ?? 0);
             <?php endif; ?>
         </ul>
         <div class="d-flex align-items-center gap-3">
-            <span class="text-light small"><?= htmlspecialchars($_SESSION['usua_email']) ?></span>
+            <span class="text-light small">
+                <?= htmlspecialchars($_SESSION['usua_nombre'] ?? '') ?> — <?= htmlspecialchars($_SESSION['usua_email']) ?> — Último acceso: <?= htmlspecialchars(formatearUltimoAcceso($_SESSION['usua_ultimo_acceso_anterior'] ?? null, $_SESSION['usua_fechacreacion'] ?? null)) ?>
+            </span>
             <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="offcanvas"
                     data-bs-target="#offcanvasAyuda" aria-controls="offcanvasAyuda">
                 ❓ Ayuda

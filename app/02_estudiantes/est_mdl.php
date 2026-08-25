@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 
 function calcularEstadoFicha(array $fila): string {
     $requeridos = [
@@ -153,13 +154,15 @@ switch ($accion) {
                            fi.madr_telefono, fi.madr_direccion, fi.madr_barrio, fi.madr_ciudad,
                            fi.acud_es, fi.acud_parentesco, fi.acud_nombres, fi.acud_apellidos, fi.acud_profesion,
                            fi.acud_empresa, fi.acud_telefono, fi.acud_direccion, fi.acud_barrio, fi.acud_ciudad,
-                           fi.estudio_tipo, fi.estudio_titulo, fi.estudio_institucion, fi.estudio_aniofin
+                           fi.estudio_tipo, fi.estudio_titulo, fi.estudio_institucion, fi.estudio_aniofin,
+                           u.usua_ultimo_acceso, u.fechacreacion
                     FROM estudiantes e
                     INNER JOIN matriculas m ON e.estu_id = m.estu_id
                     INNER JOIN programas p ON m.prog_id = p.prog_id
                     INNER JOIN periodos pe ON m.peri_id = pe.peri_id
                     LEFT JOIN cohortes co ON e.coho_id = co.coho_id
                     LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
+                    LEFT JOIN usuarios u ON e.usua_id = u.usua_id
                     {$where}
                     ORDER BY e.estu_apellidos ASC, e.estu_nombres ASC";
             $stmt = $pdo->prepare($sql);
@@ -167,6 +170,7 @@ switch ($accion) {
             $rows = $stmt->fetchAll();
             foreach ($rows as &$row) {
                 $row['estado_ficha'] = calcularEstadoFicha($row);
+                $row['ultimo_acceso_fmt'] = formatearUltimoAcceso($row['usua_ultimo_acceso'], $row['fechacreacion']);
             }
             unset($row);
             echo json_encode(['status' => 'ok', 'data' => $rows]);

@@ -55,6 +55,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <th>Correo</th>
                         <th>Estado</th>
                         <th>Grupos (período)</th>
+                        <th>Último acceso</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>

@@ -18,7 +18,8 @@ if ($email === '' || $password === '') {
 try {
     $pdo = getConexion();
 
-    $sql = "SELECT u.usua_id, u.usua_email, u.usua_nombre, u.usua_passwordhash, u.role_id, r.role_nombre
+    $sql = "SELECT u.usua_id, u.usua_email, u.usua_nombre, u.usua_passwordhash, u.role_id, r.role_nombre,
+                   u.usua_ultimo_acceso, u.fechacreacion
             FROM usuarios u
             JOIN roles r ON u.role_id = r.role_id
             WHERE u.usua_email = ?";
@@ -37,6 +38,11 @@ try {
     $_SESSION['usua_email'] = $usuario['usua_email'];
     $_SESSION['usua_nombre']= $usuario['usua_nombre'];
 
+    $_SESSION['usua_ultimo_acceso_anterior'] = $usuario['usua_ultimo_acceso'];
+    $_SESSION['usua_fechacreacion']          = $usuario['fechacreacion'];
+
+    $stmtUltimo = $pdo->prepare("UPDATE usuarios SET usua_ultimo_acceso = NOW() WHERE usua_id = ?");
+    $stmtUltimo->execute([$usuario['usua_id']]);
 
     if ($usuario['role_id'] == 3) {
         $stmt2 = $pdo->prepare("SELECT doce_id, doce_sigla FROM docentes WHERE usua_id = ?");

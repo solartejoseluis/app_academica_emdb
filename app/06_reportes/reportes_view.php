@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../01_login/check_session.php';
+require_once '../00_files/helpers.php';
 $role_id = (int)$_SESSION['role_id'];
 if (!in_array($role_id, [1, 2, 4])) {
     header('Location: ../01_login/login_view.php');
@@ -28,7 +29,9 @@ $es_coordinador = in_array($role_id, [1, 2]);
 <nav class="navbar navbar-dark bg-dark px-3">
     <span class="navbar-brand fw-bold">EMDB Académica</span>
     <div class="d-flex align-items-center gap-3">
-        <span class="text-light small"><?= htmlspecialchars($_SESSION['usua_email']) ?></span>
+        <span class="text-light small">
+            <?= htmlspecialchars($_SESSION['usua_nombre'] ?? '') ?> — <?= htmlspecialchars($_SESSION['usua_email']) ?> — Último acceso: <?= htmlspecialchars(formatearUltimoAcceso($_SESSION['usua_ultimo_acceso_anterior'] ?? null, $_SESSION['usua_fechacreacion'] ?? null)) ?>
+        </span>
         <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="offcanvas"
                 data-bs-target="#offcanvasAyuda" aria-controls="offcanvasAyuda">
             ❓ Ayuda

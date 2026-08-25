@@ -98,6 +98,7 @@ CREATE TABLE usuarios (
   usua_nombre       VARCHAR(150)     NOT NULL DEFAULT '',
   usua_passwordhash VARCHAR(255)     NOT NULL,
   usua_activo       TINYINT(1)       NOT NULL DEFAULT 1,
+  usua_ultimo_acceso DATETIME        NULL DEFAULT NULL,
   fechacreacion     TIMESTAMP        DEFAULT current_timestamp(),
   PRIMARY KEY (usua_id),
   UNIQUE KEY uq_usua_email (usua_email),

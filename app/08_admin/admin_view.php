@@ -42,6 +42,7 @@ if ($_SESSION['role_id'] !== 1) {
                         <th>Rol</th>
                         <th>Estado</th>
                         <th>Fecha creación</th>
+                        <th>Último acceso</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>

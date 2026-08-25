@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 
 $accion = $_GET['accion'] ?? '';
 
@@ -28,7 +29,7 @@ switch ($accion) {
 
             $sql = "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla,
                            d.doce_activo,
-                           u.usua_email, u.usua_activo,
+                           u.usua_email, u.usua_activo, u.usua_ultimo_acceso, u.fechacreacion,
                            (SELECT COUNT(*) FROM gruposmodulos gm
                             INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
                             WHERE gm.doce_id = d.doce_id AND gs.peri_id = ? AND gm.grmo_activo = 1) AS total_grupos,
@@ -41,6 +42,10 @@ switch ($accion) {
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$peri_id, $peri_id]);
             $rows = $stmt->fetchAll();
+            foreach ($rows as &$row) {
+                $row['ultimo_acceso_fmt'] = formatearUltimoAcceso($row['usua_ultimo_acceso'], $row['fechacreacion']);
+            }
+            unset($row);
             echo json_encode(['status' => 'ok', 'data' => $rows]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al listar docentes']);

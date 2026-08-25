@@ -158,6 +158,7 @@ $(document).ready(function () {
                     }
                 },
                 { data: 'fechacreacion' },
+                { data: 'ultimo_acceso_fmt' },
                 {
                     data: null,
                     orderable: false,

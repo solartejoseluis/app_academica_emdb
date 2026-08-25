@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 
 $accion = $_GET['accion'] ?? '';
 
@@ -18,7 +19,8 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
-            $sql = "SELECT u.usua_id, u.usua_email, u.usua_nombre, r.role_nombre, u.usua_activo, u.fechacreacion
+            $sql = "SELECT u.usua_id, u.usua_email, u.usua_nombre, r.role_nombre, u.usua_activo,
+                           u.usua_ultimo_acceso, u.fechacreacion
                     FROM usuarios u
                     JOIN roles r ON u.role_id = r.role_id
                     WHERE u.role_id IN (1, 2)
@@ -26,6 +28,10 @@ switch ($accion) {
             $stmt = $pdo->prepare($sql);
             $stmt->execute();
             $rows = $stmt->fetchAll();
+            foreach ($rows as &$row) {
+                $row['ultimo_acceso_fmt'] = formatearUltimoAcceso($row['usua_ultimo_acceso'], $row['fechacreacion']);
+            }
+            unset($row);
             echo json_encode(['status' => 'ok', 'data' => $rows]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al listar usuarios']);

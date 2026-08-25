@@ -146,6 +146,7 @@ $(document).ready(function () {
                         return `<span class="badge bg-info text-dark" title="Período: ${row.peri_codigo}">${data} grupos</span>`;
                     }
                 },
+                { data: 'ultimo_acceso_fmt', width: '120px' },
                 {
                     data: null,
                     orderable: false,

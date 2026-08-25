@@ -722,6 +722,7 @@ $(document).ready(function () {
                         return `<span class="badge ${cls}">${data}</span>`;
                     }
                 },
+                { data: 'ultimo_acceso_fmt', width: '120px' },
                 {
                     data: null,
                     orderable: false,
