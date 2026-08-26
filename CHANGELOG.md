@@ -4,6 +4,46 @@
 
 ---
 
+## [3672a0e] — 2026-08-26 — refactor: unifica disposición de campos en Sección 1 de la Ficha de Inscripción (AC-FO-02)
+
+### Archivos modificados
+- app/09_inscripcion_publica/insc_view.php
+- app/02_estudiantes/est_view.php
+
+### Cambios
+- Sección "1. Datos del Estudiante/Aspirante": se reordenaron y renombraron
+  los campos de residencia — "Dirección", "Barrio" y "Ciudad de residencia"
+  ahora aparecen en ese orden, con el sufijo "(Residencia)" en cada label.
+- "Ciudad de nacimiento" se reubicó junto a "Fecha de nacimiento".
+- En insc_view.php, "Expedido en" se trasladó de la fila EPS/Ocupación a la
+  fila del documento (Tipo de documento + Número de documento), igualando
+  la disposición que ya existía en est_view.php.
+- EPS, Ocupación y Estado civil se consolidaron en una sola fila (3 columnas
+  iguales); Discapacidad quedó sola en su propia fila.
+- est_view.php: se unificó el texto del label "Tipo/Documento" a
+  "Tipo de documento" (igual que insc_view.php).
+- Sección "3. Información sobre Familiares" (Padre, Madre, Acudiente/Persona
+  de contacto, en ambos archivos): "Dirección", "Barrio" y "Ciudad" se
+  reordenaron a ese orden con sufijo "(Residencia)"; "Teléfono" se renombró
+  a "Teléfono (Personal)".
+- (Aparte) Se confirmó en este mismo commit la eliminación, ya decidida
+  previamente, de actualizar_ayudas.sql (archivo sin tracking activo desde
+  antes de esta sesión de trabajo).
+
+### Decisiones
+- Cambio exclusivamente de vista (labels y clases de columna Bootstrap) — sin
+  modificaciones en modelo (fichas_inscripcion, estudiantes) ni en
+  controladores JS. Ningún `id`/`name` de input cambió.
+- Los encabezados de sección "1. Datos del Aspirante" (insc_view.php) y
+  "1. Datos del Estudiante" (est_view.php) se mantienen intencionalmente
+  distintos — no se unificaron por decisión explícita del autor.
+- Se priorizó llevar insc_view.php a la misma disposición estructural de
+  est_view.php en la Sección 1, en vez de mantener divergencias históricas
+  entre ambos formularios, ya que comparten el mismo propósito de UI aunque
+  tengan backends distintos (insc_mdl.php vs est_mdl.php).
+
+---
+
 ## [ac96f07] — 2026-08-25 — feat: registro y visualización de "último acceso" del usuario al sistema
 
 ### Archivos modificados
