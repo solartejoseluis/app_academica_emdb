@@ -163,7 +163,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 <h6 class="seccion-titulo">1. Datos del Estudiante</h6>
                 <div class="row">
                     <div class="col-md-2 mb-3">
-                        <label class="form-label">Tipo/Documento</label>
+                        <label class="form-label">Tipo de documento</label>
                         <select class="form-select" id="slct_estu_tipodoc">
                             <option value="">-- Seleccionar --</option>
                             <option value="CC">CC</option>
@@ -193,11 +193,15 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">Fecha de nacimiento</label>
                         <input type="date" class="form-control" id="npt_fechanacimiento">
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Ciudad de nacimiento</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estu_ciudadnac" autocomplete="off">
+                    </div>
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">Sexo</label>
                         <select class="form-select" id="slct_estu_sexo">
                             <option value="">-- Seleccionar --</option>
@@ -206,31 +210,17 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                             <option value="Otro">Otro</option>
                         </select>
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">Teléfono</label>
                         <input type="text" class="form-control" id="npt_estu_telefono" autocomplete="off">
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-8 mb-3">
                         <label class="form-label">Correo electrónico</label>
                         <input type="email" class="form-control" id="npt_estu_email" autocomplete="off">
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Ciudad de residencia</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_estu_ciudad" autocomplete="off">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Dirección</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_estu_direccion" autocomplete="off">
-                    </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Barrio</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_estu_barrio" autocomplete="off">
-                    </div>
-                    <div class="col-md-2 mb-3">
                         <label class="form-label">Estrato</label>
                         <select class="form-select" id="slct_estu_estrato">
                             <option value="">--</option>
@@ -243,23 +233,30 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         </select>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">EPS</label>
-                    <input type="text" class="form-control texto-mayus" id="npt_estu_eps" autocomplete="off">
-                </div>
-
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Ciudad de nacimiento</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_estu_ciudadnac" autocomplete="off">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Dirección (Residencia)</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estu_direccion" autocomplete="off">
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Barrio (Residencia)</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estu_barrio" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Ciudad (Residencia)</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estu_ciudad" autocomplete="off">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">EPS</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_estu_eps" autocomplete="off">
+                    </div>
+                    <div class="col-md-4 mb-3">
                         <label class="form-label">Ocupación</label>
                         <input type="text" class="form-control texto-mayus" id="npt_estu_ocupacion" autocomplete="off">
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label class="form-label">Estado civil</label>
                         <select class="form-select" id="slct_estu_estadocivil">
                             <option value="">-- Seleccionar --</option>
@@ -270,6 +267,8 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                             <option value="viudo">Viudo/a</option>
                         </select>
                     </div>
+                </div>
+                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Discapacidad</label>
                         <select class="form-select" id="slct_estu_discapacidad">
@@ -349,20 +348,20 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <input type="text" class="form-control texto-mayus" id="npt_padr_empresa" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Teléfono</label>
-                        <input type="text" class="form-control" id="npt_padr_telefono" autocomplete="off">
+                        <label class="form-label">Dirección (Residencia)</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_padr_direccion" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Barrio</label>
+                        <label class="form-label">Barrio (Residencia)</label>
                         <input type="text" class="form-control texto-mayus" id="npt_padr_barrio" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Ciudad</label>
+                        <label class="form-label">Ciudad (Residencia)</label>
                         <input type="text" class="form-control texto-mayus" id="npt_padr_ciudad" autocomplete="off">
                     </div>
-                    <div class="col-md-12">
-                        <label class="form-label">Dirección</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_padr_direccion" autocomplete="off">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono (Personal)</label>
+                        <input type="text" class="form-control" id="npt_padr_telefono" autocomplete="off">
                     </div>
                 </div>
 
@@ -393,20 +392,20 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <input type="text" class="form-control texto-mayus" id="npt_madr_empresa" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Teléfono</label>
-                        <input type="text" class="form-control" id="npt_madr_telefono" autocomplete="off">
+                        <label class="form-label">Dirección (Residencia)</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_madr_direccion" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Barrio</label>
+                        <label class="form-label">Barrio (Residencia)</label>
                         <input type="text" class="form-control texto-mayus" id="npt_madr_barrio" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Ciudad</label>
+                        <label class="form-label">Ciudad (Residencia)</label>
                         <input type="text" class="form-control texto-mayus" id="npt_madr_ciudad" autocomplete="off">
                     </div>
-                    <div class="col-md-12">
-                        <label class="form-label">Dirección</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_madr_direccion" autocomplete="off">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono (Personal)</label>
+                        <input type="text" class="form-control" id="npt_madr_telefono" autocomplete="off">
                     </div>
                 </div>
 
@@ -442,20 +441,20 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <input type="text" class="form-control texto-mayus" id="npt_acud_empresa" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Teléfono</label>
-                        <input type="text" class="form-control" id="npt_acud_telefono" autocomplete="off">
+                        <label class="form-label">Dirección (Residencia)</label>
+                        <input type="text" class="form-control texto-mayus" id="npt_acud_direccion" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Barrio</label>
+                        <label class="form-label">Barrio (Residencia)</label>
                         <input type="text" class="form-control texto-mayus" id="npt_acud_barrio" autocomplete="off">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Ciudad</label>
+                        <label class="form-label">Ciudad (Residencia)</label>
                         <input type="text" class="form-control texto-mayus" id="npt_acud_ciudad" autocomplete="off">
                     </div>
-                    <div class="col-md-12">
-                        <label class="form-label">Dirección</label>
-                        <input type="text" class="form-control texto-mayus" id="npt_acud_direccion" autocomplete="off">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono (Personal)</label>
+                        <input type="text" class="form-control" id="npt_acud_telefono" autocomplete="off">
                     </div>
                 </div>
 
