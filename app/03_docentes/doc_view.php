@@ -90,7 +90,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <div class="form-text">Sugerencia: una inicial por cada nombre y apellido, en orden. Ej: María Eugenia Rodríguez → MR. Máximo 6 caracteres, debe ser única.</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Correo electrónico</label>
+                    <label class="form-label">Correo electrónico (usuario de acceso)</label>
                     <input type="email" class="form-control" id="npt_usua_email" autocomplete="off">
                 </div>
 

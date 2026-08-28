@@ -251,6 +251,13 @@ switch ($accion) {
                     break;
                 }
 
+                $checkEmail = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_email = ? AND usua_id != ?");
+                $checkEmail->execute([$usua_email, $rowDoc['usua_id']]);
+                if ($checkEmail->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ese correo ya está registrado por otro usuario']);
+                    break;
+                }
+
                 $pdo->beginTransaction();
                 $stmtD = $pdo->prepare(
                     "UPDATE docentes
@@ -262,14 +269,14 @@ switch ($accion) {
                 if ($rowDoc['usua_id'] !== null && $usua_password !== '') {
                     $hash = password_hash($usua_password, PASSWORD_BCRYPT);
                     $stmtU = $pdo->prepare(
-                        "UPDATE usuarios SET usua_activo = ?, usua_passwordhash = ? WHERE usua_id = ?"
+                        "UPDATE usuarios SET usua_activo = ?, usua_email = ?, usua_passwordhash = ? WHERE usua_id = ?"
                     );
-                    $stmtU->execute([$usua_activo, $hash, $rowDoc['usua_id']]);
+                    $stmtU->execute([$usua_activo, $usua_email, $hash, $rowDoc['usua_id']]);
                 } else {
                     $stmtU = $pdo->prepare(
-                        "UPDATE usuarios SET usua_activo = ? WHERE usua_id = ?"
+                        "UPDATE usuarios SET usua_activo = ?, usua_email = ? WHERE usua_id = ?"
                     );
-                    $stmtU->execute([$usua_activo, $rowDoc['usua_id']]);
+                    $stmtU->execute([$usua_activo, $usua_email, $rowDoc['usua_id']]);
                 }
                 $pdo->commit();
 

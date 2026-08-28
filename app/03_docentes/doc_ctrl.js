@@ -222,7 +222,7 @@ function abrirEditar(doce_id) {
                 $('#npt_doce_nombres').val(d.doce_nombres);
                 $('#npt_doce_apellidos').val(d.doce_apellidos);
                 $('#npt_doce_sigla').val(d.doce_sigla);
-                $('#npt_usua_email').val(d.usua_email).prop('readonly', true);
+                $('#npt_usua_email').val(d.usua_email);
                 $('#slct_usua_activo').val(d.usua_activo);
                 $('#mdl_docente_titulo').text('Editar Docente');
                 $('#npt_usua_password').val('');
