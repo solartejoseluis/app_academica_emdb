@@ -4,6 +4,54 @@
 
 ---
 
+## [b6cc503] — 2026-08-28 — feat(docentes): permite editar el correo electrónico (usuario de acceso) en "Editar Docente"
+
+### Archivos modificados
+- app/03_docentes/doc_view.php
+- app/03_docentes/doc_ctrl.js
+- app/03_docentes/doc_mdl.php
+
+### Cambios
+- El campo de correo electrónico del modal "Editar Docente" (`#npt_usua_email`)
+  ya no queda bloqueado en modo edición — antes `abrirEditar()` forzaba
+  `.prop('readonly', true)` sobre ese campo en `doc_ctrl.js`; ahora se
+  puebla editable, igual que en modo creación.
+- Label del campo actualizado de "Correo electrónico" a "Correo
+  electrónico (usuario de acceso)" — hace explícito en la UI que ese
+  mismo valor es el identificador de login (`login_mdl.php` autentica
+  siempre contra `usuarios.usua_email`, sin importar el rol).
+- `doc_mdl.php`, rama de edición del case `guardar`: se agrega
+  validación de unicidad de `usua_email` (`SELECT usua_id FROM usuarios
+  WHERE usua_email = ? AND usua_id != ?`, replicando exactamente el
+  patrón ya usado para `doce_sigla` en la misma rama) antes de abrir la
+  transacción — si el correo ya pertenece a otro `usua_id`, responde
+  `{'status':'error','message':'Ese correo ya está registrado por otro
+  usuario'}` sin escribir nada.
+- `usua_email = ?` agregado a ambos `UPDATE usuarios` de esa rama (el
+  que incluye cambio de contraseña y el que no) — antes esta rama solo
+  tocaba `usua_activo` y, condicionalmente, `usua_passwordhash`; el
+  valor de `$usua_email` ya se recolectaba en `doc_ctrl.js` y llegaba
+  por POST en ambos modos, pero el backend lo ignoraba en edición.
+
+### Decisiones
+- Restricción `UNIQUE KEY uq_usua_email` confirmada sobre
+  `usuarios.usua_email` — la validación de unicidad server-side es
+  obligatoria, no opcional, porque ese campo funciona como credencial
+  de acceso para los 4 roles.
+- Cambio acotado a los 3 archivos de `03_docentes`; no se tocó
+  `08_admin` ni `02_estudiantes`, que administran su propio flujo de
+  edición de correo de forma independiente.
+
+### Pruebas realizadas
+- Editar docente sin cambiar el correo → sin alteración en BD ✅
+- Editar docente con correo nuevo válido → actualizado correctamente ✅
+- Intentar correo ya usado por otro usuario → rechazado, sin transacción abierta ✅
+- Cambio simultáneo de correo y contraseña → ambos valores persistidos correctamente, sin mezcla de parámetros ✅
+- Login con el nuevo correo → acceso exitoso ✅
+- Campo visualmente editable en el modal (ya no readonly) ✅
+
+---
+
 ## [3672a0e] — 2026-08-26 — refactor: unifica disposición de campos en Sección 1 de la Ficha de Inscripción (AC-FO-02)
 
 ### Archivos modificados
