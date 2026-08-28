@@ -85,6 +85,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <input type="text" class="form-control texto-mayus" id="npt_doce_apellidos" autocomplete="off">
                 </div>
                 <div class="mb-3">
+                    <label class="form-label">Cédula</label>
+                    <input type="text" class="form-control" id="npt_doce_cedula" autocomplete="off">
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Sigla <span class="text-muted small">(máx. 6 caracteres)</span></label>
                     <input type="text" class="form-control texto-mayus" id="npt_doce_sigla" maxlength="6" autocomplete="off">
                     <div class="form-text">Sugerencia: una inicial por cada nombre y apellido, en orden. Ej: María Eugenia Rodríguez → MR. Máximo 6 caracteres, debe ser única.</div>

@@ -138,7 +138,7 @@ CREATE TABLE docentes (
   usua_id       INT UNSIGNED      DEFAULT NULL,   -- NULL si no tiene acceso al sistema
   doce_nombres  VARCHAR(80)       NOT NULL,
   doce_apellidos VARCHAR(80)      NOT NULL,
-  doce_cedula   VARCHAR(15)       DEFAULT NULL,
+  doce_cedula   VARCHAR(20)       DEFAULT NULL,
   doce_sigla    VARCHAR(6)        NOT NULL,
   doce_activo   TINYINT(1)        NOT NULL DEFAULT 1,
   PRIMARY KEY (doce_id),

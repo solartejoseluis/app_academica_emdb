@@ -180,6 +180,7 @@ switch ($accion) {
         $doce_id        = trim($_POST['doce_id'] ?? '');
         $doce_nombres   = strtoupper(trim($_POST['doce_nombres'] ?? ''));
         $doce_apellidos = strtoupper(trim($_POST['doce_apellidos'] ?? ''));
+        $doce_cedula    = trim($_POST['doce_cedula'] ?? '');
         $doce_sigla     = strtoupper(trim($_POST['doce_sigla'] ?? ''));
         $usua_email     = trim($_POST['usua_email'] ?? '');
 
@@ -212,6 +213,15 @@ switch ($accion) {
                     break;
                 }
 
+                if ($doce_cedula !== '') {
+                    $checkCedula = $pdo->prepare("SELECT doce_id FROM docentes WHERE doce_cedula = ?");
+                    $checkCedula->execute([$doce_cedula]);
+                    if ($checkCedula->fetch()) {
+                        echo json_encode(['status' => 'error', 'message' => 'Ya existe un docente con esa cédula']);
+                        break;
+                    }
+                }
+
                 $hash = password_hash($usua_password, PASSWORD_BCRYPT);
 
                 $pdo->beginTransaction();
@@ -222,10 +232,10 @@ switch ($accion) {
                 $usua_id = $pdo->lastInsertId();
 
                 $stmtD = $pdo->prepare(
-                    "INSERT INTO docentes (usua_id, doce_nombres, doce_apellidos, doce_sigla)
-                     VALUES (?, ?, ?, ?)"
+                    "INSERT INTO docentes (usua_id, doce_nombres, doce_apellidos, doce_cedula, doce_sigla)
+                     VALUES (?, ?, ?, ?, ?)"
                 );
-                $stmtD->execute([$usua_id, $doce_nombres, $doce_apellidos, $doce_sigla]);
+                $stmtD->execute([$usua_id, $doce_nombres, $doce_apellidos, $doce_cedula !== '' ? $doce_cedula : null, $doce_sigla]);
                 $pdo->commit();
 
                 echo json_encode(['status' => 'ok', 'rows' => 1]);
@@ -251,6 +261,15 @@ switch ($accion) {
                     break;
                 }
 
+                if ($doce_cedula !== '') {
+                    $checkCedula = $pdo->prepare("SELECT doce_id FROM docentes WHERE doce_cedula = ? AND doce_id != ?");
+                    $checkCedula->execute([$doce_cedula, $doce_id_int]);
+                    if ($checkCedula->fetch()) {
+                        echo json_encode(['status' => 'error', 'message' => 'Ya existe un docente con esa cédula']);
+                        break;
+                    }
+                }
+
                 $checkEmail = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_email = ? AND usua_id != ?");
                 $checkEmail->execute([$usua_email, $rowDoc['usua_id']]);
                 if ($checkEmail->fetch()) {
@@ -261,10 +280,10 @@ switch ($accion) {
                 $pdo->beginTransaction();
                 $stmtD = $pdo->prepare(
                     "UPDATE docentes
-                     SET doce_nombres = ?, doce_apellidos = ?, doce_sigla = ?
+                     SET doce_nombres = ?, doce_apellidos = ?, doce_cedula = ?, doce_sigla = ?
                      WHERE doce_id = ?"
                 );
-                $stmtD->execute([$doce_nombres, $doce_apellidos, $doce_sigla, $doce_id_int]);
+                $stmtD->execute([$doce_nombres, $doce_apellidos, $doce_cedula !== '' ? $doce_cedula : null, $doce_sigla, $doce_id_int]);
 
                 if ($rowDoc['usua_id'] !== null && $usua_password !== '') {
                     $hash = password_hash($usua_password, PASSWORD_BCRYPT);
@@ -311,7 +330,7 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare(
-                "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla, d.usua_id,
+                "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_cedula, d.doce_sigla, d.usua_id,
                         u.usua_email, u.usua_activo
                  FROM docentes d
                  JOIN usuarios u ON d.usua_id = u.usua_id

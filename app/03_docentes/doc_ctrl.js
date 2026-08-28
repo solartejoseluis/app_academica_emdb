@@ -15,6 +15,12 @@ $(document).ready(function () {
         tablaDocentes.ajax.reload(null, false);
     });
 
+    // --- Formato en vivo del número de cédula (separador de miles) ---
+    $('#npt_doce_cedula').on('input', function () {
+        let soloDigitos = $(this).val().replace(/\D/g, '');
+        $(this).val(soloDigitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
+    });
+
     function cargarPeriodos() {
         return $.ajax({
             type: 'POST',
@@ -49,6 +55,7 @@ $(document).ready(function () {
         let doce_id        = $('#npt_doce_id').val().trim();
         let doce_nombres   = $('#npt_doce_nombres').val().trim();
         let doce_apellidos = $('#npt_doce_apellidos').val().trim();
+        let doce_cedula    = $('#npt_doce_cedula').val().replace(/\./g, '');
         let doce_sigla     = $('#npt_doce_sigla').val().trim();
         let usua_email     = $('#npt_usua_email').val().trim();
 
@@ -60,6 +67,7 @@ $(document).ready(function () {
             doce_id:        doce_id,
             doce_nombres:   doce_nombres,
             doce_apellidos: doce_apellidos,
+            doce_cedula:    doce_cedula,
             doce_sigla:     doce_sigla,
             usua_email:     usua_email,
             usua_password:  $('#npt_usua_password').val()
@@ -176,6 +184,7 @@ $(document).ready(function () {
         $('#npt_doce_id').val('');
         $('#npt_doce_nombres').val('');
         $('#npt_doce_apellidos').val('');
+        $('#npt_doce_cedula').val('');
         $('#npt_doce_sigla').val('');
         $('#npt_usua_email').val('');
         $('#npt_usua_password').val('');
@@ -221,6 +230,7 @@ function abrirEditar(doce_id) {
                 $('#npt_doce_id').val(d.doce_id);
                 $('#npt_doce_nombres').val(d.doce_nombres);
                 $('#npt_doce_apellidos').val(d.doce_apellidos);
+                $('#npt_doce_cedula').val(d.doce_cedula || '');
                 $('#npt_doce_sigla').val(d.doce_sigla);
                 $('#npt_usua_email').val(d.usua_email);
                 $('#slct_usua_activo').val(d.usua_activo);
