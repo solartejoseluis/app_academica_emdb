@@ -4,6 +4,70 @@
 
 ---
 
+## [7ba02bc] — 2026-08-28 — feat(docentes): cablea doce_cedula completo (crear/editar/obtener)
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/03_docentes/doc_view.php
+- app/03_docentes/doc_ctrl.js
+- app/03_docentes/doc_mdl.php
+
+### Cambios
+- `docentes.doce_cedula` (`UNIQUE KEY uq_doce_cedula`) existía en el
+  esquema desde el inicio del proyecto pero no estaba cableado en
+  ninguna capa — todas las filas tenían `NULL`. Se cablea completo
+  siguiendo el patrón ya usado para `estudiantes.estu_numerodoc`, con
+  dos diferencias deliberadas: sin selector de tipo de documento
+  (`doce_tipodoc` no existe — los docentes solo usan cédula) y campo
+  opcional, no obligatorio (a diferencia de `estu_numerodoc`).
+- `ALTER TABLE docentes MODIFY doce_cedula VARCHAR(20)...` — columna
+  ampliada de `VARCHAR(15)` a `VARCHAR(20)` para paridad con
+  `estu_numerodoc`, aplicado en Docker y reflejado en
+  `database/emdb_academica.sql`.
+- Nuevo campo "Cédula" en el modal `#mdl_docente` (`doc_view.php`),
+  ubicado entre Apellidos y Sigla, sin asterisco de obligatorio.
+- `doc_ctrl.js`: mismo listener de formato en vivo (separador de miles)
+  que ya tenía `#npt_estu_numerodoc`, aplicado a `#npt_doce_cedula`;
+  incluido en el objeto `data` del guardado (despojando el separador);
+  precargado en `abrirEditar()` con fallback a cadena vacía si viene
+  `null`; reseteado en `limpiarFormulario()`.
+- `doc_mdl.php`, case `guardar`: validación de unicidad
+  (`SELECT doce_id FROM docentes WHERE doce_cedula = ?`, agregando
+  `AND doce_id != ?` en la rama editar) ejecutada SOLO cuando
+  `doce_cedula` no llega vacío — mismo criterio ya usado para
+  `matr_numero` en `est_mdl.php` (campo opcional, no se valida
+  unicidad de un valor ausente). Si el valor llega vacío, se guarda
+  como `NULL` (no como cadena vacía) en ambos INSERT/UPDATE, para no
+  arriesgar futuras colisiones si MySQL tratara cadenas vacías
+  repetidas como iguales bajo la `UNIQUE KEY`.
+- `doc_mdl.php`, case `obtener`: `d.doce_cedula` agregado al `SELECT`.
+- `case 'listar'` deliberadamente sin cambios — `doce_cedula` no se
+  agrega a la tabla de DataTables en este commit (fuera del alcance
+  pedido).
+
+### Decisiones
+- Decisión de alcance explícita de Jose Luis: sin selector de tipo de
+  documento para docentes (a diferencia de estudiantes) y ampliar la
+  columna a `VARCHAR(20)` en vez de dejarla en `VARCHAR(15)`.
+- Campo opcional por decisión propia (no explícitamente pedida): ya
+  existían 5 docentes con `doce_cedula = NULL` antes de este commit;
+  hacerlo obligatorio habría forzado completar datos retroactivamente
+  sin que se pidiera. Documentado en el chat para que Jose Luis lo
+  revierta si prefiere obligatoriedad.
+- Pendiente para el despliegue en producción (`escuelamdb.com`): el
+  `ALTER TABLE` de este commit solo se aplicó en Docker local — debe
+  ejecutarse manualmente en cPanel antes o durante el próximo deploy.
+
+### Pruebas realizadas
+- Crear docente sin cédula (dos veces) → ambos quedan NULL, sin conflicto de unicidad ✅
+- Crear docente con cédula nueva → guardada correctamente ✅
+- Editar docente agregando cédula por primera vez (NULL → valor) → guardada correctamente ✅
+- Repetir cédula de otro docente → rechazado con mensaje específico, sin transacción abierta ✅
+- Editar docente sin tocar su cédula → no se autobloquea contra sí mismo ✅
+- Formato de separador de miles en vivo → correcto, sin puntos residuales al precargar en edición ✅
+
+---
+
 ## [b6cc503] — 2026-08-28 — feat(docentes): permite editar el correo electrónico (usuario de acceso) en "Editar Docente"
 
 ### Archivos modificados
