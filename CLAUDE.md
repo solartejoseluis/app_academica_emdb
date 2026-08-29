@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-28 — último commit citado: 7ba02bc
+> Última actualización: 2026-08-29 — último commit citado: 0e0a508
 
 ## Reglas de documentación
 
@@ -206,6 +206,46 @@ fechaentreganotas
 | Flags booleanos | `TINYINT(1)` valores `0`/`1` | En PHP: `$row['campo'] == 1` |
 | Estados tipo enum | `VARCHAR(20)` | Valores en mayúscula: `'ACTIVO'`, `'RETIRADO'` |
 | Contraseñas | `VARCHAR(255) NOT NULL` | Siempre hash bcrypt |
+
+**Nota de esquema (commit `0e0a508`, 2026-08-29):** esta tabla ya
+especificaba `VARCHAR(25)` para códigos de grupos/cohortes, pero
+`gruposemestres.grse_codigo` y `cohortes.coho_codigo` se crearon como
+`VARCHAR(20)` en el DDL original — una desalineación entre
+documentación y esquema real que pasó inadvertida hasta que los
+programas `ASO2016`/`AMD2016` (siglas de 7 caracteres, más largas que
+las originales `ASO`/`MD` de 3) generaron códigos de 21 caracteres y
+MySQL los rechazó con `SQLSTATE[22001]`. Corregido ampliando ambas
+columnas a `VARCHAR(25)`, alineando por fin el esquema con esta tabla.
+
+### Código autogenerado por concatenación: dimensionar la columna contra el peor caso, no el caso típico
+
+Cuando un código se genera concatenando partes de longitud variable
+(ej. sigla de programa + período + semestre + jornada), la columna que
+lo almacena no debe dimensionarse pensando en los valores que existen
+hoy, sino en el máximo que el resto del sistema permite para cada
+parte. Si `prog_sigla` tiene un tope de `VARCHAR(10)` en su propia
+columna, la fórmula de concatenación debe soportar una sigla de hasta
+10 caracteres, no solo las de 3 que existían al momento de diseñar el
+formato — de lo contrario, el sistema funciona correctamente durante
+meses y falla de forma determinística en cuanto alguien usa el margen
+completo que otra parte del sistema ya le permitía.
+
+Patrón de defensa en dos capas, replicable para cualquier código
+autogenerado futuro:
+1. La columna se dimensiona contra la suma de los máximos de cada parte
+   de la fórmula, no contra el caso observado en los datos actuales.
+2. Además, se agrega una validación defensiva server-side
+   (`mb_strlen($codigo) > <límite>`) inmediatamente antes de cualquier
+   INSERT/UPDATE, que responda con un mensaje específico en vez de
+   dejar que MySQL rechace con `SQLSTATE[22001]` — igual de importante
+   que la validación de unicidad ya documentada más arriba, porque
+   cubre el caso en que la columna se quede corta de nuevo en el
+   futuro (ej. si se permite una sigla de 12 caracteres más adelante).
+
+Ejemplo: `grse_codigo` y `coho_codigo` en `04_grupos` (commit
+`0e0a508`, 2026-08-29) — `guardar_grupo` y `guardar_cohorte` en
+`grupos_mdl.php` ahora validan `mb_strlen($codigo) > 25` antes del
+chequeo de duplicados existente.
 
 ### Restricciones clave
 
