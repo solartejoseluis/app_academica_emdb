@@ -55,6 +55,11 @@ switch ($accion) {
             $fechainicio = trim($_POST['fechainicio'] ?? '');
             $coho_activa  = (int)($_POST['coho_activa'] ?? 1);
 
+            if (mb_strlen($coho_codigo) > 25) {
+                echo json_encode(['status' => 'error', 'message' => 'El código de cohorte ("' . $coho_codigo . '") excede el máximo de 25 caracteres.']);
+                break;
+            }
+
             if ($coho_id === '') {
                 // INSERT — verificar código duplicado
                 $check = $pdo->prepare("SELECT coho_id FROM cohortes WHERE coho_codigo = ?");
@@ -242,6 +247,11 @@ switch ($accion) {
             $fechainicio  = trim($_POST['fechainicio'] ?? '');
             $fechafin     = trim($_POST['fechafin'] ?? '');
             $grse_activo  = (int)($_POST['grse_activo'] ?? 1);
+
+            if (mb_strlen($grse_codigo) > 25) {
+                echo json_encode(['status' => 'error', 'message' => 'El código generado ("' . $grse_codigo . '") excede el máximo de 25 caracteres. Use una sigla de programa más corta o revise la combinación período/semestre/jornada.']);
+                break;
+            }
 
             if ($grse_id === '') {
                 $check = $pdo->prepare("SELECT grse_id FROM gruposemestres WHERE grse_codigo = ?");

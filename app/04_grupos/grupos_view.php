@@ -322,7 +322,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 <div class="mb-3">
                     <label class="form-label">Código de Cohorte <span class="text-danger">*</span></label>
                     <input type="text" class="form-control texto-mayus" id="coho_codigo"
-                           placeholder="Ej: CH-ASO-2025B">
+                           maxlength="25" placeholder="Ej: CH-ASO-2025B">
                     <div class="form-text">Formato: CH-SIGLA-AAAAP (P = A o B)</div>
                 </div>
                 <div class="mb-3">

@@ -117,7 +117,7 @@ DROP TABLE IF EXISTS cohortes;
 CREATE TABLE cohortes (
   coho_id      SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
   prog_id      SMALLINT UNSIGNED NOT NULL,
-  coho_codigo  VARCHAR(20)       NOT NULL,   -- Ej: "ASO-2024-1"
+  coho_codigo  VARCHAR(25)       NOT NULL,   -- Ej: "ASO-2024-1"
   fechainicio  DATE              NOT NULL,
   coho_activa  TINYINT(1)        NOT NULL DEFAULT 1,
   PRIMARY KEY (coho_id),
@@ -335,7 +335,7 @@ CREATE TABLE gruposemestres (
   prog_id       SMALLINT UNSIGNED NOT NULL,
   coho_id          SMALLINT UNSIGNED DEFAULT NULL,
   peri_id       SMALLINT UNSIGNED NOT NULL,
-  grse_codigo   VARCHAR(20)       NOT NULL,   -- Ej: "ASO-2025-1-A"
+  grse_codigo   VARCHAR(25)       NOT NULL,   -- Ej: "ASO-2025-1-A"
   grse_semestre TINYINT UNSIGNED  NOT NULL,   -- Semestre del programa (1-8)
   grse_jornada  VARCHAR(20)       DEFAULT 'Semana',
   fechainicio   DATE              DEFAULT NULL,
