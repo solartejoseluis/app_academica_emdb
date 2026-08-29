@@ -4,6 +4,60 @@
 
 ---
 
+## [0e0a508] — 2026-08-29 — fix(grupos): corrige truncamiento SQL de grse_codigo/coho_codigo con siglas de programa largas
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/04_grupos/grupos_mdl.php
+- app/04_grupos/grupos_view.php
+
+### Bug reportado
+Al crear un "Nuevo Grupo Semestre" para el programa ASO2016 (sigla de
+7 caracteres, más larga que las siglas originales ASO/MD de 3), el
+sistema fallaba con `SQLSTATE[22001]: String data, right truncated:
+1406 Data too long for column 'grse_codigo' at row 1`. No era un caso
+límite ocasional: la fórmula de autogeneración de `grse_codigo`
+(`{prog_sigla}_{peri_codigo}_S{semestre}_{jornada_abrev}`) consume
+13-14 caracteres fijos, dejando solo 6 de margen para la sigla bajo el
+`VARCHAR(20)` original — cualquier grupo semestre creado para ASO2016 o
+AMD2016 (7 caracteres cada una) fallaba de forma determinística en
+cualquier combinación de período/semestre/jornada.
+
+### Cambios
+- `grse_codigo` y `coho_codigo` ampliados de `VARCHAR(20)` a
+  `VARCHAR(25)` — alineando el esquema real con la convención ya
+  documentada en CLAUDE.md ("Códigos (grupos, cohortes) →
+  VARCHAR(25)"), que nunca se había aplicado correctamente en el DDL.
+- `grupos_mdl.php`: validación defensiva `mb_strlen($codigo) > 25`
+  agregada en `guardar_grupo` (antes del chequeo de duplicados) y en
+  `guardar_cohorte` (antes del chequeo de duplicados existente) — si el
+  código excede el límite, responde con mensaje específico y `break`
+  antes de llegar a MySQL, en vez de depender del error crudo de PDO.
+- `grupos_view.php`: `maxlength="25"` agregado a `#coho_codigo` (único
+  de los dos campos que se escribe a mano — `#coho_codigo` es texto
+  libre guiado por placeholder; `#grse_codigo` es `readonly` y se
+  genera por JS, por lo que un `maxlength` ahí no tendría efecto real y
+  se omitió deliberadamente).
+- `generarSugerenciaCodigoGrupo()` en `grupos_ctrl.js` no se tocó — la
+  fórmula de composición era correcta, el problema era exclusivamente
+  de ancho de columna.
+
+### Decisiones
+- Se descartó limitar `prog_sigla` a menos de 7 caracteres: sería más
+  restrictivo que el `VARCHAR(10)` ya usado en producción para dos
+  programas reales (ASO2016, AMD2016) actualmente activos.
+- Pendiente para producción (`escuelamdb.com`): dos `ALTER TABLE`
+  (`gruposemestres.grse_codigo`, `cohortes.coho_codigo`) que se suman
+  al de `docentes.doce_cedula` (commit `7ba02bc`) — se recomienda
+  aplicar los tres en un solo script en el próximo deploy.
+
+### Pruebas realizadas
+- Caso exacto reportado reproducido vía curl (ASO2016, período 2026-2, semestre 3, jornada Semana) → guardado exitosamente tras el fix ✅
+- Guardrail defensivo probado con código de 26 caracteres → rechazado con mensaje específico, sin llegar a MySQL ✅
+- Verificación en navegador: caso original (ASO2016) ✅, AMD2016 en otra combinación ✅, programa de sigla corta sin regresión ✅, cohorte con sigla larga (CH-ASO2016-2026B) ✅
+
+---
+
 ## [7ba02bc] — 2026-08-28 — feat(docentes): cablea doce_cedula completo (crear/editar/obtener)
 
 ### Archivos modificados
