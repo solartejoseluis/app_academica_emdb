@@ -4,6 +4,95 @@
 
 ---
 
+## [3e551e5] — 2026-08-30 — feat(matriculas): migra coho_id de estudiantes a matriculas + agrega matr_estado_academico
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/02_estudiantes/est_mdl.php
+- app/06_reportes/pdf_hoja_matricula.php
+- app/04_grupos/grupos_mdl.php
+
+### Por qué
+Prepara el modelo de datos para que un estudiante pueda cursar más de
+un programa a la vez — cada matrícula/programa con su propia cohorte y
+su propia condición académica del semestre, en vez de una única
+cohorte compartida a nivel de estudiante. Este cambio es solo la base
+de datos/backend: la UI para gestionar un segundo programa (crear una
+segunda matrícula, alternar entre programas en los listados, etc.)
+queda pendiente para una fase futura — ver "Análisis pendiente" en
+PROJECT_CONTEXT.md.
+
+### Cambios de esquema
+- `matriculas` gana dos columnas nuevas: `coho_id SMALLINT UNSIGNED
+  DEFAULT NULL` (FK → `cohortes.coho_id`, `ON DELETE SET NULL`) y
+  `matr_estado_academico ENUM('Activo','Aplazamiento','Retirado') NOT
+  NULL DEFAULT 'Activo'`. `matr_estado_academico` es un campo
+  independiente y nuevo — no reemplaza ni modifica `matr_estado`
+  (ciclo de vida del trámite: aspirante/matriculado/retirado/graduado).
+  `matr_estado_academico` es la condición académica del semestre en
+  curso; `matr_estado` sigue siendo el ciclo de vida del trámite de
+  matrícula. Documentado como comentario inline en el DDL.
+- `estudiantes.coho_id` **no se eliminó** — queda como respaldo
+  histórico de solo lectura, sin ninguna escritura nueva desde este
+  commit (confirmado por grep: cero ocurrencias de `UPDATE estudiantes
+  SET coho_id` en todo `app/`).
+- Aplicado contra el contenedor Docker vivo con `ALTER TABLE` +
+  backfill (`UPDATE matriculas m JOIN estudiantes e ON m.estu_id =
+  e.estu_id SET m.coho_id = e.coho_id`), verificado 100% consistente:
+  las 16 filas de `matriculas` coinciden con el `coho_id` del
+  estudiante correspondiente (`SUM(m.coho_id <=> e.coho_id) =
+  COUNT(*) = 16`).
+
+### Cambios de código
+- `est_mdl.php`: `listar_matriculados` lee la cohorte desde
+  `m.coho_id` (antes `e.coho_id`); `matricular` inserta/actualiza
+  `coho_id` en la propia fila de `matriculas` (INSERT y rama `UPDATE`
+  de `$existingMatr`), elimina el `UPDATE estudiantes SET coho_id`
+  que existía antes; `obtener_matricula` lee `m.coho_id` en vez de
+  `e.coho_id`; `editar_matricula` agrega `coho_id = ?` al mismo
+  `UPDATE matriculas` ya existente, elimina el `UPDATE estudiantes SET
+  coho_id` aparte.
+- `pdf_hoja_matricula.php`: el `JOIN` hacia `cohortes` pasa de
+  `c.coho_id = e.coho_id` a `c.coho_id = m.coho_id`.
+- `grupos_mdl.php`: el KPI `total_estudiantes` de `listar_cohortes`
+  cuenta `matriculas.coho_id` en vez de `estudiantes.coho_id`; el
+  guard de bloqueo de `DELETE` de cohorte (case `eliminar`) verifica
+  `COUNT(*) FROM matriculas WHERE coho_id = ?` en vez de `estudiantes`.
+
+### Hallazgo colateral: el seed no siembra datos transaccionales
+Durante el ajuste posterior de sincronizar el `.sql` con el backfill
+ya aplicado en vivo, se confirmó por grep que `database/emdb_academica.sql`
+nunca tuvo ningún `INSERT INTO matriculas` (ni `estudiantes`, ni
+`cohortes`, ni `gruposemestres`) — solo siembra esquema + catálogos
+fijos (`roles`, `programas`, `periodos`, `modulos`, usuario admin,
+`configuracion`). Las 16 filas de `matriculas` usadas para verificar
+este backfill se crearon a través de la propia aplicación durante
+desarrollo/pruebas, no desde el seed. Por lo tanto no había ningún
+`INSERT` que sincronizar en el `.sql` — la inconsistencia potencial
+("`down -v && up` pierde los datos de prueba") es preexistente al
+proyecto completo, no algo introducido por esta migración. Ya
+documentado como nota operativa en CLAUDE.md.
+
+### Decisiones
+- Se mantuvo `estudiantes.coho_id` sin eliminar (respaldo histórico),
+  en vez de hacer el `DROP COLUMN` en el mismo commit — decisión
+  explícita para reducir el radio de cambio de esta migración.
+- `matr_estado_academico` se agregó al esquema con su default
+  `'Activo'` pero **ningún endpoint todavía lo lee ni lo escribe** —
+  fuera del alcance de este commit, que fue exclusivamente esquema +
+  relocalización de `coho_id`.
+
+### Pruebas realizadas
+- `php -l` sin errores de sintaxis en los 3 archivos PHP modificados.
+- `DESCRIBE matriculas` confirma las 2 columnas nuevas con el tipo/
+  default correctos tras el `ALTER TABLE`.
+- Verificación de backfill: consulta de muestra (5 filas) y consulta
+  de integridad completa (16/16 filas coinciden con `estudiantes.coho_id`)
+  contra el contenedor Docker vivo.
+- Verificado en navegador y comiteado por Jose Luis como commit `3e551e5`.
+
+---
+
 ## [b8a583a] — 2026-08-30 — fix(grupos): filtra grmo_activo=1 en total_modulos de listar_grupos (04_grupos)
 
 ### Archivos modificados

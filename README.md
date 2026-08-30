@@ -129,6 +129,11 @@ programas ──< modulos
                            │
                            └── fichas_inscripcion  (1:1)
 ```
+> La cohorte de ingreso ahora se resuelve por cada matrícula, no de forma
+> única por estudiante — un estudiante que curse más de un programa técnico
+> puede tener una cohorte distinta en cada uno. El diagrama simplifica esta
+> relación mostrando el caso más común hoy (un solo programa por estudiante);
+> la gestión de un segundo programa desde la interfaz todavía no existe.
 
 ### Configuración académica por semestre
 ```
@@ -244,6 +249,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 > **Ficha del estudiante unificada:** los datos personales del estudiante y su Ficha Familiar (AC-FO-02) se editan ahora desde un único modal, con descarga en PDF integrada — antes eran dos pantallas separadas. La matrícula del estudiante (folio, fecha, observaciones, número institucional) y la configuración de la institución (Director, Secretario(a), número de matrícula inicial) alimentan la exportación en PDF de la Hoja de Matrícula (AC-FO-09), con el número de matrícula asignado automáticamente la primera vez que se genera el documento.
 
 > **Grupos Semestre — conteo de estudiantes:** el listado de la pestaña "Grupos Semestre" (`04_grupos`) ahora muestra el número de estudiantes matriculados en cualquiera de sus módulos activos, con un botón que abre un modal de detalle ("Apellidos, Nombres") — mismo patrón ya usado en el conteo de "Módulos" de Matriculados (`02_estudiantes`).
+
+> **Preparación de base de datos — multi-programa:** se amplió el modelo de datos para que, en el futuro, un mismo estudiante pueda cursar más de un programa técnico a la vez, cada uno con su propia cohorte de ingreso y su propia condición académica del semestre. Este cambio es exclusivamente de base de datos/backend — todavía no existe ninguna pantalla para que el coordinador gestione un segundo programa desde la interfaz.
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
