@@ -243,6 +243,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Ficha del estudiante unificada:** los datos personales del estudiante y su Ficha Familiar (AC-FO-02) se editan ahora desde un único modal, con descarga en PDF integrada — antes eran dos pantallas separadas. La matrícula del estudiante (folio, fecha, observaciones, número institucional) y la configuración de la institución (Director, Secretario(a), número de matrícula inicial) alimentan la exportación en PDF de la Hoja de Matrícula (AC-FO-09), con el número de matrícula asignado automáticamente la primera vez que se genera el documento.
 
+> **Grupos Semestre — conteo de estudiantes:** el listado de la pestaña "Grupos Semestre" (`04_grupos`) ahora muestra el número de estudiantes matriculados en cualquiera de sus módulos activos, con un botón que abre un modal de detalle ("Apellidos, Nombres") — mismo patrón ya usado en el conteo de "Módulos" de Matriculados (`02_estudiantes`).
+
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
 ---
