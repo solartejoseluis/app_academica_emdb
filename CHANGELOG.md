@@ -4,6 +4,65 @@
 
 ---
 
+## [a39cb24] — 2026-08-30 — feat(grupos): agrega columna "# Estud" en Grupos Semestre (04_grupos) con modal de detalle
+
+### Archivos modificados
+- app/04_grupos/grupos_mdl.php
+- app/04_grupos/grupos_view.php
+- app/04_grupos/grupos_ctrl.js
+
+### Cambios
+- `grupos_mdl.php`, case `listar_grupos`: nueva subconsulta escalar
+  `total_estudiantes` agregada al `SELECT` junto a la ya existente
+  `total_modulos` — `COUNT(DISTINCT ge.estu_id)` vía
+  `grmoestudiantes` → `gruposmodulos`, filtrado por
+  `gm.grmo_activo = 1`. El `DISTINCT` es necesario porque un mismo
+  estudiante puede estar matriculado en más de un módulo del mismo
+  grupo semestre — sin él, el conteo se infla por cada módulo
+  adicional en el que aparece el mismo estudiante.
+- `grupos_mdl.php`: nuevo case `listar_estudiantes_grupo` — recibe
+  `grse_id` por POST, valida que sea un entero > 0, y retorna
+  `SELECT DISTINCT e.estu_apellidos, e.estu_nombres` de los
+  estudiantes matriculados en cualquier módulo activo
+  (`gm.grmo_activo = 1`) de ese grupo semestre, ordenados por
+  apellidos y luego nombres. Mismo guard de sesión/rol (`[1, 2]`) que
+  el resto del módulo.
+- `grupos_view.php`: nueva columna `# Estud` en el `<thead>` de
+  `#tbl_grupos`, ubicada inmediatamente después de "Módulos". Nuevo
+  modal `#mdl_estudiantes_grupo` (tamaño normal) con título dinámico
+  = `grse_codigo`, tabla de una sola columna "Apellidos, Nombres" y
+  mensaje "Sin estudiantes asignados" para el caso vacío.
+- `grupos_ctrl.js`: nueva columna `total_estudiantes` en
+  `tablaGrupos`, renderizada como botón `btn-outline-secondary` que
+  invoca `verEstudiantesGrupo(grse_id, grse_codigo)`. Nueva función
+  `verEstudiantesGrupo()` agregada en **scope global** (fuera de
+  `$(document).ready`, junto a `cargarModulosGrupo()` y las demás
+  funciones globales del archivo) — obligatorio porque se invoca vía
+  `onclick` inline generado por DataTables. Replica exactamente el
+  patrón ya usado en `verModulosEstudiante()` de `02_estudiantes`
+  (columna con conteo + link + modal de detalle).
+
+### Decisiones
+- Se filtró explícitamente `gm.grmo_activo = 1` en ambas queries
+  nuevas (`total_estudiantes` y `listar_estudiantes_grupo`),
+  consistente con el patrón ya usado en `est_mdl.php` para contar
+  módulos de un estudiante (`listar_modulos_estudiante` /
+  `total_modulos` de ese archivo). Esto se decidió en vez de replicar
+  la omisión de ese mismo filtro que tiene `total_modulos` en el
+  propio case `listar_grupos` de `grupos_mdl.php` — esa inconsistencia
+  preexistente queda documentada como observación en "Análisis
+  pendiente" de CLAUDE.md, sin corregirse en este commit por estar
+  fuera de alcance.
+
+### Pruebas realizadas
+- Verificado en navegador: columna "# Estud" visible en la pestaña
+  Grupos Semestre ✅, modal abre con el listado correcto sin
+  estudiantes duplicados (grupo con estudiantes en más de un módulo)
+  ✅, caso de grupo sin estudiantes muestra el mensaje "Sin
+  estudiantes asignados" ✅, sin errores en consola del navegador ✅.
+
+---
+
 ## [0e0a508] — 2026-08-29 — fix(grupos): corrige truncamiento SQL de grse_codigo/coho_codigo con siglas de programa largas
 
 ### Archivos modificados
