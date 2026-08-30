@@ -98,6 +98,13 @@ $(document).ready(function () {
                 { data: 'total_modulos', render: v =>
                     `<span class="badge bg-info text-dark">${v} módulos</span>`
                 },
+                {
+                    data: 'total_estudiantes',
+                    orderable: false,
+                    render: function (data, type, row) {
+                        return `<button class="btn btn-sm btn-outline-secondary" onclick="verEstudiantesGrupo(${row.grse_id}, '${row.grse_codigo.replace(/'/g, "\\'")}')">${data}</button>`;
+                    }
+                },
                 { data: 'grse_activo', render: v =>
                     v == 1
                         ? '<span class="badge bg-success">Activo</span>'
@@ -906,6 +913,28 @@ $(document).ready(function () {
 // ════════════════════════════════════════════════════════════════════════════
 // FUNCIONES GLOBALES (fuera de ready — compatibilidad con DataTables render)
 // ════════════════════════════════════════════════════════════════════════════
+
+function verEstudiantesGrupo(grse_id, grse_codigo) {
+    $('#mdl_estudiantes_grupo_titulo').text(grse_codigo);
+    $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=listar_estudiantes_grupo',
+        data: { grse_id: grse_id },
+        dataType: 'json',
+        success: function (r) {
+            const tbody = $('#tbody_estudiantes_grupo');
+            tbody.empty();
+            if (!r.data || !r.data.length) {
+                tbody.html('<tr><td class="text-center text-muted">Sin estudiantes asignados</td></tr>');
+            } else {
+                r.data.forEach(e => {
+                    tbody.append(`<tr><td>${e.estu_apellidos}, ${e.estu_nombres}</td></tr>`);
+                });
+            }
+            $('#mdl_estudiantes_grupo').modal('show');
+        }
+    });
+}
 
 function cargarModulosGrupo(grse_id) {
     $.ajax({

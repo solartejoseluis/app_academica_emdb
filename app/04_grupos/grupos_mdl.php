@@ -211,7 +211,11 @@ switch ($accion) {
                        c.coho_codigo,
                        p.prog_sigla, p.prog_nombre,
                        pe.peri_codigo,
-                       (SELECT COUNT(*) FROM gruposmodulos gm WHERE gm.grse_id = gs.grse_id) AS total_modulos
+                       (SELECT COUNT(*) FROM gruposmodulos gm WHERE gm.grse_id = gs.grse_id) AS total_modulos,
+                       (SELECT COUNT(DISTINCT ge.estu_id)
+                        FROM grmoestudiantes ge
+                        JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
+                        WHERE gm.grse_id = gs.grse_id AND gm.grmo_activo = 1) AS total_estudiantes
                 FROM gruposemestres gs
                 INNER JOIN cohortes c ON gs.coho_id = c.coho_id
                 INNER JOIN programas p ON c.prog_id = p.prog_id
@@ -222,6 +226,38 @@ switch ($accion) {
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'listar_estudiantes_grupo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        $grse_id = (int)($_POST['grse_id'] ?? 0);
+        if ($grse_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de grupo semestre inválido', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT DISTINCT e.estu_apellidos, e.estu_nombres
+                FROM grmoestudiantes ge
+                JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
+                JOIN estudiantes e ON ge.estu_id = e.estu_id
+                WHERE gm.grse_id = ? AND gm.grmo_activo = 1
+                ORDER BY e.estu_apellidos, e.estu_nombres
+            ");
+            $stmt->execute([$grse_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);
         }
         break;
 

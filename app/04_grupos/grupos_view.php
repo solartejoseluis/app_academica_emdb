@@ -215,6 +215,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <th>Período</th>
                         <th>Semestre</th>
                         <th>Módulos</th>
+                        <th># Estud</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
@@ -743,6 +744,31 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_cohorte">Eliminar definitivamente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ESTUDIANTES DEL GRUPO -->
+<div class="modal fade" id="mdl_estudiantes_grupo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Estudiantes de <span id="mdl_estudiantes_grupo_titulo"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Apellidos, Nombres</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_estudiantes_grupo"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
