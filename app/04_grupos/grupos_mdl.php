@@ -211,7 +211,7 @@ switch ($accion) {
                        c.coho_codigo,
                        p.prog_sigla, p.prog_nombre,
                        pe.peri_codigo,
-                       (SELECT COUNT(*) FROM gruposmodulos gm WHERE gm.grse_id = gs.grse_id) AS total_modulos,
+                       (SELECT COUNT(*) FROM gruposmodulos gm WHERE gm.grse_id = gs.grse_id AND gm.grmo_activo = 1) AS total_modulos,
                        (SELECT COUNT(DISTINCT ge.estu_id)
                         FROM grmoestudiantes ge
                         JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
