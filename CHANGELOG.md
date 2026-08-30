@@ -4,6 +4,50 @@
 
 ---
 
+## [b8a583a] — 2026-08-30 — fix(grupos): filtra grmo_activo=1 en total_modulos de listar_grupos (04_grupos)
+
+### Archivos modificados
+- app/04_grupos/grupos_mdl.php
+
+### Cambios
+- `grupos_mdl.php`, case `listar_grupos`: la subconsulta escalar
+  `total_modulos` gana `AND gm.grmo_activo = 1`, alineándola con
+  `total_estudiantes` (mismo case, agregada en el commit `a39cb24`) y
+  con todos los demás conteos de `gruposmodulos` del proyecto que ya
+  filtraban por activo (`listar_docentes` en el propio
+  `grupos_mdl.php`, `doc_mdl.php`, `coordinador_mdl.php`,
+  `calificaciones_mdl.php`, `reportes_mdl.php`).
+- Cambio de una sola línea, sin tocar ningún otro archivo ni ningún
+  otro case.
+
+### Contexto del bug
+Corrige la inconsistencia ya documentada en CLAUDE.md tras el commit
+`a39cb24`: `total_modulos` contaba TODOS los `gruposmodulos` del grupo
+semestre (activos e inactivos) sin que el nombre del campo lo
+señalizara — a diferencia de `total_grupos_historico` (`doc_mdl.php`),
+que sí distingue por nombre cuando la intención real es contar todo
+sin filtrar. El diagnóstico previo (grep en todo el proyecto) confirmó
+que este era el único caso de este patrón sin filtro no señalizado por
+naming.
+
+### Decisiones
+- Se optó por corregir `total_modulos` para que sea consistente con
+  `total_estudiantes` y con el resto de conteos de `gruposmodulos` del
+  proyecto, en vez de dejarlo como comportamiento intencional — no
+  había ningún indicio (naming, comentario) de que excluir el filtro
+  fuera deliberado en este case.
+
+### Pruebas realizadas
+- Verificado contra datos reales en la base local: 0 `gruposmodulos`
+  con `grmo_activo = 0` al momento del cambio, por lo tanto sin
+  impacto visible en los números mostrados en este entorno.
+- Pendiente de verificación en producción cuando aplique el deploy —
+  no se descarta que allí sí existan `gruposmodulos` inactivos que
+  hagan el número visible antes y después del fix.
+- `php -l` sin errores de sintaxis tras el cambio.
+
+---
+
 ## [a39cb24] — 2026-08-30 — feat(grupos): agrega columna "# Estud" en Grupos Semestre (04_grupos) con modal de detalle
 
 ### Archivos modificados
