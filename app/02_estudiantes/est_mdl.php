@@ -160,7 +160,7 @@ switch ($accion) {
                     INNER JOIN matriculas m ON e.estu_id = m.estu_id
                     INNER JOIN programas p ON m.prog_id = p.prog_id
                     INNER JOIN periodos pe ON m.peri_id = pe.peri_id
-                    LEFT JOIN cohortes co ON e.coho_id = co.coho_id
+                    LEFT JOIN cohortes co ON m.coho_id = co.coho_id
                     LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
                     LEFT JOIN usuarios u ON e.usua_id = u.usua_id
                     {$where}
@@ -474,7 +474,7 @@ switch ($accion) {
             if ($existingMatr) {
                 $stmtM = $pdo->prepare(
                     "UPDATE matriculas
-                     SET matr_estado = 'matriculado', matr_folio = ?,
+                     SET matr_estado = 'matriculado', coho_id = ?, matr_folio = ?,
                          fechamatricula = ?, matr_observacion = ?,
                          req_copiadiploma = ?, req_actagrado = ?, req_documento = ?,
                          req_carnetsalud = ?, req_examenmedico = ?, req_fotos = ?,
@@ -482,6 +482,7 @@ switch ($accion) {
                      WHERE matr_id = ?"
                 );
                 $stmtM->execute([
+                    $coho_id,
                     $matr_folio, $fechamatricula, $matr_observacion,
                     $req['req_copiadiploma'], $req['req_actagrado'], $req['req_documento'],
                     $req['req_carnetsalud'], $req['req_examenmedico'], $req['req_fotos'],
@@ -491,26 +492,21 @@ switch ($accion) {
             } else {
                 $stmtM = $pdo->prepare(
                     "INSERT INTO matriculas
-                        (estu_id, prog_id, peri_id, matr_estado, matr_folio,
+                        (estu_id, prog_id, peri_id, coho_id, matr_estado, matr_folio,
                          fechainscripcion, fechamatricula, matr_observacion,
                          req_copiadiploma, req_actagrado, req_documento,
                          req_carnetsalud, req_examenmedico, req_fotos,
                          req_carpeta, req_vacunastetano, req_hepatitisb)
-                     VALUES (?, ?, ?, 'matriculado', ?, CURDATE(), ?, ?,
+                     VALUES (?, ?, ?, ?, 'matriculado', ?, CURDATE(), ?, ?,
                              ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 );
                 $stmtM->execute([
-                    $estu_id, $prog_id, $peri_id,
+                    $estu_id, $prog_id, $peri_id, $coho_id,
                     $matr_folio, $fechamatricula, $matr_observacion,
                     $req['req_copiadiploma'], $req['req_actagrado'], $req['req_documento'],
                     $req['req_carnetsalud'], $req['req_examenmedico'], $req['req_fotos'],
                     $req['req_carpeta'], $req['req_vacunastetano'], $req['req_hepatitisb']
                 ]);
-            }
-
-            if ($coho_id !== null) {
-                $stmtCoho = $pdo->prepare("UPDATE estudiantes SET coho_id = ? WHERE estu_id = ?");
-                $stmtCoho->execute([$coho_id, $estu_id]);
             }
 
             if ($crear_acceso && $clave_generada !== null) {
@@ -563,9 +559,9 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
-                SELECT m.matr_id, m.prog_id, m.peri_id, m.estu_id,
+                SELECT m.matr_id, m.prog_id, m.peri_id, m.estu_id, m.coho_id,
                        m.matr_folio, m.fechamatricula, m.matr_observacion, m.matr_numero,
-                       e.coho_id, e.estu_nombres, e.estu_apellidos
+                       e.estu_nombres, e.estu_apellidos
                 FROM matriculas m
                 INNER JOIN estudiantes e ON m.estu_id = e.estu_id
                 WHERE m.matr_id = ?
@@ -630,14 +626,11 @@ switch ($accion) {
 
             $stmtM = $pdo->prepare(
                 "UPDATE matriculas
-                 SET prog_id = ?, peri_id = ?, matr_folio = ?,
+                 SET prog_id = ?, peri_id = ?, coho_id = ?, matr_folio = ?,
                      fechamatricula = ?, matr_observacion = ?, matr_numero = ?
                  WHERE matr_id = ?"
             );
-            $stmtM->execute([$prog_id, $peri_id, $matr_folio, $fechamatricula, $matr_observacion, $matr_numero, $matr_id]);
-
-            $stmtE = $pdo->prepare("UPDATE estudiantes SET coho_id = ? WHERE estu_id = ?");
-            $stmtE->execute([$coho_id, $estu_id]);
+            $stmtM->execute([$prog_id, $peri_id, $coho_id, $matr_folio, $fechamatricula, $matr_observacion, $matr_numero, $matr_id]);
 
             $stmtDel = $pdo->prepare("
                 DELETE ge FROM grmoestudiantes ge

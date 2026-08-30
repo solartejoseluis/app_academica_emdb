@@ -229,6 +229,12 @@ CREATE TABLE modulos (
 --      'matriculado'= matrícula confirmada (AC-FO-09 diligenciado + pago)
 --      'retirado'   = se retiró durante el período
 --      'graduado'   = proceso completado
+--    matr_estado_academico: condición académica del semestre en curso
+--    (independiente de matr_estado, que es el ciclo de vida del trámite
+--    de matrícula) — 'Activo'/'Aplazamiento'/'Retirado', default 'Activo'.
+--    coho_id: cohorte de esta matrícula específica (cada matrícula/programa
+--    tiene su propia cohorte). estudiantes.coho_id se conserva como respaldo
+--    histórico, sin escrituras nuevas desde esta migración.
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS matriculas;
 CREATE TABLE matriculas (
@@ -236,8 +242,11 @@ CREATE TABLE matriculas (
   estu_id              INT UNSIGNED      NOT NULL,
   prog_id              SMALLINT UNSIGNED NOT NULL,
   peri_id              SMALLINT UNSIGNED NOT NULL,
+  coho_id              SMALLINT UNSIGNED DEFAULT NULL,
   matr_estado          ENUM('aspirante','matriculado','retirado','graduado')
                        NOT NULL DEFAULT 'aspirante',
+  matr_estado_academico ENUM('Activo','Aplazamiento','Retirado')
+                       NOT NULL DEFAULT 'Activo',
   matr_folio           VARCHAR(20)       DEFAULT NULL,
   matr_numero          INT UNSIGNED      DEFAULT NULL,
   matr_matriculadopor  VARCHAR(80)       DEFAULT NULL,
@@ -261,7 +270,9 @@ CREATE TABLE matriculas (
   CONSTRAINT fk_matr_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT fk_matr_peri FOREIGN KEY (peri_id) REFERENCES periodos (peri_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_matr_coho FOREIGN KEY (coho_id) REFERENCES cohortes (coho_id)
+    ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Inscripción y matrícula por período — AC-FO-02 y AC-FO-09';
 

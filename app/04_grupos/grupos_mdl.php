@@ -24,7 +24,7 @@ switch ($accion) {
                 SELECT c.coho_id, c.coho_codigo, c.fechainicio,
                        c.coho_activa,
                        p.prog_nombre, p.prog_sigla,
-                       (SELECT COUNT(*) FROM estudiantes e WHERE e.coho_id = c.coho_id) AS total_estudiantes,
+                       (SELECT COUNT(*) FROM matriculas mt WHERE mt.coho_id = c.coho_id) AS total_estudiantes,
                        (SELECT COUNT(*) FROM gruposemestres g WHERE g.coho_id = c.coho_id) AS total_grupos
                 FROM cohortes c
                 INNER JOIN programas p ON c.prog_id = p.prog_id
@@ -136,7 +136,7 @@ switch ($accion) {
         try {
             $pdo = getConexion();
 
-            $check = $pdo->prepare("SELECT COUNT(*) FROM estudiantes WHERE coho_id = ?");
+            $check = $pdo->prepare("SELECT COUNT(*) FROM matriculas WHERE coho_id = ?");
             $check->execute([$coho_id]);
             if ((int)$check->fetchColumn() > 0) {
                 echo json_encode(['status' => 'error', 'message' => 'Esta cohorte tiene estudiantes matriculados, no puede eliminarse.']);
