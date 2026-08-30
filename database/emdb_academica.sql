@@ -563,6 +563,7 @@ CREATE TABLE ayudas (
 DROP TABLE IF EXISTS configuracion;
 CREATE TABLE configuracion (
   config_id            INT(5)        NOT NULL DEFAULT 1,
+  institucion_nombre   VARCHAR(150)  NOT NULL DEFAULT 'Escuela de Mecánica Dental Bolaños (EMDB)',
   matr_numero_inicial  INT(5)        NOT NULL DEFAULT 1,
   director_nombre      VARCHAR(150)  NOT NULL DEFAULT '',
   secretario_nombre    VARCHAR(150)  NOT NULL DEFAULT '',
