@@ -147,6 +147,17 @@ switch ($accion) {
                             JOIN gruposemestres gs3 ON gm3.grse_id = gs3.grse_id
                             WHERE ge3.estu_id = e.estu_id AND gm3.grmo_activo = 1
                               AND gs3.prog_id = m.prog_id{$condicionPeriodoModulos}) AS total_modulos,
+                           -- A diferencia de total_modulos (filtrado por prog_id/período de
+                           -- ESTA fila), total_matriculas_estudiante cuenta TODAS las filas de
+                           -- matriculas del estudiante sin filtrar por prog_id/peri_id — es
+                           -- intencional: el indicador 'N programas' debe reflejar cuántas
+                           -- matrículas tiene la persona en total, no las de esta fila.
+                           (SELECT COUNT(*) FROM matriculas mt3 WHERE mt3.estu_id = e.estu_id) AS total_matriculas_estudiante,
+                           (SELECT GROUP_CONCAT(CONCAT(p2.prog_sigla, ' — ', UPPER(LEFT(mt4.matr_estado, 1)), SUBSTRING(mt4.matr_estado, 2))
+                                                 ORDER BY mt4.matr_id SEPARATOR ', ')
+                            FROM matriculas mt4
+                            INNER JOIN programas p2 ON mt4.prog_id = p2.prog_id
+                            WHERE mt4.estu_id = e.estu_id) AS detalle_matriculas_estudiante,
                            p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id, m.prog_id AS matr_prog_id,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,

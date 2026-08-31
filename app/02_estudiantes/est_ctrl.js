@@ -664,7 +664,16 @@ $(document).ready(function () {
                     render: function (data, type, row, meta) { return meta.row + 1; }
                 },
                 { data: 'estu_nombres' },
-                { data: 'estu_apellidos' },
+                {
+                    data: 'estu_apellidos',
+                    render: function (data, type, row) {
+                        if (row.total_matriculas_estudiante > 1) {
+                            const detalle = (row.detalle_matriculas_estudiante || '').replace(/"/g, '&quot;');
+                            return `${data} <span class="badge bg-info text-dark" title="${detalle}">🎓 ${row.total_matriculas_estudiante} programas</span>`;
+                        }
+                        return data;
+                    }
+                },
                 {
                     data: null,
                     render: function (data, type, row) {
