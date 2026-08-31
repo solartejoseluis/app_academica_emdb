@@ -4,6 +4,248 @@
 
 ---
 
+## [8d479a1] — 2026-08-30 — feat(reportes): combina Reporte por Grupo + Reporte por Estudiante en pestañas (Fase 3 de 3, FINAL)
+
+### Archivos modificados
+- app/06_reportes/reportes_view.php
+- app/06_reportes/reportes_ctrl.js
+
+### Por qué
+Cierra el rediseño de `06_reportes` iniciado en `b3a0296`/`ef429bd`: el
+estudiante necesitaba un informe organizado por programa → período →
+módulo (en vez de "un módulo a la vez"), y el coordinador necesitaba poder
+consultar el reporte de cualquier estudiante (no solo el propio). El plan
+original de la Fase 3 reemplazaba por completo la interfaz "Reporte por
+Grupo" del coordinador (consulta de todos los estudiantes de un grupo
+módulo) con la nueva "Reporte por Estudiante" — un paso intermedio dentro
+de este mismo ciclo de trabajo. **A pedido explícito de Jose Luis, ese
+reemplazo total se corrigió en el mismo commit final: el resultado
+publicado combina AMBAS interfaces como dos pestañas de nivel superior
+(solo para roles 1/2), no un reemplazo de una por la otra.**
+
+### Cambios
+- **Estudiante (role_id=4):** sin pestañas de nivel superior — pasa
+  directo al informe propio (institución + nombre del estudiante resuelto
+  server-side + pestañas de programa → período → módulos), igual que en
+  el diseño original de esta fase.
+- **Coordinador/admin (role_id 1/2):** dos pestañas Bootstrap de nivel
+  superior — `Reporte por Grupo` (activa por defecto) y
+  `Reporte por Estudiante`.
+  - `Reporte por Grupo`: HTML y JS **recuperados tal cual** del commit
+    `ef429bd` (anterior a esta fase) — `sel_grupo`, `btn_cargar_reporte`,
+    `info_reporte_grupo`, `tbl_reporte` con DataTable + exportación
+    Excel/PDF (`cargarGrupos()`, `inicialDocente()`,
+    `construirContextoTexto()`, `escaparXml()`,
+    `mostrarInfoReporteGrupo()`, `construirFilaReporte()`), sin modificar
+    su lógica interna.
+  - `Reporte por Estudiante`: buscador de estudiante (debounce 300ms,
+    mínimo 3 caracteres, vía `buscar_estudiante`) → `mis_programas` →
+    pestañas de programa → `mis_periodos` → select de período (más
+    reciente preseleccionado automáticamente) → `detalle_periodo` →
+    "Estado del Período" + botón "Descargar Boletín PDF" + tarjetas de
+    módulo (11 columnas, reutilizando `badgeNotaFinal()`,
+    `badgeDefinitiva()`, `badgeEstado()`, `n()` ya existentes).
+  - Nuevos helpers de esta fase: `badgeEstadoAcademico()` (badge de
+    `matr_estado_academico`), `badgeEstadoPeriodo()` (mismo esquema de
+    color que `badgeEstado()`, aplicado al estado agregado del período que
+    ya calcula el backend), `calcularPeriodosRealizados()` (fórmula
+    `total_períodos - 1`, "en curso" si da 0).
+  - `<link>`/`<script>` de DataTables + Buttons + JSZip reintroducidos,
+    gateados por `$es_coordinador` — a diferencia de `ef429bd` (donde el
+    DataTables base no estaba gateado), aquí sí se gatea todo el bloque
+    porque el estudiante ya no usa ninguna tabla DataTable en el diseño
+    final.
+
+### Decisiones
+- Cero funciones JS duplicadas: verificado por grep que cada una de las
+  19 funciones del archivo final aparece una sola vez; los helpers
+  compartidos (`n()`, `badgeNotaFinal()`, `badgeDefinitiva()`,
+  `badgeEstado()`) se reutilizan dentro de `construirFilaReporte()`
+  (Reporte por Grupo) sin copiarlos de nuevo.
+- El nombre del estudiante en el título de "Reporte por Estudiante" se
+  resuelve con una consulta SQL directa en la vista cuando `role_id=4`
+  (mismo criterio que la resolución server-side de `institucion_nombre`
+  ya usada desde `b3a0296`) — evita un endpoint AJAX nuevo solo para un
+  dato ya disponible del lado servidor vía `$_SESSION['estu_id']`.
+- No se tocó `navbar.php`: el estudiante sigue con su `<nav>` fallback
+  propio (mismo patrón ya usado para Docente en `calificaciones_view.php`)
+  en vez de ampliar `navbar.php` con enlaces condicionados por rol —
+  cambio de arquitectura compartida entre módulos, fuera de alcance de
+  este rediseño puntual de `06_reportes`.
+- `reportes_mdl.php` no se tocó en esta fase — los 4 `case` viejos
+  (`grupos_para_reporte`, `reporte_grupo` siguen con llamador activo desde
+  "Reporte por Grupo"; `mis_modulos` y `mis_notas` quedan sin llamador
+  desde este frontend, ver "Análisis pendiente" en PROJECT_CONTEXT.md).
+
+### Pruebas realizadas
+- `php -l` sin errores en `reportes_view.php`.
+- Balance de `{}`/`()`/`[]`/backticks verificado en `reportes_ctrl.js` tras
+  cada edición — sin desbalances.
+- HTTP 200 sin warnings/notices/deprecated para ambos roles (`curl` con
+  sesión simulada).
+- Confirmado por grep sobre el HTML servido: el estudiante recibe 0
+  ocurrencias de `tabsReportesNivelSuperior`; el coordinador recibe
+  exactamente 1 ocurrencia de `tab_reporte_grupo`, `tab_reporte_estudiante`,
+  `sel_grupo` y `bloque_buscador_estudiante` (sin duplicación).
+- Balance de `<div>`/`</div>` en el HTML renderizado para coordinador:
+  38/38.
+- Verificación funcional de la interacción entre pestañas (cambiar de
+  pestaña, exportar Excel/PDF de "Reporte por Grupo", flujo completo de
+  "Reporte por Estudiante" incluyendo búsqueda de un estudiante ajeno)
+  dejada explícitamente para pruebas en navegador por Jose Luis.
+
+---
+
+## [ef429bd] — 2026-08-30 — feat(reportes): reescribe pdf_boletin.php a boletín por período (Fase 2 de 3)
+
+### Archivos modificados
+- app/06_reportes/pdf_boletin.php
+
+### Por qué
+`pdf_boletin.php` generaba el boletín de UN SOLO módulo (`fetch()`,
+variables escalares, filtro `WHERE grmo_id = ? AND usua_id = ?`) — diseño
+incompatible con el nuevo informe por período de la Fase 3. Se reescribió
+por completo para generar el boletín de TODOS los módulos de un período
+específico, de un programa específico, de un estudiante específico.
+
+### Cambios
+- Parámetros por GET: `matr_id` + `peri_id` (antes `grmo_id`).
+- Resolución del estudiante objetivo con el mismo criterio ya usado en
+  `reportes_mdl.php` (Fase 1): `role_id=4` siempre es
+  `$_SESSION['estu_id']`; roles 1/2 aceptan un `estu_id` adicional por GET
+  (coordinador generando el boletín de otro estudiante). Cualquier otro
+  `role_id`, o un `matr_id` que no pertenezca al estudiante resuelto:
+  `403` genérico — mismo criterio ya documentado para este archivo (no se
+  distingue "no existe" de "es de otro estudiante").
+- Encabezado institucional leído de `configuracion.institucion_nombre`
+  (columna nueva de la Fase 1) en vez de hardcodeado — único de los 4
+  archivos PDF del proyecto que ya lo hace así (`pdf_grupo.php`,
+  `pdf_ficha.php`, `pdf_hoja_matricula.php` siguen con el hardcodeo, ver
+  "Análisis pendiente" en PROJECT_CONTEXT.md).
+- Módulos del período traídos con `fetchAll()` (antes `fetch()`), misma
+  ruta SQL que `detalle_periodo` (`reportes_mdl.php`).
+- "Estado del período" (En Curso / Aprobado / Reprobado + promedio)
+  replicado del mismo cálculo de `detalle_periodo` — no se reinventó una
+  fórmula distinta.
+- Layout: una tabla `.contexto-modulo` (Módulo/Grupo/Docente, celdas
+  físicas sin `colspan` — evita el antipatrón de Dompdf ya documentado en
+  CLAUDE.md) + una tabla `.ficha` de 11 columnas (N1, Sup N1, N2, Sup N2,
+  N3, N4, Sup N4, **Habilitación**, Nota Final, Definitiva, Estado) por
+  módulo, apiladas en `foreach`. Tamaño de página sin cambios
+  (`letter`/`portrait`).
+- Nombre de archivo: `boletin_{apellidos-sin-tildes-ni-espacios}_{periodo}.pdf`.
+- **Ajuste posterior (Fase 2b, mismo commit):** la columna "Habilitación"
+  se había omitido en la primera versión de la tabla `.ficha` — se
+  recuperó entre "Sup N4" y "Nota Final" (mismo orden que tenía la versión
+  de un solo módulo, sin `colorSemaforo()`, igual que antes), con el CSS
+  de la tabla ajustado (`table-layout: fixed`, `width: 9.09%`, fuente
+  8.5px) para que las 11 columnas siguieran cabiendo en Carta/portrait.
+
+### Bug encontrado y corregido en el camino
+Al probar el PDF, `institucion_nombre` salía doble-codificado en UTF-8
+(`MecÃ¡nica`, `BolaÃ±os`). Causa: el `ALTER`/`UPDATE` de la Fase 1 se
+ejecutó vía `mysql -u root` sin forzar `--default-character-set=utf8mb4`
+— el cliente usó `latin1` por defecto y MySQL reinterpretó/re-codificó los
+bytes UTF-8. Corregido re-ejecutando el `UPDATE` con el charset correcto,
+verificado con `HEX()` antes/después. **Diagnóstico aparte confirmó que
+`director_nombre`/`secretario_nombre` (mismos campos de `configuracion`)
+NO tenían este problema** — sus bytes decodifican correctamente como
+UTF-8 simple; lo que parecía corrupción era solo un artefacto de
+visualización en una terminal sin el charset correcto, no un problema del
+dato en reposo. No se modificaron esos dos campos.
+
+### Decisiones
+- Se sigue mostrando `Habilitación` sin `colorSemaforo()` (igual que la
+  versión de un solo módulo) — solo Nota Final y Definitiva llevan
+  semáforo de color.
+- No se tocaron `pdf_grupo.php`, `pdf_ficha.php` ni `pdf_hoja_matricula.php`
+  — siguen con el nombre institucional hardcodeado, fuera de alcance de
+  esta fase.
+
+### Pruebas realizadas
+- `php -l` sin errores.
+- 2 PDFs generados y verificados con `pdfinfo`/`pdftotext` contra el
+  contenedor vivo: un caso con módulo `Aprobado` (definitiva 4.0,
+  "Estado del Período: Aprobado (Promedio: 4.0)") y un caso con módulo
+  `En Curso` (coordinador consultando a otro estudiante) — ambos en 1
+  página, sin desborde, con las 11 columnas legibles tras el ajuste de
+  Fase 2b.
+- Verificación de integridad del encoding: `HEX()` antes/después de la
+  corrección de `institucion_nombre`.
+
+---
+
+## [b3a0296] — 2026-08-30 — feat(reportes): backend de reportes por período/programa (Fase 1 de 3)
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/06_reportes/reportes_mdl.php
+
+### Por qué
+Primer paso del rediseño de `06_reportes`: antes de tocar ninguna vista,
+se construyó y verificó por separado el backend necesario para el nuevo
+informe por programa → período → módulo, y la fuente de datos para
+centralizar el nombre institucional en los PDFs (hasta entonces
+hardcodeado en 4 archivos distintos).
+
+### Cambios de esquema
+- `configuracion` gana `institucion_nombre VARCHAR(150) NOT NULL DEFAULT
+  'Escuela de Mecánica Dental Bolaños (EMDB)'` (mismo patrón que
+  `director_nombre`/`secretario_nombre`) — `ALTER TABLE` + `UPDATE`
+  aplicados en vivo contra el contenedor Docker, y agregada a
+  `database/emdb_academica.sql` en el mismo lugar (`AFTER config_id`).
+
+### Cambios de código — 4 `case` nuevos en `reportes_mdl.php`
+- Helper `resolverEstuIdObjetivo()`: `role_id=4` → siempre
+  `$_SESSION['estu_id']` (ignora cualquier `estu_id` del POST); roles 1/2
+  → `estu_id` recibido por POST (obligatorio); cualquier otro rol → `null`.
+  Reutilizado por los 4 `case` nuevos y, después, por `pdf_boletin.php`
+  (Fase 2).
+- `mis_programas`: matrículas del estudiante objetivo (`matr_id`,
+  `prog_id`, `prog_nombre`, `prog_sigla`, `matr_estado`,
+  `matr_estado_academico`, `coho_id`, `coho_codigo`), `ORDER BY matr_id
+  ASC` — fuente de las pestañas de programa.
+- `mis_periodos`: recibe `matr_id` (valida que pertenezca al estudiante
+  objetivo), devuelve los períodos distintos con módulos asignados para
+  el programa de esa matrícula, vía `grmoestudiantes → gruposmodulos →
+  gruposemestres` (sin filtrar `grmo_activo` — histórico completo),
+  `ORDER BY peri_anio DESC, peri_semestre DESC` (no existe un campo de
+  orden explícito en `periodos`, se usa la combinación año+semestre, mismo
+  criterio ya usado en `calificaciones_mdl.php`).
+- `detalle_periodo`: recibe `matr_id` + `peri_id` (misma validación de
+  pertenencia), devuelve los módulos de ese programa+período con notas +
+  `estado_modulo` (misma lógica de 3 casos que `badgeEstado()` en
+  `reportes_ctrl.js`, replicada en PHP vía `estadoModuloTexto()`) + el
+  "Estado del Período" agregado (En Curso si algún módulo no tiene
+  `cali_definitiva`; si todos la tienen, promedio aritmético simple decide
+  Aprobado/Reprobado).
+- `buscar_estudiante` (solo roles 1/2): `LIKE` sobre
+  `estu_nombres`/`estu_apellidos`/`estu_numerodoc`, mínimo 3 caracteres,
+  máximo 15 resultados.
+- Los 4 `case` viejos (`grupos_para_reporte`, `reporte_grupo`,
+  `mis_modulos`, `mis_notas`) quedaron intactos, sin tocar.
+
+### Decisiones
+- `mis_periodos`/`detalle_periodo` no filtran por `grmo_activo` — se
+  quiere histórico completo de períodos cursados, activos o no.
+- Validación de pertenencia (`matr_id` debe ser del estudiante objetivo)
+  como `SELECT` previo en cada `case`, en vez de confiar en que el
+  frontend solo pida lo suyo — mismo principio ya documentado en CLAUDE.md.
+
+### Pruebas realizadas
+- `php -l` sin errores.
+- Los 4 `case` probados con `curl` contra el contenedor vivo (sesión
+  simulada con `www-data` para que Apache pudiera leerla): casos felices
+  (estudiante propio, coordinador consultando a otro estudiante) y casos
+  borde (`estu_id` faltante para coordinador, `matr_id` ajeno rechazado
+  con "Sin autorización sobre esta matrícula", estudiante sin ninguna
+  matrícula → `data: []` sin error, módulo sin `cali_definitiva` →
+  `"En Curso"`).
+- `ALTER TABLE` + `UPDATE` de `configuracion` verificados con `DESCRIBE`
+  y `SELECT` antes/después.
+
+---
+
 ## [3e551e5] — 2026-08-30 — feat(matriculas): migra coho_id de estudiantes a matriculas + agrega matr_estado_academico
 
 ### Archivos modificados
