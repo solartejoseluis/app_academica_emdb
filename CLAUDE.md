@@ -1065,6 +1065,14 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Aplicación futura:** cualquier módulo nuevo con un flujo crear/editar unificado sobre el mismo formulario que necesite subir un archivo ligado a la PK del registro enfrenta la misma restricción — no habilitarlo en modo creación sin decidir explícitamente cómo resolver la dependencia de la PK todavía inexistente.
 - **Estado:** Activa. Evaluada y descartada explícitamente en el commit `f088466` (2026-08-24).
 
+### Matrícula a un segundo programa requiere un flujo explícito, no una simple omisión de validación
+
+- **Contexto:** Desde el commit `3e551e5` (migración de `coho_id`/`matr_estado_academico` a `matriculas`), el esquema permite que un estudiante tenga más de una fila en `matriculas` — una por programa. El commit `f5c21e5` agregó la UI para matricular deliberadamente a un estudiante ya matriculado en un segundo programa.
+- **Decisión:** `case 'matricular'` y `case 'editar_matricula'` (`est_mdl.php`, `02_estudiantes`) bloquean explícitamente crear o editar una matrícula hacia un `prog_id` en el que el estudiante ya tiene otra fila `matr_estado = 'matriculado'` (en cualquier otro período) — mensaje: "El estudiante ya está matriculado en este programa. Use Editar Matrícula si desea modificar el período o la cohorte." La **única** forma soportada de que un estudiante termine con 2 matrículas es el botón dedicado "➕ Matricular en otro programa" (`tablaMatriculados`, reutiliza `abrirMatricular()`/`#mdl_matricular`), que crea una fila nueva para un `prog_id` distinto.
+- **Razón:** Sin este bloqueo explícito, `editar_matricula` permitiría — por accidente, no por diseño — que una edición cambiara el `prog_id` de una matrícula existente hacia un programa que el estudiante ya cursa por otra fila, dejando 2 matrículas duplicadas del mismo programa sin que ningún flujo lo hubiera decidido a propósito. La multiplicidad de matrículas debe ser siempre el resultado de una acción deliberada del coordinador (el botón dedicado), nunca un efecto colateral de editar una fila existente.
+- **Consecuencia:** Cualquier `case` nuevo que modifique `matriculas.prog_id` (crear o editar) debe replicar este chequeo — `SELECT matr_id FROM matriculas WHERE estu_id = ? AND prog_id = ? AND matr_estado = 'matriculado' AND <matr_id o peri_id> != ?` — antes de persistir.
+- **Estado:** Activa. No negociable (mismo nivel que las demás reglas de esta sección) — ver también el fix de `eliminar_aspirante` del mismo commit, que corrigió un chequeo no determinista (`fetch()` sin `ORDER BY`) que dependía de esta misma multiplicidad de filas para manifestarse.
+
 ---
 
 ## Frontend stack

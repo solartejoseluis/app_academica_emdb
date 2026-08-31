@@ -132,8 +132,9 @@ programas ──< modulos
 > La cohorte de ingreso ahora se resuelve por cada matrícula, no de forma
 > única por estudiante — un estudiante que curse más de un programa técnico
 > puede tener una cohorte distinta en cada uno. El diagrama simplifica esta
-> relación mostrando el caso más común hoy (un solo programa por estudiante);
-> la gestión de un segundo programa desde la interfaz todavía no existe.
+> relación mostrando el caso más común (un solo programa por estudiante);
+> matricular a un estudiante en un segundo programa ya es posible desde la
+> interfaz (ver "Estado del proyecto" más abajo).
 
 ### Configuración académica por semestre
 ```
@@ -250,9 +251,11 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Grupos Semestre — conteo de estudiantes:** el listado de la pestaña "Grupos Semestre" (`04_grupos`) ahora muestra el número de estudiantes matriculados en cualquiera de sus módulos activos, con un botón que abre un modal de detalle ("Apellidos, Nombres") — mismo patrón ya usado en el conteo de "Módulos" de Matriculados (`02_estudiantes`).
 
-> **Preparación de base de datos — multi-programa:** se amplió el modelo de datos para que, en el futuro, un mismo estudiante pueda cursar más de un programa técnico a la vez, cada uno con su propia cohorte de ingreso y su propia condición académica del semestre. Este cambio comenzó siendo exclusivamente de base de datos/backend; la condición académica del semestre ya es visible (de solo lectura) en el informe de calificaciones del estudiante, pero todavía no existe ninguna pantalla para que el coordinador la edite ni para gestionar un segundo programa desde la interfaz.
+> **Preparación de base de datos — multi-programa:** se amplió el modelo de datos para que un mismo estudiante pueda cursar más de un programa técnico a la vez, cada uno con su propia cohorte de ingreso y su propia condición académica del semestre. La condición académica del semestre ya es visible (de solo lectura) en el informe de calificaciones del estudiante, pero todavía no existe ninguna pantalla para que el coordinador la edite — a diferencia de la matrícula a un segundo programa en sí, que ya sí se gestiona completamente desde la interfaz (ver nota siguiente).
 
 > **Informe de Calificaciones rediseñado:** el estudiante ahora ve sus notas organizadas por programa y por período académico (no módulo por módulo, como antes) — cada período muestra su condición general (en curso, aprobado o reprobado) y permite descargar en un solo PDF todos los módulos cursados en ese período. El coordinador puede consultar el mismo informe para cualquier estudiante mediante un buscador por nombre, apellido o documento, además de conservar el reporte por grupo completo que ya existía (ahora como una pestaña separada dentro de la misma pantalla).
+
+> **Matrícula a un segundo programa técnico:** ya es posible, desde la interfaz, matricular a un estudiante que ya cursa un programa (ej. Mecánica Dental) en un segundo programa distinto (ej. Auxiliar en Salud Oral) — antes esto solo era posible a nivel de base de datos, sin ninguna pantalla que lo permitiera. El coordinador ve, al momento de matricular, qué programas ya cursa el estudiante, y el sistema impide por error matricularlo dos veces en el mismo programa. La ficha del estudiante también muestra ahora un resumen de todos los programas en los que está matriculado.
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
