@@ -158,6 +158,19 @@ switch ($accion) {
                             FROM matriculas mt4
                             INNER JOIN programas p2 ON mt4.prog_id = p2.prog_id
                             WHERE mt4.estu_id = e.estu_id) AS detalle_matriculas_estudiante,
+                           -- Mismo valor repetido en cada fila, sin relación con estu_id —
+                           -- total de programas activos en todo el sistema.
+                           (SELECT COUNT(*) FROM programas WHERE prog_activo = 1) AS programas_activos_totales,
+                           -- Misma condición de matr_estado usada en los cases 'matricular'
+                           -- y 'editar_matricula' (solo 'matriculado', sin incluir
+                           -- aspirante/retirado/graduado) — programas DISTINTOS que el
+                           -- estudiante ya cursa activamente, entre los que siguen activos.
+                           (SELECT COUNT(DISTINCT mt5.prog_id)
+                            FROM matriculas mt5
+                            INNER JOIN programas p3 ON mt5.prog_id = p3.prog_id
+                            WHERE mt5.estu_id = e.estu_id
+                              AND mt5.matr_estado = 'matriculado'
+                              AND p3.prog_activo = 1) AS programas_matriculados_activos,
                            p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id, m.prog_id AS matr_prog_id,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
