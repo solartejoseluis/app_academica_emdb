@@ -4,6 +4,72 @@
 
 ---
 
+## [1529832] — 2026-08-31 — feat(estudiantes): indicador visual "N programas" en Matriculados
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+
+### Por qué
+Cierra la última pieza pendiente del ciclo de matrícula a segundo
+programa. El commit `f5c21e5` (2026-08-30) implementó toda la
+funcionalidad de fondo (botón "➕ Matricular en otro programa",
+validaciones de duplicado, fix de `total_modulos` cruzado entre
+programas) pero evaluó y descartó explícitamente, en su sección
+"Decisiones", agregar un indicador visual tipo "2 programas" en los
+listados — cada matrícula seguía apareciendo como una fila
+independiente sin nada que las conectara visualmente como la misma
+persona. Retomado en esta ronda a pedido explícito de Jose Luis.
+
+### Cambios — 2 columnas nuevas en `case 'listar_matriculados'`
+- `total_matriculas_estudiante`: `COUNT(*)` correlacionado **solo por
+  `estu_id`**, deliberadamente sin filtrar por `prog_id`/`peri_id` de
+  la fila — a propósito lo opuesto de `total_modulos`, que `f5c21e5`
+  corrigió para sí filtrar por la matrícula específica de cada fila.
+  Aquí el indicador necesita justo lo contrario: reflejar cuántas
+  matrículas tiene la persona **en total**, sin importar el programa
+  de la fila actual. Documentado con un comentario SQL inline
+  explicando la distinción, para que no se confunda con el mismo
+  antipatrón que motivó ese fix.
+- `detalle_matriculas_estudiante`: `GROUP_CONCAT` con formato
+  `"SIGLA — Estado"` de todas las matrículas del estudiante (cualquier
+  `matr_estado`), ordenado por `matr_id`.
+
+### Cambios — badge en `tablaMatriculados`
+- Badge `🎓 {N} programas` junto al apellido, visible solo cuando
+  `total_matriculas_estudiante > 1`, con el detalle agregado como
+  `title` (tooltip).
+- `tablaAspirantes` queda **sin ningún cambio, confirmado por
+  diseño** — no es un olvido: ese `case` (`listar_aspirantes`) no se
+  tocó, verificado que no trae ninguna de las 2 columnas nuevas. Un
+  aspirante no tiene aún una segunda matrícula que este indicador
+  pudiera mostrar.
+
+### Decisión — detalle agregado en la misma query, sin endpoint nuevo
+Se evaluaron 2 alternativas para poblar el `title` del badge: (a) un
+segundo llamado AJAX por fila con 2+ programas, reutilizando el `case
+'matriculas_estudiante'` ya existente desde `f5c21e5`; (b) ampliar
+`listar_matriculados` con el detalle agregado vía `GROUP_CONCAT`. Se
+eligió (b) — evita N llamadas HTTP adicionales (una por fila con 2+
+programas) y es igual de simple de implementar que (a). No se creó
+ningún endpoint nuevo; `matriculas_estudiante` queda intacto.
+
+### Pruebas realizadas
+- `curl` sobre `listar_matriculados`: `estu_id=12` (2 matrículas
+  reales, MD + ASO) devuelve `total_matriculas_estudiante=2` en ambas
+  filas, con `detalle_matriculas_estudiante="MD — Matriculado, ASO —
+  Matriculado"`; el resto de estudiantes (15 de 17 filas, 1 matrícula)
+  devuelve `1`.
+- `curl` sobre `listar_aspirantes`: confirmado que no trae ninguna de
+  las 2 columnas nuevas — el `case` no se tocó.
+- Verificación en navegador (6 puntos): badge visible solo en las 2
+  filas de ESTEBAN CARRILLO (`estu_id=12`) con el tooltip correcto;
+  sin badge en el resto de Matriculados; sin ningún cambio visual en
+  Aspirantes; resto de columnas de Matriculados (`total_modulos`,
+  ficha, botones de acción) sin regresiones.
+
+---
+
 ## [f5c21e5] — 2026-08-30 — feat(estudiantes): matrícula a segundo programa + fix de total_modulos cruzado entre programas
 
 ### Archivos modificados
