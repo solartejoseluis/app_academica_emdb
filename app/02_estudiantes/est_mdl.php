@@ -145,8 +145,9 @@ switch ($accion) {
                            (SELECT COUNT(*) FROM grmoestudiantes ge3
                             JOIN gruposmodulos gm3 ON ge3.grmo_id = gm3.grmo_id
                             JOIN gruposemestres gs3 ON gm3.grse_id = gs3.grse_id
-                            WHERE ge3.estu_id = e.estu_id AND gm3.grmo_activo = 1{$condicionPeriodoModulos}) AS total_modulos,
-                           p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id,
+                            WHERE ge3.estu_id = e.estu_id AND gm3.grmo_activo = 1
+                              AND gs3.prog_id = m.prog_id{$condicionPeriodoModulos}) AS total_modulos,
+                           p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id, m.prog_id AS matr_prog_id,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
                            fi.padr_telefono, fi.padr_direccion, fi.padr_barrio, fi.padr_ciudad,
@@ -320,6 +321,7 @@ switch ($accion) {
         }
         $estu_id = (int)($_POST['estu_id'] ?? 0);
         $peri_id_filtro = trim($_POST['peri_id'] ?? '');
+        $prog_id_filtro = trim($_POST['prog_id'] ?? '');
         if ($estu_id === 0) {
             echo json_encode(['status' => 'error', 'message' => 'ID de estudiante inválido', 'data' => []]);
             break;
@@ -327,6 +329,15 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $params = [$estu_id];
+            // prog_id es opcional — si no llega, el comportamiento queda
+            // igual que antes (todos los módulos del estudiante, sin
+            // distinguir programa), para no romper otro llamador que
+            // pudiera invocar este case sin ese contexto.
+            $condicionPrograma = '';
+            if ($prog_id_filtro !== '') {
+                $condicionPrograma = ' AND gs.prog_id = ?';
+                $params[] = (int)$prog_id_filtro;
+            }
             $condicionPeriodo = '';
             if ($peri_id_filtro !== '') {
                 $condicionPeriodo = ' AND gs.peri_id = ?';
@@ -341,7 +352,7 @@ switch ($accion) {
                 JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
                 JOIN periodos pe ON gs.peri_id = pe.peri_id
                 JOIN docentes d ON gm.doce_id = d.doce_id
-                WHERE ge.estu_id = ? AND gm.grmo_activo = 1{$condicionPeriodo}
+                WHERE ge.estu_id = ? AND gm.grmo_activo = 1{$condicionPrograma}{$condicionPeriodo}
                 ORDER BY pe.peri_codigo DESC, m.modu_orden
             ");
             $stmt->execute($params);
@@ -436,6 +447,22 @@ switch ($accion) {
 
             if (!$estudiante) {
                 echo json_encode(['status' => 'error', 'message' => 'Estudiante no encontrado']);
+                break;
+            }
+
+            // Validación de programa duplicado: si el estudiante ya está
+            // 'matriculado' en este mismo prog_id pero en OTRO peri_id, esto
+            // no es una reactivación de la matrícula exacta (esa la cubre el
+            // chequeo de $existingMatr más abajo, sobre el mismo peri_id) —
+            // es un intento de crear una segunda matrícula duplicada del
+            // mismo programa. Se bloquea antes de tocar $existingMatr.
+            $stmtProgCheck = $pdo->prepare(
+                "SELECT matr_id FROM matriculas
+                 WHERE estu_id = ? AND prog_id = ? AND matr_estado = 'matriculado' AND peri_id != ?"
+            );
+            $stmtProgCheck->execute([$estu_id, $prog_id, $peri_id]);
+            if ($stmtProgCheck->fetch()) {
+                echo json_encode(['status' => 'error', 'message' => 'El estudiante ya está matriculado en este programa. Use Editar Matrícula si desea modificar el período o la cohorte.']);
                 break;
             }
 
@@ -541,6 +568,44 @@ switch ($accion) {
         }
         break;
 
+    // ── RESUMEN DE MATRÍCULAS DE UN ESTUDIANTE (todas, cualquier estado) ────
+    // Alimenta el contexto del modal "Matricular en otro programa" y la
+    // sección "Programas matriculados" del modal "Datos Estudiante".
+
+    case 'matriculas_estudiante':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        $estu_id = (int)($_POST['estu_id'] ?? 0);
+        if ($estu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de estudiante inválido', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare(
+                "SELECT m.matr_id, m.prog_id, p.prog_nombre, p.prog_sigla,
+                        m.peri_id, pe.peri_codigo,
+                        m.matr_estado, m.matr_estado_academico, m.fechamatricula
+                 FROM matriculas m
+                 INNER JOIN programas p ON m.prog_id = p.prog_id
+                 INNER JOIN periodos pe ON m.peri_id = pe.peri_id
+                 WHERE m.estu_id = ?
+                 ORDER BY m.matr_id ASC"
+            );
+            $stmt->execute([$estu_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al obtener las matrículas del estudiante', 'data' => []]);
+        }
+        break;
+
     case 'obtener_matricula':
         if (!isset($_SESSION['usua_id'])) {
             echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
@@ -611,6 +676,21 @@ switch ($accion) {
             if (!$estu_id) {
                 $pdo->rollBack();
                 echo json_encode(['status' => 'error', 'message' => 'Matrícula no encontrada']);
+                break;
+            }
+
+            // Misma validación de programa duplicado ya usada en 'matricular':
+            // si el nuevo prog_id coincide con el de OTRA matrícula
+            // 'matriculado' del mismo estudiante (matr_id distinto al que se
+            // está editando), bloquea.
+            $stmtProgCheck = $pdo->prepare(
+                "SELECT matr_id FROM matriculas
+                 WHERE estu_id = ? AND prog_id = ? AND matr_estado = 'matriculado' AND matr_id != ?"
+            );
+            $stmtProgCheck->execute([$estu_id, $prog_id, $matr_id]);
+            if ($stmtProgCheck->fetch()) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'El estudiante ya está matriculado en este programa. Use Editar Matrícula si desea modificar el período o la cohorte.']);
                 break;
             }
 
@@ -768,20 +848,30 @@ switch ($accion) {
         try {
             $pdo = getConexion();
 
+            // Verificación completa de TODAS las filas del estudiante — antes
+            // se usaba fetch() de una sola fila sin ORDER BY, lo que hacía el
+            // chequeo no determinista si el estudiante tenía 2+ matrículas
+            // (ej. una 'aspirante' de un segundo programa y otra 'matriculado'
+            // ya activa). Bloquea si CUALQUIERA no es 'aspirante'.
             $stmtMatr = $pdo->prepare("SELECT matr_id, matr_estado FROM matriculas WHERE estu_id = ?");
             $stmtMatr->execute([$estu_id]);
-            $matricula = $stmtMatr->fetch();
+            $matriculas = $stmtMatr->fetchAll();
 
-            if ($matricula && $matricula['matr_estado'] !== 'aspirante') {
-                echo json_encode(['status' => 'error', 'message' => 'Este estudiante ya tiene una matrícula activa, no puede eliminarse como aspirante']);
-                break;
+            foreach ($matriculas as $mat) {
+                if ($mat['matr_estado'] !== 'aspirante') {
+                    echo json_encode(['status' => 'error', 'message' => 'Este estudiante ya tiene una matrícula activa, no puede eliminarse como aspirante']);
+                    break 2;
+                }
             }
 
             $pdo->beginTransaction();
 
-            if ($matricula) {
+            // Si llegamos aquí, TODAS las filas (si hay alguna) son
+            // 'aspirante' — se borran todas antes del DELETE de estudiantes,
+            // no solo una.
+            foreach ($matriculas as $mat) {
                 $stmtDelMatr = $pdo->prepare("DELETE FROM matriculas WHERE matr_id = ?");
-                $stmtDelMatr->execute([$matricula['matr_id']]);
+                $stmtDelMatr->execute([$mat['matr_id']]);
             }
 
             // fichas_inscripcion se elimina sola vía ON DELETE CASCADE.
@@ -1179,6 +1269,23 @@ switch ($accion) {
             }
 
             $row['estado_ficha'] = calcularEstadoFicha($row);
+
+            // Todas las matrículas del estudiante (sin importar estado), para
+            // la sección "Programas matriculados" del modal — no reemplaza
+            // m.matr_estado de arriba (sigue siendo la más reciente vía
+            // LIMIT 1, usada tal cual por el botón de Hoja de Matrícula).
+            $stmtMatrs = $pdo->prepare(
+                "SELECT m.matr_id, m.prog_id, p.prog_nombre, p.prog_sigla,
+                        m.peri_id, pe.peri_codigo,
+                        m.matr_estado, m.matr_estado_academico, m.fechamatricula
+                 FROM matriculas m
+                 INNER JOIN programas p ON m.prog_id = p.prog_id
+                 INNER JOIN periodos pe ON m.peri_id = pe.peri_id
+                 WHERE m.estu_id = ?
+                 ORDER BY m.matr_id ASC"
+            );
+            $stmtMatrs->execute([$estu_id]);
+            $row['matriculas'] = $stmtMatrs->fetchAll();
 
             echo json_encode(['status' => 'ok', 'data' => $row]);
         } catch (PDOException $e) {

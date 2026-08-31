@@ -160,6 +160,11 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
 
+                <div id="bloque_programas_matriculados" class="mb-3" style="display:none">
+                    <strong>Programas matriculados:</strong>
+                    <span id="txt_programas_matriculados"></span>
+                </div>
+
                 <h6 class="seccion-titulo">1. Datos del Estudiante</h6>
                 <div class="row">
                     <div class="col-md-2 mb-3">
@@ -559,6 +564,11 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             </div>
             <div class="modal-body">
                 <input type="hidden" id="npt_estu_id_matricular" value="">
+
+                <div id="bloque_matriculas_previas" class="alert alert-secondary mb-3" style="display:none">
+                    <strong>Programas ya matriculados:</strong>
+                    <ul id="lista_matriculas_previas" class="mb-0"></ul>
+                </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">

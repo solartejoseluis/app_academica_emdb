@@ -705,7 +705,7 @@ $(document).ready(function () {
                     orderable: false,
                     width: '90px',
                     render: function (data, type, row) {
-                        return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosEstudiante(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">${data}</button>`;
+                        return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosEstudiante(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}', ${row.matr_prog_id})">${data}</button>`;
                     }
                 },
                 {
@@ -726,17 +726,18 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
-                    width: '260px',
+                    width: '360px',
                     render: function (data, type, row) {
                         const mapaColorFicha = { sin_iniciar: '#dc3545', incompleta: '#ffc107', completa: '#28a745' };
                         const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
                         const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
                         const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
                         const botonEditarMatricula = `<button class="btn btn-sm btn-outline-warning" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>`;
+                        const botonMatricularOtroPrograma = `<button class="btn btn-sm btn-outline-success" onclick="abrirMatricular(${row.estu_id})" title="Matricular en un programa adicional">➕ Matricular en otro programa</button>`;
                         return `<button class="btn btn-sm btn-outline-primary me-1"
                                         onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
                                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
-                                </button>${botonEditarMatricula}`;
+                                </button>${botonEditarMatricula} ${botonMatricularOtroPrograma}`;
                     }
                 }
             ]
@@ -1018,6 +1019,29 @@ function abrirEditar(estu_id, esAspirante) {
                 $('#btn_ficha_inscripcion_pdf').toggleClass('d-none', d.estado_ficha !== 'completa');
                 $('#btn_hoja_matricula_pdf').toggleClass('d-none', d.matr_estado !== 'matriculado');
 
+                // Programas matriculados — resumen de solo lectura de TODAS
+                // las matrículas del estudiante (d.matriculas, agregado a
+                // obtener_completo). Defensivo: si viene vacío (no debería
+                // pasar en la práctica), el bloque queda oculto.
+                if (d.matriculas && d.matriculas.length > 0) {
+                    const texto = d.matriculas.map(function (m) {
+                        const estado = m.matr_estado
+                            ? m.matr_estado.charAt(0).toUpperCase() + m.matr_estado.slice(1)
+                            : '';
+                        let fechaTexto = '';
+                        if (m.fechamatricula) {
+                            const partes = m.fechamatricula.split('-');
+                            fechaTexto = ' (' + partes[2] + '/' + partes[1] + '/' + partes[0] + ')';
+                        }
+                        return m.prog_sigla + ' — ' + estado + fechaTexto;
+                    }).join(', ');
+                    $('#txt_programas_matriculados').text(texto);
+                    $('#bloque_programas_matriculados').show();
+                } else {
+                    $('#txt_programas_matriculados').text('');
+                    $('#bloque_programas_matriculados').hide();
+                }
+
                 $('#mdl_estudiante_titulo').text('Editar Estudiante');
                 new bootstrap.Modal(document.getElementById('mdl_estudiante')).show();
             } else {
@@ -1035,6 +1059,8 @@ function abrirMatricular(estu_id) {
     $('#npt_matr_folio').val('');
     $('#npt_matr_observacion').val('');
     $('#npt_fechamatricula').val(new Date().toISOString().slice(0, 10));
+    $('#bloque_matriculas_previas').hide();
+    $('#lista_matriculas_previas').empty();
 
     $.ajax({
         type: 'POST',
@@ -1057,6 +1083,26 @@ function abrirMatricular(estu_id) {
         },
         error: function () {
             console.warn('No se pudieron precargar los datos de la Ficha de Inscripción (no crítico).');
+        }
+    });
+
+    // Contexto de matrículas ya existentes — solo se muestra si el
+    // estudiante ya tiene 1+ filas (caso de "matricular en otro programa");
+    // el uso más común del modal (aspirante sin ninguna matrícula) no
+    // cambia: el bloque queda oculto igual que antes de este cambio.
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=matriculas_estudiante',
+        data: { estu_id: estu_id },
+        dataType: 'json',
+        success: function (response) {
+            if (response.status === 'ok' && response.data.length > 0) {
+                const $lista = $('#lista_matriculas_previas').empty();
+                response.data.forEach(function (m) {
+                    $lista.append('<li>' + m.prog_nombre + ' — ' + m.matr_estado + ' (' + m.peri_codigo + ')</li>');
+                });
+                $('#bloque_matriculas_previas').show();
+            }
         }
     });
 
@@ -1123,12 +1169,20 @@ function descargarFichaPdf(estu_id) {
     window.open('../06_reportes/pdf_ficha.php?estu_id=' + estu_id, '_blank');
 }
 
-function verModulosEstudiante(estu_id, nombreCompleto) {
+function verModulosEstudiante(estu_id, nombreCompleto, prog_id) {
     $('#mdl_modulos_estudiante_titulo').text('Módulos de ' + nombreCompleto);
+    const data = { estu_id: estu_id, peri_id: $('#slct_filtro_matr_peri_id').val() };
+    // prog_id es opcional (tercer parámetro): solo se envía cuando el
+    // llamador conoce la matrícula/programa específico de la fila (ej. el
+    // botón de total_modulos en tablaMatriculados). Sin él, el backend
+    // conserva el comportamiento anterior (todos los programas).
+    if (prog_id !== undefined && prog_id !== null) {
+        data.prog_id = prog_id;
+    }
     $.ajax({
         type: 'POST',
         url: 'est_mdl.php?accion=listar_modulos_estudiante',
-        data: { estu_id: estu_id, peri_id: $('#slct_filtro_matr_peri_id').val() },
+        data: data,
         dataType: 'json',
         success: function (response) {
             const tbody = $('#tbody_modulos_estudiante');
