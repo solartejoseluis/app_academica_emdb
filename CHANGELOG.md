@@ -4,6 +4,127 @@
 
 ---
 
+## [f5c21e5] — 2026-08-30 — feat(estudiantes): matrícula a segundo programa + fix de total_modulos cruzado entre programas
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+- app/02_estudiantes/est_view.php
+
+### Por qué
+Cierra el ciclo abierto por `3e551e5` (esquema: `matriculas.coho_id` +
+`matr_estado_academico`), que ya permitía múltiples matrículas por
+estudiante a nivel de esquema/backend pero sin ninguna UI pensada para
+ello. Este commit agrupa todo el trabajo de ese ciclo — nunca se comiteó
+el paso intermedio por separado — cubriendo tanto la funcionalidad nueva
+como dos bugs reales descubiertos en el camino (uno preexistente desde
+antes de `3e551e5`, otro introducido por la funcionalidad nueva misma).
+
+### Funcionalidad nueva — matricular a un segundo programa
+- Botón **"➕ Matricular en otro programa"** en la columna de acciones de
+  `tablaMatriculados`, junto a "📝 Datos Estudiante" y "✏️ Matrícula" —
+  reutiliza `abrirMatricular()`/`#mdl_matricular` ya existente, sin
+  duplicar modal ni lógica.
+- **Contexto de matrículas previas** dentro de `#mdl_matricular`: nuevo
+  bloque `#bloque_matriculas_previas` (oculto por defecto) que lista los
+  programas ya matriculados del estudiante al abrir el modal — visible
+  solo si el estudiante ya tiene 1+ filas en `matriculas` (el caso más
+  común, aspirante sin ninguna matrícula, no cambia).
+- **Sección "Programas matriculados"** en el modal "Datos Estudiante"
+  (`#mdl_estudiante`), junto a los datos básicos: lista cada matrícula
+  como `"{prog_sigla} — {Estado} (dd/mm/yyyy)"`.
+- Nuevo `case 'matriculas_estudiante'` en `est_mdl.php` (roles 1/2):
+  devuelve todas las matrículas de un `estu_id` (`matr_id, prog_nombre,
+  prog_sigla, peri_codigo, matr_estado, matr_estado_academico,
+  fechamatricula`) — alimenta tanto el contexto del modal de matrícula
+  como la sección del modal de datos del estudiante.
+- `case 'obtener_completo'` ampliado con un array `matriculas` (misma
+  estructura) sin tocar el campo `matr_estado` ya existente (que sigue
+  resolviendo la más reciente vía `LIMIT 1`, usado tal cual por el botón
+  de Hoja de Matrícula).
+
+### Validaciones nuevas — bloqueo de programa duplicado
+- `case 'matricular'`: si el estudiante ya tiene una fila `'matriculado'`
+  con el mismo `prog_id` pero **otro** `peri_id`, bloquea antes de tocar
+  la lógica de reactivación exacta (`$existingMatr`) con el mensaje "El
+  estudiante ya está matriculado en este programa. Use Editar Matrícula
+  si desea modificar el período o la cohorte."
+- `case 'editar_matricula'`: misma validación, usando `matr_id != ?` en
+  vez de `peri_id != ?` (este case sí recibe `matr_id` explícito) — evita
+  que una edición deje a un estudiante con 2 matrículas del mismo
+  programa.
+
+### Fix — `eliminar_aspirante` no determinista
+El chequeo usaba `fetch()` de una sola fila **sin `ORDER BY`** sobre
+`matriculas WHERE estu_id = ?` — con 2+ filas (ej. una `'aspirante'` de
+un segundo programa y otra `'matriculado'` ya activa), el resultado
+dependía del orden arbitrario que devolviera MySQL: a veces bloqueaba con
+el mensaje correcto, a veces dejaba pasar la primera fila `'aspirante'`
+y fallaba después por el `RESTRICT` de la FK con el mensaje genérico.
+Corregido con `fetchAll()` + `foreach` que bloquea si **cualquier** fila
+no es `'aspirante'`, y borra **todas** las filas `'aspirante'` (antes solo
+borraba una) antes del `DELETE` de `estudiantes`.
+
+### Fix — `total_modulos` contaba módulos de todos los programas del estudiante
+Bug real reportado por Jose Luis: un estudiante con 2 matrículas (MD +
+ASO) mostraba el **mismo** conteo de módulos en ambas filas de
+Matriculados, porque la subconsulta de `total_modulos`
+(`listar_matriculados`) y la query de `listar_modulos_estudiante`
+(modal de detalle de esa misma columna) correlacionaban **solo por
+`estu_id`**, sin cruzar contra el `prog_id`/`peri_id` de la matrícula
+específica de la fila.
+- `listar_matriculados`: subconsulta ahora exige `gs3.prog_id = m.prog_id`
+  (la matrícula de la fila actual); se agrega `m.prog_id AS matr_prog_id`
+  al `SELECT` — alias **distinto** de `fi.prog_id` (ya existente, de
+  `fichas_inscripcion`, usado por `calcularEstadoFicha()`) para evitar
+  una colisión silenciosa de claves duplicadas en `FETCH_ASSOC`.
+- `listar_modulos_estudiante`: nuevo parámetro opcional `prog_id` por
+  POST; si viene, filtra por `gs.prog_id`; si no, mantiene el
+  comportamiento anterior (compatibilidad hacia atrás — confirmado por
+  grep que solo hay un llamador en todo el proyecto).
+- `est_ctrl.js`: `verModulosEstudiante()` recibe y propaga
+  `row.matr_prog_id` desde el botón de `total_modulos` en
+  `tablaMatriculados`.
+
+### Decisiones
+- No se agregó ningún indicador visual tipo "2 programas" en el listado
+  de Matriculados/Aspirantes — cada matrícula sigue apareciendo como una
+  fila independiente (comportamiento ya existente, sin cambios); se
+  evaluó y se descartó agregar ese indicador en esta ronda.
+- El alias `matr_prog_id` (en vez de `prog_id` a secas) fue una decisión
+  necesaria, no cosmética — evitar la colisión con `fi.prog_id` ya
+  presente en el mismo `SELECT`.
+
+### Pruebas realizadas
+- `php -l` sin errores en los 2 archivos PHP modificados en cada etapa de
+  este ciclo.
+- **Matrícula a segundo programa**: probado con `curl` sobre `estu_id=2`
+  — intento de duplicar el mismo programa con otro período bloqueado con
+  el mensaje nuevo (sin crear fila); matrícula en programa distinto
+  creada correctamente (segunda fila); `matriculas_estudiante` y
+  `obtener_completo` devolviendo el array completo; limpieza de la fila
+  de prueba tras verificar.
+- **`eliminar_aspirante`**: probado con 2 fixtures — estudiante con 2
+  filas `'aspirante'` (elimina ambas + el estudiante) y estudiante con 1
+  `'aspirante'` + 1 `'matriculado'`, con el orden de `fetch()` de MySQL
+  confirmado devolviendo la fila `'aspirante'` primero (el escenario que
+  rompía el código viejo) — bloqueado con el mensaje específico correcto,
+  nada eliminado.
+- **`editar_matricula` duplicado**: fixture con una segunda matrícula
+  `'matriculado'` para `estu_id=2`, intento de editar la primera hacia
+  ese mismo programa → bloqueado, sin cambios; fixture eliminada después.
+- **`total_modulos`**: verificado contra el caso real reportado
+  (`estu_id=12`, matriculado en MD y ASO) — antes ambas filas mostraban
+  `total_modulos=2`; después, ASO muestra `0` y MD sigue en `2`.
+  `listar_modulos_estudiante` con `prog_id=1` (ASO) devuelve `data: []`;
+  con `prog_id=2` (MD) devuelve los 2 módulos reales; sin `prog_id`
+  (compatibilidad hacia atrás) mantiene el comportamiento anterior.
+- HTTP 200 sin warnings/notices en `est_view.php` para rol coordinador en
+  cada etapa. Base de datos verificada de vuelta a su estado original
+  (16 filas en `matriculas`) después de cada tanda de fixtures de prueba.
+
+---
+
 ## [8d479a1] — 2026-08-30 — feat(reportes): combina Reporte por Grupo + Reporte por Estudiante en pestañas (Fase 3 de 3, FINAL)
 
 ### Archivos modificados
