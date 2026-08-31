@@ -735,18 +735,41 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
-                    width: '360px',
+                    width: '70px',
                     render: function (data, type, row) {
                         const mapaColorFicha = { sin_iniciar: '#dc3545', incompleta: '#ffc107', completa: '#28a745' };
                         const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
                         const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
                         const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
-                        const botonEditarMatricula = `<button class="btn btn-sm btn-outline-warning" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>`;
-                        const botonMatricularOtroPrograma = `<button class="btn btn-sm btn-outline-success" onclick="abrirMatricular(${row.estu_id})" title="Matricular en un programa adicional">➕ Matricular en otro programa</button>`;
-                        return `<button class="btn btn-sm btn-outline-primary me-1"
-                                        onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
-                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
-                                </button>${botonEditarMatricula} ${botonMatricularOtroPrograma}`;
+
+                        const sinProgramasDisponibles = row.programas_matriculados_activos >= row.programas_activos_totales;
+                        const itemMatricularOtroPrograma = sinProgramasDisponibles
+                            ? `<li tabindex="0" title="Este estudiante ya está matriculado en todos los programas activos disponibles.">
+                                   <button class="dropdown-item disabled" type="button" disabled>➕ Matricular en otro programa</button>
+                               </li>`
+                            : `<li>
+                                   <button class="dropdown-item" type="button" onclick="abrirMatricular(${row.estu_id})" title="Matricular en un programa adicional">➕ Matricular en otro programa</button>
+                               </li>`;
+
+                        return `<div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                                        <i class="bi bi-gear-fill"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button class="dropdown-item" type="button" onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
+                                                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
+                                        </li>
+                                        ${itemMatricularOtroPrograma}
+                                    </ul>
+                                </div>`;
                     }
                 }
             ]
