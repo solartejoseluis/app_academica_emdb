@@ -1,39 +1,85 @@
 <?php
 session_start();
 require_once '../01_login/check_session.php';
-
-$role_id = (int)($_SESSION['role_id'] ?? 0);
-if ($role_id !== 4) {
-    header('Location: ../01_login/login_view.php');
-    exit;
-}
-
 require_once '../00_connect/pdo.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
-$grmo_id = (int)($_GET['grmo_id'] ?? 0);
-if ($grmo_id <= 0) {
-    http_response_code(400);
-    die('grmo_id inválido');
+// Resuelve el estudiante objetivo — mismo criterio ya implementado en
+// reportes_mdl.php (Fase 1): role 4 siempre es el propio estudiante en
+// sesión (ignora cualquier otro dato); roles 1/2 pueden generar el boletín
+// de otro estudiante vía estu_id por GET.
+function resolverEstuIdObjetivo(): ?int {
+    $role_id = (int)($_SESSION['role_id'] ?? 0);
+    if ($role_id === 4) {
+        return isset($_SESSION['estu_id']) ? (int)$_SESSION['estu_id'] : null;
+    }
+    if (in_array($role_id, [1, 2], true)) {
+        $estu_id = (int)($_GET['estu_id'] ?? 0);
+        return $estu_id > 0 ? $estu_id : null;
+    }
+    return null;
+}
+
+$role_id = (int)($_SESSION['role_id'] ?? 0);
+if (!in_array($role_id, [1, 2, 4], true)) {
+    http_response_code(403);
+    die('No autorizado');
+}
+
+$estu_id = resolverEstuIdObjetivo();
+$matr_id = (int)($_GET['matr_id'] ?? 0);
+$peri_id = (int)($_GET['peri_id'] ?? 0);
+
+// Mismo criterio ya documentado para este archivo: no se distingue "no
+// existe" de "es de otro estudiante" — 403 genérico en cualquiera de los
+// dos casos.
+if ($estu_id === null || $matr_id <= 0 || $peri_id <= 0) {
+    http_response_code(403);
+    die('No autorizado');
 }
 
 $pdo = getConexion();
-$usua_id = (int)($_SESSION['usua_id'] ?? 0);
 
-// El filtro "est.usua_id = ?" garantiza que solo se pueda traer el propio
-// boletín — si el grmo_id no existe o pertenece a otro estudiante, la
-// query no devuelve fila (no se distingue un caso del otro).
-$stmt = $pdo->prepare("
-    SELECT est.estu_nombres, est.estu_apellidos, est.estu_numerodoc,
-           m.modu_nombre, m.modu_sigla,
-           gs.grse_codigo,
-           p.prog_nombre, p.prog_sigla,
-           pe.peri_codigo,
+// La matrícula debe pertenecer al estudiante objetivo.
+$stmtMatr = $pdo->prepare("
+    SELECT m.prog_id, p.prog_nombre, p.prog_sigla, c.coho_codigo,
+           e.estu_nombres, e.estu_apellidos, e.estu_numerodoc
+    FROM matriculas m
+    INNER JOIN programas p ON m.prog_id = p.prog_id
+    INNER JOIN estudiantes e ON m.estu_id = e.estu_id
+    LEFT JOIN cohortes c ON m.coho_id = c.coho_id
+    WHERE m.matr_id = ? AND m.estu_id = ?
+");
+$stmtMatr->execute([$matr_id, $estu_id]);
+$matricula = $stmtMatr->fetch();
+
+if (!$matricula) {
+    http_response_code(403);
+    die('No autorizado');
+}
+$prog_id = (int)$matricula['prog_id'];
+
+$stmtPeri = $pdo->prepare("SELECT peri_codigo FROM periodos WHERE peri_id = ?");
+$stmtPeri->execute([$peri_id]);
+$periodo = $stmtPeri->fetch();
+if (!$periodo) {
+    http_response_code(403);
+    die('No autorizado');
+}
+
+$stmtConf = $pdo->prepare("SELECT institucion_nombre FROM configuracion WHERE config_id = 1");
+$stmtConf->execute();
+$config = $stmtConf->fetch();
+$institucionNombre = $config['institucion_nombre'] ?? 'Escuela de Mecánica Dental Bolaños (EMDB)';
+
+// Módulos del programa+período para el estudiante — misma ruta SQL que
+// reportes_mdl.php/detalle_periodo (Fase 1).
+$stmtModulos = $pdo->prepare("
+    SELECT gm.grmo_id, m.modu_sigla, m.modu_nombre, gs.grse_codigo,
            d.doce_nombres, d.doce_apellidos,
-           gs.grse_jornada,
            c.cali_n1, c.cali_sup_n1, c.cali_n2, c.cali_sup_n2,
            c.cali_n3, c.cali_n4, c.cali_sup_n4,
            c.cali_nota_final, c.cali_habilitacion, c.cali_definitiva
@@ -41,22 +87,15 @@ $stmt = $pdo->prepare("
     JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
     JOIN modulos m ON gm.modu_id = m.modu_id
     JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
-    JOIN programas p ON gs.prog_id = p.prog_id
-    JOIN periodos pe ON gs.peri_id = pe.peri_id
     JOIN docentes d ON gm.doce_id = d.doce_id
-    JOIN estudiantes est ON est.estu_id = ge.estu_id
     LEFT JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = ge.estu_id
-    WHERE ge.grmo_id = ? AND est.usua_id = ?
+    WHERE ge.estu_id = ? AND gs.prog_id = ? AND gs.peri_id = ?
+    ORDER BY m.modu_orden
 ");
-$stmt->execute([$grmo_id, $usua_id]);
-$d = $stmt->fetch();
+$stmtModulos->execute([$estu_id, $prog_id, $peri_id]);
+$modulos = $stmtModulos->fetchAll();
 
-if (!$d) {
-    http_response_code(403);
-    die('No autorizado');
-}
-
-// ── Helpers de formato (mismo patrón que pdf_grupo.php) ──────────────────────
+// ── Helpers de formato (mismo patrón que la versión anterior de este archivo) ─
 function fmtNota($valor) {
     return $valor !== null ? number_format((float)$valor, 1) : '—';
 }
@@ -66,7 +105,7 @@ function colorSemaforo($valor) {
     return ((float)$valor >= 3.0) ? 'background-color:#d4edda;' : 'background-color:#f8d7da;';
 }
 
-// Mismos 3 casos que badgeEstado() en reportes_ctrl.js.
+// Mismos 3 casos que badgeEstado() en reportes_ctrl.js — estado de UN módulo.
 function estadoInfo($notaFinal, $definitiva) {
     if ($definitiva !== null) {
         return ((float)$definitiva >= 3.0)
@@ -79,10 +118,80 @@ function estadoInfo($notaFinal, $definitiva) {
     return ['texto' => 'En curso', 'color' => '#e9ecef'];
 }
 
-$estado = estadoInfo($d['cali_nota_final'], $d['cali_definitiva']);
-$jornada = $d['grse_jornada'] ?? '—';
+// Estado del período — MISMO cálculo que detalle_periodo (reportes_mdl.php,
+// Fase 1): 'En Curso' si algún módulo aún no tiene cali_definitiva; si TODOS
+// ya la tienen, promedio aritmético simple decide Aprobado/Reprobado.
+// 'Aplazado' es un 4to valor posible (alineado con matr_estado_academico)
+// pero no es alcanzable todavía por ningún cálculo — se activará en fase futura.
+$estadoPeriodoTexto = 'En Curso';
+$estadoPeriodoColor = '#e9ecef';
+$promedioPeriodo    = null;
+if (count($modulos) > 0) {
+    $definitivas    = array_column($modulos, 'cali_definitiva');
+    $todasDefinidas = !in_array(null, $definitivas, true);
+    if ($todasDefinidas) {
+        $promedioPeriodo = round(array_sum(array_map('floatval', $definitivas)) / count($definitivas), 1);
+        if ($promedioPeriodo >= 3.0) {
+            $estadoPeriodoTexto = 'Aprobado';
+            $estadoPeriodoColor = '#d4edda';
+        } else {
+            $estadoPeriodoTexto = 'Reprobado';
+            $estadoPeriodoColor = '#f8d7da';
+        }
+    }
+}
+
 $fechaGenerado = date('d/m/Y H:i');
-$nombreArchivo = 'Boletin_' . $d['estu_numerodoc'] . '_' . $d['modu_sigla'] . '_' . date('Y-m-d') . '.pdf';
+
+$apellidoArchivo = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $matricula['estu_apellidos']) ?: 'estudiante';
+$apellidoArchivo = preg_replace('/[^A-Za-z0-9]+/', '', $apellidoArchivo);
+$periodoArchivo  = preg_replace('/[^A-Za-z0-9]+/', '', $periodo['peri_codigo']);
+$nombreArchivo   = 'boletin_' . strtolower($apellidoArchivo) . '_' . strtolower($periodoArchivo) . '.pdf';
+
+// ── Bloque por módulo (una tabla de contexto + una tabla de notas por cada uno) ─
+$modulosHtml = '';
+if (!$modulos) {
+    $modulosHtml = '<p class="sin-modulos">Sin módulos asignados en este período.</p>';
+} else {
+    foreach ($modulos as $mod) {
+        $estado = estadoInfo($mod['cali_nota_final'], $mod['cali_definitiva']);
+        $modulosHtml .= '
+        <table class="contexto-modulo">
+            <tr>
+                <td class="etiqueta">Módulo:</td><td>' . htmlspecialchars($mod['modu_sigla'] . ' — ' . $mod['modu_nombre']) . '</td>
+                <td class="etiqueta">Grupo:</td><td>' . htmlspecialchars($mod['grse_codigo']) . '</td>
+            </tr>
+            <tr>
+                <td class="etiqueta">Docente:</td><td>' . htmlspecialchars($mod['doce_apellidos'] . ', ' . $mod['doce_nombres']) . '</td>
+                <td class="etiqueta"></td><td></td>
+            </tr>
+        </table>
+        <table class="ficha">
+            <thead>
+                <tr>
+                    <th>N1<br>20%</th><th>Sup N1</th><th>N2<br>20%</th><th>Sup N2</th>
+                    <th>N3<br>20%</th><th>N4<br>40%</th><th>Sup N4</th>
+                    <th>Habilitación</th><th>Nota Final</th><th>Definitiva</th><th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="centro">' . fmtNota($mod['cali_n1']) . '</td>
+                    <td class="centro">' . fmtNota($mod['cali_sup_n1']) . '</td>
+                    <td class="centro">' . fmtNota($mod['cali_n2']) . '</td>
+                    <td class="centro">' . fmtNota($mod['cali_sup_n2']) . '</td>
+                    <td class="centro">' . fmtNota($mod['cali_n3']) . '</td>
+                    <td class="centro">' . fmtNota($mod['cali_n4']) . '</td>
+                    <td class="centro">' . fmtNota($mod['cali_sup_n4']) . '</td>
+                    <td class="centro">' . fmtNota($mod['cali_habilitacion']) . '</td>
+                    <td class="centro" style="' . colorSemaforo($mod['cali_nota_final']) . '">' . fmtNota($mod['cali_nota_final']) . '</td>
+                    <td class="centro" style="' . colorSemaforo($mod['cali_definitiva']) . '">' . fmtNota($mod['cali_definitiva']) . '</td>
+                    <td class="centro" style="background-color:' . $estado['color'] . ';">' . $estado['texto'] . '</td>
+                </tr>
+            </tbody>
+        </table>';
+    }
+}
 
 // ── HTML del boletín ──────────────────────────────────────────────────────────
 $html = '
@@ -100,11 +209,16 @@ $html = '
     table.contexto td { padding: 4px 6px; font-size: 11px; }
     table.contexto td.etiqueta { font-weight: bold; width: 110px; }
     .formula { text-align: center; font-size: 11px; font-weight: bold; margin: 10px 0; padding: 6px; background-color: #f1f3f5; }
-    table.ficha { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    table.ficha th, table.ficha td { border: 1px solid #adb5bd; padding: 6px 8px; font-size: 11px; }
-    table.ficha th { background-color: #343a40; color: #fff; text-align: center; width: 14.28%; }
-    table.ficha td.centro { text-align: center; }
+    table.estado { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
     table.estado td { border: 1px solid #adb5bd; padding: 8px; font-size: 12px; font-weight: bold; text-align: center; }
+    table.contexto-modulo { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    table.contexto-modulo td { padding: 3px 6px; font-size: 10px; }
+    table.contexto-modulo td.etiqueta { font-weight: bold; width: 90px; }
+    table.ficha { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 4px; margin-bottom: 6px; }
+    table.ficha th, table.ficha td { border: 1px solid #adb5bd; padding: 4px 3px; font-size: 8.5px; word-wrap: break-word; }
+    table.ficha th { background-color: #343a40; color: #fff; text-align: center; width: 9.09%; }
+    table.ficha td.centro { text-align: center; }
+    .sin-modulos { text-align: center; color: #6c757d; margin: 20px 0; }
     .leyenda { margin-top: 14px; font-size: 9px; text-align: center; color: #495057; }
     .nota-supletorios {
         margin-top: 10px;
@@ -116,70 +230,35 @@ $html = '
 </head>
 <body>
     <div class="codigo">GA-FO-04</div>
-    <h1>Escuela de Mecánica Dental Bolaños (EMDB)</h1>
+    <h1>' . htmlspecialchars($institucionNombre) . '</h1>
     <h2>BOLETÍN DE CALIFICACIONES</h2>
     <div class="meta">Generado el ' . $fechaGenerado . ' por el sistema</div>
 
     <table class="contexto">
         <tr>
-            <td class="etiqueta">Estudiante:</td><td>' . htmlspecialchars($d['estu_apellidos'] . ', ' . $d['estu_nombres']) . '</td>
-            <td class="etiqueta">Documento:</td><td>' . htmlspecialchars($d['estu_numerodoc']) . '</td>
+            <td class="etiqueta">Estudiante:</td><td>' . htmlspecialchars($matricula['estu_apellidos'] . ', ' . $matricula['estu_nombres']) . '</td>
+            <td class="etiqueta">Documento:</td><td>' . htmlspecialchars($matricula['estu_numerodoc']) . '</td>
         </tr>
         <tr>
-            <td class="etiqueta">Programa:</td><td>' . htmlspecialchars($d['prog_nombre']) . ' (' . htmlspecialchars($d['prog_sigla']) . ')</td>
-            <td class="etiqueta">Período:</td><td>' . htmlspecialchars($d['peri_codigo']) . '</td>
+            <td class="etiqueta">Programa:</td><td>' . htmlspecialchars($matricula['prog_nombre']) . ' (' . htmlspecialchars($matricula['prog_sigla']) . ')</td>
+            <td class="etiqueta">Cohorte:</td><td>' . htmlspecialchars($matricula['coho_codigo'] ?? '—') . '</td>
         </tr>
         <tr>
-            <td class="etiqueta">Módulo:</td><td>' . htmlspecialchars($d['modu_sigla']) . ' — ' . htmlspecialchars($d['modu_nombre']) . '</td>
-            <td class="etiqueta">Jornada:</td><td>' . htmlspecialchars($jornada) . '</td>
-        </tr>
-        <tr>
-            <td class="etiqueta">Docente:</td><td>' . htmlspecialchars($d['doce_apellidos'] . ', ' . $d['doce_nombres']) . '</td>
-            <td class="etiqueta">Grupo:</td><td>' . htmlspecialchars($d['grse_codigo']) . '</td>
+            <td class="etiqueta">Período:</td><td>' . htmlspecialchars($periodo['peri_codigo']) . '</td>
+            <td class="etiqueta"></td><td></td>
         </tr>
     </table>
 
     <div class="formula">N1 (20%) + N2 (20%) + N3 (20%) + N4 (40%) = Nota Final</div>
 
-    <table class="ficha">
-        <thead>
-            <tr>
-                <th>N1</th><th>Sup N1</th><th>N2</th><th>Sup N2</th><th>N3</th><th>N4</th><th>Sup N4</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="centro">' . fmtNota($d['cali_n1']) . '</td>
-                <td class="centro">' . fmtNota($d['cali_sup_n1']) . '</td>
-                <td class="centro">' . fmtNota($d['cali_n2']) . '</td>
-                <td class="centro">' . fmtNota($d['cali_sup_n2']) . '</td>
-                <td class="centro">' . fmtNota($d['cali_n3']) . '</td>
-                <td class="centro">' . fmtNota($d['cali_n4']) . '</td>
-                <td class="centro">' . fmtNota($d['cali_sup_n4']) . '</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <table class="ficha">
-        <thead>
-            <tr>
-                <th>Nota Final</th><th>Habilitación</th><th>Definitiva</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="centro" style="' . colorSemaforo($d['cali_nota_final']) . '">' . fmtNota($d['cali_nota_final']) . '</td>
-                <td class="centro">' . fmtNota($d['cali_habilitacion']) . '</td>
-                <td class="centro" style="' . colorSemaforo($d['cali_definitiva']) . '">' . fmtNota($d['cali_definitiva']) . '</td>
-            </tr>
-        </tbody>
-    </table>
-
     <table class="estado">
         <tr>
-            <td style="background-color:' . $estado['color'] . ';">Estado: ' . $estado['texto'] . '</td>
+            <td style="background-color:' . $estadoPeriodoColor . ';">Estado del Período: ' . $estadoPeriodoTexto .
+                ($promedioPeriodo !== null ? ' (Promedio: ' . number_format($promedioPeriodo, 1) . ')' : '') . '</td>
         </tr>
     </table>
+
+    ' . $modulosHtml . '
 
     <div class="leyenda">
         <span style="display:inline-block; width:10px; height:10px; background-color:#f8d7da; border-radius:50%;"></span> No aprobado (&lt; 3.0)
