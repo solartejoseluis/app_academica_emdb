@@ -4,6 +4,93 @@
 
 ---
 
+## [53d5ec5, 4fb2257] — 2026-08-31 — feat(estudiantes): deshabilita "Matricular en otro programa" sin programas activos disponibles + agrupa Acción de Matriculados en dropdown
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php (commit `53d5ec5`)
+- app/02_estudiantes/est_ctrl.js (commit `4fb2257`)
+- app/02_estudiantes/est_view.php (commit `4fb2257`)
+
+### Por qué
+Tarea de 2 fases (backend primero, frontend después) sobre la misma
+columna "Acción" de `tablaMatriculados`: (1) el botón "➕ Matricular en
+otro programa", agregado en `f5c21e5` (2026-08-30), no tenía ninguna
+forma de indicar al coordinador que un estudiante ya cursaba todos los
+programas activos del sistema — el botón quedaba siempre habilitado
+sin importar el caso; (2) con 4 acciones ya acumuladas en esa columna
+(Datos Estudiante, Matrícula, Hoja de Matrícula, Matricular en otro
+programa), la fila de botones en línea saturaba visualmente la tabla.
+Ambos puntos se resolvieron en la misma ronda de trabajo, a pedido
+explícito de Jose Luis.
+
+### Cambios — commit `53d5ec5` (backend)
+2 columnas aditivas nuevas en `case 'listar_matriculados'`
+(`est_mdl.php`), junto a `total_matriculas_estudiante`/
+`detalle_matriculas_estudiante`, sin tocar ningún JOIN, el `WHERE`
+principal ni ninguna columna existente — la query sigue devolviendo
+una fila por matrícula:
+- `programas_activos_totales`: `(SELECT COUNT(*) FROM programas WHERE
+  prog_activo = 1)` — mismo valor repetido en cada fila, sin relación
+  con `estu_id`.
+- `programas_matriculados_activos`: `COUNT(DISTINCT mt5.prog_id)`
+  correlacionado por `e.estu_id`, con `mt5.matr_estado = 'matriculado'
+  AND p3.prog_activo = 1` — replica **exactamente** la misma condición
+  de `matr_estado` ya usada en los cases `matricular` y
+  `editar_matricula` (solo `'matriculado'`, sin incluir
+  aspirante/retirado/graduado), para no introducir una regla de
+  negocio distinta a la ya validada en el backend de matrícula.
+
+Preparación pura para el frontend — sin ningún consumidor todavía en
+este commit.
+
+### Cambios — commit `4fb2257` (frontend)
+Reemplaza los 3 botones en línea de la columna "Acción" de
+`tablaMatriculados` (📝 Datos Estudiante, ✏️ Matrícula, ➕ Matricular en
+otro programa) por un único botón de ícono (`bi-gear-fill`, Bootstrap
+Icons 1.11.3 vía CDN jsdelivr — nuevo `<link>` en `est_view.php`) que
+despliega un dropdown de Bootstrap (`dropdown-menu-end`,
+`data-bs-boundary="viewport"` para no recortarse en las últimas filas)
+con 4 acciones:
+- **📝 Datos Estudiante** y **✏️ Matrícula** — mismo `onclick`/`title`
+  que tenían como botones en línea, sin cambio de comportamiento. El
+  punto de color de `estado_ficha` se conserva dentro del
+  `dropdown-item`, recalculado localmente en el mismo `render()` — sin
+  compartirse con `tablaAspirantes` (no tocada en este commit).
+- **🖨️ Hoja de Matrícula** — ítem **NUEVO**. Antes, la única forma de
+  descargar este PDF (`pdf_hoja_matricula.php`, AC-FO-09) era abrir el
+  modal "Datos Estudiante" y usar el botón `#btn_hoja_matricula_pdf`
+  (visible solo si `matr_estado === 'matriculado'`). El nuevo ítem del
+  dropdown es un acceso directo de un clic, **sin esa validación en
+  frontend** (decisión explícita) — mismo endpoint, mismo parámetro
+  `estu_id`.
+- **➕ Matricular en otro programa** — mismo `onclick` que ya tenía,
+  ahora **deshabilitado con tooltip** cuando
+  `programas_matriculados_activos >= programas_activos_totales`
+  (columnas agregadas en `53d5ec5`). Al ser un `<button disabled>`
+  dentro de un dropdown, el `title` no dispara por sí solo — se
+  envuelve en un `<li tabindex="0" title="...">` (patrón estándar de
+  Bootstrap para tooltips sobre elementos deshabilitados) con el texto
+  "Este estudiante ya está matriculado en todos los programas activos
+  disponibles.".
+
+Columna "Acción" reducida de `360px` a `70px` (un solo control visible
+en vez de 3 botones en línea). `tablaAspirantes` y la columna
+`total_modulos` no se tocaron.
+
+### Pruebas realizadas
+- Dropdown abre/cierra correctamente en filas de cualquier posición de
+  la tabla (incluida la última visible, sin recorte por el contenedor).
+- "📝 Datos Estudiante" y "✏️ Matrícula" reproducen el comportamiento
+  anterior sin cambios.
+- "🖨️ Hoja de Matrícula" descarga el PDF correcto para un estudiante
+  matriculado.
+- "➕ Matricular en otro programa" aparece deshabilitado con el tooltip
+  esperado para un estudiante ya matriculado en todos los programas
+  activos (caso real: ASO + MD) y habilitado para el resto.
+- `tablaAspirantes` sin ningún cambio visual ni de comportamiento.
+
+---
+
 ## [1529832] — 2026-08-31 — feat(estudiantes): indicador visual "N programas" en Matriculados
 
 ### Archivos modificados
