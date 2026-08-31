@@ -89,7 +89,7 @@ app_academica_emdb/
     03_docentes/       — Gestión del cuerpo docente, incluye reseteo de contraseña y edición de correo de acceso ✅
     04_grupos/         — Programas (CRUD), cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
     05_calificaciones/ — Registro de notas por docente (módulo central) ✅
-    06_reportes/       — Consulta notas estudiante + exportación Excel/PDF coordinador (con contexto de curso y docente) + boletín PDF estudiante + PDF de Ficha Familiar + PDF de Hoja de Matrícula (AC-FO-09) ✅
+    06_reportes/       — Informe de calificaciones por programa/período/módulo, ya sea autoconsulta del estudiante o consulta del coordinador a cualquier estudiante (con buscador), con boletín PDF por período; reporte por grupo módulo con exportación Excel/PDF (contexto de curso y docente); PDF de Ficha Familiar; PDF de Hoja de Matrícula (AC-FO-09) ✅
     07_coordinador/    — Dashboard de seguimiento académico ✅
     08_admin/          — Gestión de usuarios del sistema ✅
   database/
@@ -250,7 +250,9 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Grupos Semestre — conteo de estudiantes:** el listado de la pestaña "Grupos Semestre" (`04_grupos`) ahora muestra el número de estudiantes matriculados en cualquiera de sus módulos activos, con un botón que abre un modal de detalle ("Apellidos, Nombres") — mismo patrón ya usado en el conteo de "Módulos" de Matriculados (`02_estudiantes`).
 
-> **Preparación de base de datos — multi-programa:** se amplió el modelo de datos para que, en el futuro, un mismo estudiante pueda cursar más de un programa técnico a la vez, cada uno con su propia cohorte de ingreso y su propia condición académica del semestre. Este cambio es exclusivamente de base de datos/backend — todavía no existe ninguna pantalla para que el coordinador gestione un segundo programa desde la interfaz.
+> **Preparación de base de datos — multi-programa:** se amplió el modelo de datos para que, en el futuro, un mismo estudiante pueda cursar más de un programa técnico a la vez, cada uno con su propia cohorte de ingreso y su propia condición académica del semestre. Este cambio comenzó siendo exclusivamente de base de datos/backend; la condición académica del semestre ya es visible (de solo lectura) en el informe de calificaciones del estudiante, pero todavía no existe ninguna pantalla para que el coordinador la edite ni para gestionar un segundo programa desde la interfaz.
+
+> **Informe de Calificaciones rediseñado:** el estudiante ahora ve sus notas organizadas por programa y por período académico (no módulo por módulo, como antes) — cada período muestra su condición general (en curso, aprobado o reprobado) y permite descargar en un solo PDF todos los módulos cursados en ese período. El coordinador puede consultar el mismo informe para cualquier estudiante mediante un buscador por nombre, apellido o documento, además de conservar el reporte por grupo completo que ya existía (ahora como una pestaña separada dentro de la misma pantalla).
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 

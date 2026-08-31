@@ -64,7 +64,7 @@ app_academica_emdb/
     03_docentes/       — CRUD docentes
     04_grupos/         — Cohortes, grupos semestre, grupos módulo
     05_calificaciones/ — Registro de notas por docente (módulo crítico)
-    06_reportes/       — Generación PDF y exportación Excel/DataTables
+    06_reportes/       — Informe de calificaciones por programa→período→módulo (autoconsulta del estudiante o consulta del coordinador a cualquier estudiante, vía buscador) + reporte por grupo módulo (todos los estudiantes) + exportación Excel/PDF
     07_coordinador/    — Dashboard de seguimiento académico
     08_admin/          — Gestión de usuarios del sistema
   uploads/
@@ -303,7 +303,7 @@ Orden de creación (respetando dependencias FK):
 | `modulos` | `modu_` | Asignaturas por programa con sigla |
 | `cohortes` | `coho_` | Grupos de admisión: `CH-ASO-2024B` |
 | `periodos` | `peri_` | Semestres académicos: `2026A`, `2026B` |
-| `matriculas` | `matr_` | Relación estudiante-programa con estado |
+| `matriculas` | `matr_` | Relación estudiante-programa con estado (`matr_estado`) — desde el commit `3e551e5` (2026-08-30) también con cohorte propia (`coho_id`, una por matrícula, no por estudiante) y condición académica del semestre (`matr_estado_academico`, independiente de `matr_estado`) |
 | `gruposemestres` | `grse_` | Instancia de programa en período+jornada |
 | `grseestudiantes` | — | Tabla puente N:M gruposemestres↔estudiantes |
 | `gruposmodulos` | `grmo_` | Módulo + docente + fechas dentro de un grupo semestre |
@@ -697,6 +697,31 @@ Ejemplo: #offcanvasAyuda + ayuda_sidebar.js (commit `8947710`, 2026-08-16) — p
 Cuando el frontend necesita saber si una entidad tiene acceso de login (ej. si un estudiante ya tiene usua_id) para decidir si mostrar una funcionalidad sensible (ej. cambiar clave), el backend debe re-verificar esa condición con una consulta propia — nunca confiar en un hidden field o cualquier dato enviado por el cliente para tomar la decisión real. El frontend puede usar esos valores solo para decidir QUÉ MOSTRAR visualmente; la decisión de QUÉ EJECUTAR debe validarse siempre del lado del servidor, con su propia fuente de verdad.
 
 Ejemplo: en est_mdl.php (case guardar, commit `3d59f06`, 2026-08-16), el cambio de clave de un estudiante matriculado se permite solo tras un SELECT usua_id FROM estudiantes WHERE estu_id = ? ejecutado en el servidor — el hidden field #npt_estu_usua_id_actual del frontend solo se usa para decidir si mostrar el bloque de UI, nunca para autorizar el cambio en sí.
+
+### Resolución de "entidad objetivo" según rol: propio (de sesión) vs. ajeno (explícito, con verificación de pertenencia)
+
+Cuando un mismo endpoint debe servir tanto a un rol que solo puede ver/operar sobre **su propia** entidad (ej. un estudiante consultando sus propias notas) como a un rol que puede operar sobre **cualquier** entidad de ese tipo (ej. un coordinador consultando a cualquier estudiante), la resolución de "sobre cuál entidad estoy operando" no puede ser un simple `$_POST['estu_id']` uniforme para todos los roles — eso permitiría que el rol restringido mintiera sobre su propio ID. Patrón: una función helper centralizada (ej. `resolverEstuIdObjetivo()`) que decide la fuente del ID **según el rol en sesión**, no según lo que llegue en la petición:
+
+```php
+function resolverEstuIdObjetivo(): ?int {
+    $role_id = (int)($_SESSION['role_id'] ?? 0);
+    if ($role_id === 4) {
+        // Rol restringido: SIEMPRE su propio ID de sesión, sin importar
+        // qué venga en la petición (POST/GET) — se ignora por completo.
+        return isset($_SESSION['estu_id']) ? (int)$_SESSION['estu_id'] : null;
+    }
+    if (in_array($role_id, [1, 2], true)) {
+        // Rol con alcance amplio: el ID llega explícito en la petición.
+        $estu_id = (int)($_POST['estu_id'] ?? 0);
+        return $estu_id > 0 ? $estu_id : null;
+    }
+    return null;
+}
+```
+
+Cuando además la operación recibe un identificador de un registro relacionado (ej. `matr_id`, `grmo_id`), **no basta con resolver el `estu_id` objetivo** — hay que verificar explícitamente que ese registro relacionado pertenezca al `estu_id` resuelto (`SELECT ... WHERE matr_id = ? AND estu_id = ?`), y responder con el mismo error genérico tanto si el registro no existe como si pertenece a otro estudiante (mismo criterio ya documentado para `pdf_boletin.php` en "Decisiones arquitectónicas activas" — no distinguir las dos causas). Sin esta segunda verificación, un coordinador (o incluso un estudiante manipulando la petición) podría pasar un `matr_id`/`grmo_id` válido pero ajeno al `estu_id` resuelto y acceder a datos de otro estudiante.
+
+Ejemplo: `resolverEstuIdObjetivo()` en `06_reportes/reportes_mdl.php` (commit `b3a0296`, 2026-08-30), reutilizada tal cual en `pdf_boletin.php` (commit `ef429bd`, mismo día) — los cases `mis_periodos` y `detalle_periodo` verifican además que el `matr_id` recibido pertenezca al `estu_id` ya resuelto (`SELECT prog_id FROM matriculas WHERE matr_id = ? AND estu_id = ?`) antes de continuar. Antes de replicar este patrón en un endpoint nuevo con la misma forma (rol restringido a lo propio + rol con alcance amplio sobre cualquier entidad), evaluar si además hace falta la verificación de pertenencia del registro relacionado — no siempre aplica (depende de si el endpoint recibe algún ID adicional más allá del de la propia entidad).
 
 ### Campo de contraseña opcional en edición: vacío no cambia el hash
 
