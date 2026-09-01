@@ -262,6 +262,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Acciones de Aspirantes agrupadas en un menú:** el mismo cambio se aplicó al listado de Aspirantes — los 2 botones en línea ("Matricular", "Datos Estudiante") ahora viven detrás del mismo botón con ícono de tuerca, con un menú de 3 opciones. "Ficha de Inscripción" ahora es accesible con un clic directo desde ese menú, sin necesidad de abrir primero la ficha completa del estudiante.
 
+> **Acciones de Docentes agrupadas en un menú:** el listado de Docentes recibió el mismo cambio visual — a diferencia de las dos notas anteriores, aquí no se agrega ninguna funcionalidad nueva ni un acceso directo que antes estuviera escondido en otro lugar. Es una mejora de consistencia visual: la columna de acciones por docente (Editar, más una de Eliminar/Desactivar/Activar según el caso) nunca tuvo tantos botones como para justificar el cambio por sí sola, pero se aplicó igual para que todas las tablas de la aplicación se vean y se comporten de la misma manera.
+
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
 ---
