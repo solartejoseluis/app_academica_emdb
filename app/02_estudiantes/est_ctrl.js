@@ -615,17 +615,31 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
-                    width: '300px',
+                    width: '70px',
                     render: function (data, type, row) {
                         const mapaColorFicha = { sin_iniciar: '#dc3545', incompleta: '#ffc107', completa: '#28a745' };
                         const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
                         const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
                         const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
-                        return `<button class="btn btn-sm btn-outline-success me-1"
-                                        onclick="abrirMatricular(${row.estu_id})">Matricular</button>
-                                <button class="btn btn-sm btn-outline-primary" onclick="abrirEditar(${row.estu_id}, true)" title="${tituloFicha}">
-                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
-                                </button>`;
+
+                        return `<div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                                        <i class="bi bi-gear-fill"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button class="dropdown-item" type="button" onclick="abrirMatricular(${row.estu_id})">Matricular</button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" type="button" onclick="abrirEditar(${row.estu_id}, true)" title="${tituloFicha}">
+                                                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_ficha.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Ficha de Inscripción (AC-FO-02)">🖨️ Ficha de Inscripción</button>
+                                        </li>
+                                    </ul>
+                                </div>`;
                     }
                 }
             ]
