@@ -4,6 +4,74 @@
 
 ---
 
+## [9346a76] — 2026-09-01 — feat(estudiantes): agrupa Acción de Aspirantes en dropdown con ícono de tuerca
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js
+
+### Por qué
+Aplica a `tablaAspirantes` el mismo patrón de dropdown ya implementado en
+`tablaMatriculados` (commits `53d5ec5`/`4fb2257`, entrada siguiente de
+este archivo): la columna "Acción" tenía 2 botones en línea
+("Matricular", "📝 Datos Estudiante"), y la Ficha de Inscripción
+(AC-FO-02) solo era descargable abriendo el modal "Datos Estudiante" y
+usando `#btn_ficha_inscripcion_pdf` — sin acceso directo desde la fila.
+A diferencia del caso de Matriculados, aquí **no hizo falta ninguna
+fase de backend**: el campo `estado_ficha` que el punto de color
+necesita ya viajaba en cada fila de `listar_aspirantes` desde antes de
+este cambio — toda la tarea se resolvió en un solo commit de frontend.
+
+### Cambios
+Reemplaza los 2 botones en línea de la columna "Acción" de
+`tablaAspirantes` por un único botón de ícono (`bi-gear-fill`,
+Bootstrap Icons — ya cargado en `est_view.php` desde `4fb2257`) que
+despliega un dropdown de Bootstrap (`dropdown-menu-end`,
+`data-bs-boundary="viewport"`) con 3 acciones:
+- **Matricular** — mismo `onclick="abrirMatricular(${row.estu_id})"`
+  que tenía como botón en línea, sin cambio de comportamiento. Sin
+  `title` (tampoco lo tenía antes).
+- **📝 Datos Estudiante** — mismo `onclick="abrirEditar(${row.estu_id},
+  true)"` (`esAspirante = true`, sin cambio). El punto de color de
+  `estado_ficha` se conserva dentro del `dropdown-item`, recalculado
+  localmente en este mismo `render()` — declaración independiente,
+  **no compartida** con la copia de `tablaMatriculados` (mismo criterio
+  ya documentado en CLAUDE.md: reutilizable dentro de una fila, no
+  entre tablas).
+- **🖨️ Ficha de Inscripción** — ítem **NUEVO**. Antes, la única forma de
+  descargar `pdf_ficha.php` era abrir el modal "Datos Estudiante" y usar
+  `#btn_ficha_inscripcion_pdf` (visible solo si `estado_ficha ===
+  'completa'`). El nuevo ítem del dropdown es un acceso directo de un
+  clic — mismo endpoint, mismo parámetro `estu_id` —, **sin esa
+  validación en frontend** (decisión explícita, Opción A: mismo
+  criterio ya aplicado a "Hoja de Matrícula" en `tablaMatriculados`,
+  aunque la condición `estado_ficha` sí estaba disponible en `row`).
+
+Columna "Acción" reducida de `300px` a `70px`. No se tocó
+`tablaMatriculados`, `est_mdl.php`, `est_view.php`, ni
+`eliminar_aspirante`.
+
+### Pruebas realizadas (confirmadas por Jose Luis en navegador)
+1. El botón de ícono (tuerca) abre y cierra el dropdown correctamente
+   en cualquier fila de `tablaAspirantes`.
+2. "Matricular" abre el modal `#mdl_matricular` igual que antes del
+   cambio, sin diferencia de comportamiento.
+3. "📝 Datos Estudiante" abre el modal `#mdl_estudiante` en modo
+   edición, con el mismo `title` (estado de ficha) que mostraba el
+   botón en línea anterior.
+4. El punto de color junto a "📝 Datos Estudiante" refleja
+   correctamente los 3 estados de `estado_ficha` (sin_iniciar,
+   incompleta, completa) probados con distintos aspirantes.
+5. "🖨️ Ficha de Inscripción" descarga el PDF correcto para un
+   aspirante con ficha **completa**.
+6. "🖨️ Ficha de Inscripción" **también** descarga el PDF para un
+   aspirante con ficha **incompleta** — comportamiento esperado y
+   deliberado (Opción A, sin bloqueo en frontend), verificado
+   explícitamente como caso de prueba y no como hallazgo.
+7. `tablaMatriculados` sin ningún cambio visual ni de comportamiento
+   tras el cambio.
+
+---
+
 ## [53d5ec5, 4fb2257] — 2026-08-31 — feat(estudiantes): deshabilita "Matricular en otro programa" sin programas activos disponibles + agrupa Acción de Matriculados en dropdown
 
 ### Archivos modificados
