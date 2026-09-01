@@ -486,6 +486,37 @@ Primer uso: modal `#mdl_estudiante` en `02_estudiantes` (commit `f088466`, 2026-
 
 Segundo uso, primera vez fuera de `02_estudiantes`: `#form_inscripcion` en `insc_ctrl.js` (`09_inscripcion_publica`, commit `0e098bb`, 2026-08-24), mismo listener delegado sobre el contenedor del formulario — confirma que el patrón es reutilizable a nivel de proyecto, no exclusivo del modal de estudiante.
 
+### Columna "Acción" con 3+ acciones: agrupar bajo un único botón de ícono + dropdown de Bootstrap, no botones en línea
+
+Cuando la columna "Acción" de una tabla DataTable acumula 3 o más botones en línea (ej. "📝 Datos Estudiante", "✏️ Matrícula", "➕ Matricular en otro programa"), reemplazarlos por un único botón de ícono (`bi bi-gear-fill`, Bootstrap Icons — ver "Frontend stack") que despliega un `<ul class="dropdown-menu">` de Bootstrap con una entrada por acción, en vez de seguir agregando botones en línea a medida que crece la columna. El toggle no lleva `id` fijo — cada fila del `render()` genera el mismo patrón, y Bootstrap resuelve el `data-bs-toggle="dropdown"` por proximidad en el DOM (el `<ul>` inmediatamente adyacente dentro del mismo `<div class="dropdown">`), sin necesidad de un `id` único por fila:
+
+```js
+render: function (data, type, row) {
+    return `<div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary" type="button"
+                        data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                    <i class="bi bi-gear-fill"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" type="button" onclick="...">Acción 1</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="...">Acción 2</button></li>
+                </ul>
+            </div>`;
+}
+```
+
+`dropdown-menu-end` alinea el menú hacia la izquierda del toggle (evita que se salga de la pantalla en la columna más a la derecha de la tabla) y `data-bs-boundary="viewport"` evita que el menú quede recortado por el contenedor con scroll/overflow de la tabla — necesario en las últimas filas visibles de un DataTable largo. Cualquier indicador visual que ya tuviera un botón individual (ej. el punto de color de `estado_ficha`, ver "El indicador de completitud de una fila...") se conserva como `<span>` dentro del `dropdown-item` correspondiente, recalculado localmente en el mismo `render()` — sin compartirse entre tablas distintas (ver esa misma sección sobre reutilización dentro de una fila, no entre tablas).
+
+**Ítem deshabilitado con tooltip dentro del dropdown:** un `<button disabled>` no dispara el evento `mouseover` necesario para mostrar su propio `title` — se envuelve en `<li tabindex="0" title="...">` (el `title` vive en el `<li>`, no en el botón deshabilitado):
+
+```html
+<li tabindex="0" title="Motivo por el que está deshabilitado.">
+    <button class="dropdown-item disabled" type="button" disabled>➕ Acción</button>
+</li>
+```
+
+Primer uso: columna "Acción" de `tablaMatriculados` (`02_estudiantes`, commit `4fb2257`, 2026-08-31) — reemplaza 3 botones en línea (360px de ancho) por el patrón de arriba (70px), agregando además un ítem nuevo ("🖨️ Hoja de Matrícula") y el ítem "➕ Matricular en otro programa" deshabilitado con tooltip según la condición documentada en "Hoja de Matrícula en el dropdown no valida `matr_estado` en frontend" (Decisiones arquitectónicas activas). `tablaAspirantes` no se tocó — sigue con sus 2 botones en línea, por debajo del umbral de 3+ que justifica este patrón. Antes de replicar este patrón en otra columna "Acción" del proyecto (`03_docentes`, `04_grupos`), confirmar primero que la columna realmente acumula 3+ acciones — con 1-2 botones, los botones en línea existentes siguen siendo válidos y no ameritan el dropdown.
+
 ---
 
 ## Patrones de ingeniería
@@ -1073,11 +1104,20 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Consecuencia:** Cualquier `case` nuevo que modifique `matriculas.prog_id` (crear o editar) debe replicar este chequeo — `SELECT matr_id FROM matriculas WHERE estu_id = ? AND prog_id = ? AND matr_estado = 'matriculado' AND <matr_id o peri_id> != ?` — antes de persistir.
 - **Estado:** Activa. No negociable (mismo nivel que las demás reglas de esta sección) — ver también el fix de `eliminar_aspirante` del mismo commit, que corrigió un chequeo no determinista (`fetch()` sin `ORDER BY`) que dependía de esta misma multiplicidad de filas para manifestarse.
 
+### "Hoja de Matrícula" en el dropdown de Acción no valida `matr_estado` en frontend (a diferencia del botón equivalente dentro de "Datos Estudiante")
+
+- **Contexto:** El PDF Hoja de Matrícula (AC-FO-09, `pdf_hoja_matricula.php`) ya era descargable desde el botón `#btn_hoja_matricula_pdf` dentro del modal "Datos Estudiante" (`#mdl_estudiante`), donde permanece `d-none` salvo que `matr_estado === 'matriculado'` (ver Fase 2.8.F2). El commit `4fb2257` (2026-08-31) agrega un ítem nuevo "🖨️ Hoja de Matrícula" directamente en el dropdown de Acción de `tablaMatriculados`, como acceso directo de un clic al mismo endpoint.
+- **Decisión:** El ítem del dropdown **no** replica la validación `matr_estado === 'matriculado'` del botón del modal — queda siempre habilitado, para cualquier fila de `tablaMatriculados`.
+- **Razón:** `tablaMatriculados` ya filtra sus filas en el propio SQL de `listar_matriculados` con `m.matr_estado = 'matriculado'` (ver ese `case` en `est_mdl.php`) — toda fila que llega a esta tabla ya cumple la condición que el botón del modal verifica en JS. Duplicar la validación en el dropdown sería redundante contra una condición que el backend ya garantiza para esa tabla específica (a diferencia del modal "Datos Estudiante", que también se abre desde `tablaAspirantes`, donde `matr_estado` sí puede ser distinto de `'matriculado'` y la validación en JS del botón interno sigue siendo necesaria ahí).
+- **Consecuencia:** Esta es una decisión consciente, no una inconsistencia pendiente de corregir. Si en el futuro `listar_matriculados` dejara de filtrar por `matr_estado = 'matriculado'` (ej. para mostrar también retirados/graduados), el ítem del dropdown tendría que agregar la misma validación que ya tiene el botón del modal — revisar este supuesto antes de tocar el `WHERE` de ese `case`.
+- **Estado:** Activa.
+
 ---
 
 ## Frontend stack
 
 - Bootstrap 5.3 (CDN)
+- Bootstrap Icons 1.11.3 (CDN, `cdn.jsdelivr.net`) — primera librería de íconos del proyecto; agregada a `02_estudiantes/est_view.php` (commit `4fb2257`, 2026-08-31) para el ícono `bi-gear-fill` del dropdown de Acción de `tablaMatriculados`. Antes de este commit el proyecto no usaba ninguna librería de íconos — todo indicador visual era emoji Unicode (📝, ✏️, 🖨️, etc., ya usados en labels de botones) o CSS puro (puntos de color). Agregar el `<link>` a cualquier otra vista que necesite un ícono de Bootstrap Icons, sin duplicar el CDN si ya está cargado en esa página.
 - jQuery 3.7 (CDN)
 - DataTables 1.13 (CDN) — todas las vistas de listado
 - dompdf (Composer) — generación de PDF
@@ -1193,6 +1233,13 @@ necesita una restricción UNIQUE (hoy no la tiene).
 **Plan completo (A–F) cerrado el 2026-08-23** — las 6 fases (A, B, C1+C2, D, E, F1+F2) quedaron implementadas y verificadas en navegador.
 
 **Deuda técnica de C1/C2 resuelta (commit `5de9a9e`, 2026-08-23):** los 4 cases sin llamadores (`guardar`, `obtener`, `obtener_ficha`, `guardar_ficha`) y el código JS asociado (`abrirFicha()`, handler `btn_guardar_ficha`) — documentados como pendientes de limpieza desde `42e4175`/`76f90c5` — fueron eliminados.
+
+### Phase 2.9 — Mejoras de UI post-unificación (02_estudiantes)
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| 2.9.A | Indicador visual "N programas" en `tablaMatriculados` — badge `🎓 N programas` cuando el estudiante tiene 2+ matrículas, con detalle en el `title` | ✅ 2026-08-31 (commit `1529832`) |
+| 2.9.B | Columna "Acción" de `tablaMatriculados` agrupada en dropdown de ícono — reemplaza 3 botones en línea por `bi-gear-fill` + dropdown de Bootstrap con 4 acciones, agrega "🖨️ Hoja de Matrícula" como ítem nuevo (antes solo dentro del modal "Datos Estudiante"), deshabilita "➕ Matricular en otro programa" con tooltip cuando `programas_matriculados_activos >= programas_activos_totales` | ✅ 2026-08-31 (commits `53d5ec5` backend + `4fb2257` frontend) |
 
 ### Phase 3 — Validación TRL5
 

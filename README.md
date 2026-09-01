@@ -14,6 +14,7 @@ Sistema web para la automatización de los procesos de inscripción, matrícula 
 | Backend | PHP | 8.5 |
 | Base de datos | MySQL | 8.0 |
 | Frontend CSS | Bootstrap | 5.3 (CDN) |
+| Frontend íconos | Bootstrap Icons | 1.11.3 (CDN) |
 | Frontend JS | jQuery | 3.7 (CDN) |
 | Tablas interactivas | DataTables | 1.13 (CDN) |
 | Generación PDF | dompdf | vía Composer |
@@ -256,6 +257,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 > **Informe de Calificaciones rediseñado:** el estudiante ahora ve sus notas organizadas por programa y por período académico (no módulo por módulo, como antes) — cada período muestra su condición general (en curso, aprobado o reprobado) y permite descargar en un solo PDF todos los módulos cursados en ese período. El coordinador puede consultar el mismo informe para cualquier estudiante mediante un buscador por nombre, apellido o documento, además de conservar el reporte por grupo completo que ya existía (ahora como una pestaña separada dentro de la misma pantalla).
 
 > **Matrícula a un segundo programa técnico:** ya es posible, desde la interfaz, matricular a un estudiante que ya cursa un programa (ej. Mecánica Dental) en un segundo programa distinto (ej. Auxiliar en Salud Oral) — antes esto solo era posible a nivel de base de datos, sin ninguna pantalla que lo permitiera. El coordinador ve, al momento de matricular, qué programas ya cursa el estudiante, y el sistema impide por error matricularlo dos veces en el mismo programa. La ficha del estudiante también muestra ahora un resumen de todos los programas en los que está matriculado. En el listado de Matriculados, un estudiante con más de un programa se identifica de inmediato con una etiqueta junto a su nombre ("🎓 2 programas"), que muestra el detalle al pasar el cursor — antes cada matrícula aparecía como una fila suelta, sin nada que las conectara visualmente como la misma persona.
+
+> **Acciones de Matriculados agrupadas en un menú:** en el listado de Matriculados, los botones de acción por estudiante (antes en línea, uno junto a otro) ahora viven detrás de un único botón con ícono de tuerca, que despliega un menú con las mismas 4 opciones. "Hoja de Matrícula" ahora es accesible con un clic directo desde ese menú, sin necesidad de abrir primero la ficha completa del estudiante. El menú también deshabilita, con una nota explicativa al pasar el cursor, la opción de matricular en otro programa cuando el estudiante ya cursa todos los programas activos disponibles.
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
