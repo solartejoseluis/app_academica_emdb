@@ -158,22 +158,32 @@ $(document).ready(function () {
                 {
                     data: null,
                     orderable: false,
-                    width: '190px',
+                    width: '70px',
                     render: function (data, type, row) {
-                        let botones = `<button class="btn btn-sm btn-outline-primary me-1"
-                                        onclick="abrirEditar(${row.doce_id})">Editar</button>`;
                         const nombreCompleto = (row.doce_nombres + ' ' + row.doce_apellidos).replace(/'/g, "\\'");
+                        let itemEstado;
                         if (row.doce_activo == 1 && row.total_grupos_historico == 0) {
-                            botones += `<button class="btn btn-sm btn-outline-danger"
-                                onclick="confirmarEliminarDocente(${row.doce_id}, '${nombreCompleto}')">Eliminar</button>`;
+                            itemEstado = `<li><button class="dropdown-item" type="button"
+                                onclick="confirmarEliminarDocente(${row.doce_id}, '${nombreCompleto}')">Eliminar</button></li>`;
                         } else if (row.doce_activo == 1 && row.total_grupos_historico > 0) {
-                            botones += `<button class="btn btn-sm btn-outline-warning"
-                                onclick="toggleEstadoDocente(${row.doce_id}, 0)">Desactivar</button>`;
+                            itemEstado = `<li><button class="dropdown-item" type="button"
+                                onclick="toggleEstadoDocente(${row.doce_id}, 0)">Desactivar</button></li>`;
                         } else {
-                            botones += `<button class="btn btn-sm btn-outline-success"
-                                onclick="toggleEstadoDocente(${row.doce_id}, 1)">Activar</button>`;
+                            itemEstado = `<li><button class="dropdown-item" type="button"
+                                onclick="toggleEstadoDocente(${row.doce_id}, 1)">Activar</button></li>`;
                         }
-                        return botones;
+
+                        return `<div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                                        <i class="bi bi-gear-fill"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button class="dropdown-item" type="button" onclick="abrirEditar(${row.doce_id})">Editar</button>
+                                        </li>
+                                        ${itemEstado}
+                                    </ul>
+                                </div>`;
                     }
                 }
             ]
