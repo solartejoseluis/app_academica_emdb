@@ -517,6 +517,8 @@ render: function (data, type, row) {
 
 Primer uso: columna "Acción" de `tablaMatriculados` (`02_estudiantes`, commit `4fb2257`, 2026-08-31) — reemplaza 3 botones en línea (360px de ancho) por el patrón de arriba (70px), agregando además un ítem nuevo ("🖨️ Hoja de Matrícula") y el ítem "➕ Matricular en otro programa" deshabilitado con tooltip según la condición documentada en "Hoja de Matrícula en el dropdown no valida `matr_estado` en frontend" (Decisiones arquitectónicas activas). `tablaAspirantes` no se tocó — sigue con sus 2 botones en línea, por debajo del umbral de 3+ que justifica este patrón. Antes de replicar este patrón en otra columna "Acción" del proyecto (`03_docentes`, `04_grupos`), confirmar primero que la columna realmente acumula 3+ acciones — con 1-2 botones, los botones en línea existentes siguen siendo válidos y no ameritan el dropdown.
 
+Segundo uso: columna "Acción" de `tablaAspirantes` (`02_estudiantes`, commit `9346a76`, 2026-09-01) — reemplaza los 2 botones en línea (Matricular, 📝 Datos Estudiante) por el mismo patrón (300px → 70px), agregando el ítem nuevo "🖨️ Ficha de Inscripción" (antes solo accesible dentro del modal "Datos Estudiante" vía `#btn_ficha_inscripcion_pdf`), siempre habilitado sin validar `estado_ficha` en frontend — ver "Ficha de Inscripción en el dropdown de Acción de Aspirantes no valida `estado_ficha` en frontend" (Decisiones arquitectónicas activas) para la justificación, distinta a la de Hoja de Matrícula pese al mismo resultado visual. Nótese la diferencia de secuencia respecto al primer uso: `tablaMatriculados` ya tenía 4 acciones acumuladas cuando se convirtió a dropdown; `tablaAspirantes` cruzó el umbral de 3+ en el mismo commit que la convirtió, porque el tercer ítem ("🖨️ Ficha de Inscripción") se agregó a la vez que se aplicaba el patrón — no había 3 botones en línea esperando a agruparse. A diferencia de `tablaMatriculados` (que sí requirió una fase de backend previa, commit `53d5ec5`), este segundo uso fue un solo commit de frontend puro: el campo `estado_ficha` que el punto de color necesita ya viajaba en cada fila de `listar_aspirantes` desde antes del cambio.
+
 ---
 
 ## Patrones de ingeniería
@@ -1112,6 +1114,14 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Consecuencia:** Esta es una decisión consciente, no una inconsistencia pendiente de corregir. Si en el futuro `listar_matriculados` dejara de filtrar por `matr_estado = 'matriculado'` (ej. para mostrar también retirados/graduados), el ítem del dropdown tendría que agregar la misma validación que ya tiene el botón del modal — revisar este supuesto antes de tocar el `WHERE` de ese `case`.
 - **Estado:** Activa.
 
+### "Ficha de Inscripción" en el dropdown de Acción de Aspirantes no valida `estado_ficha` en frontend (justificación distinta a "Hoja de Matrícula", mismo resultado visual)
+
+- **Contexto:** El PDF Ficha de Inscripción (AC-FO-02, `pdf_ficha.php`) ya era descargable desde el botón `#btn_ficha_inscripcion_pdf` dentro del modal "Datos Estudiante" (`#mdl_estudiante`), donde permanece `d-none` salvo que `estado_ficha === 'completa'`. El commit `9346a76` (2026-09-01) agrega un ítem nuevo "🖨️ Ficha de Inscripción" directamente en el dropdown de Acción de `tablaAspirantes`, como acceso directo de un clic al mismo endpoint.
+- **Decisión:** El ítem del dropdown **no** replica la validación `estado_ficha === 'completa'` del botón del modal — queda siempre habilitado, para cualquier fila de `tablaAspirantes`, sea cual sea su `estado_ficha` (`sin_iniciar`, `incompleta` o `completa`).
+- **Razón — distinta de "Hoja de Matrícula", no la misma:** en el caso de Hoja de Matrícula, la validación en frontend era redundante porque el propio SQL de `listar_matriculados` ya garantiza `matr_estado = 'matriculado'` para toda fila de esa tabla — no hay ningún caso real en el que la condición pudiera fallar. Aquí **no aplica el mismo argumento**: `listar_aspirantes` no filtra por `estado_ficha`, así que el campo sí varía libremente entre `sin_iniciar`, `incompleta` y `completa` en las filas de `tablaAspirantes` — la condición que el botón del modal verifica es real y puede ser falsa para cualquier fila dada. Omitir la validación aquí es una **elección consciente de simplicidad/alcance** (Opción A: permitir descargar el PDF de una ficha incompleta, mostrando en el documento las secciones vacías que falten, en vez de bloquear el acceso), no una garantía estructural heredada del backend como en el caso de Matrícula.
+- **Consecuencia:** A diferencia de la nota de "Hoja de Matrícula" (donde un cambio futuro en el `WHERE` de `listar_matriculados` obligaría a agregar la validación), aquí no hay ningún cambio de query que invalide esta decisión — es estable mientras la Opción A siga vigente. Si en el futuro se decide bloquear la descarga para fichas incompletas (Opción B, no implementada), el ítem del dropdown tendría que replicar `estado_ficha !== 'completa'` con el mismo criterio que ya usa `#btn_ficha_inscripcion_pdf` en el modal.
+- **Estado:** Activa.
+
 ---
 
 ## Frontend stack
@@ -1240,6 +1250,7 @@ necesita una restricción UNIQUE (hoy no la tiene).
 |---|---|---|
 | 2.9.A | Indicador visual "N programas" en `tablaMatriculados` — badge `🎓 N programas` cuando el estudiante tiene 2+ matrículas, con detalle en el `title` | ✅ 2026-08-31 (commit `1529832`) |
 | 2.9.B | Columna "Acción" de `tablaMatriculados` agrupada en dropdown de ícono — reemplaza 3 botones en línea por `bi-gear-fill` + dropdown de Bootstrap con 4 acciones, agrega "🖨️ Hoja de Matrícula" como ítem nuevo (antes solo dentro del modal "Datos Estudiante"), deshabilita "➕ Matricular en otro programa" con tooltip cuando `programas_matriculados_activos >= programas_activos_totales` | ✅ 2026-08-31 (commits `53d5ec5` backend + `4fb2257` frontend) |
+| 2.9.C | Columna "Acción" de `tablaAspirantes` agrupada en dropdown de ícono — reemplaza 2 botones en línea (Matricular, 📝 Datos Estudiante) por `bi-gear-fill` + dropdown de Bootstrap con 3 acciones, agrega "🖨️ Ficha de Inscripción" como ítem nuevo (antes solo dentro del modal "Datos Estudiante"), siempre habilitado sin validar `estado_ficha` en frontend (Opción A). Solo frontend — sin fase de backend, `estado_ficha` ya viajaba en `listar_aspirantes` | ✅ 2026-09-01 (commit `9346a76`) |
 
 ### Phase 3 — Validación TRL5
 

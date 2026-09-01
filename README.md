@@ -260,6 +260,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Acciones de Matriculados agrupadas en un menú:** en el listado de Matriculados, los botones de acción por estudiante (antes en línea, uno junto a otro) ahora viven detrás de un único botón con ícono de tuerca, que despliega un menú con las mismas 4 opciones. "Hoja de Matrícula" ahora es accesible con un clic directo desde ese menú, sin necesidad de abrir primero la ficha completa del estudiante. El menú también deshabilita, con una nota explicativa al pasar el cursor, la opción de matricular en otro programa cuando el estudiante ya cursa todos los programas activos disponibles.
 
+> **Acciones de Aspirantes agrupadas en un menú:** el mismo cambio se aplicó al listado de Aspirantes — los 2 botones en línea ("Matricular", "Datos Estudiante") ahora viven detrás del mismo botón con ícono de tuerca, con un menú de 3 opciones. "Ficha de Inscripción" ahora es accesible con un clic directo desde ese menú, sin necesidad de abrir primero la ficha completa del estudiante.
+
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
 ---
