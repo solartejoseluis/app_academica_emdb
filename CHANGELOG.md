@@ -4,6 +4,71 @@
 
 ---
 
+## [e1c232d] — 2026-09-01 — feat(docentes): agrupa Acciones de tablaDocentes en dropdown con ícono de tuerca
+
+### Archivos modificados
+- app/03_docentes/doc_view.php
+- app/03_docentes/doc_ctrl.js
+
+### Por qué
+Aplica a `tablaDocentes` (`03_docentes`) el mismo patrón de dropdown ya
+usado en `02_estudiantes` (`tablaMatriculados`, commit `4fb2257`;
+`tablaAspirantes`, commit `9346a76`). **Este caso es distinto de los 2
+anteriores en una diferencia importante:** la columna "Acciones" de
+`tablaDocentes` **nunca acumuló 3+ botones simultáneos** — siempre
+tuvo exactamente 2 botones visibles a la vez ("Editar" fijo, más uno
+solo de "Eliminar"/"Desactivar"/"Activar", mutuamente excluyentes
+según `doce_activo`/`total_grupos_historico`; nunca los tres al mismo
+tiempo). No cruzaba el umbral de "3+ acciones" documentado en
+CLAUDE.md que originalmente motivó el patrón. Se aplicó igual por
+**decisión explícita de Jose Luis de uniformidad visual** en toda la
+aplicación — no por saturación de la columna. A diferencia de
+Matriculados y Aspirantes (que sumaron un ítem nuevo — Hoja de
+Matrícula / Ficha de Inscripción — antes solo accesible dentro de otro
+modal), **aquí no se agrega ninguna funcionalidad nueva**: el dropdown
+solo reagrupa visualmente las 2 acciones que ya existían como botones
+en línea. Sin cambios de backend.
+
+### Cambios
+- **`doc_view.php`**: agrega el CDN de Bootstrap Icons (primera vez en
+  este archivo — ya estaba cargado en `02_estudiantes/est_view.php`
+  desde `4fb2257`) para el ícono `bi-gear-fill` del nuevo botón toggle.
+- **`doc_ctrl.js`**: reemplaza los 2 botones en línea de la columna
+  "Acciones" de `tablaDocentes` por un único botón de ícono
+  (`bi-gear-fill`) que despliega un dropdown de Bootstrap
+  (`dropdown-menu-end`, `data-bs-boundary="viewport"`) con 2 ítems:
+  - **Editar** — mismo `onclick="abrirEditar(${row.doce_id})"`, sin
+    cambio de comportamiento.
+  - **Eliminar / Desactivar / Activar** — **la misma estructura
+    `if/else if/else` sobre `row.doce_activo` y
+    `row.total_grupos_historico` se preservó sin ningún cambio de
+    lógica** — solo cambió el HTML generado en cada rama (de `<button>`
+    en línea a `<li><button class="dropdown-item">`), conservando
+    también el mismo cálculo de `nombreCompleto`
+    (`.replace(/'/g, "\\'")`) y los mismos `onclick`
+    (`confirmarEliminarDocente`, `toggleEstadoDocente(..., 0/1)`).
+
+Columna "Acciones" reducida de `190px` a `70px`. No se tocó
+`doc_mdl.php`, `abrirEditar()`, `confirmarEliminarDocente()`,
+`toggleEstadoDocente()`, `validarFormulario()`, ni los modales
+`#mdl_docente`/`#mdl_confirmar_eliminar_docente`.
+
+### Pruebas realizadas (confirmadas por Jose Luis en navegador)
+1. El botón de ícono (tuerca) abre y cierra el dropdown correctamente
+   en cualquier fila de `tablaDocentes`.
+2. "Editar" abre el modal `#mdl_docente` en modo edición, igual que
+   antes del cambio.
+3. Caso `doce_activo == 1 && total_grupos_historico == 0`: el dropdown
+   muestra "Eliminar", y el flujo completo (modal de confirmación →
+   DELETE) funciona igual que con el botón en línea anterior.
+4. Caso `doce_activo == 1 && total_grupos_historico > 0`: el dropdown
+   muestra "Desactivar", y el toggle de estado funciona igual que
+   antes.
+5. Caso `doce_activo == 0`: el dropdown muestra "Activar", y el toggle
+   de estado funciona igual que antes.
+
+---
+
 ## [9346a76] — 2026-09-01 — feat(estudiantes): agrupa Acción de Aspirantes en dropdown con ícono de tuerca
 
 ### Archivos modificados
