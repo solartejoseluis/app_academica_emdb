@@ -172,7 +172,7 @@ switch ($accion) {
                               AND mt5.matr_estado = 'matriculado'
                               AND p3.prog_activo = 1) AS programas_matriculados_activos,
                            p.prog_sigla, p.prog_duracion_semestres, m.matr_semestre,
-                           pe.peri_codigo, m.matr_estado, m.matr_id, m.prog_id AS matr_prog_id,
+                           m.peri_id, pe.peri_codigo, m.matr_estado, m.matr_id, m.prog_id AS matr_prog_id,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
                            fi.padr_telefono, fi.padr_direccion, fi.padr_barrio, fi.padr_ciudad,
@@ -237,7 +237,7 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
-            $stmt = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos ORDER BY peri_anio DESC, peri_semestre DESC");
+            $stmt = $pdo->prepare("SELECT peri_id, peri_codigo, peri_activo FROM periodos ORDER BY peri_anio DESC, peri_semestre DESC");
             $stmt->execute();
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (PDOException $e) {

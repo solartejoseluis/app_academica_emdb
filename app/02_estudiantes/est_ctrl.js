@@ -103,7 +103,11 @@ function manejarCambioAcudiente() {
 $(document).ready(function () {
 
     let tablaAspirantes;
-    let tablaMatriculados;
+    let tablaMatriculadosActual;
+    let tablaMatriculadosAnteriores;
+    // Resuelto por cargarPeriodos() a partir de peri_activo=1 — usado como
+    // peri_id fijo (sin selector) en el ajax.data de tablaMatriculadosActual.
+    let periodoActivoId = null;
 
     cargarTablas();
     cargarProgramas();
@@ -111,8 +115,14 @@ $(document).ready(function () {
     cargarGruposFiltro();
     cargarModulosFiltro();
 
-    $('#slct_filtro_matr_prog_id, #slct_filtro_matr_peri_id, #slct_filtro_matr_grse_id, #slct_filtro_matr_modu_id').on('change', function () {
-        tablaMatriculados.ajax.reload();
+    // --- Filtros de la pestaña "Matriculados (Per. Actual)": solo recargan su propia tabla ---
+    $('#slct_filtro_matr_prog_id_actual, #slct_filtro_matr_grse_id_actual, #slct_filtro_matr_modu_id_actual').on('change', function () {
+        tablaMatriculadosActual.ajax.reload();
+    });
+
+    // --- Filtros de la pestaña "Matriculados (Per. Anteriores)": solo recargan su propia tabla ---
+    $('#slct_filtro_matr_prog_id_anteriores, #slct_filtro_matr_peri_id_anteriores, #slct_filtro_matr_grse_id_anteriores, #slct_filtro_matr_modu_id_anteriores').on('change', function () {
+        tablaMatriculadosAnteriores.ajax.reload();
     });
 
     // Ajustar columnas al cambiar de tab (soluciona render en tab oculto)
@@ -310,7 +320,8 @@ $(document).ready(function () {
                     }
                     bootstrap.Modal.getInstance(document.getElementById('mdl_estudiante')).hide();
                     tablaAspirantes.ajax.reload(null, false);
-                    tablaMatriculados.ajax.reload(null, false);
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
                     let mensaje = estu_id === '' ? 'Aspirante registrado correctamente.' : 'Estudiante actualizado correctamente.';
                     if (response.clave_generada) {
                         mensaje += '\n\nClave asignada: ' + response.clave_generada + '\nAnote esta clave — no se volverá a mostrar.';
@@ -376,7 +387,8 @@ $(document).ready(function () {
                         .removeClass('d-none');
                     alert('Foto actualizada correctamente.');
                     tablaAspirantes.ajax.reload(null, false);
-                    tablaMatriculados.ajax.reload(null, false);
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
                 } else {
                     alert(response.message);
                 }
@@ -472,7 +484,8 @@ $(document).ready(function () {
                     } else {
                         bootstrap.Modal.getInstance(document.getElementById('mdl_matricular')).hide();
                         tablaAspirantes.ajax.reload(null, false);
-                        tablaMatriculados.ajax.reload(null, false);
+                        if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
                         alert('Matrícula completada correctamente.');
                     }
                 } else {
@@ -501,7 +514,8 @@ $(document).ready(function () {
     $('#btn_cerrar_matricula').click(function () {
         bootstrap.Modal.getInstance(document.getElementById('mdl_matricular')).hide();
         tablaAspirantes.ajax.reload(null, false);
-        tablaMatriculados.ajax.reload(null, false);
+        if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+        if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
     });
 
     // --- Reset modal matrícula al cerrar ---
@@ -563,7 +577,8 @@ $(document).ready(function () {
                         alert('Cambios guardados.');
                     }
                     bootstrap.Modal.getInstance(document.getElementById('mdl_editar_matricula')).hide();
-                    tablaMatriculados.ajax.reload();
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload();
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload();
                 } else {
                     alert('Error: ' + response.message);
                 }
@@ -652,159 +667,38 @@ $(document).ready(function () {
             ]
         });
 
-        tablaMatriculados = $('#tbl_matriculados').DataTable({
+        tablaMatriculadosActual = $('#tbl_matriculados_actual').DataTable({
             ajax: {
                 url: 'est_mdl.php?accion=listar_matriculados',
                 type: 'POST',
                 dataSrc: 'data',
                 data: function (d) {
-                    d.prog_id = $('#slct_filtro_matr_prog_id').val();
-                    d.peri_id = $('#slct_filtro_matr_peri_id').val();
-                    d.grse_id = $('#slct_filtro_matr_grse_id').val();
-                    d.modu_id = $('#slct_filtro_matr_modu_id').val();
+                    d.prog_id = $('#slct_filtro_matr_prog_id_actual').val();
+                    d.peri_id = periodoActivoId;
+                    d.grse_id = $('#slct_filtro_matr_grse_id_actual').val();
+                    d.modu_id = $('#slct_filtro_matr_modu_id_actual').val();
                 }
             },
             destroy: true,
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
-            columns: [
-                {
-                    data: 'estu_foto',
-                    orderable: false,
-                    width: '50px',
-                    render: function (data, type, row) {
-                        let src = data
-                            ? '../../uploads/fotos_estudiantes/' + data
-                            : 'https://via.placeholder.com/40x50?text=%20';
-                        return `<img src="${src}" style="width:40px;height:50px;object-fit:cover;border-radius:4px;">`;
-                    }
-                },
-                {
-                    data: null,
-                    orderable: false,
-                    width: '40px',
-                    render: function (data, type, row, meta) { return meta.row + 1; }
-                },
-                { data: 'estu_nombres' },
-                {
-                    data: 'estu_apellidos',
-                    render: function (data, type, row) {
-                        if (row.total_matriculas_estudiante > 1) {
-                            const detalle = (row.detalle_matriculas_estudiante || '').replace(/"/g, '&quot;');
-                            return `${data} <span class="badge bg-info text-dark" title="${detalle}">🎓 ${row.total_matriculas_estudiante} programas</span>`;
-                        }
-                        return data;
-                    }
-                },
-                {
-                    data: null,
-                    render: function (data, type, row) {
-                        let tipo = row.estu_tipodoc ? row.estu_tipodoc + ' ' : '';
-                        return tipo + (row.estu_numerodoc || '');
-                    }
-                },
-                {
-                    data: 'fechanacimiento',
-                    width: '100px',
-                    render: function (data) {
-                        if (!data) return '—';
+            columns: crearColumnasMatriculados()
+        });
 
-                        const mesesAbrev = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-                        const nacimiento = new Date(data + 'T00:00:00');
-                        const hoy = new Date();
-
-                        let edad = hoy.getFullYear() - nacimiento.getFullYear();
-                        const noHaCumplidoAnioAun =
-                            hoy.getMonth() < nacimiento.getMonth() ||
-                            (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
-                        if (noHaCumplidoAnioAun) edad--;
-
-                        const cumple = nacimiento.getDate() + ' ' + mesesAbrev[nacimiento.getMonth()];
-                        const texto = `${edad} (${cumple})`;
-
-                        return edad < 18
-                            ? `<span style="background-color:#cfe2ff;padding:2px 6px;border-radius:4px;">${texto}</span>`
-                            : texto;
-                    }
-                },
-                { data: 'estu_email' },
-                { data: 'coho_codigo', render: v => v || '—' },
-                { data: 'prog_sigla', width: '70px' },
-                {
-                    data: null,
-                    width: '60px',
-                    render: function (data, type, row) {
-                        if (row.matr_semestre == null || row.prog_duracion_semestres == null) return '—';
-                        const texto = `${row.matr_semestre}/${row.prog_duracion_semestres}`;
-                        return (row.matr_semestre == row.prog_duracion_semestres)
-                            ? `<span style="background-color:#cfe2ff;padding:2px 6px;border-radius:4px;">${texto}</span>`
-                            : texto;
-                    }
-                },
-                { data: 'peri_codigo', width: '80px' },
-                {
-                    data: 'total_modulos',
-                    orderable: false,
-                    width: '90px',
-                    render: function (data, type, row) {
-                        return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosEstudiante(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}', ${row.matr_prog_id})">${data}</button>`;
-                    }
-                },
-                {
-                    data: 'matr_estado',
-                    width: '100px',
-                    render: function (data) {
-                        let map = {
-                            'matriculado': 'bg-success',
-                            'aspirante':   'bg-warning text-dark',
-                            'retirado':    'bg-danger',
-                            'graduado':    'bg-primary'
-                        };
-                        let cls = map[data] || 'bg-secondary';
-                        return `<span class="badge ${cls}">${data}</span>`;
-                    }
-                },
-                { data: 'ultimo_acceso_fmt', width: '120px' },
-                {
-                    data: null,
-                    orderable: false,
-                    width: '70px',
-                    render: function (data, type, row) {
-                        const mapaColorFicha = { sin_iniciar: '#dc3545', incompleta: '#ffc107', completa: '#28a745' };
-                        const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
-                        const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
-                        const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
-
-                        const sinProgramasDisponibles = row.programas_matriculados_activos >= row.programas_activos_totales;
-                        const itemMatricularOtroPrograma = sinProgramasDisponibles
-                            ? `<li tabindex="0" title="Este estudiante ya está matriculado en todos los programas activos disponibles.">
-                                   <button class="dropdown-item disabled" type="button" disabled>➕ Matricular en otro programa</button>
-                               </li>`
-                            : `<li>
-                                   <button class="dropdown-item" type="button" onclick="abrirMatricular(${row.estu_id})" title="Matricular en un programa adicional">➕ Matricular en otro programa</button>
-                               </li>`;
-
-                        return `<div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
-                                        <i class="bi bi-gear-fill"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <button class="dropdown-item" type="button" onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
-                                                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
-                                        </li>
-                                        <li>
-                                            <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
-                                        </li>
-                                        ${itemMatricularOtroPrograma}
-                                    </ul>
-                                </div>`;
-                    }
+        tablaMatriculadosAnteriores = $('#tbl_matriculados_anteriores').DataTable({
+            ajax: {
+                url: 'est_mdl.php?accion=listar_matriculados',
+                type: 'POST',
+                dataSrc: 'data',
+                data: function (d) {
+                    d.prog_id = $('#slct_filtro_matr_prog_id_anteriores').val();
+                    d.peri_id = $('#slct_filtro_matr_peri_id_anteriores').val();
+                    d.grse_id = $('#slct_filtro_matr_grse_id_anteriores').val();
+                    d.modu_id = $('#slct_filtro_matr_modu_id_anteriores').val();
                 }
-            ]
+            },
+            destroy: true,
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            columns: crearColumnasMatriculados()
         });
     }
 
@@ -819,7 +713,7 @@ $(document).ready(function () {
                     response.data.forEach(function (p) {
                         opciones += `<option value="${p.prog_id}" data-duracion="${p.prog_duracion_semestres}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                     });
-                    $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id, #slct_editar_prog_id').append(opciones);
+                    $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id_actual, #slct_filtro_matr_prog_id_anteriores, #slct_editar_prog_id').append(opciones);
                 }
             }
         });
@@ -831,15 +725,54 @@ $(document).ready(function () {
             url: 'est_mdl.php?accion=listar_periodos',
             dataType: 'json',
             success: function (response) {
-                if (response.status === 'ok') {
-                    let opciones = '';
-                    response.data.forEach(function (p) {
-                        opciones += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                if (response.status !== 'ok') return;
+
+                // #slct_peri_id (modal Completar Matrícula) y #slct_editar_peri_id
+                // (modal Editar Matrícula) siguen recibiendo TODOS los períodos —
+                // no tienen relación con las pestañas Actual/Anteriores.
+                let opciones = '';
+                response.data.forEach(function (p) {
+                    opciones += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                });
+                $('#slct_peri_id').append(opciones);
+                $('#slct_editar_peri_id').append(opciones);
+
+                // Pestaña "Per. Actual": sin selector — solo texto de referencia
+                // con el período activo (peri_activo=1). Mismo patrón de
+                // filtrado client-side por el flag que doc_ctrl.js (activoId).
+                const periodoActivo = response.data.find(function (p) { return p.peri_activo == 1; });
+                periodoActivoId = periodoActivo ? periodoActivo.peri_id : null;
+                $('#txt_periodo_activo').val(periodoActivo ? periodoActivo.peri_codigo : 'Sin período activo');
+
+                // Pestaña "Per. Anteriores": select con TODOS los períodos
+                // EXCEPTO el activo — sin opción "Todos" (enviar peri_id vacío
+                // haría que listar_matriculados no filtre por período y el
+                // activo se colaría en esta pestaña). Se preselecciona el más
+                // reciente de los anteriores para que la tabla nunca quede sin
+                // peri_id explícito.
+                const periodosAnteriores = response.data.filter(function (p) { return p.peri_activo != 1; });
+                if (periodosAnteriores.length > 0) {
+                    let opcionesAnteriores = '';
+                    periodosAnteriores.forEach(function (p) {
+                        opcionesAnteriores += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
                     });
-                    $('#slct_peri_id').append(opciones);
-                    $('#slct_filtro_matr_peri_id').append(opciones);
-                    $('#slct_editar_peri_id').append(opciones);
+                    $('#slct_filtro_matr_peri_id_anteriores').html(opcionesAnteriores).val(periodosAnteriores[0].peri_id);
+                } else {
+                    // Sin períodos anteriores todavía (ej. instalación nueva,
+                    // un solo período creado hasta ahora): value="0" no
+                    // coincide con ningún peri_id real — listar_matriculados
+                    // filtra por él y devuelve 0 filas, en vez de caer en el
+                    // caso "sin filtro" (que mostraría de más, el período
+                    // activo incluido).
+                    $('#slct_filtro_matr_peri_id_anteriores').html('<option value="0">-- Sin períodos anteriores --</option>');
                 }
+
+                // Ambos selectores de período ya tienen su valor definitivo —
+                // recién ahora tiene sentido cargar las dos tablas de
+                // Matriculados (antes de este punto, periodoActivoId es null y
+                // el select de Anteriores está vacío).
+                if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+                if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
             }
         });
     }
@@ -851,10 +784,11 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (response) {
                 if (response.status === 'ok') {
-                    let sel = $('#slct_filtro_matr_grse_id');
+                    let opciones = '';
                     response.data.forEach(function (g) {
-                        sel.append(`<option value="${g.grse_id}">${g.grse_codigo}</option>`);
+                        opciones += `<option value="${g.grse_id}">${g.grse_codigo}</option>`;
                     });
+                    $('#slct_filtro_matr_grse_id_actual, #slct_filtro_matr_grse_id_anteriores').append(opciones);
                 }
             }
         });
@@ -867,10 +801,11 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (response) {
                 if (response.status === 'ok') {
-                    let sel = $('#slct_filtro_matr_modu_id');
+                    let opciones = '';
                     response.data.forEach(function (m) {
-                        sel.append(`<option value="${m.modu_id}">${m.modu_sigla} — ${m.modu_nombre}</option>`);
+                        opciones += `<option value="${m.modu_id}">${m.modu_sigla} — ${m.modu_nombre}</option>`;
                     });
+                    $('#slct_filtro_matr_modu_id_actual, #slct_filtro_matr_modu_id_anteriores').append(opciones);
                 }
             }
         });
@@ -954,6 +889,153 @@ $(document).ready(function () {
         return seleccionadas.join(',');
     }
 });
+
+// Fuera de ready — usada por tablaMatriculadosActual y tablaMatriculadosAnteriores
+// (mismas columnas, mismo render, dos tabs distintos — ver DIAGNÓSTICO Pestañas
+// Per. Actual/Per. Anteriores). Devuelve un array NUEVO en cada llamada: el
+// array de columns de un DataTable no debe compartirse por referencia entre
+// dos instancias.
+function crearColumnasMatriculados() {
+    return [
+        {
+            data: 'estu_foto',
+            orderable: false,
+            width: '50px',
+            render: function (data, type, row) {
+                let src = data
+                    ? '../../uploads/fotos_estudiantes/' + data
+                    : 'https://via.placeholder.com/40x50?text=%20';
+                return `<img src="${src}" style="width:40px;height:50px;object-fit:cover;border-radius:4px;">`;
+            }
+        },
+        {
+            data: null,
+            orderable: false,
+            width: '40px',
+            render: function (data, type, row, meta) { return meta.row + 1; }
+        },
+        { data: 'estu_nombres' },
+        {
+            data: 'estu_apellidos',
+            render: function (data, type, row) {
+                if (row.total_matriculas_estudiante > 1) {
+                    const detalle = (row.detalle_matriculas_estudiante || '').replace(/"/g, '&quot;');
+                    return `${data} <span class="badge bg-info text-dark" title="${detalle}">🎓 ${row.total_matriculas_estudiante} programas</span>`;
+                }
+                return data;
+            }
+        },
+        {
+            data: null,
+            render: function (data, type, row) {
+                let tipo = row.estu_tipodoc ? row.estu_tipodoc + ' ' : '';
+                return tipo + (row.estu_numerodoc || '');
+            }
+        },
+        {
+            data: 'fechanacimiento',
+            width: '100px',
+            render: function (data) {
+                if (!data) return '—';
+
+                const mesesAbrev = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                const nacimiento = new Date(data + 'T00:00:00');
+                const hoy = new Date();
+
+                let edad = hoy.getFullYear() - nacimiento.getFullYear();
+                const noHaCumplidoAnioAun =
+                    hoy.getMonth() < nacimiento.getMonth() ||
+                    (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+                if (noHaCumplidoAnioAun) edad--;
+
+                const cumple = nacimiento.getDate() + ' ' + mesesAbrev[nacimiento.getMonth()];
+                const texto = `${edad} (${cumple})`;
+
+                return edad < 18
+                    ? `<span style="background-color:#cfe2ff;padding:2px 6px;border-radius:4px;">${texto}</span>`
+                    : texto;
+            }
+        },
+        { data: 'estu_email' },
+        { data: 'coho_codigo', render: v => v || '—' },
+        { data: 'prog_sigla', width: '70px' },
+        {
+            data: null,
+            width: '60px',
+            render: function (data, type, row) {
+                if (row.matr_semestre == null || row.prog_duracion_semestres == null) return '—';
+                const texto = `${row.matr_semestre}/${row.prog_duracion_semestres}`;
+                return (row.matr_semestre == row.prog_duracion_semestres)
+                    ? `<span style="background-color:#cfe2ff;padding:2px 6px;border-radius:4px;">${texto}</span>`
+                    : texto;
+            }
+        },
+        { data: 'peri_codigo', width: '80px' },
+        {
+            data: 'total_modulos',
+            orderable: false,
+            width: '90px',
+            render: function (data, type, row) {
+                return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosEstudiante(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}', ${row.matr_prog_id}, ${row.peri_id})">${data}</button>`;
+            }
+        },
+        {
+            data: 'matr_estado',
+            width: '100px',
+            render: function (data) {
+                let map = {
+                    'matriculado': 'bg-success',
+                    'aspirante':   'bg-warning text-dark',
+                    'retirado':    'bg-danger',
+                    'graduado':    'bg-primary'
+                };
+                let cls = map[data] || 'bg-secondary';
+                return `<span class="badge ${cls}">${data}</span>`;
+            }
+        },
+        { data: 'ultimo_acceso_fmt', width: '120px' },
+        {
+            data: null,
+            orderable: false,
+            width: '70px',
+            render: function (data, type, row) {
+                const mapaColorFicha = { sin_iniciar: '#dc3545', incompleta: '#ffc107', completa: '#28a745' };
+                const mapaTituloFicha = { sin_iniciar: 'Ficha sin iniciar', incompleta: 'Ficha incompleta', completa: 'Ficha completa' };
+                const colorFicha = mapaColorFicha[row.estado_ficha] || '#dc3545';
+                const tituloFicha = mapaTituloFicha[row.estado_ficha] || 'Ficha sin iniciar';
+
+                const sinProgramasDisponibles = row.programas_matriculados_activos >= row.programas_activos_totales;
+                const itemMatricularOtroPrograma = sinProgramasDisponibles
+                    ? `<li tabindex="0" title="Este estudiante ya está matriculado en todos los programas activos disponibles.">
+                           <button class="dropdown-item disabled" type="button" disabled>➕ Matricular en otro programa</button>
+                       </li>`
+                    : `<li>
+                           <button class="dropdown-item" type="button" onclick="abrirMatricular(${row.estu_id})" title="Matricular en un programa adicional">➕ Matricular en otro programa</button>
+                       </li>`;
+
+                return `<div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
+                                <i class="bi bi-gear-fill"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
+                                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
+                                </li>
+                                ${itemMatricularOtroPrograma}
+                            </ul>
+                        </div>`;
+            }
+        }
+    ];
+}
 
 // Fuera de ready — requerido para onclick inline de DataTables
 function abrirEditar(estu_id, esAspirante) {
@@ -1261,13 +1343,20 @@ function descargarFichaPdf(estu_id) {
     window.open('../06_reportes/pdf_ficha.php?estu_id=' + estu_id, '_blank');
 }
 
-function verModulosEstudiante(estu_id, nombreCompleto, prog_id) {
+// peri_id ahora llega como 4º parámetro explícito desde el onclick inline del
+// botón de total_modulos (row.peri_id, ya incluido en la respuesta de
+// listar_matriculados) — antes se leía de #slct_filtro_matr_peri_id, un
+// selector único que dejó de existir al dividirse en las pestañas Per.
+// Actual/Per. Anteriores (cada una con su propia fuente de peri_id, o
+// ninguna en el caso de Actual). Así la función queda correcta en ambas
+// pestañas sin depender de cuál filtro esté visible.
+function verModulosEstudiante(estu_id, nombreCompleto, prog_id, peri_id) {
     $('#mdl_modulos_estudiante_titulo').text('Módulos de ' + nombreCompleto);
-    const data = { estu_id: estu_id, peri_id: $('#slct_filtro_matr_peri_id').val() };
+    const data = { estu_id: estu_id, peri_id: peri_id };
     // prog_id es opcional (tercer parámetro): solo se envía cuando el
     // llamador conoce la matrícula/programa específico de la fila (ej. el
-    // botón de total_modulos en tablaMatriculados). Sin él, el backend
-    // conserva el comportamiento anterior (todos los programas).
+    // botón de total_modulos en tablaMatriculadosActual/Anteriores). Sin él,
+    // el backend conserva el comportamiento anterior (todos los programas).
     if (prog_id !== undefined && prog_id !== null) {
         data.prog_id = prog_id;
     }
@@ -1291,7 +1380,7 @@ function verModulosEstudiante(estu_id, nombreCompleto, prog_id) {
                     `);
                 });
             } else {
-                const mensaje = $('#slct_filtro_matr_peri_id').val()
+                const mensaje = peri_id
                     ? 'Sin módulos asignados para el período filtrado'
                     : 'Sin módulos asignados';
                 tbody.append(`<tr><td colspan="4" class="text-muted text-center">${mensaje}</td></tr>`);

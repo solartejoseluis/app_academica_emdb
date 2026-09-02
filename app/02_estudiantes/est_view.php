@@ -44,7 +44,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             <a class="nav-link active" id="tab-aspirantes" data-bs-toggle="tab" href="#pane-aspirantes">Aspirantes</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" id="tab-matriculados" data-bs-toggle="tab" href="#pane-matriculados">Matriculados</a>
+            <a class="nav-link" id="tab-matriculados-actual" data-bs-toggle="tab" href="#pane-matriculados-actual">Matriculados (Per. Actual)</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="tab-matriculados-anteriores" data-bs-toggle="tab" href="#pane-matriculados-anteriores">Matriculados (Per. Anteriores)</a>
         </li>
     </ul>
 
@@ -71,38 +74,92 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="pane-matriculados">
+        <div class="tab-pane fade" id="pane-matriculados-actual">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <?php if (in_array((int)$_SESSION['role_id'], [1, 2])): ?>
-                    <div class="row mb-2" id="bloque_filtros_matriculados">
+                    <div class="row mb-2" id="bloque_filtros_matriculados_actual">
                         <div class="col-md-3">
                             <label class="form-label small mb-1">Programa</label>
-                            <select class="form-select form-select-sm" id="slct_filtro_matr_prog_id">
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_prog_id_actual">
                                 <option value="">Todos</option>
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small mb-1">Período</label>
-                            <select class="form-select form-select-sm" id="slct_filtro_matr_peri_id">
-                                <option value="">Todos</option>
-                            </select>
+                            <input type="text" class="form-control form-control-sm" id="txt_periodo_activo" readonly disabled>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small mb-1">Grupo</label>
-                            <select class="form-select form-select-sm" id="slct_filtro_matr_grse_id">
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_grse_id_actual">
                                 <option value="">Todos</option>
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small mb-1">Módulo</label>
-                            <select class="form-select form-select-sm" id="slct_filtro_matr_modu_id">
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_modu_id_actual">
                                 <option value="">Todos</option>
                             </select>
                         </div>
                     </div>
                     <?php endif; ?>
-                    <table id="tbl_matriculados" class="table table-hover table-bordered w-100">
+                    <table id="tbl_matriculados_actual" class="table table-hover table-bordered w-100">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Foto</th>
+                                <th>#</th>
+                                <th>Nombres</th>
+                                <th>Apellidos</th>
+                                <th>Documento</th>
+                                <th>Edad</th>
+                                <th>Correo</th>
+                                <th>Cohorte</th>
+                                <th>Programa</th>
+                                <th>Semestre</th>
+                                <th>Período</th>
+                                <th>Módulos</th>
+                                <th>Estado</th>
+                                <th>Último acceso</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="pane-matriculados-anteriores">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <?php if (in_array((int)$_SESSION['role_id'], [1, 2])): ?>
+                    <div class="row mb-2" id="bloque_filtros_matriculados_anteriores">
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Programa</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_prog_id_anteriores">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Período</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_peri_id_anteriores">
+                            </select>
+                            <div class="form-text">Lista todos los períodos excepto el activo. Sin opción "Todos" — siempre hay un período seleccionado.</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Grupo</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_grse_id_anteriores">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Módulo</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_modu_id_anteriores">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <table id="tbl_matriculados_anteriores" class="table table-hover table-bordered w-100">
                         <thead class="table-dark">
                             <tr>
                                 <th>Foto</th>
