@@ -421,10 +421,12 @@ $(document).ready(function () {
         let prog_id  = $('#slct_prog_id').val();
         let coho_id  = $('#slct_coho_id').val();
         let peri_id  = $('#slct_peri_id').val();
+        let matr_semestre = $('#slct_matr_semestre').val();
 
         if (!prog_id) { alert('Seleccione el programa.');  return false; }
         if (!coho_id) { alert('Seleccione la cohorte.');   return false; }
         if (!peri_id) { alert('Seleccione el período.');   return false; }
+        if (!matr_semestre) { alert('Seleccione el semestre.'); return false; }
 
         let tipo_acceso = $('input[name="tipo_acceso"]:checked').val();
         if (tipo_acceso === 'manual' && !$('#npt_clave_manual').val().trim()) {
@@ -437,6 +439,7 @@ $(document).ready(function () {
             prog_id:           prog_id,
             peri_id:           peri_id,
             coho_id:           $('#slct_coho_id').val(),
+            matr_semestre:     matr_semestre,
             matr_folio:        $('#npt_matr_folio').val().trim(),
             fechamatricula:    $('#npt_fechamatricula').val(),
             matr_observacion:  $('#npt_matr_observacion').val().trim(),
@@ -513,6 +516,7 @@ $(document).ready(function () {
         $('#slct_coho_id').val('');
         $('#slct_prog_id').val('');
         $('#slct_peri_id').val('');
+        poblarSelectSemestre('#slct_matr_semestre', 0);
         $('#npt_matr_folio').val('');
         $('#npt_fechamatricula').val('');
         $('#npt_matr_observacion').val('');
@@ -524,10 +528,12 @@ $(document).ready(function () {
         const prog_id = $('#slct_editar_prog_id').val();
         const coho_id = $('#slct_editar_coho_id').val();
         const peri_id = $('#slct_editar_peri_id').val();
+        const matr_semestre = $('#slct_editar_matr_semestre').val();
 
         if (!prog_id) { alert('Seleccione el programa.'); return false; }
         if (!coho_id) { alert('Seleccione la cohorte.');  return false; }
         if (!peri_id) { alert('Seleccione el período.');  return false; }
+        if (!matr_semestre) { alert('Seleccione el semestre.'); return false; }
 
         const matr_folio       = $('#npt_editar_matr_folio').val().trim();
         const fechamatricula   = $('#npt_editar_fechamatricula').val();
@@ -542,6 +548,7 @@ $(document).ready(function () {
                 prog_id: prog_id,
                 coho_id: coho_id,
                 peri_id: peri_id,
+                matr_semestre: matr_semestre,
                 matr_folio: matr_folio,
                 fechamatricula: fechamatricula,
                 matr_observacion: matr_observacion,
@@ -799,7 +806,7 @@ $(document).ready(function () {
                 if (response.status === 'ok') {
                     let opciones = '';
                     response.data.forEach(function (p) {
-                        opciones += `<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
+                        opciones += `<option value="${p.prog_id}" data-duracion="${p.prog_duracion_semestres}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                     });
                     $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id, #slct_editar_prog_id').append(opciones);
                 }
@@ -864,8 +871,10 @@ $(document).ready(function () {
         if (prog_id) {
             $('#slct_coho_id').prop('disabled', false);
             cargarCohortesPorPrograma(prog_id);
+            poblarSelectSemestre('#slct_matr_semestre', $(this).find('option:selected').data('duracion'));
         } else {
             $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
+            poblarSelectSemestre('#slct_matr_semestre', 0);
         }
     });
 
@@ -875,8 +884,10 @@ $(document).ready(function () {
         if (prog_id) {
             $('#slct_editar_coho_id').prop('disabled', false);
             cargarCohortesPorPrograma(prog_id, '#slct_editar_coho_id');
+            poblarSelectSemestre('#slct_editar_matr_semestre', $(this).find('option:selected').data('duracion'));
         } else {
             $('#slct_editar_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
+            poblarSelectSemestre('#slct_editar_matr_semestre', 0);
         }
     });
 
@@ -1101,6 +1112,7 @@ function abrirMatricular(estu_id) {
     $('#npt_estu_id_matricular').val(estu_id);
     $('#slct_prog_id, #slct_peri_id').val('');
     $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
+    poblarSelectSemestre('#slct_matr_semestre', 0);
     $('#slct_jornada_declarada').val('');
     $('#npt_matr_folio').val('');
     $('#npt_matr_observacion').val('');
@@ -1155,6 +1167,28 @@ function abrirMatricular(estu_id) {
     new bootstrap.Modal(document.getElementById('mdl_matricular')).show();
 }
 
+// Global (no dentro de $(document).ready) — mismo motivo que
+// cargarCohortesPorPrograma justo debajo: se invoca tanto desde los
+// listeners de change de #slct_prog_id / #slct_editar_prog_id (dentro de
+// ready) como desde abrirMatricular()/abrirEditarMatricula() (global).
+// Repuebla un <select> de semestre con 1..duracion. duracion viene del
+// atributo data-duracion que cargarProgramas() ya agrega a cada <option>
+// de programa (prog_duracion_semestres) — sin llamada AJAX adicional.
+// valorSeleccionado es opcional (precarga en modo edición); si se omite,
+// selecciona 1.
+function poblarSelectSemestre(selectorDestino, duracion, valorSeleccionado) {
+    const $sel = $(selectorDestino);
+    if (!duracion || duracion < 1) {
+        $sel.prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
+        return;
+    }
+    let opciones = '';
+    for (let i = 1; i <= duracion; i++) {
+        opciones += `<option value="${i}">${i}</option>`;
+    }
+    $sel.prop('disabled', false).html(opciones).val(valorSeleccionado || 1);
+}
+
 // Global (no dentro de $(document).ready) — se invoca desde el onclick inline
 // del botón "✏️ Matrícula" renderizado por el DataTable, y también desde los
 // listeners de change de #slct_prog_id / #slct_editar_prog_id dentro de ready.
@@ -1197,6 +1231,7 @@ function abrirEditarMatricula(matr_id) {
             $('#mdl_editar_matricula_titulo').text('Editar Matrícula de ' + d.estu_nombres + ' ' + d.estu_apellidos);
             $('#aviso_editar_matricula').hide();
             $('#slct_editar_prog_id').val(d.prog_id);
+            poblarSelectSemestre('#slct_editar_matr_semestre', $('#slct_editar_prog_id option:selected').data('duracion'), d.matr_semestre);
             $('#slct_editar_peri_id').val(d.peri_id);
             $('#npt_editar_matr_folio').val(d.matr_folio || '');
             $('#npt_editar_fechamatricula').val(d.fechamatricula || '');

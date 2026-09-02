@@ -229,9 +229,20 @@ CREATE TABLE modulos (
 --      'matriculado'= matrícula confirmada (AC-FO-09 diligenciado + pago)
 --      'retirado'   = se retiró durante el período
 --      'graduado'   = proceso completado
+--      'cursado'    = valor reservado para la futura acción "avanzar de
+--                     semestre" (aún no implementada) — la matrícula del
+--                     semestre anterior transicionaría a este estado en
+--                     vez de permanecer en 'matriculado'. No usado todavía
+--                     por ningún endpoint.
 --    matr_estado_academico: condición académica del semestre en curso
 --    (independiente de matr_estado, que es el ciclo de vida del trámite
 --    de matrícula) — 'Activo'/'Aplazamiento'/'Retirado', default 'Activo'.
+--    matr_semestre: semestre del programa que cursa ESTA matrícula (1-8,
+--    default 1) — validado en backend contra programas.prog_duracion_semestres
+--    del prog_id de la propia fila. Vive en matriculas (no en gruposemestres)
+--    porque describe la posición del estudiante en su propio plan de
+--    estudios, independiente de en qué grse_semestre de qué grupo curse
+--    sus módulos ese período.
 --    coho_id: cohorte de esta matrícula específica (cada matrícula/programa
 --    tiene su propia cohorte). estudiantes.coho_id se conserva como respaldo
 --    histórico, sin escrituras nuevas desde esta migración.
@@ -243,10 +254,11 @@ CREATE TABLE matriculas (
   prog_id              SMALLINT UNSIGNED NOT NULL,
   peri_id              SMALLINT UNSIGNED NOT NULL,
   coho_id              SMALLINT UNSIGNED DEFAULT NULL,
-  matr_estado          ENUM('aspirante','matriculado','retirado','graduado')
+  matr_estado          ENUM('aspirante','matriculado','retirado','graduado','cursado')
                        NOT NULL DEFAULT 'aspirante',
   matr_estado_academico ENUM('Activo','Aplazamiento','Retirado')
                        NOT NULL DEFAULT 'Activo',
+  matr_semestre        TINYINT UNSIGNED  NOT NULL DEFAULT 1,   -- semestre del programa que cursa esta matrícula (1-8)
   matr_folio           VARCHAR(20)       DEFAULT NULL,
   matr_numero          INT UNSIGNED      DEFAULT NULL,
   matr_matriculadopor  VARCHAR(80)       DEFAULT NULL,

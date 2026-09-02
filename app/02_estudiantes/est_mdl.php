@@ -147,12 +147,12 @@ switch ($accion) {
                             JOIN gruposemestres gs3 ON gm3.grse_id = gs3.grse_id
                             WHERE ge3.estu_id = e.estu_id AND gm3.grmo_activo = 1
                               AND gs3.prog_id = m.prog_id{$condicionPeriodoModulos}) AS total_modulos,
-                           -- A diferencia de total_modulos (filtrado por prog_id/período de
-                           -- ESTA fila), total_matriculas_estudiante cuenta TODAS las filas de
-                           -- matriculas del estudiante sin filtrar por prog_id/peri_id — es
-                           -- intencional: el indicador 'N programas' debe reflejar cuántas
-                           -- matrículas tiene la persona en total, no las de esta fila.
-                           (SELECT COUNT(*) FROM matriculas mt3 WHERE mt3.estu_id = e.estu_id) AS total_matriculas_estudiante,
+                           -- COUNT(DISTINCT prog_id), no COUNT(*): el indicador 'N programas'
+                           -- debe reflejar programas DISTINTOS que la persona cursa, no filas
+                           -- de matriculas — desde que matr_semestre permite varias filas por
+                           -- estu_id+prog_id (una por semestre), COUNT(*) contaba de más (ej.
+                           -- 2 semestres del mismo programa mostraban '2 programas').
+                           (SELECT COUNT(DISTINCT mt3.prog_id) FROM matriculas mt3 WHERE mt3.estu_id = e.estu_id) AS total_matriculas_estudiante,
                            (SELECT GROUP_CONCAT(CONCAT(p2.prog_sigla, ' — ', UPPER(LEFT(mt4.matr_estado, 1)), SUBSTRING(mt4.matr_estado, 2))
                                                  ORDER BY mt4.matr_id SEPARATOR ', ')
                             FROM matriculas mt4
@@ -216,7 +216,7 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
-            $stmt = $pdo->prepare("SELECT prog_id, prog_nombre, prog_sigla FROM programas ORDER BY prog_nombre ASC");
+            $stmt = $pdo->prepare("SELECT prog_id, prog_nombre, prog_sigla, prog_duracion_semestres FROM programas ORDER BY prog_nombre ASC");
             $stmt->execute();
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (PDOException $e) {
@@ -474,6 +474,25 @@ switch ($accion) {
                 break;
             }
 
+            // matr_semestre: si no llega por POST, se asume semestre 1
+            // explícitamente (no se deja el INSERT sin columna confiando en
+            // el DEFAULT de la tabla) — igual pasa por la misma validación
+            // contra prog_duracion_semestres que un valor sí enviado.
+            $matr_semestre_raw = trim($_POST['matr_semestre'] ?? '');
+            $matr_semestre = ($matr_semestre_raw === '') ? 1 : (int)$matr_semestre_raw;
+
+            $stmtProgDur = $pdo->prepare("SELECT prog_duracion_semestres FROM programas WHERE prog_id = ?");
+            $stmtProgDur->execute([$prog_id]);
+            $prog_duracion_semestres = $stmtProgDur->fetchColumn();
+            if ($prog_duracion_semestres === false) {
+                echo json_encode(['status' => 'error', 'message' => 'Programa no encontrado']);
+                break;
+            }
+            if ($matr_semestre < 1 || $matr_semestre > (int)$prog_duracion_semestres) {
+                echo json_encode(['status' => 'error', 'message' => 'Semestre inválido para este programa']);
+                break;
+            }
+
             // Validación de programa duplicado: si el estudiante ya está
             // 'matriculado' en este mismo prog_id pero en OTRO peri_id, esto
             // no es una reactivación de la matrícula exacta (esa la cubre el
@@ -525,7 +544,7 @@ switch ($accion) {
             if ($existingMatr) {
                 $stmtM = $pdo->prepare(
                     "UPDATE matriculas
-                     SET matr_estado = 'matriculado', coho_id = ?, matr_folio = ?,
+                     SET matr_estado = 'matriculado', coho_id = ?, matr_semestre = ?, matr_folio = ?,
                          fechamatricula = ?, matr_observacion = ?,
                          req_copiadiploma = ?, req_actagrado = ?, req_documento = ?,
                          req_carnetsalud = ?, req_examenmedico = ?, req_fotos = ?,
@@ -533,7 +552,7 @@ switch ($accion) {
                      WHERE matr_id = ?"
                 );
                 $stmtM->execute([
-                    $coho_id,
+                    $coho_id, $matr_semestre,
                     $matr_folio, $fechamatricula, $matr_observacion,
                     $req['req_copiadiploma'], $req['req_actagrado'], $req['req_documento'],
                     $req['req_carnetsalud'], $req['req_examenmedico'], $req['req_fotos'],
@@ -543,16 +562,16 @@ switch ($accion) {
             } else {
                 $stmtM = $pdo->prepare(
                     "INSERT INTO matriculas
-                        (estu_id, prog_id, peri_id, coho_id, matr_estado, matr_folio,
+                        (estu_id, prog_id, peri_id, coho_id, matr_estado, matr_semestre, matr_folio,
                          fechainscripcion, fechamatricula, matr_observacion,
                          req_copiadiploma, req_actagrado, req_documento,
                          req_carnetsalud, req_examenmedico, req_fotos,
                          req_carpeta, req_vacunastetano, req_hepatitisb)
-                     VALUES (?, ?, ?, ?, 'matriculado', ?, CURDATE(), ?, ?,
+                     VALUES (?, ?, ?, ?, 'matriculado', ?, ?, CURDATE(), ?, ?,
                              ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 );
                 $stmtM->execute([
-                    $estu_id, $prog_id, $peri_id, $coho_id,
+                    $estu_id, $prog_id, $peri_id, $coho_id, $matr_semestre,
                     $matr_folio, $fechamatricula, $matr_observacion,
                     $req['req_copiadiploma'], $req['req_actagrado'], $req['req_documento'],
                     $req['req_carnetsalud'], $req['req_examenmedico'], $req['req_fotos'],
@@ -648,7 +667,7 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
-                SELECT m.matr_id, m.prog_id, m.peri_id, m.estu_id, m.coho_id,
+                SELECT m.matr_id, m.prog_id, m.peri_id, m.estu_id, m.coho_id, m.matr_semestre,
                        m.matr_folio, m.fechamatricula, m.matr_observacion, m.matr_numero,
                        e.estu_nombres, e.estu_apellidos
                 FROM matriculas m
@@ -703,6 +722,25 @@ switch ($accion) {
                 break;
             }
 
+            // matr_semestre: misma validación que 'matricular' — si no llega
+            // por POST, se asume semestre 1 explícitamente.
+            $matr_semestre_raw = trim($_POST['matr_semestre'] ?? '');
+            $matr_semestre = ($matr_semestre_raw === '') ? 1 : (int)$matr_semestre_raw;
+
+            $stmtProgDur = $pdo->prepare("SELECT prog_duracion_semestres FROM programas WHERE prog_id = ?");
+            $stmtProgDur->execute([$prog_id]);
+            $prog_duracion_semestres = $stmtProgDur->fetchColumn();
+            if ($prog_duracion_semestres === false) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'Programa no encontrado']);
+                break;
+            }
+            if ($matr_semestre < 1 || $matr_semestre > (int)$prog_duracion_semestres) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'Semestre inválido para este programa']);
+                break;
+            }
+
             // Misma validación de programa duplicado ya usada en 'matricular':
             // si el nuevo prog_id coincide con el de OTRA matrícula
             // 'matriculado' del mismo estudiante (matr_id distinto al que se
@@ -730,11 +768,11 @@ switch ($accion) {
 
             $stmtM = $pdo->prepare(
                 "UPDATE matriculas
-                 SET prog_id = ?, peri_id = ?, coho_id = ?, matr_folio = ?,
+                 SET prog_id = ?, peri_id = ?, coho_id = ?, matr_semestre = ?, matr_folio = ?,
                      fechamatricula = ?, matr_observacion = ?, matr_numero = ?
                  WHERE matr_id = ?"
             );
-            $stmtM->execute([$prog_id, $peri_id, $coho_id, $matr_folio, $fechamatricula, $matr_observacion, $matr_numero, $matr_id]);
+            $stmtM->execute([$prog_id, $peri_id, $coho_id, $matr_semestre, $matr_folio, $fechamatricula, $matr_observacion, $matr_numero, $matr_id]);
 
             $stmtDel = $pdo->prepare("
                 DELETE ge FROM grmoestudiantes ge
@@ -1276,7 +1314,7 @@ switch ($accion) {
                         fi.acud_es, fi.acud_parentesco, fi.acud_nombres, fi.acud_apellidos, fi.acud_profesion,
                         fi.acud_empresa, fi.acud_telefono, fi.acud_direccion, fi.acud_barrio, fi.acud_ciudad,
                         fi.estudio_tipo, fi.estudio_titulo, fi.estudio_institucion, fi.estudio_aniofin,
-                        m.matr_estado
+                        m.matr_estado, m.matr_semestre
                  FROM estudiantes e
                  LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
                  LEFT JOIN matriculas m ON m.estu_id = e.estu_id

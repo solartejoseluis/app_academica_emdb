@@ -587,6 +587,14 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
+                        <label class="form-label">Semestre <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_matr_semestre" disabled>
+                            <option value="">-- Primero seleccione un programa --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Jornada declarada (Ficha de Inscripción)</label>
                         <select class="form-select" id="slct_jornada_declarada" disabled>
                             <option value="">-- Seleccionar --</option>
@@ -720,6 +728,12 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     <label class="form-label">Período <span class="text-danger">*</span></label>
                     <select class="form-select" id="slct_editar_peri_id">
                         <option value="">-- Seleccionar --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Semestre <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_editar_matr_semestre" disabled>
+                        <option value="">-- Primero seleccione un programa --</option>
                     </select>
                 </div>
 
