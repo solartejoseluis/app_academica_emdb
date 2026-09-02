@@ -4,6 +4,119 @@
 
 ---
 
+## [c985188] — 2026-09-02 — feat(matriculas): agrega matr_semestre con validación y corrige badge de programas
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Por qué
+Precede a la futura acción "avanzar de semestre" (matricular a un
+estudiante ya matriculado a su siguiente semestre dentro del mismo
+programa), motivada por un diagnóstico previo de solo lectura (sin
+commit) sobre alternativas de diseño — nueva fila en `matriculas` por
+semestre cursado vs. actualizar la fila existente. El diagnóstico
+concluyó que el esquema ya soporta múltiples filas por
+`estu_id`+`prog_id` (la `UNIQUE KEY uq_matr_estu_peri_prog` solo exige
+`peri_id` distinto) y que el código ya tiene precedente para resolver
+"la matrícula vigente" cuando hay varias filas por estudiante
+(`ORDER BY matr_id DESC LIMIT 1`, ya usado en `pdf_hoja_matricula.php`
+y `case 'obtener_completo'`) — la alternativa de nueva fila rompe
+menos código existente. Este commit sienta la base de esquema y UI de
+esa alternativa, sin implementar todavía la acción de avance en sí.
+
+### Cambios — Esquema (`database/emdb_academica.sql`)
+- Nueva columna `matriculas.matr_semestre` (`TINYINT UNSIGNED NOT NULL
+  DEFAULT 1`) — semestre del programa que cursa esa matrícula (1-N).
+  Aplicada primero como `ALTER TABLE` contra el contenedor Docker
+  vivo, luego reflejada en el seed para que un import limpio quede
+  coherente (mismo procedimiento ya usado en migraciones anteriores,
+  ej. `3e551e5`).
+- `matriculas.matr_estado` (ENUM) ampliado con `'cursado'` — **valor
+  reservado, sin uso todavía**: ningún `case` de ningún `_mdl.php`
+  del proyecto lo escribe (confirmado por grep). Quedará disponible
+  para cuando se implemente "avanzar de semestre": la matrícula del
+  semestre anterior transicionaría a este estado en vez de permanecer
+  en `'matriculado'`.
+
+### Cambios — Backend (`est_mdl.php`)
+- `case 'matricular'` y `case 'editar_matricula'`: reciben
+  `matr_semestre` por POST, validado contra
+  `programas.prog_duracion_semestres` del `prog_id` de la matrícula
+  (`SELECT` previo) — rechaza con `"Semestre inválido para este
+  programa"` si es `< 1` o excede la duración. Si no llega por POST,
+  se asume `1` explícitamente (no se deja que el `INSERT` dependa en
+  silencio del `DEFAULT` de la columna sin pasar por la misma
+  validación). Incluido en el `INSERT`, y en ambos `UPDATE` (la
+  reactivación de una matrícula existente dentro de `'matricular'`, y
+  el guardado normal de `'editar_matricula'`).
+- `case 'obtener_matricula'` (alimenta el modal Editar Matrícula) y
+  `case 'obtener_completo'` (modal Datos Estudiante): agregan
+  `m.matr_semestre` al `SELECT`.
+- `case 'listar_programas'`: agrega `prog_duracion_semestres` al
+  `SELECT` — necesario para que el frontend sepa hasta qué semestre
+  poblar el select, sin una llamada AJAX adicional.
+- **Fix de bug preexistente** en `case 'listar_matriculados'`: la
+  subconsulta de `total_matriculas_estudiante` (alimenta el badge
+  "🎓 N programas", `1529832`) usaba `COUNT(*)` de filas de
+  `matriculas` como proxy de "número de programas" — válido mientras
+  cada `estu_id`+`prog_id` tenía como máximo una fila, pero
+  `matr_semestre` permite ahora varias (una por semestre cursado del
+  mismo programa), lo que habría inflado el conteo (ej. un estudiante
+  en su 2º semestre del mismo programa habría mostrado "🎓 2
+  programas"). Corregido a `COUNT(DISTINCT mt3.prog_id)` — mismo
+  criterio ya usado en `programas_matriculados_activos`.
+
+### Cambios — Frontend (`est_view.php` + `est_ctrl.js`)
+- Select `#slct_matr_semestre` (modal Completar Matrícula) y
+  `#slct_editar_matr_semestre` (modal Editar Matrícula), deshabilitados
+  hasta seleccionar un programa.
+- `cargarProgramas()` agrega `data-duracion="${prog_duracion_semestres}"`
+  a cada `<option>` de programa — evita una llamada AJAX adicional
+  para poblar el select de semestre.
+- Nueva función global `poblarSelectSemestre(selectorDestino, duracion,
+  valorSeleccionado)` (declarada fuera de `$(document).ready`, mismo
+  motivo que `cargarCohortesPorPrograma`: la invocan tanto los
+  listeners de `change` dentro de `ready` como `abrirMatricular()`/
+  `abrirEditarMatricula()` en scope global) — genera las opciones
+  `1..duracion`, preselecciona `1` por defecto o el valor recibido.
+  Enganchada a los `change` de `#slct_prog_id`/`#slct_editar_prog_id`,
+  al reset de `abrirMatricular()`/cierre del modal, y a la precarga de
+  `abrirEditarMatricula()`.
+- Ambos payloads de guardado (`btn_confirmar_matricula`,
+  `btn_guardar_editar_matricula`) incluyen `matr_semestre`, con
+  validación de campo vacío en cliente antes del `$.ajax`.
+
+### Decisión — `obtener_completo` recibe la columna sin exponerla en UI
+El modal "Datos Estudiante" (`#mdl_estudiante`) no es el modal editable
+de matrícula — ese es "Editar Matrícula". Se agregó `m.matr_semestre`
+al `SELECT` de `obtener_completo` porque el dato es igual de barato de
+traer y puede ser útil para una fase futura, pero deliberadamente
+**no** se renderiza en ningún lado del modal — mostrar "Semestre: N"
+ahí se acerca a la columna de listado que queda fuera de alcance de
+este commit.
+
+### Pruebas realizadas
+`php -l` sin errores (detectó y permitió corregir un error real: un
+comentario SQL con comillas dobles cerraba prematuramente el string
+PHP de `listar_matriculados` — corregido antes de tocar la BD).
+Contra el contenedor Docker vivo, vía `curl` autenticado (sesión de
+coordinador) + verificación directa en MySQL, con limpieza de los
+datos de prueba al finalizar:
+- Matricular sin enviar `matr_semestre` → `matr_semestre=1` guardado.
+- Editar matrícula a semestre `5` en un programa de duración `4`
+  (ASO) → rechazado con `"Semestre inválido para este programa"`,
+  fila sin modificar (`matr_semestre` seguía en `1`, confirmando el
+  `rollBack()`); edición válida posterior a semestre `3` sí se aplicó.
+- Estudiante con 2 matrículas del mismo programa en períodos
+  distintos (simulando un avance de semestre) → `listar_matriculados`
+  devuelve `total_matriculas_estudiante=1` (antes del fix habría sido
+  `2`).
+
+---
+
 ## [e1c232d] — 2026-09-01 — feat(docentes): agrupa Acciones de tablaDocentes en dropdown con ícono de tuerca
 
 ### Archivos modificados
