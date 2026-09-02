@@ -729,6 +729,17 @@ $(document).ready(function () {
                 { data: 'estu_email' },
                 { data: 'coho_codigo', render: v => v || '—' },
                 { data: 'prog_sigla', width: '70px' },
+                {
+                    data: null,
+                    width: '60px',
+                    render: function (data, type, row) {
+                        if (row.matr_semestre == null || row.prog_duracion_semestres == null) return '—';
+                        const texto = `${row.matr_semestre}/${row.prog_duracion_semestres}`;
+                        return (row.matr_semestre == row.prog_duracion_semestres)
+                            ? `<span style="background-color:#cfe2ff;padding:2px 6px;border-radius:4px;">${texto}</span>`
+                            : texto;
+                    }
+                },
                 { data: 'peri_codigo', width: '80px' },
                 {
                     data: 'total_modulos',

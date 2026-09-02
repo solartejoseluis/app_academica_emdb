@@ -171,7 +171,8 @@ switch ($accion) {
                             WHERE mt5.estu_id = e.estu_id
                               AND mt5.matr_estado = 'matriculado'
                               AND p3.prog_activo = 1) AS programas_matriculados_activos,
-                           p.prog_sigla, pe.peri_codigo, m.matr_estado, m.matr_id, m.prog_id AS matr_prog_id,
+                           p.prog_sigla, p.prog_duracion_semestres, m.matr_semestre,
+                           pe.peri_codigo, m.matr_estado, m.matr_id, m.prog_id AS matr_prog_id,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
                            fi.padr_telefono, fi.padr_direccion, fi.padr_barrio, fi.padr_ciudad,
