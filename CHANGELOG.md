@@ -62,12 +62,16 @@ autenticado (sesión de coordinador): `listar_matriculados` devuelve
 `matr_semestre`/`prog_duracion_semestres` correctamente para las 17
 filas actuales (ej. `CARRILLO PEREZ — ASO — matr_semestre: 1 —
 prog_duracion_semestres: 4`). Verificación visual en navegador **no
-realizada en esta sesión** — sin herramienta de navegador disponible
-(extensión de Chrome sin conectar); se probaron temporalmente 2 filas
-reales (`matr_id=1` → semestre `2/5`, `matr_id=5` → semestre `5/5`,
-para forzar ambas ramas del `render()`) directamente en MySQL y se
-revirtieron de inmediato a `1` sin dejar datos de prueba. Pendiente de
-confirmación visual por Jose Luis.
+realizada en la misma sesión del commit** — sin herramienta de
+navegador disponible en ese momento (extensión de Chrome sin
+conectar); se probaron temporalmente 2 filas reales (`matr_id=1` →
+semestre `2/5`, `matr_id=5` → semestre `5/5`, para forzar ambas ramas
+del `render()`) directamente en MySQL y se revirtieron de inmediato a
+`1` sin dejar datos de prueba. **Confirmada posteriormente por Jose
+Luis en navegador:** posición de la columna correcta (entre "Programa"
+y "Período"), formato "N/M" correcto, resaltado `#cfe2ff` visible en
+el último semestre, sin desplazamiento de las columnas siguientes
+(Período/Módulos/Estado/Último acceso/Acciones).
 
 ---
 

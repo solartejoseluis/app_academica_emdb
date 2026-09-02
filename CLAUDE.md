@@ -1307,6 +1307,13 @@ necesita una restricción UNIQUE (hoy no la tiene).
 | 2.9.C | Columna "Acción" de `tablaAspirantes` (`02_estudiantes`) agrupada en dropdown de ícono — reemplaza 2 botones en línea (Matricular, 📝 Datos Estudiante) por `bi-gear-fill` + dropdown de Bootstrap con 3 acciones, agrega "🖨️ Ficha de Inscripción" como ítem nuevo (antes solo dentro del modal "Datos Estudiante"), siempre habilitado sin validar `estado_ficha` en frontend (Opción A). Solo frontend — sin fase de backend, `estado_ficha` ya viajaba en `listar_aspirantes` | ✅ 2026-09-01 (commit `9346a76`) |
 | 2.9.D | Columna "Acciones" de `tablaDocentes` (`03_docentes`, primer uso del patrón fuera de `02_estudiantes`) agrupada en dropdown de ícono — reemplaza 2 botones en línea (Editar + uno de Eliminar/Desactivar/Activar, mutuamente excluyentes) por `bi-gear-fill` + dropdown de Bootstrap con 2 ítems; a diferencia de A-C, esta columna nunca acumuló 3+ botones — se aplicó por decisión explícita de uniformidad visual (ver Decisiones arquitectónicas activas), sin funcionalidad nueva ni indicador visual tipo punto de color que conservar. CDN de Bootstrap Icons agregado a `doc_view.php` por primera vez. Sin cambios de backend | ✅ 2026-09-01 (commit `e1c232d`) |
 
+### Phase 2.10 — Semestre de la matrícula (preparación de esquema + primer consumidor visible)
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| 2.10.A | `matriculas.matr_semestre` + ENUM `matr_estado` ampliado con `'cursado'` (reservado, sin uso todavía) — preparación de esquema y validación server-side contra `programas.prog_duracion_semestres` para la futura acción "avanzar de semestre"; detalle completo en "Decisiones arquitectónicas activas" (`matriculas.matr_semestre`... / ENUM `matriculas.matr_estado` ampliado con `'cursado'`...) | ✅ 2026-09-02 (commit `c985188`) |
+| 2.10.B | Columna "Semestre" en `tablaMatriculados` (`02_estudiantes`) — primer consumidor real en la UI de `matr_semestre`/`prog_duracion_semestres` (ambos agregados al `SELECT` de `listar_matriculados`), formato "N/M" entre "Programa" y "Período", resaltado `#cfe2ff` en el último semestre (mismo estilo inline que la columna Edad) | ✅ 2026-09-02 (commit `8884cb4`), verificado en navegador |
+
 ### Phase 3 — Validación TRL5
 
 | Ítem | Descripción | Estado |
