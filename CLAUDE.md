@@ -430,6 +430,28 @@ Excepción al patrón "Select → Input bridge" de arriba: cuando un `<select>` 
 
 Primer uso: `#slct_jornada_declarada` en el modal "Completar Matrícula" de `02_estudiantes` (commit `ef79791`, 2026-08-22) — muestra la jornada que el aspirante declaró en su Ficha Familiar (`fichas_inscripcion.jornada`) como referencia para el coordinador al crear el Grupo Semestre; `gruposemestres.grse_jornada` sigue siendo la única fuente operativa (ver la decisión "Jornada como atributo de grupo semestre" más abajo).
 
+### Select dependiente poblado vía atributo `data-*` en las opciones de otro select (sin llamada AJAX adicional)
+
+Cuando un `<select>` B debe repoblarse según la opción elegida en un `<select>` A, y el dato necesario para generar las opciones de B ya viaja incluido en la misma respuesta AJAX que pobló A, agregar ese dato como atributo `data-*` en cada `<option>` de A en vez de disparar una segunda llamada AJAX solo para volver a consultarlo. El handler `change` de A lee el atributo con `.find('option:selected').data('...')` y genera las opciones de B en el propio cliente, sin round-trip al servidor.
+
+```js
+// Al poblar A, se agrega el dato que B necesitará más adelante
+response.data.forEach(function (p) {
+    opciones += `<option value="${p.prog_id}" data-duracion="${p.prog_duracion_semestres}">${p.prog_sigla}</option>`;
+});
+```
+
+```js
+$('#slct_prog_id').on('change', function () {
+    const duracion = $(this).find('option:selected').data('duracion');
+    poblarSelectSemestre('#slct_matr_semestre', duracion); // genera 1..duracion en el cliente
+});
+```
+
+No usar este patrón si el dato de B no viaja ya en la respuesta que pobló A — en ese caso sí corresponde una llamada AJAX dedicada (ver `cargarCohortesPorPrograma()`, que depende de su propia consulta porque las cohortes no vienen en `listar_programas`).
+
+Primer uso: `data-duracion` en las opciones de `#slct_prog_id`/`#slct_editar_prog_id` (`02_estudiantes`, commit `c985188`, 2026-09-02) — repuebla `#slct_matr_semestre`/`#slct_editar_matr_semestre` con las opciones `1..prog_duracion_semestres` sin ninguna llamada AJAX adicional, vía la nueva función global `poblarSelectSemestre()` (declarada fuera de `$(document).ready` por el mismo motivo que `cargarCohortesPorPrograma` — ver "Funciones de refresh invocadas desde onclick inline..." en Patrones de ingeniería).
+
 ### Subida de archivos (FormData)
 
 Única excepción al patrón de objeto plano de datos usado en el resto del proyecto. Se usa exclusivamente cuando el AJAX debe subir un archivo real (ej. foto de estudiante) — nunca para formularios de texto/select normales, que siguen usando el objeto plano estándar.
@@ -1136,6 +1158,22 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Consecuencia:** El umbral de "3+ acciones" queda **superado como criterio de decisión** para todo el proyecto desde este commit — no se usa como condición para decidir si una columna de acciones nueva o existente amerita el dropdown. Cualquier columna de acciones por fila que se agregue o se toque a futuro (`04_grupos` y cualquier módulo nuevo) debe usar este patrón por consistencia, sin necesidad de contar primero cuántos botones tiene.
 - **Estado:** Activa.
 
+### `matriculas.matr_semestre`: posición del estudiante en su propio plan de estudios, no atributo de grupo semestre
+
+- **Contexto:** El commit `c985188` (2026-09-02) agrega `matriculas.matr_semestre` (`TINYINT UNSIGNED NOT NULL DEFAULT 1`) como preparación de esquema para la futura acción "avanzar de semestre" (matricular a un estudiante ya matriculado a su siguiente semestre dentro del mismo programa). El proyecto ya tenía un campo de semestre — `gruposemestres.grse_semestre` — antes de este commit.
+- **Decisión:** `matr_semestre` vive en `matriculas`, no se reutiliza ni se deriva de `gruposemestres.grse_semestre`. Representa el semestre del programa que cursa ESA fila de matrícula (1-N) — la posición del estudiante en su propio plan de estudios — y es independiente del `grse_semestre` de cualquier grupo semestre donde el estudiante curse módulos ese período.
+- **Razón:** `grse_semestre` describe al GRUPO, no al estudiante — un estudiante puede terminar cursando módulos dentro de un grupo semestre cuyo `grse_semestre` no coincide con su propio avance real en el programa (la asignación de estudiante a módulo vía `grmoestudiantes` es independiente de `matriculas`, ver "Estructura de módulos" y `grmoestudiantes` en Tablas del sistema). Mismo principio ya aplicado en "Jornada como atributo de grupo semestre, no de cohorte" (`grse_jornada` vive en el grupo, no en la cohorte, porque describen conceptos distintos) — mezclar `matr_semestre` con `grse_semestre` en un solo campo repetiría ese mismo acoplamiento incorrecto.
+- **Consecuencia:** `matr_semestre` se valida server-side (`case 'matricular'`/`case 'editar_matricula'`, `est_mdl.php`) contra `programas.prog_duracion_semestres` del `prog_id` de la propia matrícula — **nunca** contra `grse_semestre` de ningún grupo. El frontend (`#slct_matr_semestre`/`#slct_editar_matr_semestre`) valida solo para UX; el servidor nunca confía en ese valor sin revalidar — mismo criterio de "Validación en dos capas" ya documentado en Patrones de ingeniería, no una excepción.
+- **Estado:** Activa.
+
+### ENUM `matriculas.matr_estado` ampliado con `'cursado'` — valor reservado, sin uso todavía
+
+- **Contexto:** El mismo commit `c985188` amplía `matriculas.matr_estado` a `ENUM('aspirante','matriculado','retirado','graduado','cursado')`, adelantando el cambio de esquema que la futura acción "avanzar de semestre" va a necesitar: cuando se implemente, la matrícula del semestre anterior transicionaría a `'cursado'` en vez de permanecer en `'matriculado'`.
+- **Decisión:** `'cursado'` se agrega al ENUM por adelantado, en el mismo commit que agrega `matr_semestre`, pero **ningún endpoint lo escribe todavía** — confirmado por grep en todo `app/`. Que `'cursado'` nunca aparezca en ningún `SELECT`, reporte o listado actual no es un bug ni un flujo roto: sencillamente no existe todavía ningún camino en el código que lo produzca.
+- **Razón:** Adelantar el `ALTER TABLE` ahorra tener que repetirlo el día que se implemente la acción de avance — la columna y el valor del ENUM ya están listos, solo falta el `case` que los escriba.
+- **Consecuencia:** Antes de dar por bueno cualquier diagnóstico futuro sobre `matr_estado`, verificar con grep si `'cursado'` ya tiene algún escritor. Mientras esta nota siga vigente y el grep siga vacío, el valor sigue siendo puramente reservado — la acción "avanzar de semestre" es la única que debe empezar a escribirlo, ningún otro flujo.
+- **Estado:** Activa — reservado, pendiente de la implementación que lo consuma.
+
 ---
 
 ## Frontend stack
@@ -1292,7 +1330,7 @@ Cada tarea sigue este ciclo obligatorio de 6 fases:
 | 2. Análisis | Claude IA analiza resultados | Plantea opciones si las hay — Jose Luis elige |
 | 3. Implementación | Claude IA genera prompt → Claude Code ejecuta | Aplica cambios |
 | 4. Pruebas | Claude IA sugiere → Jose Luis ejecuta en navegador | Reporta resultados |
-| 5. Commit | Claude IA entrega comandos → Jose Luis ejecuta en CMD | Pega hash de confirmación |
+| 5. Commit | Claude IA entrega comandos → Jose Luis ejecuta desde su terminal en Fedora | Pega hash de confirmación |
 | 6. Documentación | Claude IA identifica → Claude Code actualiza | Commit separado de docs |
 
 **Regla crítica:** Nunca combinar diagnóstico y modificación en un mismo prompt.

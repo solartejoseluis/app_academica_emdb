@@ -264,6 +264,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Acciones de Docentes agrupadas en un menú:** el listado de Docentes recibió el mismo cambio visual — a diferencia de las dos notas anteriores, aquí no se agrega ninguna funcionalidad nueva ni un acceso directo que antes estuviera escondido en otro lugar. Es una mejora de consistencia visual: la columna de acciones por docente (Editar, más una de Eliminar/Desactivar/Activar según el caso) nunca tuvo tantos botones como para justificar el cambio por sí sola, pero se aplicó igual para que todas las tablas de la aplicación se vean y se comporten de la misma manera.
 
+> **Semestre de la matrícula:** cada matrícula ahora registra en qué semestre del programa va el estudiante, con un límite que depende de la duración real de cada programa técnico (el sistema no deja elegir un semestre que no existe). Es un paso de preparación para, más adelante, poder matricular directamente a un estudiante a su siguiente semestre dentro del mismo programa cuando apruebe el actual — esa funcionalidad de avance todavía no está implementada, igual que mostrar el semestre en el listado de Matriculados.
+
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
 ---
