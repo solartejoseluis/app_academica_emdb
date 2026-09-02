@@ -4,6 +4,112 @@
 
 ---
 
+## [0aaa4e9] — 2026-09-02 — feat(estudiantes): dividir Matriculados en pestañas Per. Actual / Per. Anteriores
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Por qué
+Segunda pieza visible del roadmap de "semestre en la UI" (después de
+`c985188` y `8884cb4`, ambos 2026-09-02). Precedido de un diagnóstico de
+solo lectura (sin commit) que confirmó: `tablaMatriculados` ya tenía un
+`<select>` de período visible sobre una sola tabla, sin distinguir
+período activo de históricos; `listar_periodos` no exponía
+`peri_activo`; y `listar_matriculados` no tenía `m.peri_id` en su
+`SELECT` pese a que `verModulosEstudiante()` lo necesitaba.
+
+### Cambios — Backend (`est_mdl.php`)
+- `case 'listar_periodos'`: agrega `peri_activo` al `SELECT` existente
+  — el frontend decide con este flag qué mostrar en cada select, sin
+  necesidad de un `case`/modo especial nuevo.
+- `case 'listar_matriculados'`: agrega `m.peri_id` al `SELECT` — no
+  estaba, pese a que la implementación original lo daba por existente
+  (ver "Decisiones por ambigüedad" abajo). El resto del `WHERE`/filtros
+  queda intacto; ya aceptaba `peri_id` opcional por POST desde antes.
+
+### Cambios — Frontend (`est_view.php` + `est_ctrl.js`)
+- Pestaña "Matriculados" (única) dividida en dos pestañas de nivel
+  superior: **"Matriculados (Per. Actual)"** — sin `<select>` de
+  período, un `<input readonly>` muestra el período activo como
+  referencia — y **"Matriculados (Per. Anteriores)"** — `<select>` con
+  todos los períodos excepto el activo.
+- Cada pestaña tiene su propia tabla (`#tbl_matriculados_actual` /
+  `#tbl_matriculados_anteriores`) y su propio bloque de filtros
+  Programa/Grupo/Módulo, con ids sufijados `_actual`/`_anteriores`.
+- El array `columns` (idéntico entre ambas tablas, incluida la columna
+  "Semestre" agregada en `8884cb4`) se extrajo a
+  `crearColumnasMatriculados()`, función global que retorna un array
+  nuevo en cada llamada — primer caso del proyecto de dos instancias de
+  DataTable con la misma estructura de columnas (sin precedente previo
+  en 04_grupos/03_docentes, donde cada tabla tiene columnas distintas).
+- `verModulosEstudiante()` recibe `peri_id` como 4º parámetro explícito
+  (`row.peri_id`, vía el `onclick` inline del botón "Módulos"), en vez
+  de leer `$('#slct_filtro_matr_peri_id')` — ese selector único dejó de
+  existir al dividirse en dos pestañas con fuentes de período distintas
+  (una fija, otra por select).
+- Las 5 acciones que antes recargaban una sola tabla (guardar
+  estudiante, subir foto, matricular, cerrar matrícula, editar
+  matrícula) ahora recargan ambas (`tablaMatriculadosActual` y
+  `tablaMatriculadosAnteriores`, con guardas `if (tabla)` por si alguna
+  no llegó a inicializarse). Los listeners de cambio de filtro de cada
+  pestaña solo recargan su propia tabla.
+
+### Decisiones por ambigüedad
+1. **`m.peri_id` faltante en `listar_matriculados`.** La especificación
+   de implementación asumía que ya viajaba en la respuesta
+   ("`row.peri_id`, ya viene en la respuesta"); al verificar el
+   `SELECT` no estaba — solo `pe.peri_codigo`. Se agregó, sin lo cual
+   `verModulosEstudiante()` no tendría cómo recibir el período de la
+   fila en ninguna de las dos pestañas.
+2. **Sin opción "Todos" en el select de "Per. Anteriores".** La
+   especificación indicaba que el backend no necesitaría un modo
+   especial y que el frontend siempre enviaría `peri_id` explícito. Una
+   opción "Todos" con valor vacío habría enviado `peri_id=''`, que
+   `listar_matriculados` interpreta como "sin filtro" — el período
+   activo se colaría en la pestaña de históricos. Se quitó esa opción y
+   se preselecciona el período anterior más reciente al cargar la
+   página, garantizando que esa tabla nunca dispare una consulta sin
+   `peri_id`.
+3. **Edge case de cero períodos anteriores.** No reproducible hoy en
+   local (hay 4 períodos sembrados, 3 no-activos), pero si algún día
+   solo existe el período activo, el select de "Anteriores" muestra una
+   opción `value="0"` ("-- Sin períodos anteriores --") en vez de
+   quedar vacío — `0` no coincide con ningún `peri_id` real, así que la
+   tabla responde 0 filas en vez de caer en el caso "sin filtro" (que
+   mostraría de más).
+4. **Doble carga inicial por la carrera entre `cargarTablas()` y
+   `cargarPeriodos()`.** Ambas corren en paralelo (mismo patrón ya
+   usado en el resto del archivo) — las dos tablas se crean antes de
+   que `periodoActivoId` esté resuelto, así que su primer `ajax.data`
+   puede salir sin `peri_id` (sin filtro). En cuanto `cargarPeriodos()`
+   resuelve, se fuerza `ajax.reload(null, false)` de ambas tablas para
+   corregir el estado. Es un round-trip HTTP extra en la carga inicial
+   de la página (imperceptible en local), no un bug — el estado final
+   siempre es correcto.
+
+### Pruebas realizadas
+`php -l` sin errores en los 3 archivos. Backend probado con `curl`
+autenticado contra el contenedor Docker vivo: `listar_periodos`
+confirma `peri_activo` presente (activo = `2026-2`, `peri_id=5`);
+`listar_matriculados` confirma `peri_id` presente en las 17 filas;
+filtrado por `peri_id=5` (activo) devuelve las 17 filas, todas
+coincidentes; filtrado por `peri_id=3` (2026-1, anterior) devuelve 0
+filas (sin datos históricos de matrícula todavía en local — esperable);
+filtrado por `peri_id=0` (caso "sin anteriores") devuelve 0 filas, como
+se busca; `listar_modulos_estudiante` con `estu_id`+`peri_id` explícitos
+responde correctamente. **Verificado en navegador por Jose Luis: 6/6
+pruebas pasaron** — pestañas con nombres correctos, período fijo
+"2026-2" sin selector en "Per. Actual", filtro correcto en "Per.
+Anteriores", columna "Semestre" igual en ambas pestañas, botón
+"Módulos" funcionando en ambas con el período correcto de cada fila, y
+refresco correcto de ambas tablas tras las 5 acciones (guardar
+estudiante, subir foto, matricular, cerrar matrícula, editar
+matrícula).
+
+---
+
 ## [8884cb4] — 2026-09-02 — feat(estudiantes): agregar columna Semestre a tablaMatriculados
 
 ### Archivos modificados
