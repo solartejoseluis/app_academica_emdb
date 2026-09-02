@@ -587,6 +587,29 @@ $('#tbl_estudiantes').DataTable({
 
 `dataSrc: 'data'` apunta al campo `data` del envelope JSON. Los botones de acción se inyectan vía `columnDefs`.
 
+### `columns` compartido entre varias instancias de DataTable: función global que retorna un array nuevo, nunca una constante por referencia
+
+Cuando dos (o más) instancias de DataTable necesitan exactamente la misma estructura de `columns`, extraerla a una función global que construya y retorne el array **de cero en cada llamada** — nunca una constante (`const columnas = [...]`) reutilizada por referencia entre las inicializaciones. DataTables muta/anota internamente el array de columnas que recibe cada instancia; compartir el mismo objeto entre dos tablas arriesga una mutación cruzada silenciosa que solo se manifiesta con ambas tablas activas a la vez.
+
+```js
+// Global (no dentro de $(document).ready) — consumida por dos instancias
+function crearColumnasMatriculados() {
+    return [
+        { data: 'estu_nombres' },
+        // ... resto de columnas ...
+    ];
+}
+
+tablaMatriculadosActual = $('#tbl_matriculados_actual').DataTable({
+    columns: crearColumnasMatriculados()
+});
+tablaMatriculadosAnteriores = $('#tbl_matriculados_anteriores').DataTable({
+    columns: crearColumnasMatriculados()   // segunda llamada = segundo array, no el mismo objeto
+});
+```
+
+Primer uso: `crearColumnasMatriculados()` en `est_ctrl.js` (`02_estudiantes`, commit `0aaa4e9`, 2026-09-02), consumida por `tablaMatriculadosActual`/`tablaMatriculadosAnteriores` al dividir la pestaña "Matriculados" en Per. Actual/Per. Anteriores — ver también "Decisiones arquitectónicas activas" para el contexto completo. Si las columnas difieren aunque sea parcialmente entre las tablas, este patrón no aplica — no forzar una función compartida con parámetros condicionales para columnas que en realidad son distintas.
+
 ### Queries PDO siempre parametrizadas
 
 ```php
@@ -1174,6 +1197,15 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Consecuencia:** Antes de dar por bueno cualquier diagnóstico futuro sobre `matr_estado`, verificar con grep si `'cursado'` ya tiene algún escritor. Mientras esta nota siga vigente y el grep siga vacío, el valor sigue siendo puramente reservado — la acción "avanzar de semestre" es la única que debe empezar a escribirlo, ningún otro flujo.
 - **Estado:** Activa — reservado, pendiente de la implementación que lo consuma.
 
+### `columns` de DataTable compartido entre varias instancias: función global que retorna un array NUEVO en cada llamada, nunca una constante compartida por referencia
+
+- **Contexto:** El commit `0aaa4e9` (2026-09-02) dividió la pestaña única "Matriculados" en "Matriculados (Per. Actual)" y "Matriculados (Per. Anteriores)" — misma estructura de columnas exacta (incluida la columna "Semestre" de `8884cb4`) en dos instancias de DataTable distintas (`tablaMatriculadosActual`/`tablaMatriculadosAnteriores`). Es el primer caso del proyecto con dos DataTables cuyas columnas son verdaderamente idénticas — precedentes previos con múltiples `.DataTable()` en un mismo archivo (`04_grupos/grupos_ctrl.js`: Cohortes/Grupos/Períodos/Módulos/Programas; `03_docentes/doc_ctrl.js`) nunca compartieron estructura entre sí, cada uno con su propio array `columns` inline y sin ninguna abstracción.
+- **Decisión:** el array `columns` (~140 líneas) se extrajo a una función global `crearColumnasMatriculados()` que **retorna un array nuevo en cada llamada** — no una constante (`const columnasMatriculados = [...]`) reutilizada por referencia entre las dos inicializaciones de DataTable.
+- **Razón:** un array de `columns` compartido por referencia entre dos instancias de DataTable es mutable — cada instancia de DataTables reordena/anota internamente el array que recibe (ej. al reordenar columnas por el usuario, o al normalizar opciones internamente), así que pasar el mismo objeto a dos tablas arriesga que una mute el estado que la otra ya está usando, un bug de mutación cruzada difícil de diagnosticar porque solo se manifiesta cuando ambas tablas están inicializadas a la vez. Construir el array de cero en cada llamada elimina el riesgo por completo, al costo despreciable de reconstruir ~140 líneas de definiciones dos veces en la carga de la página.
+- **Consecuencia — patrón reutilizable:** la próxima vez que el proyecto necesite una tercera (o más) tabla con exactamente la misma estructura de columnas que otra ya existente, extraer `columns` a una función `crearColumnasX()` en scope global (mismo motivo de scope global que `poblarSelectSemestre()`/`cargarCohortesPorPrograma()` — ver "Funciones de refresh invocadas desde onclick inline..." en Patrones de ingeniería) que retorne un array nuevo cada vez, en vez de duplicar las ~140 líneas inline en cada inicialización o compartir una constante por referencia. Si las columnas difieren aunque sea parcialmente entre las tablas, este patrón no aplica — extraer solo lo que realmente se repite, no forzar una función compartida con parámetros condicionales para columnas que en realidad son distintas.
+- **Ejemplo:** `crearColumnasMatriculados()` en `est_ctrl.js` (`02_estudiantes`, commit `0aaa4e9`), consumida por `tablaMatriculadosActual` y `tablaMatriculadosAnteriores` en `cargarTablas()` — ver también la entrada correspondiente en "Patrones de ingeniería" con el fragmento de código.
+- **Estado:** Activa.
+
 ---
 
 ## Frontend stack
@@ -1313,6 +1345,7 @@ necesita una restricción UNIQUE (hoy no la tiene).
 |---|---|---|
 | 2.10.A | `matriculas.matr_semestre` + ENUM `matr_estado` ampliado con `'cursado'` (reservado, sin uso todavía) — preparación de esquema y validación server-side contra `programas.prog_duracion_semestres` para la futura acción "avanzar de semestre"; detalle completo en "Decisiones arquitectónicas activas" (`matriculas.matr_semestre`... / ENUM `matriculas.matr_estado` ampliado con `'cursado'`...) | ✅ 2026-09-02 (commit `c985188`) |
 | 2.10.B | Columna "Semestre" en `tablaMatriculados` (`02_estudiantes`) — primer consumidor real en la UI de `matr_semestre`/`prog_duracion_semestres` (ambos agregados al `SELECT` de `listar_matriculados`), formato "N/M" entre "Programa" y "Período", resaltado `#cfe2ff` en el último semestre (mismo estilo inline que la columna Edad) | ✅ 2026-09-02 (commit `8884cb4`), verificado en navegador |
+| 2.10.C | Pestaña única "Matriculados" dividida en "Matriculados (Per. Actual)" (período fijo al activo, sin selector) y "Matriculados (Per. Anteriores)" (select excluyendo el activo) — dos tablas independientes con la columna "Semestre" (2.10.B) visible por igual en ambas; primer consumidor real del patrón de `columns` compartido documentado en "Decisiones arquitectónicas activas" (`crearColumnasMatriculados()`); detalle completo de las 4 decisiones por ambigüedad en CHANGELOG.md | ✅ 2026-09-02 (commit `0aaa4e9`), verificado en navegador |
 
 ### Phase 3 — Validación TRL5
 
