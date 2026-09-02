@@ -4,6 +4,73 @@
 
 ---
 
+## [8884cb4] — 2026-09-02 — feat(estudiantes): agregar columna Semestre a tablaMatriculados
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Por qué
+Primera pieza visible en la UI del trabajo de base sentado en `c985188`
+(2026-09-02): `matriculas.matr_semestre` existía en el esquema y ya se
+capturaba en los modales de matrícula, pero no se mostraba en ningún
+listado todavía. Precedido de un diagnóstico de solo lectura (sin
+commit) que confirmó que `tablaMatriculados` no usa `columnDefs` —
+depende 100% del orden literal del array `columns` frente al
+`<thead>` — y que `listar_matriculados` no tenía `matr_semestre` ni
+`prog_duracion_semestres` en su `SELECT` pese a que el JOIN hacia
+`programas` ya existía (se usa para `prog_sigla`).
+
+### Cambios — Backend (`est_mdl.php`)
+- `case 'listar_matriculados'`: agrega `p.prog_duracion_semestres` y
+  `m.matr_semestre` al `SELECT` existente, junto a `p.prog_sigla` —
+  mismo `INNER JOIN programas p ON m.prog_id = p.prog_id` ya usado,
+  sin JOIN nuevo. Único consumidor de este `case` en todo el proyecto
+  (confirmado por grep) — adición aditiva sin riesgo de romper otro
+  llamador.
+
+### Cambios — Frontend (`est_view.php` + `est_ctrl.js`)
+- Nuevo `<th>Semestre</th>` en el `<thead>` de `tbl_matriculados`,
+  entre "Programa" y "Período".
+- Nueva columna en el array `columns` de `tablaMatriculados`, en la
+  misma posición (entre `prog_sigla` y `peri_codigo`) — `width:
+  '60px'`, tomado del espacio que ya absorbían las columnas sin
+  `width` fijo (Nombres/Apellidos/Documento/Correo/Cohorte), sin
+  comprimir ninguna columna con ancho explícito.
+- `render()`: texto `"N/M"` (`row.matr_semestre`/
+  `row.prog_duracion_semestres`), con fallback `'—'` si cualquiera de
+  los dos es nulo/indefinido (mismo criterio que `coho_codigo`,
+  extendido a dos campos). Resaltado suave
+  (`background-color:#cfe2ff;padding:2px 6px;border-radius:4px;`,
+  mismo estilo inline ya usado en la columna Edad) cuando
+  `matr_semestre === prog_duracion_semestres` (último semestre del
+  programa).
+
+### Decisión — comparación con `==`, no `===`, en JS
+PDO/MySQL devuelve columnas numéricas como strings en el JSON del
+envelope — una comparación estricta (`row.matr_semestre ===
+row.prog_duracion_semestres`) habría fallado silenciosamente
+(`"5" === 5` es `false`), dejando el resaltado sin aplicarse nunca
+aunque el dato fuera correcto. Se usó `==` deliberadamente, igual que
+`== null` (en vez de `=== null`) para el chequeo de nulo, que cubre
+`undefined` en un solo chequeo.
+
+### Pruebas realizadas
+`php -l` sin errores. Contra el contenedor Docker vivo, vía `curl`
+autenticado (sesión de coordinador): `listar_matriculados` devuelve
+`matr_semestre`/`prog_duracion_semestres` correctamente para las 17
+filas actuales (ej. `CARRILLO PEREZ — ASO — matr_semestre: 1 —
+prog_duracion_semestres: 4`). Verificación visual en navegador **no
+realizada en esta sesión** — sin herramienta de navegador disponible
+(extensión de Chrome sin conectar); se probaron temporalmente 2 filas
+reales (`matr_id=1` → semestre `2/5`, `matr_id=5` → semestre `5/5`,
+para forzar ambas ramas del `render()`) directamente en MySQL y se
+revirtieron de inmediato a `1` sin dejar datos de prueba. Pendiente de
+confirmación visual por Jose Luis.
+
+---
+
 ## [c985188] — 2026-09-02 — feat(matriculas): agrega matr_semestre con validación y corrige badge de programas
 
 ### Archivos modificados
