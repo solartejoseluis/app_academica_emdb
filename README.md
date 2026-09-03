@@ -165,7 +165,7 @@ gruposmodulos ──< calificaciones >── estudiantes
 | Tabla | Descripción |
 |---|---|
 | `usuarios` | Credenciales de acceso. Vinculado 1:1 con docentes o estudiantes |
-| `estudiantes` | Datos personales + cohorte de ingreso |
+| `estudiantes` | Datos personales (la cohorte de ingreso vive en `matriculas`, una por matrícula — no es una columna propia de `estudiantes`) |
 | `docentes` | Datos personales + cédula (opcional, única) + sigla única para códigos de grupo |
 | `programas` | Técnico en ASO y Técnico en MD — con resolución, fecha de aprobación/vencimiento, descripción y estado activo/inactivo |
 | `modulos` | Asignaturas de cada programa (17 en ASO, 19 en MD) |

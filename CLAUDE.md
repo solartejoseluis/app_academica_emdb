@@ -301,7 +301,7 @@ Orden de creación (respetando dependencias FK):
 | `roles` | `role_` | Catálogo: Administrador, Coordinador, Docente, Estudiante |
 | `usuarios` | `usua_` | Credenciales de acceso. Relacionado 1:1 con docentes o estudiantes |
 | `docentes` | `doce_` | Datos personales + sigla única |
-| `estudiantes` | `estu_` | Datos personales + cohorte de ingreso + foto (`estu_foto`) + campos AC-FO-02 (`estu_expedidoen`, `estu_ciudadnac`, `estu_ocupacion`, `estu_estadocivil`, `estu_discapacidad`, `estu_multiculturalidad`) |
+| `estudiantes` | `estu_` | Datos personales + foto (`estu_foto`) + campos AC-FO-02 (`estu_expedidoen`, `estu_ciudadnac`, `estu_ocupacion`, `estu_estadocivil`, `estu_discapacidad`, `estu_multiculturalidad`) — **ya no tiene columna `coho_id` propia** (eliminada junto con la FK `fk_estu_coho` en el commit `6abbdae`, 2026-09-03); la cohorte vive exclusivamente en `matriculas.coho_id`, una por matrícula |
 | `programas` | `prog_` | ASO y MD con resolución y fechas de vigencia |
 | `modulos` | `modu_` | Asignaturas por programa con sigla |
 | `cohortes` | `coho_` | Grupos de admisión: `CH-ASO-2024B` |
@@ -1014,7 +1014,7 @@ $sql = "SELECT DISTINCT gm.grmo_id, modu_nombre
 
 Si cada fila ya es única por su propia clave (ej. `gm.grmo_id`), el `DISTINCT` es redundante — quitarlo en vez de agregar la columna del `ORDER BY` al `SELECT`. Mismo riesgo silencioso que `imagedestroy()`/`curl_close()`: la excepción PDO rompe el `json_encode()` del envelope, y sin el detalle del error visible (catch genérico), el frontend recibe una respuesta vacía o inválida sin ningún aviso.
 
-Ejemplo: case `mis_modulos` en `06_reportes/reportes_mdl.php` — bug preexistente (no introducido en el commit que lo corrigió), corregido en `35d6672` (2026-08-19). Dejaba el selector de módulos del estudiante vacío sin ningún error visible en pantalla.
+Ejemplo: case `mis_modulos` en `06_reportes/reportes_mdl.php` — bug preexistente (no introducido en el commit que lo corrigió), corregido en `35d6672` (2026-08-19). Dejaba el selector de módulos del estudiante vacío sin ningún error visible en pantalla. **Nota (2026-09-03, commit `6abbdae`):** el propio `case` (junto con `mis_notas`, mismo archivo) fue eliminado por completo como código muerto sin ningún llamador en todo el proyecto — el ejemplo de este antipatrón permanece válido como lección histórica, pero ya no corresponde a un endpoint vigente.
 
 ### ❌ Asumir que Dompdf puede leer cualquier archivo local
 
