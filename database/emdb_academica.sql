@@ -585,6 +585,112 @@ CREATE TABLE configuracion (
   COMMENT='Configuración institucional — fila única, config_id fijo en 1';
 
 -- =============================================================================
+-- BLOQUE 6D: SOLICITUDES DE ACTUALIZACIÓN DE DATOS (fuera del dominio académico)
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 17. solicitudes_actualizacion
+--     Link público (sin sesión) para que un estudiante actualice su propia
+--     ficha (estudiantes + fichas_inscripcion) sin acceso directo a esas
+--     tablas — los valores enviados quedan aquí, en columnas espejo con
+--     prefijo soac_/soac_ficha_, pendientes de que el coordinador apruebe o
+--     descarte la solicitud desde tablaMatriculados (02_estudiantes).
+--     Excluye deliberadamente tipo/número de documento (nunca editables por
+--     este medio) y cualquier columna de identidad/sistema (estu_id, usua_id,
+--     coho_id, estu_activo, estu_foto, estu_origen, finc_estado,
+--     fechacreacion) — mismo criterio de exclusión que el modal
+--     #mdl_estudiante aplica hoy para tipo/número de documento.
+--     Las columnas espejo son deliberadamente NULLABLE (a diferencia de
+--     estu_nombres/estu_apellidos, NOT NULL en estudiantes) porque una
+--     solicitud puede quedar en 'generado' sin que el estudiante la haya
+--     completado todavía, y sin FK hacia programas (soac_ficha_prog_id) —
+--     son valores propuestos sin validar, no datos operativos; se validan
+--     recién al momento de aprobar.
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS solicitudes_actualizacion;
+CREATE TABLE solicitudes_actualizacion (
+  soac_id                   INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  estu_id                   INT UNSIGNED  NOT NULL,
+  soac_token                VARCHAR(64)   NOT NULL,
+  soac_generado_en          DATETIME      NOT NULL,
+  soac_expira_en            DATETIME      NOT NULL,
+  soac_estado               ENUM('generado','recibido','aprobado','descartado')
+                             NOT NULL DEFAULT 'generado',
+  soac_recibido_en          DATETIME      DEFAULT NULL,
+  soac_resuelto_en          DATETIME      DEFAULT NULL,
+  soac_resuelto_por         INT UNSIGNED  DEFAULT NULL,
+  soac_campos_modificados   TEXT          DEFAULT NULL,
+
+  -- ---- Espejo de estudiantes (campos editables del modal #mdl_estudiante,
+  --      excepto estu_tipodoc/estu_numerodoc) ----
+  soac_estu_expedidoen        VARCHAR(60)   DEFAULT NULL,
+  soac_estu_nombres           VARCHAR(80)   DEFAULT NULL,
+  soac_estu_apellidos         VARCHAR(80)   DEFAULT NULL,
+  soac_estu_ciudadnac         VARCHAR(60)   DEFAULT NULL,
+  soac_fechanacimiento        DATE          DEFAULT NULL,
+  soac_estu_sexo              VARCHAR(20)   DEFAULT NULL,
+  soac_estu_telefono          VARCHAR(15)   DEFAULT NULL,
+  soac_estu_email             VARCHAR(100)  DEFAULT NULL,
+  soac_estu_ocupacion         VARCHAR(80)   DEFAULT NULL,
+  soac_estu_direccion         VARCHAR(120)  DEFAULT NULL,
+  soac_estu_barrio            VARCHAR(60)   DEFAULT NULL,
+  soac_estu_ciudad            VARCHAR(60)   DEFAULT NULL,
+  soac_estu_estrato           TINYINT UNSIGNED DEFAULT NULL,
+  soac_estu_estadocivil       VARCHAR(20)   DEFAULT NULL,
+  soac_estu_eps                VARCHAR(80)  DEFAULT NULL,
+  soac_estu_discapacidad       VARCHAR(80)  DEFAULT NULL,
+  soac_estu_multiculturalidad  VARCHAR(150) DEFAULT NULL,
+
+  -- ---- Espejo de fichas_inscripcion (campos editables, excepto
+  --      finc_id/estu_id/finc_estado/fechacreacion) ----
+  soac_ficha_prog_id           SMALLINT UNSIGNED DEFAULT NULL,
+  soac_ficha_jornada           VARCHAR(20)   DEFAULT NULL,
+  soac_ficha_fechainscripcion  DATE          DEFAULT NULL,
+  soac_ficha_padr_vive         TINYINT(1)    DEFAULT NULL,
+  soac_ficha_padr_nombres      VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_padr_apellidos    VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_padr_profesion    VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_padr_empresa      VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_padr_telefono     VARCHAR(15)   DEFAULT NULL,
+  soac_ficha_padr_direccion    VARCHAR(120)  DEFAULT NULL,
+  soac_ficha_padr_barrio       VARCHAR(60)   DEFAULT NULL,
+  soac_ficha_padr_ciudad       VARCHAR(60)   DEFAULT NULL,
+  soac_ficha_madr_vive         TINYINT(1)    DEFAULT NULL,
+  soac_ficha_madr_nombres      VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_madr_apellidos    VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_madr_profesion    VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_madr_empresa      VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_madr_telefono     VARCHAR(15)   DEFAULT NULL,
+  soac_ficha_madr_direccion    VARCHAR(120)  DEFAULT NULL,
+  soac_ficha_madr_barrio       VARCHAR(60)   DEFAULT NULL,
+  soac_ficha_madr_ciudad       VARCHAR(60)   DEFAULT NULL,
+  soac_ficha_acud_es           ENUM('padre','madre','otro') DEFAULT NULL,
+  soac_ficha_acud_parentesco   VARCHAR(40)   DEFAULT NULL,
+  soac_ficha_acud_nombres      VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_acud_apellidos    VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_acud_profesion    VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_acud_empresa      VARCHAR(80)   DEFAULT NULL,
+  soac_ficha_acud_telefono     VARCHAR(15)   DEFAULT NULL,
+  soac_ficha_acud_direccion    VARCHAR(120)  DEFAULT NULL,
+  soac_ficha_acud_barrio       VARCHAR(60)   DEFAULT NULL,
+  soac_ficha_acud_ciudad       VARCHAR(60)   DEFAULT NULL,
+  soac_ficha_estudio_tipo         VARCHAR(60)  DEFAULT NULL,
+  soac_ficha_estudio_titulo       VARCHAR(120) DEFAULT NULL,
+  soac_ficha_estudio_institucion  VARCHAR(120) DEFAULT NULL,
+  soac_ficha_estudio_aniofin      YEAR         DEFAULT NULL,
+
+  fechacreacion             TIMESTAMP     DEFAULT current_timestamp(),
+
+  PRIMARY KEY (soac_id),
+  UNIQUE KEY uq_soac_token (soac_token),
+  CONSTRAINT fk_soac_estu FOREIGN KEY (estu_id) REFERENCES estudiantes (estu_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_soac_resuelto_por FOREIGN KEY (soac_resuelto_por) REFERENCES usuarios (usua_id)
+    ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Solicitudes de actualización de datos vía link público — espejo editable de estudiantes+fichas_inscripcion, pendiente de aprobación del coordinador';
+
+-- =============================================================================
 -- BLOQUE 7–8: (eliminados) STORED PROCEDURE + TRIGGERS de cálculo de definitiva
 -- =============================================================================
 -- Este bloque contenía sp_calcular_definitiva() y los triggers
@@ -704,6 +810,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =============================================================================
 -- FIN DEL SCRIPT
 -- emdb_academica.sql — v1.0.0 — 2026-04-30
--- Tablas creadas: 18
+-- Tablas creadas: 19
 -- Registros semilla: 4 roles + 2 programas + 3 períodos + 36 módulos + 1 usuario admin + 1 fila de configuración institucional
 -- =============================================================================
