@@ -209,6 +209,15 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
                 <input type="hidden" id="npt_estu_id" value="">
                 <input type="hidden" id="npt_estu_usua_id_actual" value="">
+                <!-- Vacío = modo normal (crear/editar); con soac_id = modo
+                     revisión de una solicitud de actualización 'recibido'. -->
+                <input type="hidden" id="npt_revision_soac_id" value="">
+                <div id="aviso_revision_actualizacion" class="alert alert-warning d-none">
+                    Estás revisando una propuesta de actualización enviada por el estudiante.
+                    Los campos resaltados en amarillo muestran el valor <strong>propuesto</strong>
+                    (reemplazando el valor actual). El formulario es de solo lectura — usa los
+                    botones de abajo para aprobar o descartar.
+                </div>
 
                 <div id="bloque_foto_estudiante" class="mb-3 d-none">
                     <label class="form-label d-block">Foto del estudiante</label>
@@ -589,6 +598,46 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 <button type="button" class="btn btn-primary" id="btn_guardar_estudiante">Guardar</button>
                 <button type="button" class="btn btn-outline-danger d-none" id="btn_ficha_inscripcion_pdf">🖨️ Ficha Inscripción</button>
                 <button type="button" class="btn btn-outline-danger d-none" id="btn_hoja_matricula_pdf">🖨️ Hoja de Matrícula</button>
+                <button type="button" class="btn btn-success d-none" id="btn_aprobar_actualizacion">Aprobar actualización</button>
+                <button type="button" class="btn btn-outline-danger d-none" id="btn_descartar_actualizacion">Descartar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Actualización de Datos (link público, Fase 4 de 5) -->
+<div class="modal fade" id="mdl_actualizacion_datos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Actualización de datos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="npt_actualizacion_estu_id" value="">
+                <input type="hidden" id="npt_actualizacion_soac_id" value="">
+                <p class="mb-3"><strong>Última fecha de actualización:</strong> <span id="txt_ultima_actualizacion">—</span></p>
+
+                <div id="bloque_generar_link">
+                    <p class="text-muted small">No hay ninguna solicitud pendiente para este estudiante.</p>
+                    <button type="button" class="btn btn-primary" id="btn_generar_link_actualizacion">Generar link para actualización</button>
+                    <div id="bloque_link_generado" class="d-none mt-3">
+                        <label class="form-label">Link generado — cópialo y envíalo manualmente al estudiante:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="npt_link_generado" readonly>
+                            <button type="button" class="btn btn-outline-secondary" id="btn_copiar_link">Copiar</button>
+                        </div>
+                        <div class="form-text">Válido por 24 horas. Generar un nuevo link invalida este.</div>
+                    </div>
+                </div>
+
+                <div id="bloque_ver_aprobar" class="d-none">
+                    <p class="text-muted small">El estudiante ya envió una actualización de sus datos, pendiente de tu revisión.</p>
+                    <button type="button" class="btn btn-warning" id="btn_ver_aprobar_actualizacion">Ver y aprobar actualización</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

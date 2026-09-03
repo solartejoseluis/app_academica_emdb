@@ -213,6 +213,15 @@ switch ($accion) {
                             WHERE soac1.estu_id = e.estu_id AND soac1.soac_estado IN ('generado','recibido')
                             ORDER BY soac1.soac_id DESC LIMIT 1
                            ) AS soac_estado_activo,
+                           -- Fecha de la aprobación MÁS RECIENTE del historial de este
+                           -- estudiante, sin importar si hay algo pendiente ahora mismo
+                           -- (independiente de soac_estado_activo arriba) — NULL si nunca
+                           -- tuvo ninguna solicitud aprobada. Badge permanente
+                           -- 'Actualizado', no ligado a ninguna ventana de tiempo.
+                           (SELECT soac2.soac_resuelto_en FROM solicitudes_actualizacion soac2
+                            WHERE soac2.estu_id = e.estu_id AND soac2.soac_estado = 'aprobado'
+                            ORDER BY soac2.soac_id DESC LIMIT 1
+                           ) AS soac_fecha_ultima_aprobacion,
                            p.prog_sigla, p.prog_duracion_semestres, m.matr_semestre,
                            m.peri_id, pe.peri_codigo, m.matr_estado, m.matr_estado_academico,
                            m.matr_id, m.prog_id AS matr_prog_id,
@@ -1018,9 +1027,11 @@ switch ($accion) {
 
             $pdo->commit();
 
-            // Ruta provisional — la Fase 3 define el módulo público real
-            // (todavía no existe ningún archivo en esa ruta).
-            $url = '/11_actualizacion_datos/actualizar_view.php?token=' . $soac_token;
+            // Ruta corregida en la Fase 4: la Fase 3 ya implementó el módulo
+            // público real bajo app/11_actualizacion_datos/ — la ruta
+            // provisional de la Fase 2 (sin el prefijo app_academica_emdb/app/)
+            // no apuntaba al archivo real servido por Apache.
+            $url = '/app_academica_emdb/app/11_actualizacion_datos/actualizar_view.php?token=' . $soac_token;
             echo json_encode(['status' => 'ok', 'token' => $soac_token, 'url' => $url]);
 
         } catch (PDOException $e) {

@@ -613,6 +613,110 @@ $(document).ready(function () {
         });
     });
 
+    // --- Link de actualización de datos (Fase 4 de 5) ---
+
+    $('#btn_generar_link_actualizacion').click(function () {
+        const estu_id = $('#npt_actualizacion_estu_id').val();
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=generar_link_actualizacion',
+            data: { estu_id: estu_id },
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    $('#npt_link_generado').val(window.location.origin + response.url);
+                    $('#bloque_link_generado').removeClass('d-none');
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                } else {
+                    alert(response.message);
+                }
+            }
+        });
+    });
+
+    $('#btn_copiar_link').click(function () {
+        const link = $('#npt_link_generado').val();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function () {
+                alert('Link copiado al portapapeles.');
+            }, function () {
+                alert('No se pudo copiar automáticamente. Copia el link manualmente.');
+            });
+        } else {
+            // Fallback para navegadores sin soporte de Clipboard API (ej. sin
+            // contexto seguro/HTTPS) — selecciona el texto y usa execCommand.
+            $('#npt_link_generado')[0].select();
+            try {
+                document.execCommand('copy');
+                alert('Link copiado al portapapeles.');
+            } catch (e) {
+                alert('No se pudo copiar automáticamente. Copia el link manualmente.');
+            }
+        }
+    });
+
+    $('#btn_ver_aprobar_actualizacion').click(function () {
+        const estu_id = $('#npt_actualizacion_estu_id').val();
+        const soac_id = $('#npt_actualizacion_soac_id').val();
+        bootstrap.Modal.getInstance(document.getElementById('mdl_actualizacion_datos')).hide();
+        abrirRevisionActualizacion(estu_id, soac_id);
+    });
+
+    $('#btn_aprobar_actualizacion').click(function () {
+        const soac_id = $('#npt_revision_soac_id').val();
+        if (!confirm('¿Aprobar esta actualización? Los datos del estudiante se reemplazarán con los valores propuestos resaltados en amarillo.')) return;
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=aprobar_actualizacion',
+            data: { soac_id: soac_id },
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_estudiante')).hide();
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                    const campos = response.campos_aplicados || [];
+                    alert(campos.length > 0
+                        ? 'Actualización aprobada. Campos aplicados: ' + campos.join(', ')
+                        : 'Actualización aprobada (sin cambios respecto a los datos vigentes).');
+                } else {
+                    alert(response.message);
+                }
+            }
+        });
+    });
+
+    $('#btn_descartar_actualizacion').click(function () {
+        const soac_id = $('#npt_revision_soac_id').val();
+        if (!confirm('¿Descartar esta actualización? Los datos propuestos por el estudiante se perderán.')) return;
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=descartar_actualizacion',
+            data: { soac_id: soac_id },
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_estudiante')).hide();
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                    alert('Actualización descartada.');
+                } else {
+                    alert(response.message);
+                }
+            }
+        });
+    });
+
+    // Restaura el modo normal si el modal se cierra estando en modo revisión
+    // (ej. el coordinador aprueba/descarta, o cierra con la X/Cancelar sin
+    // decidir) — sin esto, la próxima apertura normal (abrirEditar) heredaría
+    // campos deshabilitados y botones equivocados hasta que restaurarModoNormalEstudiante()
+    // se llamara de nuevo ahí (ya se llama también, esto es la otra mitad).
+    $('#mdl_estudiante').on('hidden.bs.modal', function () {
+        restaurarModoNormalEstudiante();
+    });
+
     // -------------------------------------------------------------------------
     // Funciones internas
     // -------------------------------------------------------------------------
@@ -949,11 +1053,33 @@ function crearColumnasMatriculados(esPeriodoActual) {
         {
             data: 'estu_apellidos',
             render: function (data, type, row) {
+                let badges = '';
                 if (row.total_matriculas_estudiante > 1) {
                     const detalle = (row.detalle_matriculas_estudiante || '').replace(/"/g, '&quot;');
-                    return `${data} <span class="badge bg-info text-dark" title="${detalle}">🎓 ${row.total_matriculas_estudiante} programas</span>`;
+                    badges += ` <span class="badge bg-info text-dark" title="${detalle}">🎓 ${row.total_matriculas_estudiante} programas</span>`;
                 }
-                return data;
+                // soac_estado_activo (listar_matriculados, Fase 2): NULL si no
+                // hay ninguna solicitud de actualización de datos activa.
+                if (row.soac_estado_activo === 'generado') {
+                    badges += ` <span class="badge bg-warning text-dark" title="Link enviado, esperando respuesta del estudiante">🔔 Link enviado</span>`;
+                } else if (row.soac_estado_activo === 'recibido') {
+                    badges += ` <span class="badge bg-danger" title="Datos recibidos, pendiente de aprobación">🔔 Pendiente aprobación</span>`;
+                }
+                // soac_fecha_ultima_aprobacion: independiente del badge de
+                // arriba — historial permanente de la última aprobación, sin
+                // ventana de tiempo. Puede aparecer junto con el badge de
+                // solicitud activa si el estudiante ya tuvo una actualización
+                // aprobada Y además tiene una nueva pendiente ahora mismo.
+                if (row.soac_fecha_ultima_aprobacion) {
+                    // Mismo criterio ya usado en esta tabla para "fecha simple"
+                    // (ver el resumen de matriculas en abrirEditar(), formato
+                    // dd/mm/aaaa por reordenamiento de partes) — soac_resuelto_en
+                    // llega como "AAAA-MM-DD HH:MM:SS", se descarta la hora.
+                    const partesFecha = row.soac_fecha_ultima_aprobacion.split(' ')[0].split('-');
+                    const fechaFmt = partesFecha[2] + '/' + partesFecha[1] + '/' + partesFecha[0];
+                    badges += ` <span class="badge bg-success" title="Última actualización aprobada: ${row.soac_fecha_ultima_aprobacion}">✅ Actualizado ${fechaFmt}</span>`;
+                }
+                return data + badges;
             }
         },
         {
@@ -1072,6 +1198,23 @@ function crearColumnasMatriculados(esPeriodoActual) {
                            </li>`;
                 }
 
+                // Igual que "Matricular al sgte. sem." — solo tiene sentido
+                // generar un link para el período EN CURSO. matr_estado ya
+                // viene garantizado 'matriculado' por el WHERE de
+                // listar_matriculados (igual que "Hoja de Matrícula" no
+                // revalida ese dato en frontend) — aquí solo hace falta
+                // revisar matr_estado_academico, que sí puede variar.
+                let itemActualizacionDatos = '';
+                if (esPeriodoActual) {
+                    itemActualizacionDatos = (row.matr_estado_academico !== 'Activo')
+                        ? `<li tabindex="0" title="El estudiante no está en condición académica Activa.">
+                               <button class="dropdown-item disabled" type="button" disabled>🔗 Generar link actualizar datos</button>
+                           </li>`
+                        : `<li>
+                               <button class="dropdown-item" type="button" onclick="abrirActualizacionDatos(${row.estu_id})">🔗 Generar link actualizar datos</button>
+                           </li>`;
+                }
+
                 return `<div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                                 <i class="bi bi-gear-fill"></i>
@@ -1082,6 +1225,7 @@ function crearColumnasMatriculados(esPeriodoActual) {
                                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
                                     </button>
                                 </li>
+                                ${itemActualizacionDatos}
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
                                 </li>
@@ -1097,8 +1241,293 @@ function crearColumnasMatriculados(esPeriodoActual) {
     ];
 }
 
+// ── Link de actualización de datos (Fase 4 de 5) ────────────────────────
+// Mapeo columna_soac -> selector del campo correspondiente en #mdl_estudiante
+// — espejo en JS del mismo mapeo ya usado server-side en
+// est_mdl.php?accion=aprobar_actualizacion (Fase 2). soac_fechanacimiento es
+// la única sin prefijo estu_ (la columna original tampoco lo lleva).
+// soac_estu_multiculturalidad, soac_ficha_padr_vive, soac_ficha_madr_vive y
+// soac_ficha_acud_es se manejan aparte en poblarModalRevision() por no ser
+// un simple .val().
+const MAPA_REVISION_ESTUDIANTE = [
+    ['soac_estu_expedidoen', '#npt_estu_expedidoen'],
+    ['soac_estu_nombres', '#npt_estu_nombres'],
+    ['soac_estu_apellidos', '#npt_estu_apellidos'],
+    ['soac_estu_ciudadnac', '#npt_estu_ciudadnac'],
+    ['soac_fechanacimiento', '#npt_fechanacimiento'],
+    ['soac_estu_sexo', '#slct_estu_sexo'],
+    ['soac_estu_telefono', '#npt_estu_telefono'],
+    ['soac_estu_email', '#npt_estu_email'],
+    ['soac_estu_ocupacion', '#npt_estu_ocupacion'],
+    ['soac_estu_direccion', '#npt_estu_direccion'],
+    ['soac_estu_barrio', '#npt_estu_barrio'],
+    ['soac_estu_ciudad', '#npt_estu_ciudad'],
+    ['soac_estu_estrato', '#slct_estu_estrato'],
+    ['soac_estu_estadocivil', '#slct_estu_estadocivil'],
+    ['soac_estu_eps', '#npt_estu_eps'],
+    ['soac_estu_discapacidad', '#slct_estu_discapacidad']
+];
+const MAPA_REVISION_FICHA = [
+    ['soac_ficha_prog_id', '#slct_finc_prog_id'],
+    ['soac_ficha_jornada', '#npt_jornada'],
+    ['soac_ficha_fechainscripcion', '#npt_fechainscripcion'],
+    ['soac_ficha_padr_nombres', '#npt_padr_nombres'],
+    ['soac_ficha_padr_apellidos', '#npt_padr_apellidos'],
+    ['soac_ficha_padr_profesion', '#npt_padr_profesion'],
+    ['soac_ficha_padr_empresa', '#npt_padr_empresa'],
+    ['soac_ficha_padr_telefono', '#npt_padr_telefono'],
+    ['soac_ficha_padr_direccion', '#npt_padr_direccion'],
+    ['soac_ficha_padr_barrio', '#npt_padr_barrio'],
+    ['soac_ficha_padr_ciudad', '#npt_padr_ciudad'],
+    ['soac_ficha_madr_nombres', '#npt_madr_nombres'],
+    ['soac_ficha_madr_apellidos', '#npt_madr_apellidos'],
+    ['soac_ficha_madr_profesion', '#npt_madr_profesion'],
+    ['soac_ficha_madr_empresa', '#npt_madr_empresa'],
+    ['soac_ficha_madr_telefono', '#npt_madr_telefono'],
+    ['soac_ficha_madr_direccion', '#npt_madr_direccion'],
+    ['soac_ficha_madr_barrio', '#npt_madr_barrio'],
+    ['soac_ficha_madr_ciudad', '#npt_madr_ciudad'],
+    ['soac_ficha_acud_parentesco', '#npt_acud_parentesco'],
+    ['soac_ficha_acud_nombres', '#npt_acud_nombres'],
+    ['soac_ficha_acud_apellidos', '#npt_acud_apellidos'],
+    ['soac_ficha_acud_profesion', '#npt_acud_profesion'],
+    ['soac_ficha_acud_empresa', '#npt_acud_empresa'],
+    ['soac_ficha_acud_telefono', '#npt_acud_telefono'],
+    ['soac_ficha_acud_direccion', '#npt_acud_direccion'],
+    ['soac_ficha_acud_barrio', '#npt_acud_barrio'],
+    ['soac_ficha_acud_ciudad', '#npt_acud_ciudad'],
+    ['soac_ficha_estudio_tipo', '#npt_estudio_tipo'],
+    ['soac_ficha_estudio_titulo', '#npt_estudio_titulo'],
+    ['soac_ficha_estudio_institucion', '#npt_estudio_institucion'],
+    ['soac_ficha_estudio_aniofin', '#npt_estudio_aniofin']
+];
+
+// Abre el modal de "Actualización de datos" — Modo 1 (ver y aprobar) si la
+// solicitud más reciente del estudiante está 'recibido', Modo 2 (generar
+// link) en cualquier otro caso (sin solicitud, o la más reciente ya resuelta).
+function abrirActualizacionDatos(estu_id) {
+    $('#npt_actualizacion_estu_id').val(estu_id);
+    $('#npt_actualizacion_soac_id').val('');
+    $('#txt_ultima_actualizacion').text('—');
+    $('#npt_link_generado').val('');
+    $('#bloque_link_generado').addClass('d-none');
+    $('#bloque_generar_link').addClass('d-none');
+    $('#bloque_ver_aprobar').addClass('d-none');
+
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=estado_solicitud_actualizacion',
+        data: { estu_id: estu_id },
+        dataType: 'json',
+        success: function (response) {
+            if (response.status !== 'ok') {
+                alert('No se pudo consultar el estado de la solicitud.');
+                return;
+            }
+            const s = response.data;
+
+            // "Última fecha de actualización" — solo se muestra cuando la
+            // solicitud MÁS RECIENTE está 'aprobado'. Si la más reciente es
+            // 'generado'/'recibido'/'descartado' se muestra '—', aunque
+            // exista una aprobación más antigua en el historial — decisión
+            // de alcance de la Fase 4, ver CHANGELOG.md.
+            if (s && s.soac_estado === 'aprobado' && s.soac_resuelto_en) {
+                $('#txt_ultima_actualizacion').text(s.soac_resuelto_en);
+            }
+
+            if (s && s.soac_estado === 'recibido') {
+                $('#npt_actualizacion_soac_id').val(s.soac_id);
+                $('#bloque_ver_aprobar').removeClass('d-none');
+            } else {
+                $('#bloque_generar_link').removeClass('d-none');
+            }
+
+            new bootstrap.Modal(document.getElementById('mdl_actualizacion_datos')).show();
+        },
+        error: function () {
+            alert('Error al consultar el estado de la solicitud.');
+        }
+    });
+}
+
+// Carga el estudiante (valores vigentes) + la solicitud 'recibido' y llama a
+// poblarModalRevision() — separado de abrirActualizacionDatos() porque este
+// segundo llamado necesita ambas respuestas juntas antes de pintar el modal.
+function abrirRevisionActualizacion(estu_id, soac_id) {
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=obtener_completo',
+        data: { estu_id: estu_id },
+        dataType: 'json',
+        success: function (responseEstu) {
+            if (responseEstu.status !== 'ok') {
+                alert('No se pudo cargar el estudiante.');
+                return;
+            }
+            $.ajax({
+                type: 'POST',
+                url: 'est_mdl.php?accion=estado_solicitud_actualizacion',
+                data: { estu_id: estu_id },
+                dataType: 'json',
+                success: function (responseSoac) {
+                    if (responseSoac.status !== 'ok' || !responseSoac.data || responseSoac.data.soac_estado !== 'recibido') {
+                        alert('Esta solicitud ya no está disponible para revisión.');
+                        return;
+                    }
+                    poblarModalRevision(responseEstu.data, responseSoac.data);
+                }
+            });
+        }
+    });
+}
+
+// Puebla #mdl_estudiante en modo revisión: valores vigentes como base,
+// sobrescritos por los propuestos (soac_*) no nulos con resaltado
+// .campo-actualizado. Formulario deshabilitado — solo lectura, con Aprobar/
+// Descartar en vez de Guardar.
+function poblarModalRevision(d, s) {
+    $('#npt_estu_id').val(d.estu_id);
+    $('#slct_estu_tipodoc').val(d.estu_tipodoc);
+    $('#npt_estu_numerodoc').val(d.estu_numerodoc);
+    $('#npt_estu_nombres').val(d.estu_nombres);
+    $('#npt_estu_apellidos').val(d.estu_apellidos);
+    $('#npt_fechanacimiento').val(d.fechanacimiento);
+    $('#slct_estu_sexo').val(d.estu_sexo);
+    $('#npt_estu_telefono').val(d.estu_telefono);
+    $('#npt_estu_email').val(d.estu_email);
+    $('#npt_estu_ciudad').val(d.estu_ciudad);
+    $('#npt_estu_direccion').val(d.estu_direccion);
+    $('#npt_estu_barrio').val(d.estu_barrio);
+    $('#slct_estu_estrato').val(d.estu_estrato);
+    $('#npt_estu_eps').val(d.estu_eps);
+    $('#npt_estu_expedidoen').val(d.estu_expedidoen);
+    $('#npt_estu_ciudadnac').val(d.estu_ciudadnac);
+    $('#npt_estu_ocupacion').val(d.estu_ocupacion);
+    $('#slct_estu_estadocivil').val(d.estu_estadocivil);
+    $('#slct_estu_discapacidad').val(d.estu_discapacidad);
+
+    let multi = (d.estu_multiculturalidad || '')
+        .split(',').map(function (v) { return v.trim(); }).filter(function (v) { return v !== ''; });
+    $('.chk-multicultural').prop('checked', false);
+    if (multi.length === 0) {
+        $('#chk_multi_no_aplica').prop('checked', true);
+    } else {
+        multi.forEach(function (v) { $('.chk-multicultural[data-valor="' + v + '"]').prop('checked', true); });
+    }
+
+    $('#slct_finc_prog_id').val(d.prog_id);
+    $('#npt_jornada').val(d.jornada);
+    $('#npt_fechainscripcion').val(d.fechainscripcion);
+    $('#npt_padr_vive').prop('checked', d.padr_vive == 1);
+    $('#npt_padr_nombres').val(d.padr_nombres);
+    $('#npt_padr_apellidos').val(d.padr_apellidos);
+    $('#npt_padr_profesion').val(d.padr_profesion);
+    $('#npt_padr_empresa').val(d.padr_empresa);
+    $('#npt_padr_telefono').val(d.padr_telefono);
+    $('#npt_padr_direccion').val(d.padr_direccion);
+    $('#npt_padr_barrio').val(d.padr_barrio);
+    $('#npt_padr_ciudad').val(d.padr_ciudad);
+    $('#npt_madr_vive').prop('checked', d.madr_vive == 1);
+    $('#npt_madr_nombres').val(d.madr_nombres);
+    $('#npt_madr_apellidos').val(d.madr_apellidos);
+    $('#npt_madr_profesion').val(d.madr_profesion);
+    $('#npt_madr_empresa').val(d.madr_empresa);
+    $('#npt_madr_telefono').val(d.madr_telefono);
+    $('#npt_madr_direccion').val(d.madr_direccion);
+    $('#npt_madr_barrio').val(d.madr_barrio);
+    $('#npt_madr_ciudad').val(d.madr_ciudad);
+    $('#slct_acud_es').val(d.acud_es);
+    $('#npt_acud_parentesco').val(d.acud_parentesco);
+    $('#npt_acud_nombres').val(d.acud_nombres);
+    $('#npt_acud_apellidos').val(d.acud_apellidos);
+    $('#npt_acud_profesion').val(d.acud_profesion);
+    $('#npt_acud_empresa').val(d.acud_empresa);
+    $('#npt_acud_telefono').val(d.acud_telefono);
+    $('#npt_acud_direccion').val(d.acud_direccion);
+    $('#npt_acud_barrio').val(d.acud_barrio);
+    $('#npt_acud_ciudad').val(d.acud_ciudad);
+    $('#npt_estudio_tipo').val(d.estudio_tipo);
+    $('#npt_estudio_titulo').val(d.estudio_titulo);
+    $('#npt_estudio_institucion').val(d.estudio_institucion);
+    $('#npt_estudio_aniofin').val(d.estudio_aniofin);
+
+    // Limpia resaltados de una revisión anterior antes de aplicar los nuevos.
+    $('#mdl_estudiante .campo-actualizado').removeClass('campo-actualizado');
+    $('#lbl_multiculturalidad').removeClass('campo-actualizado');
+
+    MAPA_REVISION_ESTUDIANTE.forEach(function (par) {
+        const valor = s[par[0]];
+        if (valor !== null && valor !== undefined) {
+            $(par[1]).val(valor).addClass('campo-actualizado');
+        }
+    });
+    MAPA_REVISION_FICHA.forEach(function (par) {
+        const valor = s[par[0]];
+        if (valor !== null && valor !== undefined) {
+            $(par[1]).val(valor).addClass('campo-actualizado');
+        }
+    });
+    if (s.soac_ficha_padr_vive !== null && s.soac_ficha_padr_vive !== undefined) {
+        $('#npt_padr_vive').prop('checked', s.soac_ficha_padr_vive == 1).addClass('campo-actualizado');
+    }
+    if (s.soac_ficha_madr_vive !== null && s.soac_ficha_madr_vive !== undefined) {
+        $('#npt_madr_vive').prop('checked', s.soac_ficha_madr_vive == 1).addClass('campo-actualizado');
+    }
+    if (s.soac_ficha_acud_es !== null && s.soac_ficha_acud_es !== undefined) {
+        $('#slct_acud_es').addClass('campo-actualizado');
+    }
+    if (s.soac_estu_multiculturalidad !== null && s.soac_estu_multiculturalidad !== undefined) {
+        let multiPropuesta = (s.soac_estu_multiculturalidad || '')
+            .split(',').map(function (v) { return v.trim(); }).filter(function (v) { return v !== ''; });
+        $('.chk-multicultural').prop('checked', false);
+        if (multiPropuesta.length === 0) {
+            $('#chk_multi_no_aplica').prop('checked', true);
+        } else {
+            multiPropuesta.forEach(function (v) { $('.chk-multicultural[data-valor="' + v + '"]').prop('checked', true); });
+        }
+        $('#lbl_multiculturalidad').addClass('campo-actualizado');
+    }
+
+    // Recalcula visibilidad Padre/Madre/Acudiente con los valores ya
+    // (potencialmente) sobrescritos — mismo patrón que abrirEditar().
+    actualizarVisibilidadPadreMadre();
+    actualizarSelectAcudiente();
+    $('#slct_acud_es').val(s.soac_ficha_acud_es !== null && s.soac_ficha_acud_es !== undefined ? s.soac_ficha_acud_es : d.acud_es);
+    manejarCambioAcudiente();
+
+    // Modo revisión: formulario deshabilitado, Guardar oculto, Aprobar/Descartar visibles.
+    $('#npt_revision_soac_id').val(s.soac_id);
+    $('#aviso_revision_actualizacion').removeClass('d-none');
+    $('#mdl_estudiante .modal-body input, #mdl_estudiante .modal-body select, #mdl_estudiante .modal-body textarea')
+        .prop('disabled', true);
+    $('#bloque_foto_estudiante, #bloque_cambiar_clave_estudiante, #bloque_programas_matriculados').addClass('d-none');
+    $('#btn_guardar_estudiante, #btn_eliminar_aspirante, #btn_ficha_inscripcion_pdf, #btn_hoja_matricula_pdf').addClass('d-none');
+    $('#btn_aprobar_actualizacion, #btn_descartar_actualizacion').removeClass('d-none');
+
+    $('#mdl_estudiante_titulo').text('FICHA DE INSCRIPCIÓN — código AC-FO-02');
+    new bootstrap.Modal(document.getElementById('mdl_estudiante')).show();
+}
+
+// Revierte el modo revisión de poblarModalRevision() — habilita de nuevo
+// todos los campos, restaura los botones normales, quita los resaltados.
+// Se llama al cerrar el modal (hidden.bs.modal) y defensivamente al abrir
+// el modo normal (abrirEditar), por si se navegara de un modo a otro sin
+// pasar por el cierre.
+function restaurarModoNormalEstudiante() {
+    if ($('#npt_revision_soac_id').val() === '') return;
+    $('#npt_revision_soac_id').val('');
+    $('#aviso_revision_actualizacion').addClass('d-none');
+    $('#mdl_estudiante .modal-body input, #mdl_estudiante .modal-body select, #mdl_estudiante .modal-body textarea')
+        .prop('disabled', false);
+    $('#mdl_estudiante .campo-actualizado').removeClass('campo-actualizado');
+    $('#lbl_multiculturalidad').removeClass('campo-actualizado');
+    $('#btn_guardar_estudiante').removeClass('d-none');
+    $('#btn_aprobar_actualizacion, #btn_descartar_actualizacion').addClass('d-none');
+}
+
 // Fuera de ready — requerido para onclick inline de DataTables
 function abrirEditar(estu_id, esAspirante) {
+    restaurarModoNormalEstudiante();
     $.ajax({
         type: 'POST',
         url: 'est_mdl.php?accion=obtener_completo',

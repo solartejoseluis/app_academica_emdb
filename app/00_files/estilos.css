@@ -14,3 +14,10 @@
 .campo-lleno {
     background-color: #d1e7dd !important;
 }
+
+/* Modo revisión de una solicitud de actualización de datos (02_estudiantes,
+   #mdl_estudiante) — resalta el valor PROPUESTO por el estudiante, distinto
+   de .campo-lleno (que solo indica "tiene algún valor"). */
+.campo-actualizado {
+    background-color: #fff3cd !important;
+}
