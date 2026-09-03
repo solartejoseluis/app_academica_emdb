@@ -4,6 +4,70 @@
 
 ---
 
+## [27a3915] — 2026-09-02 — feat(reportes): agregar semestre del estudiante en reporte y boletín PDF
+
+### Archivos modificados
+- app/06_reportes/reportes_mdl.php
+- app/06_reportes/reportes_ctrl.js
+- app/06_reportes/pdf_boletin.php
+
+### Por qué
+Tercera pieza visible del roadmap de "semestre en la UI" (después de
+`c985188` y `8884cb4`/`0aaa4e9`, todos 2026-09-02): `matriculas.matr_semestre`
+ya vivía en el esquema, en los modales de matrícula y en la columna
+"Semestre" de `tablaMatriculados`, pero el propio estudiante no podía
+verlo en su reporte ni en su boletín PDF — los dos únicos lugares donde
+consulta directamente su situación académica.
+
+### Cambios — Backend (`reportes_mdl.php`)
+- `case 'mis_programas'`: agrega `m.matr_semestre` y
+  `p.prog_duracion_semestres` al `SELECT` existente, mismo
+  `INNER JOIN programas p ON m.prog_id = p.prog_id` ya usado para
+  `prog_nombre`/`prog_sigla` — sin JOIN nuevo.
+- `case 'detalle_periodo'`: la consulta previa de pertenencia
+  (`SELECT prog_id FROM matriculas WHERE matr_id = ? AND estu_id = ?`)
+  se amplía con un `INNER JOIN programas` para traer también
+  `matr_semestre`/`prog_duracion_semestres`, agregados al envelope de
+  respuesta (`matr_semestre`, `prog_duracion_semestres`, junto a
+  `estado_periodo`/`promedio_periodo`/`data`).
+
+### Cambios — Frontend (`reportes_ctrl.js`)
+- Nueva función `formatoSemestre(matr_semestre, prog_duracion_semestres)`
+  — formato "N/M", fallback `'—'` si falta cualquiera de los dos
+  valores. Mismo criterio que `crearColumnasMatriculados()`
+  (`02_estudiantes`), sin el resaltado condicional de "último semestre"
+  de esa columna — es un atributo de la matrícula (`mis_programas`), no
+  del período seleccionado.
+- Bloque de contexto de `cargarProgramas()` agrega "Semestre" entre
+  "Cohorte" y "Períodos realizados"; reparto de columnas Bootstrap
+  ajustado de 4/3/3/2 a 4/2/2/2/2 para dar espacio a la quinta columna.
+
+### Cambios — PDF (`pdf_boletin.php`)
+- Mismo `SELECT` de matrícula extendido con `m.matr_semestre` y
+  `p.prog_duracion_semestres`.
+- Nueva función `fmtSemestre()` (mismo criterio que `formatoSemestre()`
+  de `reportes_ctrl.js`).
+- "Semestre: N/M" ocupa el par de celdas
+  `<td class="etiqueta"></td><td></td>` ya reservadas (vacías) en la
+  fila de "Período" de la tabla de contexto — sin agregar fila nueva,
+  respetando el antipatrón de Dompdf con `colspan` mezclado ya
+  documentado en CLAUDE.md.
+
+### Decisión
+`05_calificaciones` (vista del docente) queda fuera de alcance —
+decisión explícita, no una omisión: el semestre del grupo
+(`grse_semestre`, ya visible ahí como "Sem.N") se conserva sin cambios,
+y no se agrega el semestre del estudiante (`matr_semestre`) a esa vista
+porque en la lógica de negocio ambos deberían coincidir — mostrar los
+dos valores por separado generaría ruido en vez de claridad.
+
+### Pruebas realizadas
+Verificado en navegador por Jose Luis: 3/3 pruebas (dato visible en el
+reporte del estudiante, no cambia al cambiar de período, boletín PDF
+con el layout correcto).
+
+---
+
 ## [0aaa4e9] — 2026-09-02 — feat(estudiantes): dividir Matriculados en pestañas Per. Actual / Per. Anteriores
 
 ### Archivos modificados
