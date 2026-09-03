@@ -310,6 +310,9 @@ Orden de creación (respetando dependencias FK):
 | `calificaciones` | `cali_` | Notas por estudiante y grupo módulo |
 | `horariosgrupo` | `hora_` | Horarios por grupo (solo jornada SEMA) |
 | `fichas_inscripcion` | `finc_` | Datos familiares (padre/madre/acudiente) y estudios anteriores — formato AC-FO-02 |
+| `solicitudes_actualizacion` | `soac_`/`soac_ficha_` | Staging de cambios propuestos por el estudiante a su propia ficha (`estudiantes`+`fichas_inscripcion`) vía link público sin sesión, pendientes de que el coordinador apruebe o descarte — **Fase 1 de 5, solo esquema todavía** (ver Phase 2.11 en "Estado del roadmap"). 3 decisiones de diseño: `soac_ficha_prog_id` sin FK hacia `programas` (valor propuesto sin validar hasta la aprobación, no en el momento de guardar la solicitud); `soac_estado` (`ENUM 'generado'/'recibido'/'aprobado'/'descartado'`) como borrado lógico — una solicitud descartada nunca se elimina, transiciona de estado; tabla ubicada al final del `.sql` en su propia sección "BLOQUE 6D", mismo patrón que `ayudas`/`configuracion` (ver nota debajo) |
+
+**Nota de esquema — tablas fuera del "Orden de creación" numerado de arriba:** la lista `1.` a `15.` de esta sección quedó fija en el diseño original y ya no se ha actualizado con las tablas de soporte agregadas después — ni `ayudas` ni `configuracion` (ambas del bloque de utilidades, sin relación con el dominio académico) aparecen ahí, y `solicitudes_actualizacion` tampoco se agregó por el mismo motivo. Las tres sí están en la tabla "Resumen de tablas principales" de arriba (más `solicitudes_actualizacion`) y en el DDL real (`database/emdb_academica.sql`, comentario "Tablas creadas: 19"). No renumerar la lista `1.`-`15.` para insertar estas tablas — mantenerla como registro del diseño académico original y usar la tabla de resumen como inventario vigente.
 
 **Nota de esquema — obtención de estudiantes de un grupo semestre (commit `a39cb24`, 2026-08-30):** `grseestudiantes` (tabla puente listada arriba, según la convención de nombres N:M de esta misma sección) fue reemplazada en el DDL real por `grmoestudiantes` — el comentario del propio `database/emdb_academica.sql` lo documenta explícitamente ("Reemplaza grseestudiantes para un control más granular"). No existe ninguna relación directa entre `gruposemestres` y `estudiantes`: para obtener los estudiantes de un `grse_id` dado, la ruta es `grmoestudiantes` → `gruposmodulos` (JOIN por `grmo_id`, filtrando `gruposmodulos.grse_id = ?`) — como en `listar_estudiantes_grupo` (`grupos_mdl.php`, `04_grupos`) y `listar_modulos_estudiante` (`est_mdl.php`, `02_estudiantes`). No confundir la fila `grseestudiantes` de la tabla de arriba con una tabla vigente en el esquema.
 
@@ -1361,6 +1364,33 @@ Con 2.10.E, el roadmap completo de "semestre en la UI" queda cerrado
 (`c985188` → `8884cb4` → `0aaa4e9` → `27a3915` → `0aef564`) — las 5
 piezas, desde el esquema hasta la acción de avance, están
 implementadas y verificadas en navegador.
+
+### Phase 2.11 — Link de actualización de datos de estudiantes (5 fases, en curso)
+
+> Objetivo: permitir que un estudiante actualice su propia ficha
+> (`estudiantes` + `fichas_inscripcion`) mediante un link público (sin
+> sesión), quedando la propuesta pendiente de que el coordinador la
+> apruebe o descarte desde un nuevo ítem del dropdown de Acciones de
+> `tablaMatriculados` (`02_estudiantes`). Precedido de un diagnóstico
+> de solo lectura (sin commit) que mapeó el esquema de ambas tablas, el
+> modal `#mdl_estudiante`, el patrón "público pero seguro" de
+> `09_inscripcion_publica/`, el `case 'guardar_completo'`, el patrón de
+> sincronización `usua_email` de `doc_mdl.php`, la estructura de
+> `tablaMatriculados`, y la convención de nombres del proyecto.
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| 2.11.A | Esquema — tabla `solicitudes_actualizacion` nueva (`database/emdb_academica.sql`), prefijo `soac_`/`soac_ficha_`: 10 columnas de control/auditoría, 17 espejo de `estudiantes` (excluye tipo/número de documento e identidad/sistema) y 35 espejo de `fichas_inscripcion` (excluye PK/FK/estado/auditoría), todas `NULLABLE`. Detalle completo de las 63 columnas y las 3 decisiones de diseño en CHANGELOG.md | ✅ 2026-09-02 (commit `3ba9f99`) |
+| 2.11.B | Backend — generación de token, endpoint(s) para crear/consultar la solicitud | ⬜ |
+| 2.11.C | Formulario público que consume el token (sin sesión, patrón de `09_inscripcion_publica/`) | ⬜ |
+| 2.11.D | Frontend — nuevo ítem del dropdown de `tablaMatriculados` + indicador de solicitud pendiente + flujo de aprobar/descartar | ⬜ |
+| 2.11.E | Documentación de cierre del feature completo | ⬜ |
+
+**Estado actual: Fase 1 de 5 (solo esquema).** Ningún backend ni
+frontend existe todavía para este feature — nada de generación de
+token, formulario público, ítem de dropdown ni badge están
+implementados. No usar esta entrada como referencia de comportamiento
+runtime hasta que las fases B–D tengan su propio commit.
 
 ### Phase 3 — Validación TRL5
 
