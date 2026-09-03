@@ -193,6 +193,7 @@ switch ($accion) {
             $stmt = $pdo->prepare("
                 SELECT m.matr_id, m.prog_id, p.prog_nombre, p.prog_sigla,
                        m.matr_estado, m.matr_estado_academico,
+                       m.matr_semestre, p.prog_duracion_semestres,
                        m.coho_id, c.coho_codigo
                 FROM matriculas m
                 INNER JOIN programas p ON m.prog_id = p.prog_id
@@ -283,7 +284,12 @@ switch ($accion) {
             }
             $pdo = getConexion();
 
-            $stmtMatr = $pdo->prepare("SELECT prog_id FROM matriculas WHERE matr_id = ? AND estu_id = ?");
+            $stmtMatr = $pdo->prepare("
+                SELECT m.prog_id, m.matr_semestre, p.prog_duracion_semestres
+                FROM matriculas m
+                INNER JOIN programas p ON m.prog_id = p.prog_id
+                WHERE m.matr_id = ? AND m.estu_id = ?
+            ");
             $stmtMatr->execute([$matr_id, $estu_id]);
             $matricula = $stmtMatr->fetch();
             if (!$matricula) {
@@ -333,10 +339,12 @@ switch ($accion) {
             }
 
             echo json_encode([
-                'status'           => 'ok',
-                'estado_periodo'   => $estadoPeriodo,
-                'promedio_periodo' => $promedioPeriodo,
-                'data'             => $modulos,
+                'status'                   => 'ok',
+                'estado_periodo'           => $estadoPeriodo,
+                'promedio_periodo'         => $promedioPeriodo,
+                'matr_semestre'            => $matricula['matr_semestre'],
+                'prog_duracion_semestres'  => $matricula['prog_duracion_semestres'],
+                'data'                     => $modulos,
             ]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);

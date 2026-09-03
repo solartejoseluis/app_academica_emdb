@@ -46,6 +46,7 @@ $pdo = getConexion();
 // La matrícula debe pertenecer al estudiante objetivo.
 $stmtMatr = $pdo->prepare("
     SELECT m.prog_id, p.prog_nombre, p.prog_sigla, c.coho_codigo,
+           m.matr_semestre, p.prog_duracion_semestres,
            e.estu_nombres, e.estu_apellidos, e.estu_numerodoc
     FROM matriculas m
     INNER JOIN programas p ON m.prog_id = p.prog_id
@@ -103,6 +104,14 @@ function fmtNota($valor) {
 function colorSemaforo($valor) {
     if ($valor === null) return '';
     return ((float)$valor >= 3.0) ? 'background-color:#d4edda;' : 'background-color:#f8d7da;';
+}
+
+// Formato "N/M" — mismo criterio que crearColumnasMatriculados()
+// (02_estudiantes) y formatoSemestre() (reportes_ctrl.js): fallback '—' si
+// falta cualquiera de los dos valores.
+function fmtSemestre($matr_semestre, $prog_duracion_semestres) {
+    if ($matr_semestre === null || $prog_duracion_semestres === null) return '—';
+    return $matr_semestre . '/' . $prog_duracion_semestres;
 }
 
 // Mismos 3 casos que badgeEstado() en reportes_ctrl.js — estado de UN módulo.
@@ -245,7 +254,7 @@ $html = '
         </tr>
         <tr>
             <td class="etiqueta">Período:</td><td>' . htmlspecialchars($periodo['peri_codigo']) . '</td>
-            <td class="etiqueta"></td><td></td>
+            <td class="etiqueta">Semestre:</td><td>' . htmlspecialchars(fmtSemestre($matricula['matr_semestre'], $matricula['prog_duracion_semestres'])) . '</td>
         </tr>
     </table>
 

@@ -56,6 +56,16 @@ $(document).ready(function () {
         return '<span class="badge ' + cls + '">' + (valor || '—') + '</span>';
     }
 
+    // Formato "N/M" — mismo criterio que crearColumnasMatriculados()
+    // (02_estudiantes): fallback '—' si falta cualquiera de los dos valores.
+    // Atributo de la matrícula (mis_programas), no del período seleccionado —
+    // sin resaltado condicional de "último semestre" (ese detalle visual es
+    // específico del listado de Matriculados).
+    function formatoSemestre(matr_semestre, prog_duracion_semestres) {
+        if (matr_semestre == null || prog_duracion_semestres == null) return '—';
+        return matr_semestre + '/' + prog_duracion_semestres;
+    }
+
     // Estado agregado del período, ya calculado por el backend
     // (detalle_periodo / pdf_boletin.php) — mismo esquema de color que
     // badgeEstado() de arriba (verde/rojo/gris), aplicado a un texto en vez
@@ -235,8 +245,9 @@ $(document).ready(function () {
                     $pane.html(`
                         <div class="row mb-3 g-2">
                             <div class="col-md-4"><strong>Programa:</strong> ${matr.prog_nombre}</div>
-                            <div class="col-md-3"><strong>Cohorte:</strong> ${matr.coho_codigo || '—'}</div>
-                            <div class="col-md-3"><strong>Períodos realizados:</strong> <span class="periodos-realizados">—</span></div>
+                            <div class="col-md-2"><strong>Cohorte:</strong> ${matr.coho_codigo || '—'}</div>
+                            <div class="col-md-2"><strong>Semestre:</strong> ${formatoSemestre(matr.matr_semestre, matr.prog_duracion_semestres)}</div>
+                            <div class="col-md-2"><strong>Períodos realizados:</strong> <span class="periodos-realizados">—</span></div>
                             <div class="col-md-2"><strong>Estado actual:</strong> ${badgeEstadoAcademico(matr.matr_estado_academico)}</div>
                         </div>
                         <div class="row g-2 align-items-end mb-3">
