@@ -69,7 +69,7 @@ app_academica_emdb/
     08_admin/          — Gestión de usuarios del sistema
     09_inscripcion_publica/ — Formulario público de inscripción para aspirantes sin cuenta (sin sesión), verificación reCAPTCHA server-side, detección de duplicados por documento/correo
     10_ayudas/         — Contenido de ayuda mostrado en el sidebar de cada sección de la aplicación (CRUD en 08_admin)
-    11_actualizacion_datos/ — Link público (sin sesión) para que un estudiante actualice su propia ficha (`estudiantes`+`fichas_inscripcion`) vía token de un solo uso, pendiente de aprobación del coordinador — Fase 3 de 5, ver Phase 2.11 en "Estado del roadmap"
+    11_actualizacion_datos/ — Link público (sin sesión) para que un estudiante actualice su propia ficha (`estudiantes`+`fichas_inscripcion`) vía token de un solo uso, pendiente de aprobación del coordinador desde `tablaMatriculados` (`02_estudiantes`) — Fase 4 de 5, ver Phase 2.11 en "Estado del roadmap"
   uploads/
     fotos_estudiantes/ — Fotos de estudiantes, fuera de app/, excluidas de git salvo .gitkeep
   CLAUDE.md
@@ -313,7 +313,7 @@ Orden de creación (respetando dependencias FK):
 | `calificaciones` | `cali_` | Notas por estudiante y grupo módulo |
 | `horariosgrupo` | `hora_` | Horarios por grupo (solo jornada SEMA) |
 | `fichas_inscripcion` | `finc_` | Datos familiares (padre/madre/acudiente) y estudios anteriores — formato AC-FO-02 |
-| `solicitudes_actualizacion` | `soac_`/`soac_ficha_` | Staging de cambios propuestos por el estudiante a su propia ficha (`estudiantes`+`fichas_inscripcion`) vía link público sin sesión, pendientes de que el coordinador apruebe o descarte — **Fase 3 de 5, esquema + backend + formulario público probados, sin frontend/dropdown/badge para el coordinador todavía** (ver Phase 2.11 en "Estado del roadmap"). 3 decisiones de diseño: `soac_ficha_prog_id` sin FK hacia `programas` (valor propuesto sin validar hasta la aprobación, no en el momento de guardar la solicitud); `soac_estado` (`ENUM 'generado'/'recibido'/'aprobado'/'descartado'`) como borrado lógico — una solicitud descartada nunca se elimina, transiciona de estado; tabla ubicada al final del `.sql` en su propia sección "BLOQUE 6D", mismo patrón que `ayudas`/`configuracion` (ver nota debajo) |
+| `solicitudes_actualizacion` | `soac_`/`soac_ficha_` | Staging de cambios propuestos por el estudiante a su propia ficha (`estudiantes`+`fichas_inscripcion`) vía link público sin sesión, pendientes de que el coordinador apruebe o descarte — **Fase 4 de 5, esquema + backend + formulario público + frontend probados — utilizable de punta a punta por un coordinador real, falta solo la Fase 5 documental** (ver Phase 2.11 en "Estado del roadmap"). 3 decisiones de diseño: `soac_ficha_prog_id` sin FK hacia `programas` (valor propuesto sin validar hasta la aprobación, no en el momento de guardar la solicitud); `soac_estado` (`ENUM 'generado'/'recibido'/'aprobado'/'descartado'`) como borrado lógico — una solicitud descartada nunca se elimina, transiciona de estado; tabla ubicada al final del `.sql` en su propia sección "BLOQUE 6D", mismo patrón que `ayudas`/`configuracion` (ver nota debajo) |
 
 **Nota de esquema — tablas fuera del "Orden de creación" numerado de arriba:** la lista `1.` a `15.` de esta sección quedó fija en el diseño original y ya no se ha actualizado con las tablas de soporte agregadas después — ni `ayudas` ni `configuracion` (ambas del bloque de utilidades, sin relación con el dominio académico) aparecen ahí, y `solicitudes_actualizacion` tampoco se agregó por el mismo motivo. Las tres sí están en la tabla "Resumen de tablas principales" de arriba (más `solicitudes_actualizacion`) y en el DDL real (`database/emdb_academica.sql`, comentario "Tablas creadas: 19"). No renumerar la lista `1.`-`15.` para insertar estas tablas — mantenerla como registro del diseño académico original y usar la tabla de resumen como inventario vigente.
 
@@ -878,6 +878,16 @@ Ejemplo: `matr_folio`/`matr_numero` en `02_estudiantes` — removidos de la UI d
 
 Ejemplo: `finc_codigotemporal` en `fichas_inscripcion` — columna + `UNIQUE KEY` + `generarCodigoTemporal()` (con su lógica de reintento contra duplicado) existían como puente para que un aspirante retomara un formulario público de 2 pasos sin necesidad de cuenta. Al rediseñarse ese formulario como una sola pantalla con un solo guardado transaccional (commit `0e098bb`, 2026-08-24), el mecanismo de "retomar después" dejó de tener sentido por completo (no hay un paso intermedio que retomar) — se eliminó la columna, la constraint y toda la lógica asociada, en vez de dejarla sin usar "por si acaso".
 
+### Modo "solo revisión" reutilizando un modal existente, en vez de crear uno nuevo
+
+Cuando una funcionalidad nueva necesita mostrar un formulario ya existente en un estado de solo lectura/revisión (ej. una propuesta de cambio pendiente de aprobación), reutilizar el mismo modal de edición en vez de duplicar su HTML en un modal aparte — evita mantener dos copias del mismo formulario, con el mismo riesgo de divergencia silenciosa ya documentado en "Formularios duplicados en dos vistas deben mantener su disposición de campos sincronizada". Patrón:
+
+1. Una función que puebla el modal en modo revisión (ej. `poblarModalRevision()`) carga primero los valores VIGENTES exactamente igual que la función de edición normal, y luego los sobrescribe con los valores PROPUESTOS cuando existan, marcando cada campo sobrescrito con una clase CSS distinta de cualquier otro indicador visual ya usado en el modal (ej. `.campo-actualizado`, amarillo, distinta de `.campo-lleno`, verde).
+2. Deshabilita todos los `input`/`select`/`textarea` del formulario (revisión = solo lectura, no edición) y oculta cualquier botón/bloque que no aplique en este modo (Guardar, subir foto, cambiar clave, etc.), mostrando en su lugar los botones específicos del modo revisión (ej. Aprobar/Descartar).
+3. Una función de reset (ej. `restaurarModoNormalEstudiante()`) revierte todo lo anterior — se llama tanto al cerrar el modal (`hidden.bs.modal`) como, defensivamente, al inicio de la función de apertura en modo normal, para que abrir el modal en modo edición después de haber estado en modo revisión nunca herede campos deshabilitados ni botones equivocados.
+
+Ejemplo: `#mdl_estudiante` en `02_estudiantes` (commit `70c45ba`, 2026-09-03) — reutilizado para el modo de revisión de una solicitud de actualización de datos (Fase 4 de 5 del feature "Link de actualización de datos de estudiantes"), en vez de crear un modal nuevo que duplicara las 5 secciones ya existentes.
+
 ---
 
 ## Antipatrones a evitar
@@ -1391,20 +1401,17 @@ implementadas y verificadas en navegador.
 | 2.11.A | Esquema — tabla `solicitudes_actualizacion` nueva (`database/emdb_academica.sql`), prefijo `soac_`/`soac_ficha_`: 10 columnas de control/auditoría, 17 espejo de `estudiantes` (excluye tipo/número de documento e identidad/sistema) y 35 espejo de `fichas_inscripcion` (excluye PK/FK/estado/auditoría), todas `NULLABLE`. Detalle completo de las 63 columnas y las 3 decisiones de diseño en CHANGELOG.md | ✅ 2026-09-02 (commit `3ba9f99`) |
 | 2.11.B | Backend — 4 `case` nuevos en `est_mdl.php` (solo `role_id IN (1,2)`): `generar_link_actualizacion` (valida elegibilidad matriculado+Activo+período activo, invalida automáticamente cualquier solicitud previa activa, token de 64 hex chars con `bin2hex(random_bytes(32))`, expira en 24h), `estado_solicitud_actualizacion` (la más reciente del estudiante, `null` si nunca tuvo una), `aprobar_actualizacion` (aplica solo campos `soac_*` no nulos sin sobrescribir con `NULL`, calcula `soac_campos_modificados`, sincroniza `usua_email` si cambió, rollback total ante cualquier colisión) y `descartar_actualizacion` (borrado lógico). Nueva función compartida `sincronizarEmailUsuario()` en `helpers.php` (ver esa sección), que además corrige un bug real en `guardar_completo` (editar el correo de un estudiante con `usua_id` ahora sí sincroniza `usuarios.usua_email`). `listar_matriculados` agrega `soac_estado_activo` para el badge de la Fase D. Detalle completo, incluido el bug de `estudiantes.estu_email` encontrado en pruebas, en CHANGELOG.md | ✅ 2026-09-02 (commit `03e36fc`) |
 | 2.11.C | Formulario público — módulo nuevo `11_actualizacion_datos/` (`actualizar_mdl.php`/`actualizar_view.php`/`actualizar_ctrl.js`), sin sesión (mismo criterio que `09_inscripcion_publica/`, ver la excepción documentada en "Vistas como `.php` en lugar de `.html`"). 3 `case`: `validar_token` (existencia + estado `'generado'` + expiración, responde `{status, motivo}` en vez del envelope estándar, precarga valores vigentes vía `LEFT JOIN` igual que `obtener_completo`), `guardar_actualizacion` (re-valida el token igual que `validar_token`, escribe solo en columnas `soac_*`/`soac_ficha_*` — nunca toca `estudiantes`/`fichas_inscripcion` directamente —, `UPDATE` condicional `WHERE soac_estado = 'generado'` contra doble submit) y `listar_programas` (catálogo público duplicado de `insc_mdl.php`). Bug encontrado y corregido durante el desarrollo: un `exit` dentro del `foreach` de validación de la ficha familiar cortaba el script en la primera iteración en vez de solo ante el primer campo `null` — corregido a bandera + `break`, mismo patrón que `guardar_completo`. Detalle completo, incluidos los 7 casos probados con `curl` sin sesión, en CHANGELOG.md | ✅ 2026-09-02 (commit `b739a60`), verificado en navegador por Jose Luis 4/4 puntos |
-| 2.11.D | Frontend — nuevo ítem del dropdown de `tablaMatriculados` + indicador de solicitud pendiente + flujo de aprobar/descartar | ⬜ |
+| 2.11.D | Frontend — conecta todo desde `tablaMatriculados` (`02_estudiantes`). Nuevo ítem de dropdown "🔗 Generar link actualizar datos" (tras "📝 Datos Estudiante", solo en Per. Actual, deshabilitado si `matr_estado_academico !== 'Activo'`). Nuevo modal `#mdl_actualizacion_datos` con 2 modos según `estado_solicitud_actualizacion`: "Ver y aprobar actualización" (si `'recibido'`) o "Generar link para actualización" (link + botón Copiar vía `navigator.clipboard`/`execCommand` fallback). Modo revisión de `#mdl_estudiante` **reutilizado, no un modal nuevo** (`abrirRevisionActualizacion()`/`poblarModalRevision()`/`restaurarModoNormalEstudiante()`, ver "Patrón de UI" más abajo) — campos propuestos resaltados con la clase nueva `.campo-actualizado` (amarillo), formulario deshabilitado, botones Aprobar/Descartar. 3 badges independientes y coexistentes en la columna Apellidos: 🎓 N programas (ya existente), 🔔 Link enviado/Pendiente aprobación (`soac_estado_activo`), y ✅ Actualizado [fecha] permanente sin ventana de tiempo (`soac_fecha_ultima_aprobacion`, pedido posterior al prompt original de esta fase, implementado y verificado en el mismo ciclo antes del commit). Fix heredado de la Fase 2: la URL de `generar_link_actualizacion` no tenía el prefijo real `/app_academica_emdb/app/` servido por Apache — único cambio en `est_mdl.php` en esta fase. Detalle completo en CHANGELOG.md | ✅ 2026-09-03 (commit `70c45ba`), verificado en navegador por Jose Luis 8+4 pasos |
 | 2.11.E | Documentación de cierre del feature completo | ⬜ |
 
-**Estado actual: Fase 3 de 5 completa (esquema + backend + formulario
-público).** Por primera vez existe una interfaz real que un
-estudiante puede abrir y usar de punta a punta (`11_actualizacion_datos/actualizar_view.php?token=...`,
-verificado en navegador) — pero **el coordinador todavía no tiene
-ninguna forma de generar ese link desde la aplicación**: no hay ítem
-de dropdown ni badge en `tablaMatriculados`, y `est_view.php`/`est_ctrl.js`
-no se han tocado en ningún commit de este feature todavía (el link de
-prueba usado para la verificación en navegador se generó a mano con
-`curl` contra `generar_link_actualizacion`). No usar esta entrada como
-referencia de un flujo utilizable de punta a punta por un coordinador
-real hasta que la Fase D tenga su propio commit.
+**Estado actual: Fase 4 de 5 completa (esquema + backend + formulario
+público + frontend).** El feature es utilizable de punta a punta por
+un coordinador real: generar el link desde el dropdown, copiarlo,
+enviarlo al estudiante, ver los badges reflejar el estado, revisar la
+propuesta con los campos resaltados y aprobar o descartar — todo
+verificado en navegador. **Falta únicamente la Fase 5**, que es
+puramente documental (no agrega código) — al cerrarla, el feature
+completo queda cerrado.
 
 ### Phase 3 — Validación TRL5
 
