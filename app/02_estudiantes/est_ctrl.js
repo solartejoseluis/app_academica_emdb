@@ -1050,38 +1050,7 @@ function crearColumnasMatriculados(esPeriodoActual) {
             render: function (data, type, row, meta) { return meta.row + 1; }
         },
         { data: 'estu_nombres' },
-        {
-            data: 'estu_apellidos',
-            render: function (data, type, row) {
-                let badges = '';
-                if (row.total_matriculas_estudiante > 1) {
-                    const detalle = (row.detalle_matriculas_estudiante || '').replace(/"/g, '&quot;');
-                    badges += ` <span class="badge bg-info text-dark" title="${detalle}">🎓 ${row.total_matriculas_estudiante} programas</span>`;
-                }
-                // soac_estado_activo (listar_matriculados, Fase 2): NULL si no
-                // hay ninguna solicitud de actualización de datos activa.
-                if (row.soac_estado_activo === 'generado') {
-                    badges += ` <span class="badge bg-warning text-dark" title="Link enviado, esperando respuesta del estudiante">🔔 Link enviado</span>`;
-                } else if (row.soac_estado_activo === 'recibido') {
-                    badges += ` <span class="badge bg-danger" title="Datos recibidos, pendiente de aprobación">🔔 Pendiente aprobación</span>`;
-                }
-                // soac_fecha_ultima_aprobacion: independiente del badge de
-                // arriba — historial permanente de la última aprobación, sin
-                // ventana de tiempo. Puede aparecer junto con el badge de
-                // solicitud activa si el estudiante ya tuvo una actualización
-                // aprobada Y además tiene una nueva pendiente ahora mismo.
-                if (row.soac_fecha_ultima_aprobacion) {
-                    // Mismo criterio ya usado en esta tabla para "fecha simple"
-                    // (ver el resumen de matriculas en abrirEditar(), formato
-                    // dd/mm/aaaa por reordenamiento de partes) — soac_resuelto_en
-                    // llega como "AAAA-MM-DD HH:MM:SS", se descarta la hora.
-                    const partesFecha = row.soac_fecha_ultima_aprobacion.split(' ')[0].split('-');
-                    const fechaFmt = partesFecha[2] + '/' + partesFecha[1] + '/' + partesFecha[0];
-                    badges += ` <span class="badge bg-success" title="Última actualización aprobada: ${row.soac_fecha_ultima_aprobacion}">✅ Actualizado ${fechaFmt}</span>`;
-                }
-                return data + badges;
-            }
-        },
+        { data: 'estu_apellidos' },
         {
             data: null,
             render: function (data, type, row) {
@@ -1113,7 +1082,27 @@ function crearColumnasMatriculados(esPeriodoActual) {
                     : texto;
             }
         },
-        { data: 'estu_email' },
+        {
+            data: null,
+            render: function (data, type, row) {
+                let badges = '';
+                if (row.total_matriculas_estudiante > 1) {
+                    const detalle = (row.detalle_matriculas_estudiante || '').replace(/"/g, '&quot;');
+                    badges += `<span class="badge bg-info text-dark" title="${detalle}">🎓 ${row.total_matriculas_estudiante} programas</span> `;
+                }
+                if (row.soac_estado_activo === 'generado') {
+                    badges += `<span class="badge bg-warning text-dark" title="Link enviado, esperando respuesta del estudiante">🔔 Link enviado</span> `;
+                } else if (row.soac_estado_activo === 'recibido') {
+                    badges += `<span class="badge bg-danger" title="Datos recibidos, pendiente de aprobación">🔔 Pendiente aprobación</span> `;
+                }
+                if (row.soac_fecha_ultima_aprobacion) {
+                    const partesFecha = row.soac_fecha_ultima_aprobacion.split(' ')[0].split('-');
+                    const fechaFmt = partesFecha[2] + '/' + partesFecha[1] + '/' + partesFecha[0];
+                    badges += `<span class="badge bg-success" title="Última actualización aprobada: ${row.soac_fecha_ultima_aprobacion}">✅ Actualizado ${fechaFmt}</span> `;
+                }
+                return badges.trim() !== '' ? badges.trim() : '—';
+            }
+        },
         { data: 'coho_codigo', render: v => v || '—' },
         { data: 'prog_sigla', width: '70px' },
         {

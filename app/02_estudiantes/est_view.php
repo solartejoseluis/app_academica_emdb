@@ -112,7 +112,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                                 <th>Apellidos</th>
                                 <th>Documento</th>
                                 <th>Edad</th>
-                                <th>Correo</th>
+                                <th>Información</th>
                                 <th>Cohorte</th>
                                 <th>Programa</th>
                                 <th>Semestre</th>
@@ -168,7 +168,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                                 <th>Apellidos</th>
                                 <th>Documento</th>
                                 <th>Edad</th>
-                                <th>Correo</th>
+                                <th>Información</th>
                                 <th>Cohorte</th>
                                 <th>Programa</th>
                                 <th>Semestre</th>
