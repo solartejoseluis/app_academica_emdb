@@ -204,6 +204,15 @@ switch ($accion) {
                             LEFT JOIN calificaciones c6 ON c6.grmo_id = ge6.grmo_id AND c6.estu_id = ge6.estu_id
                             WHERE ge6.estu_id = e.estu_id AND gs6.prog_id = m.prog_id AND gs6.peri_id = m.peri_id
                            ) AS aprobado_periodo_actual,
+                           -- Solicitud de actualización de datos MÁS RECIENTE de este
+                           -- estudiante, solo si sigue activa ('generado'/'recibido') —
+                           -- NULL si nunca tuvo una o si la última ya fue resuelta
+                           -- (aprobada/descartada). Único dato que la Fase 4 necesita
+                           -- para decidir si pintar el badge de actualización pendiente.
+                           (SELECT soac1.soac_estado FROM solicitudes_actualizacion soac1
+                            WHERE soac1.estu_id = e.estu_id AND soac1.soac_estado IN ('generado','recibido')
+                            ORDER BY soac1.soac_id DESC LIMIT 1
+                           ) AS soac_estado_activo,
                            p.prog_sigla, p.prog_duracion_semestres, m.matr_semestre,
                            m.peri_id, pe.peri_codigo, m.matr_estado, m.matr_estado_academico,
                            m.matr_id, m.prog_id AS matr_prog_id,
@@ -945,6 +954,373 @@ switch ($accion) {
         }
         break;
 
+    // ── LINK DE ACTUALIZACIÓN DE DATOS (Fase 2 de 5) ─────────────────────
+    // Genera un token público para que el estudiante actualice su ficha sin
+    // sesión (Fase 3, todavía sin implementar); el coordinador aprueba o
+    // descarta la propuesta desde aquí. Todo restringido a coordinador/admin.
+
+    case 'generar_link_actualizacion':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $estu_id = (int)($_POST['estu_id'] ?? 0);
+        if ($estu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de estudiante inválido']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+
+            // Mismo patrón de resolución de "el activo por defecto" ya usado
+            // en doc_mdl.php (SELECT peri_id FROM periodos WHERE peri_activo=1).
+            $stmtPeriActivo = $pdo->query("SELECT peri_id FROM periodos WHERE peri_activo = 1 LIMIT 1");
+            $peri_activo_id = $stmtPeriActivo->fetchColumn();
+
+            // Mismo criterio que separa "Per. Actual" en listar_matriculados:
+            // matriculado + Activo + período activo.
+            $stmtElegible = $pdo->prepare(
+                "SELECT matr_id FROM matriculas
+                 WHERE estu_id = ? AND matr_estado = 'matriculado' AND matr_estado_academico = 'Activo'
+                   AND peri_id = ?"
+            );
+            $stmtElegible->execute([$estu_id, $peri_activo_id ?: 0]);
+            if (!$stmtElegible->fetch()) {
+                echo json_encode(['status' => 'error', 'message' => 'Solo se puede generar el link para estudiantes activos del período actual']);
+                break;
+            }
+
+            $pdo->beginTransaction();
+
+            // Invalidación automática: nunca conviven 2 solicitudes activas
+            // para el mismo estudiante — generar un link nuevo descarta
+            // cualquier solicitud 'generado'/'recibido' previa.
+            $stmtInvalidar = $pdo->prepare(
+                "UPDATE solicitudes_actualizacion
+                 SET soac_estado = 'descartado', soac_resuelto_en = NOW(), soac_resuelto_por = ?
+                 WHERE estu_id = ? AND soac_estado IN ('generado','recibido')"
+            );
+            $stmtInvalidar->execute([$_SESSION['usua_id'], $estu_id]);
+
+            $soac_token = bin2hex(random_bytes(32));
+
+            $stmtInsert = $pdo->prepare(
+                "INSERT INTO solicitudes_actualizacion
+                    (estu_id, soac_token, soac_generado_en, soac_expira_en, soac_estado)
+                 VALUES (?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 24 HOUR), 'generado')"
+            );
+            $stmtInsert->execute([$estu_id, $soac_token]);
+
+            $pdo->commit();
+
+            // Ruta provisional — la Fase 3 define el módulo público real
+            // (todavía no existe ningún archivo en esa ruta).
+            $url = '/11_actualizacion_datos/actualizar_view.php?token=' . $soac_token;
+            echo json_encode(['status' => 'ok', 'token' => $soac_token, 'url' => $url]);
+
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al generar el link de actualización']);
+        }
+        break;
+
+    case 'estado_solicitud_actualizacion':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $estu_id = (int)($_POST['estu_id'] ?? 0);
+        if ($estu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de estudiante inválido']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            // Sin filtrar por estado — la Fase 4 necesita saber si la ÚLTIMA
+            // solicitud fue aprobada/descartada para decidir qué botón mostrar.
+            $stmt = $pdo->prepare(
+                "SELECT * FROM solicitudes_actualizacion WHERE estu_id = ? ORDER BY soac_id DESC LIMIT 1"
+            );
+            $stmt->execute([$estu_id]);
+            $solicitud = $stmt->fetch();
+            // Caso normal (estudiante sin ninguna solicitud todavía): null
+            // explícito, no un error.
+            echo json_encode(['status' => 'ok', 'data' => $solicitud ?: null]);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al consultar la solicitud']);
+        }
+        break;
+
+    case 'aprobar_actualizacion':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $soac_id = (int)($_POST['soac_id'] ?? 0);
+        if ($soac_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de solicitud inválido']);
+            break;
+        }
+
+        // Mapeo columna_soac => [columna_destino, etiqueta legible] — estudiantes.
+        // soac_fechanacimiento es la única sin prefijo estu_ (la columna
+        // original tampoco lo lleva en estudiantes).
+        $mapaEstudiantes = [
+            'soac_estu_expedidoen'        => ['estu_expedidoen', 'Expedido en'],
+            'soac_estu_nombres'           => ['estu_nombres', 'Nombres'],
+            'soac_estu_apellidos'         => ['estu_apellidos', 'Apellidos'],
+            'soac_estu_ciudadnac'         => ['estu_ciudadnac', 'Ciudad de nacimiento'],
+            'soac_fechanacimiento'        => ['fechanacimiento', 'Fecha de nacimiento'],
+            'soac_estu_sexo'              => ['estu_sexo', 'Sexo'],
+            'soac_estu_telefono'          => ['estu_telefono', 'Teléfono'],
+            'soac_estu_email'             => ['estu_email', 'Correo electrónico'],
+            'soac_estu_ocupacion'         => ['estu_ocupacion', 'Ocupación'],
+            'soac_estu_direccion'         => ['estu_direccion', 'Dirección'],
+            'soac_estu_barrio'            => ['estu_barrio', 'Barrio'],
+            'soac_estu_ciudad'            => ['estu_ciudad', 'Ciudad'],
+            'soac_estu_estrato'           => ['estu_estrato', 'Estrato'],
+            'soac_estu_estadocivil'       => ['estu_estadocivil', 'Estado civil'],
+            'soac_estu_eps'               => ['estu_eps', 'EPS'],
+            'soac_estu_discapacidad'      => ['estu_discapacidad', 'Discapacidad'],
+            'soac_estu_multiculturalidad' => ['estu_multiculturalidad', 'Multiculturalidad'],
+        ];
+
+        // Mapeo columna_soac => [columna_destino, etiqueta legible] — fichas_inscripcion.
+        $mapaFicha = [
+            'soac_ficha_prog_id'             => ['prog_id', 'Programa'],
+            'soac_ficha_jornada'             => ['jornada', 'Jornada'],
+            'soac_ficha_fechainscripcion'    => ['fechainscripcion', 'Fecha de inscripción'],
+            'soac_ficha_padr_vive'           => ['padr_vive', 'Padre vive'],
+            'soac_ficha_padr_nombres'        => ['padr_nombres', 'Nombres del padre'],
+            'soac_ficha_padr_apellidos'      => ['padr_apellidos', 'Apellidos del padre'],
+            'soac_ficha_padr_profesion'      => ['padr_profesion', 'Profesión del padre'],
+            'soac_ficha_padr_empresa'        => ['padr_empresa', 'Empresa del padre'],
+            'soac_ficha_padr_telefono'       => ['padr_telefono', 'Teléfono del padre'],
+            'soac_ficha_padr_direccion'      => ['padr_direccion', 'Dirección del padre'],
+            'soac_ficha_padr_barrio'         => ['padr_barrio', 'Barrio del padre'],
+            'soac_ficha_padr_ciudad'         => ['padr_ciudad', 'Ciudad del padre'],
+            'soac_ficha_madr_vive'           => ['madr_vive', 'Madre vive'],
+            'soac_ficha_madr_nombres'        => ['madr_nombres', 'Nombres de la madre'],
+            'soac_ficha_madr_apellidos'      => ['madr_apellidos', 'Apellidos de la madre'],
+            'soac_ficha_madr_profesion'      => ['madr_profesion', 'Profesión de la madre'],
+            'soac_ficha_madr_empresa'        => ['madr_empresa', 'Empresa de la madre'],
+            'soac_ficha_madr_telefono'       => ['madr_telefono', 'Teléfono de la madre'],
+            'soac_ficha_madr_direccion'      => ['madr_direccion', 'Dirección de la madre'],
+            'soac_ficha_madr_barrio'         => ['madr_barrio', 'Barrio de la madre'],
+            'soac_ficha_madr_ciudad'         => ['madr_ciudad', 'Ciudad de la madre'],
+            'soac_ficha_acud_es'             => ['acud_es', 'Acudiente'],
+            'soac_ficha_acud_parentesco'     => ['acud_parentesco', 'Parentesco del acudiente'],
+            'soac_ficha_acud_nombres'        => ['acud_nombres', 'Nombres del acudiente'],
+            'soac_ficha_acud_apellidos'      => ['acud_apellidos', 'Apellidos del acudiente'],
+            'soac_ficha_acud_profesion'      => ['acud_profesion', 'Profesión del acudiente'],
+            'soac_ficha_acud_empresa'        => ['acud_empresa', 'Empresa del acudiente'],
+            'soac_ficha_acud_telefono'       => ['acud_telefono', 'Teléfono del acudiente'],
+            'soac_ficha_acud_direccion'      => ['acud_direccion', 'Dirección del acudiente'],
+            'soac_ficha_acud_barrio'         => ['acud_barrio', 'Barrio del acudiente'],
+            'soac_ficha_acud_ciudad'         => ['acud_ciudad', 'Ciudad del acudiente'],
+            'soac_ficha_estudio_tipo'        => ['estudio_tipo', 'Tipo de estudio'],
+            'soac_ficha_estudio_titulo'      => ['estudio_titulo', 'Título obtenido'],
+            'soac_ficha_estudio_institucion' => ['estudio_institucion', 'Institución'],
+            'soac_ficha_estudio_aniofin'     => ['estudio_aniofin', 'Año de finalización'],
+        ];
+
+        try {
+            $pdo = getConexion();
+            $pdo->beginTransaction();
+
+            $stmtSoac = $pdo->prepare("SELECT * FROM solicitudes_actualizacion WHERE soac_id = ?");
+            $stmtSoac->execute([$soac_id]);
+            $solicitud = $stmtSoac->fetch();
+
+            if (!$solicitud || $solicitud['soac_estado'] !== 'recibido') {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'Solo se puede aprobar una solicitud en estado "recibido"']);
+                break;
+            }
+
+            $estu_id_int = (int)$solicitud['estu_id'];
+
+            $stmtEstu = $pdo->prepare("SELECT * FROM estudiantes WHERE estu_id = ?");
+            $stmtEstu->execute([$estu_id_int]);
+            $estudianteActual = $stmtEstu->fetch();
+            if (!$estudianteActual) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'Estudiante no encontrado']);
+                break;
+            }
+
+            $stmtFicha = $pdo->prepare("SELECT * FROM fichas_inscripcion WHERE estu_id = ?");
+            $stmtFicha->execute([$estu_id_int]);
+            $fichaActual = $stmtFicha->fetch();
+
+            // Paso c: solo campos soac_* NO NULOS entran al UPDATE; de esos,
+            // solo los que además difieren del valor vigente entran a la
+            // lista de "campos modificados". Comparación como string para
+            // evitar falsos positivos por tipos (PDO devuelve todo como
+            // string salvo NULL).
+            $camposModificados = [];
+
+            $setEstu  = [];
+            $valsEstu = [];
+            foreach ($mapaEstudiantes as $colSoac => [$colDestino, $etiqueta]) {
+                $valorNuevo = $solicitud[$colSoac];
+                if ($valorNuevo === null) continue;
+
+                $valorActual = $estudianteActual[$colDestino] ?? null;
+                if ((string)$valorNuevo !== (string)$valorActual) {
+                    $camposModificados[] = $etiqueta;
+                }
+                $setEstu[]  = "$colDestino = ?";
+                $valsEstu[] = $valorNuevo;
+            }
+
+            $setFicha  = [];
+            $valsFicha = [];
+            foreach ($mapaFicha as $colSoac => [$colDestino, $etiqueta]) {
+                $valorNuevo = $solicitud[$colSoac];
+                if ($valorNuevo === null) continue;
+
+                $valorActual = $fichaActual[$colDestino] ?? null;
+                if ((string)$valorNuevo !== (string)$valorActual) {
+                    $camposModificados[] = $etiqueta;
+                }
+                $setFicha[]  = "$colDestino = ?";
+                $valsFicha[] = $valorNuevo;
+            }
+
+            // estudiantes.estu_email tiene su propia UNIQUE KEY (uq_estu_email),
+            // independiente de usuarios.usua_email — hay que validarla ANTES del
+            // UPDATE genérico de abajo, igual que guardar_completo valida contra
+            // ambas tablas. Sin este chequeo, una colisión aquí lanza un
+            // PDOException genérico de MySQL antes de llegar siquiera al paso e
+            // (sincronizarEmailUsuario), perdiendo el mensaje específico.
+            $emailNuevo = $solicitud['soac_estu_email'];
+            if ($emailNuevo !== null && $emailNuevo !== $estudianteActual['estu_email']) {
+                $checkEmailEstu = $pdo->prepare("SELECT estu_id FROM estudiantes WHERE estu_email = ? AND estu_id != ?");
+                $checkEmailEstu->execute([$emailNuevo, $estu_id_int]);
+                if ($checkEmailEstu->fetch()) {
+                    $pdo->rollBack();
+                    echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso']);
+                    break;
+                }
+            }
+
+            // Paso d: UPDATE estudiantes con los campos soac_estu_* no nulos.
+            if (!empty($setEstu)) {
+                $sqlEstu = "UPDATE estudiantes SET " . implode(', ', $setEstu) . " WHERE estu_id = ?";
+                $valsEstu[] = $estu_id_int;
+                $pdo->prepare($sqlEstu)->execute($valsEstu);
+            }
+
+            // Paso d: UPDATE si ya existe fila en fichas_inscripcion, INSERT
+            // si no — mismo criterio que guardar_completo.
+            if (!empty($setFicha)) {
+                if ($fichaActual) {
+                    $sqlFicha = "UPDATE fichas_inscripcion SET " . implode(', ', $setFicha) . " WHERE estu_id = ?";
+                    $valsFicha[] = $estu_id_int;
+                    $pdo->prepare($sqlFicha)->execute($valsFicha);
+                } else {
+                    $colsFicha = array_map(function ($asignacion) {
+                        return explode(' = ', $asignacion)[0];
+                    }, $setFicha);
+                    $placeholders = implode(', ', array_fill(0, count($colsFicha) + 1, '?'));
+                    $sqlFicha = "INSERT INTO fichas_inscripcion (estu_id, " . implode(', ', $colsFicha) . ")
+                                 VALUES ($placeholders)";
+                    $pdo->prepare($sqlFicha)->execute(array_merge([$estu_id_int], $valsFicha));
+                }
+            }
+
+            // Paso e: sincroniza usuarios.usua_email si el correo cambió y el
+            // estudiante tiene cuenta de acceso — misma función que guardar_completo.
+            // $emailNuevo ya se calculó arriba, antes del UPDATE de estudiantes.
+            if ($emailNuevo !== null && $emailNuevo !== $estudianteActual['estu_email'] && $estudianteActual['usua_id']) {
+                try {
+                    sincronizarEmailUsuario($pdo, (int)$estudianteActual['usua_id'], $emailNuevo);
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso por otro usuario']);
+                    break;
+                }
+            }
+
+            // Paso f: cierra la solicitud como aprobada, con el registro de
+            // qué campos se aplicaron realmente.
+            $stmtResolver = $pdo->prepare(
+                "UPDATE solicitudes_actualizacion
+                 SET soac_estado = 'aprobado', soac_resuelto_en = NOW(), soac_resuelto_por = ?,
+                     soac_campos_modificados = ?
+                 WHERE soac_id = ?"
+            );
+            $stmtResolver->execute([$_SESSION['usua_id'], implode(', ', $camposModificados), $soac_id]);
+
+            $pdo->commit();
+            echo json_encode(['status' => 'ok', 'campos_aplicados' => $camposModificados]);
+
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al aprobar la actualización']);
+        }
+        break;
+
+    case 'descartar_actualizacion':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $soac_id = (int)($_POST['soac_id'] ?? 0);
+        if ($soac_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de solicitud inválido']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+
+            $stmt = $pdo->prepare("SELECT soac_estado FROM solicitudes_actualizacion WHERE soac_id = ?");
+            $stmt->execute([$soac_id]);
+            $soac_estado = $stmt->fetchColumn();
+
+            if ($soac_estado === false || !in_array($soac_estado, ['generado', 'recibido'], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Solo se puede descartar una solicitud en estado "generado" o "recibido"']);
+                break;
+            }
+
+            $stmtUpd = $pdo->prepare(
+                "UPDATE solicitudes_actualizacion
+                 SET soac_estado = 'descartado', soac_resuelto_en = NOW(), soac_resuelto_por = ?
+                 WHERE soac_id = ?"
+            );
+            $stmtUpd->execute([$_SESSION['usua_id'], $soac_id]);
+
+            echo json_encode(['status' => 'ok']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al descartar la solicitud']);
+        }
+        break;
+
     case 'subir_foto':
         if (!isset($_SESSION['usua_id'])) {
             echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
@@ -1302,9 +1678,14 @@ switch ($accion) {
                     break;
                 }
 
-                $stmtUsuaPropio = $pdo->prepare("SELECT usua_id FROM estudiantes WHERE estu_id = ?");
+                // estu_email también se lee aquí (antes de este UPDATE) para
+                // poder comparar el valor VIGENTE contra el nuevo más abajo,
+                // sin depender de lo que ya se sobrescribió.
+                $stmtUsuaPropio = $pdo->prepare("SELECT usua_id, estu_email FROM estudiantes WHERE estu_id = ?");
                 $stmtUsuaPropio->execute([$estu_id_int]);
-                $usua_id_propio = $stmtUsuaPropio->fetchColumn();
+                $rowPropio = $stmtUsuaPropio->fetch();
+                $usua_id_propio = $rowPropio['usua_id'];
+                $estu_email_anterior = $rowPropio['estu_email'];
 
                 if ($usua_id_propio) {
                     $checkEmailUsua = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_email = ? AND usua_id != ?");
@@ -1337,6 +1718,21 @@ switch ($accion) {
                     $estu_estadocivil, $estu_discapacidad, $estu_multiculturalidad,
                     $estu_id_int
                 ]);
+
+                // Sincroniza usuarios.usua_email si el correo cambió y el
+                // estudiante ya tiene cuenta de acceso — antes este UPDATE
+                // solo tocaba estudiantes.estu_email, dejando usuarios.usua_email
+                // desincronizado (hallazgo documentado en el diagnóstico de la
+                // Fase 1 del link de actualización de datos).
+                if ($usua_id_propio && $estu_email !== $estu_email_anterior) {
+                    try {
+                        sincronizarEmailUsuario($pdo, (int)$usua_id_propio, $estu_email);
+                    } catch (Exception $e) {
+                        $pdo->rollBack();
+                        echo json_encode(['status' => 'error', 'message' => 'Este correo electrónico ya está en uso']);
+                        break;
+                    }
+                }
 
                 // Cambio opcional de clave — solo si el estudiante ya tiene acceso
                 // creado (usua_id) y se envió una intención de cambio de clave.
