@@ -310,7 +310,7 @@ Orden de creación (respetando dependencias FK):
 | `calificaciones` | `cali_` | Notas por estudiante y grupo módulo |
 | `horariosgrupo` | `hora_` | Horarios por grupo (solo jornada SEMA) |
 | `fichas_inscripcion` | `finc_` | Datos familiares (padre/madre/acudiente) y estudios anteriores — formato AC-FO-02 |
-| `solicitudes_actualizacion` | `soac_`/`soac_ficha_` | Staging de cambios propuestos por el estudiante a su propia ficha (`estudiantes`+`fichas_inscripcion`) vía link público sin sesión, pendientes de que el coordinador apruebe o descarte — **Fase 1 de 5, solo esquema todavía** (ver Phase 2.11 en "Estado del roadmap"). 3 decisiones de diseño: `soac_ficha_prog_id` sin FK hacia `programas` (valor propuesto sin validar hasta la aprobación, no en el momento de guardar la solicitud); `soac_estado` (`ENUM 'generado'/'recibido'/'aprobado'/'descartado'`) como borrado lógico — una solicitud descartada nunca se elimina, transiciona de estado; tabla ubicada al final del `.sql` en su propia sección "BLOQUE 6D", mismo patrón que `ayudas`/`configuracion` (ver nota debajo) |
+| `solicitudes_actualizacion` | `soac_`/`soac_ficha_` | Staging de cambios propuestos por el estudiante a su propia ficha (`estudiantes`+`fichas_inscripcion`) vía link público sin sesión, pendientes de que el coordinador apruebe o descarte — **Fase 2 de 5, esquema + backend probado, sin formulario público ni frontend todavía** (ver Phase 2.11 en "Estado del roadmap"). 3 decisiones de diseño: `soac_ficha_prog_id` sin FK hacia `programas` (valor propuesto sin validar hasta la aprobación, no en el momento de guardar la solicitud); `soac_estado` (`ENUM 'generado'/'recibido'/'aprobado'/'descartado'`) como borrado lógico — una solicitud descartada nunca se elimina, transiciona de estado; tabla ubicada al final del `.sql` en su propia sección "BLOQUE 6D", mismo patrón que `ayudas`/`configuracion` (ver nota debajo) |
 
 **Nota de esquema — tablas fuera del "Orden de creación" numerado de arriba:** la lista `1.` a `15.` de esta sección quedó fija en el diseño original y ya no se ha actualizado con las tablas de soporte agregadas después — ni `ayudas` ni `configuracion` (ambas del bloque de utilidades, sin relación con el dominio académico) aparecen ahí, y `solicitudes_actualizacion` tampoco se agregó por el mismo motivo. Las tres sí están en la tabla "Resumen de tablas principales" de arriba (más `solicitudes_actualizacion`) y en el DDL real (`database/emdb_academica.sql`, comentario "Tablas creadas: 19"). No renumerar la lista `1.`-`15.` para insertar estas tablas — mantenerla como registro del diseño académico original y usar la tabla de resumen como inventario vigente.
 
@@ -830,6 +830,8 @@ Antes del commit `ac96f07` (2026-08-25), `00_files/` solo contenía componentes 
 
 Primera función: `formatearUltimoAcceso($ultimoAcceso, $fechaCreacion)` — usada en `login_mdl.php` (indirectamente, vía las vistas que leen la sesión), `navbar.php`, `calificaciones_view.php`, `reportes_view.php`, y en los cases `listar` de `admin_mdl.php`/`doc_mdl.php`/`est_mdl.php` (`listar_matriculados`). Este archivo es el lugar natural para cualquier función futura de este tipo (formato compartido, validación compartida, etc.) — antes de duplicar una función en un nuevo `_mdl.php`, verificar primero si ya existe (o si debería vivir) en `helpers.php`.
 
+Segunda función: `sincronizarEmailUsuario(PDO $pdo, ?int $usua_id, string $nuevoEmail): void` (commit `03e36fc`, 2026-09-02) — extraída del patrón ya usado inline en `doc_mdl.php` (case `'guardar'`, commit `b6cc503`): valida unicidad de `usuarios.usua_email` (excluyendo el propio `usua_id`) y actualiza. No abre ni cierra transacción propia — siempre corre dentro de la transacción PDO del llamador. Lanza `Exception` (no `PDOException`) en caso de colisión, para que el llamador la capture con su propio mensaje de error en vez de asumir un formato de respuesta fijo. Usada por `guardar_completo` (fix del bug documentado abajo) y por `case 'aprobar_actualizacion'` (`est_mdl.php`, `02_estudiantes`).
+
 ### Validación de unicidad server-side antes de UPDATE/INSERT (SELECT previo, no catch genérico)
 
 Cuando un campo debe ser único dentro de su propia tabla (no contra una tabla relacionada — para eso ver el patrón siguiente) y ese campo puede editarse desde la UI, no basta con dejar que el `UNIQUE KEY` de la BD rechace el duplicado y caiga al `catch (PDOException $e)` genérico: el usuario recibiría un mensaje de error inespecífico sin saber cuál fue la causa real. Patrón: antes del `UPDATE`/`INSERT`, ejecutar un `SELECT <pk> FROM tabla WHERE campo_unico = ?` (agregando `AND <pk> != ?` en la rama editar, para no autobloquear el registro contra sí mismo) — si encuentra una fila, responder con el envelope de error y un mensaje específico, sin llegar a ejecutar la escritura ni depender del catch.
@@ -860,6 +862,8 @@ Cuando un campo de una entidad (ej. `estudiantes.estu_email`) debe ser único a 
 4. Solo si ambos chequeos pasan, proceder con el guardado.
 
 Ejemplo: case `guardar` (crear y editar) en `est_mdl.php` y case `registrar` en `insc_mdl.php` (`09_inscripcion_publica`), commit `d62dde6` (2026-08-19) — valida `estu_email` contra `estudiantes.estu_email` y `usuarios.usua_email` antes de crear/editar un aspirante, excluyendo el propio `usua_id` en la rama editar.
+
+**Segundo caso — omitir el paso 3 es un error real, no solo teórico:** `case 'aprobar_actualizacion'` (`est_mdl.php`, `02_estudiantes`, commit `03e36fc`, 2026-09-02) inicialmente solo llamaba a `sincronizarEmailUsuario()` (helper nuevo, ver "00_files/helpers.php" — valida el paso 3, contra `usuarios.usua_email`) sin ejecutar el paso 2 (contra `estudiantes.estu_email`, que tiene su propia `UNIQUE KEY uq_estu_email`, independiente de la de `usuarios`). Detectado en pruebas con `curl`: una colisión contra `estudiantes.estu_email` lanzaba un `PDOException` crudo de MySQL, capturado por el catch genérico del `case`, perdiendo el mensaje de error específico que sí existía para la colisión contra `usuarios`. Corregido agregando el `SELECT` de unicidad contra `estudiantes` explícitamente, antes del `UPDATE`. **Lección generalizable:** al escribir un `UPDATE`/`INSERT` que toque un campo con `UNIQUE KEY` propia, validar esa unicidad explícitamente en el propio `case` — no asumir que una función auxiliar reutilizada (aunque sí valide la unicidad de una tabla relacionada) cubre también la unicidad de la tabla que se está escribiendo directamente.
 
 ### Remover un campo solo de la UI (dejando columna + backend intactos) cuando pertenece a una etapa fuera del alcance actual
 
@@ -1381,16 +1385,21 @@ implementadas y verificadas en navegador.
 | Ítem | Descripción | Estado |
 |---|---|---|
 | 2.11.A | Esquema — tabla `solicitudes_actualizacion` nueva (`database/emdb_academica.sql`), prefijo `soac_`/`soac_ficha_`: 10 columnas de control/auditoría, 17 espejo de `estudiantes` (excluye tipo/número de documento e identidad/sistema) y 35 espejo de `fichas_inscripcion` (excluye PK/FK/estado/auditoría), todas `NULLABLE`. Detalle completo de las 63 columnas y las 3 decisiones de diseño en CHANGELOG.md | ✅ 2026-09-02 (commit `3ba9f99`) |
-| 2.11.B | Backend — generación de token, endpoint(s) para crear/consultar la solicitud | ⬜ |
+| 2.11.B | Backend — 4 `case` nuevos en `est_mdl.php` (solo `role_id IN (1,2)`): `generar_link_actualizacion` (valida elegibilidad matriculado+Activo+período activo, invalida automáticamente cualquier solicitud previa activa, token de 64 hex chars con `bin2hex(random_bytes(32))`, expira en 24h), `estado_solicitud_actualizacion` (la más reciente del estudiante, `null` si nunca tuvo una), `aprobar_actualizacion` (aplica solo campos `soac_*` no nulos sin sobrescribir con `NULL`, calcula `soac_campos_modificados`, sincroniza `usua_email` si cambió, rollback total ante cualquier colisión) y `descartar_actualizacion` (borrado lógico). Nueva función compartida `sincronizarEmailUsuario()` en `helpers.php` (ver esa sección), que además corrige un bug real en `guardar_completo` (editar el correo de un estudiante con `usua_id` ahora sí sincroniza `usuarios.usua_email`). `listar_matriculados` agrega `soac_estado_activo` para el badge de la Fase D. Detalle completo, incluido el bug de `estudiantes.estu_email` encontrado en pruebas, en CHANGELOG.md | ✅ 2026-09-02 (commit `03e36fc`) |
 | 2.11.C | Formulario público que consume el token (sin sesión, patrón de `09_inscripcion_publica/`) | ⬜ |
 | 2.11.D | Frontend — nuevo ítem del dropdown de `tablaMatriculados` + indicador de solicitud pendiente + flujo de aprobar/descartar | ⬜ |
 | 2.11.E | Documentación de cierre del feature completo | ⬜ |
 
-**Estado actual: Fase 1 de 5 (solo esquema).** Ningún backend ni
-frontend existe todavía para este feature — nada de generación de
-token, formulario público, ítem de dropdown ni badge están
-implementados. No usar esta entrada como referencia de comportamiento
-runtime hasta que las fases B–D tengan su propio commit.
+**Estado actual: Fase 2 de 5 completa (esquema + backend).** El
+backend existe y está probado con `curl` contra el contenedor Docker
+vivo (11 casos, ver CHANGELOG.md) — pero **sigue sin ningún componente
+visible en la aplicación real**: no hay formulario público que un
+estudiante pueda abrir, no hay ítem de dropdown ni badge en
+`tablaMatriculados`, y `est_view.php`/`est_ctrl.js` no se han tocado
+en ningún commit de este feature todavía. No usar esta entrada como
+referencia de una funcionalidad que el coordinador o el estudiante ya
+puedan usar — solo endpoints invocables por `curl`/Postman hasta que
+la Fase C tenga su propio commit.
 
 ### Phase 3 — Validación TRL5
 
