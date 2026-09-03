@@ -4,6 +4,100 @@
 
 ---
 
+## [3ba9f99] — 2026-09-02 — feat(db): agrega tabla solicitudes_actualizacion — Fase 1/5 de link de actualización de datos
+
+### Archivos modificados
+- database/emdb_academica.sql
+
+### Por qué
+Primera fase de un feature nuevo en `02_estudiantes`: un link público
+(sin sesión) para que un estudiante actualice su propia ficha
+(`estudiantes` + `fichas_inscripcion`), quedando pendiente de que el
+coordinador apruebe o descarte los cambios desde un nuevo ítem del
+dropdown de Acciones de `tablaMatriculados`. Precedido de un
+diagnóstico de solo lectura (sin commit) que mapeó el esquema completo
+de ambas tablas, el modal `#mdl_estudiante`, el patrón "público pero
+seguro" ya usado en `09_inscripcion_publica/`, el `case
+'guardar_completo'` (candidato a reutilizar/adaptar en la aprobación),
+el patrón de sincronización `usua_email` de `doc_mdl.php`, la
+estructura de `tablaMatriculados`, y la convención de nombres del
+proyecto (confirmó que `soac_`/`soac_ficha_` no chocan con ningún
+prefijo existente).
+
+**Esta es la Fase 1 de 5 — solo esquema.** Ningún archivo PHP/JS se
+tocó en este commit. Faltan: Fase 2 (backend de generación de token),
+Fase 3 (formulario público que consume el token), Fase 4 (frontend del
+dropdown/badge en `tablaMatriculados` + aprobar/descartar), y Fase 5
+(documentación de cierre del feature completo). El feature **no está
+cerrado** — no confundir esta entrada con un feature terminado.
+
+### Cambios — Esquema (`database/emdb_academica.sql`)
+Nueva tabla `solicitudes_actualizacion` (sección "BLOQUE 6D", tras
+`configuracion`) — 63 columnas:
+- **10 de control/auditoría:** `soac_id` (PK), `estu_id` (FK →
+  `estudiantes`, `ON DELETE CASCADE`, mismo criterio que
+  `fk_finc_estu`), `soac_token VARCHAR(64)` (`UNIQUE KEY
+  uq_soac_token`), `soac_generado_en`/`soac_expira_en DATETIME`,
+  `soac_estado ENUM('generado','recibido','aprobado','descartado')`
+  default `'generado'`, `soac_recibido_en`/`soac_resuelto_en
+  DATETIME`, `soac_resuelto_por` (FK → `usuarios`, `ON DELETE SET
+  NULL`), `soac_campos_modificados TEXT`.
+- **17 espejo de `estudiantes`** (prefijo `soac_estu_`, excepto
+  `soac_fechanacimiento` que no lleva `estu_` porque la columna
+  original tampoco lo lleva) — mismo tipo/longitud que el original,
+  todas `NULLABLE` aunque el original sea `NOT NULL` (ej.
+  `estu_nombres`/`estu_apellidos`). Excluye deliberadamente
+  `estu_tipodoc`/`estu_numerodoc` (nunca editables por este medio) y
+  las columnas de identidad/sistema (`estu_id`, `usua_id`, `coho_id`,
+  `estu_activo`, `estu_foto`, `estu_origen`, `fechacreacion`).
+- **35 espejo de `fichas_inscripcion`** (prefijo `soac_ficha_`) — los 3
+  campos de programa/jornada/fecha, los 9 de Padre, los 9 de Madre,
+  los 10 de Acudiente, los 4 de Estudios anteriores. Excluye `finc_id`,
+  `estu_id`, `finc_estado`, `fechacreacion`.
+- `fechacreacion TIMESTAMP DEFAULT current_timestamp()` — mismo patrón
+  de auditoría base que el resto de tablas del proyecto.
+
+### Decisiones de diseño
+1. **`soac_ficha_prog_id` sin FK hacia `programas`** — a diferencia del
+   `prog_id` original de `fichas_inscripcion`, que sí tiene
+   `fk_finc_prog`. Los valores de esta tabla son propuestas del
+   estudiante sin validar todavía — una FK forzaría que el
+   `prog_id` propuesto sea válido en el momento de *guardar la
+   solicitud* (irrelevante en esa etapa), en vez de validarse recién
+   al momento de aprobar, que es cuando realmente importa.
+2. **`soac_estado` como borrado lógico, no `DELETE` físico** — una
+   solicitud descartada por el coordinador transiciona a
+   `soac_estado = 'descartado'` en vez de eliminarse; no existe (ni se
+   planea) ningún `DELETE` sobre esta tabla en el flujo normal. Mantiene
+   trazabilidad completa de qué se propuso y qué decidió el
+   coordinador, mismo criterio de auditoría que otras decisiones
+   binarias del proyecto prefieren un flag/estado sobre un borrado
+   irreversible.
+3. **Tabla ubicada al final del `.sql`, sección "BLOQUE 6D"** — mismo
+   patrón que `ayudas` (6B) y `configuracion` (6C): tablas de soporte
+   agregadas después del bloque principal de 14 tablas académicas, con
+   su propio `DROP TABLE IF EXISTS` + comentario de sección, sin
+   renumerar el "Orden de creación" ya documentado en CLAUDE.md (ese es
+   un cambio de documentación, no de esquema).
+
+### Aplicación
+`CREATE TABLE` aislado ejecutado contra el contenedor Docker vivo
+(`docker compose exec db mysql`) — **no** se re-ejecutó el `.sql`
+completo, que habría hecho `DROP TABLE IF EXISTS` sobre las 18 tablas
+existentes y destruido los datos transaccionales de prueba. Footer del
+`.sql` actualizado de "Tablas creadas: 18" a "19".
+
+### Pruebas realizadas
+`DESCRIBE solicitudes_actualizacion` — 63 columnas con tipo/nullability
+exactos a los especificados. `information_schema.KEY_COLUMN_USAGE` —
+ambas FK registradas correctamente. `SHOW INDEX` — `PRIMARY` +
+`uq_soac_token` confirmados. Grep de `soac_` y
+`solicitudes_actualizacion` en todo `app/` → 0 coincidencias, sin
+colisión de nombres. `CREATE TABLE`/`DROP TABLE IF EXISTS` balanceados
+19/19 en el `.sql`.
+
+---
+
 ## [0aef564] — 2026-09-02 — feat(estudiantes): matricular al siguiente semestre
 
 ### Archivos modificados
