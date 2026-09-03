@@ -129,9 +129,28 @@ badges sin que se encimen, fecha correcta en el badge verde, `title`
 con fecha y hora completas, y ausencia del badge en un estudiante sin
 ninguna solicitud en su historial.
 
-**Sigue siendo Fase 4 de 5.** Falta únicamente la Fase 5
-(documentación de cierre del feature completo) — la última fase de
-este roadmap.
+### Roadmap completo — "Link de actualización de datos de estudiantes" (4 piezas, cerrado)
+`3ba9f99` (esquema) → `03e36fc` (backend) → `b739a60` (formulario
+público) → `70c45ba` (frontend, esta entrada).
+
+Feature verificado en navegador de punta a punta: el coordinador
+genera el link desde `tablaMatriculados`, lo copia y lo envía
+manualmente; el estudiante lo abre sin necesidad de cuenta, revisa y
+envía su propuesta; el coordinador la revisa con los campos
+resaltados y decide aprobarla o descartarla. La nota de la Fase 2
+sobre "URL completa con dominio" (`03e36fc`) queda resuelta por este
+mismo frontend, sin necesidad de tocar el backend — la concatenación
+`window.location.origin + response.url` evita por completo el riesgo
+de host-header injection que motivó dejarla pendiente en su momento.
+
+Sin ningún pendiente abierto de este roadmap salvo un hallazgo puntual
+detectado en la revisión de cierre (Fase 5, 2026-09-03, sin commit de
+código): `#txt_ultima_actualizacion` en `#mdl_actualizacion_datos`
+puede mostrar `'—'` cuando en realidad sí existe una aprobación en el
+historial del estudiante, por usar un criterio de búsqueda más simple
+que el badge "✅ Actualizado" de la misma fila — no es un bug de
+datos ni bloqueante, documentado en CLAUDE.md ("Deuda técnica /
+pendiente antes de producción") para una decisión futura de Jose Luis.
 
 ---
 
