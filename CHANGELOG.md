@@ -4,6 +4,152 @@
 
 ---
 
+## [0aef564] — 2026-09-02 — feat(estudiantes): matricular al siguiente semestre
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Por qué
+Pieza final del roadmap de "semestre en la UI" — las 4 piezas
+anteriores (`c985188`, `8884cb4`, `0aaa4e9`, `27a3915`) dejaron
+`matr_semestre` visible en toda la aplicación pero sin ninguna forma de
+avanzarlo: el ENUM `matr_estado` reservaba el valor `'cursado'` desde
+`c985188` sin que ningún endpoint lo escribiera todavía. Precedido de
+2 diagnósticos de solo lectura (sin commit) que confirmaron el diseño
+(nueva fila en `matriculas`, no `UPDATE` de la existente) y el estado
+exacto de cada pieza reutilizable (dropdown, `detalle_periodo`,
+validación de semestre, `matr_estado_academico`, campos disponibles en
+`listar_matriculados`) antes de implementar.
+
+### Cambios — Backend (`est_mdl.php`)
+- **`validarSemestrePrograma(PDO $pdo, int $prog_id, int $matr_semestre): ?string`**
+  extraída como función reutilizable — antes duplicada literalmente en
+  `case 'matricular'` y `case 'editar_matricula'` (mismo `SELECT
+  prog_duracion_semestres`, mismo rango, mismo mensaje). Ambos `case`
+  reemplazan su bloque inline por una llamada a esta función, sin
+  cambio de comportamiento. Ahora la usan 3 lugares: `matricular`,
+  `editar_matricula`, y el nuevo `case 'avanzar_semestre'`.
+- `case 'listar_matriculados'` agrega:
+  - `m.matr_estado_academico` al `SELECT` (no estaba, pese a existir
+    en otros `case` del mismo archivo).
+  - `aprobado_periodo_actual` — subconsulta escalar correlacionada que
+    replica **de forma consciente** la lógica de promedio de
+    `detalle_periodo` (`reportes_mdl.php`): promedio de
+    `cali_definitiva` de los módulos de ese `prog_id`+`peri_id` para
+    ese estudiante, `1` solo si TODAS están pobladas y el promedio es
+    `>= 3.0`. Sin filtro por `grmo_activo` (tampoco lo aplica
+    `detalle_periodo`). Es solo para decidir qué mostrar en el
+    dropdown — nunca se usa para autorizar el avance real.
+- **Nuevo `case 'avanzar_semestre'`** — solo `role_id` 1/2
+  (coordinador/administrador). Recibe `matr_id` + `peri_id_destino`.
+  Validaciones en cadena, cada una con su propio mensaje, antes de
+  abrir transacción:
+  1. `matr_estado` debe ser `'matriculado'`.
+  2. `matr_estado_academico` debe ser `'Activo'`.
+  3. `matr_semestre + 1` validado con `validarSemestrePrograma()`
+     contra `prog_duracion_semestres` (cubre el caso de último
+     semestre).
+  4. `peri_id_destino` distinto del `peri_id` actual de la fila.
+  5. Aprobación del período actual **recalculada con una query
+     directa** en el momento de escribir — no confía en
+     `aprobado_periodo_actual` (esa columna es solo para UI) ni en
+     ningún valor recibido por POST.
+  6. Sin fila duplicada ya existente para `estu_id`+`prog_id`+
+     `peri_id_destino` (mismo criterio que el `UNIQUE KEY`).
+
+  Si todas pasan: transacción PDO — `UPDATE matriculas SET matr_estado
+  = 'cursado'` sobre la fila actual, luego `INSERT` de la fila nueva
+  (`matr_semestre + 1`, `matr_estado = 'matriculado'`,
+  `matr_estado_academico = 'Activo'`, mismo `coho_id` heredado,
+  `fechamatricula = CURDATE()`) — campos no heredados (`matr_folio`,
+  `matr_numero`, `matr_matriculadopor`, `fechainscripcion`,
+  `matr_observacion`, `req_*`) quedan en su `NULL`/`DEFAULT 0` de
+  columna, igual que una matrícula nueva creada desde cero.
+
+### Cambios — Frontend (`est_view.php` + `est_ctrl.js`)
+- `crearColumnasMatriculados(esPeriodoActual)` — nuevo parámetro
+  booleano. Las dos llamadas existentes se actualizan:
+  `tablaMatriculadosActual` con `true`, `tablaMatriculadosAnteriores`
+  con `false`. Ver "Decisiones por ambigüedad" — no viola la
+  advertencia ya documentada en CLAUDE.md contra funciones
+  compartidas con parámetros condicionales.
+- Nuevo ítem de dropdown **"⏩ Matricular al sgte. sem."**, agregado
+  solo cuando `esPeriodoActual === true` (nunca en Per. Anteriores),
+  entre "✏️ Matrícula" y "🖨️ Hoja de Matrícula". Deshabilitado con
+  tooltip (`<li tabindex="0" title="...">` + `<button disabled>`,
+  mismo patrón que "➕ Matricular en otro programa") según el primer
+  motivo que aplique, en cascada:
+  1. `matr_estado !== 'matriculado'` → "Esta matrícula ya no está
+     activa."
+  2. `matr_estado_academico !== 'Activo'` → "El estudiante no está en
+     condición académica Activa."
+  3. `matr_semestre >= prog_duracion_semestres` → "El estudiante ya
+     está en su último semestre."
+  4. `aprobado_periodo_actual != 1` → "El estudiante aún no ha
+     aprobado el período actual."
+- Nuevo modal `#mdl_avanzar_semestre` (`est_view.php`) — contexto de
+  solo lectura (nombre, programa, "Semestre actual: N/M → Nuevo
+  semestre: N+1/M") y `<select id="slct_avanzar_peri_id_destino">`.
+- Nueva función global `abrirAvanzarSemestre(matr_id, nombreCompleto,
+  matrSemestreActual, progDuracionSemestres, progSigla)` — puebla el
+  modal sin ninguna llamada AJAX adicional (todos los datos ya viajan
+  en la fila). El select de período destino se puebla **clonando** las
+  opciones ya calculadas de `#slct_filtro_matr_peri_id_anteriores`
+  (todos los períodos excepto el activo, resuelto una sola vez por
+  `cargarPeriodos()`) en vez de reimplementar esa exclusión o exponer
+  `periodoActivoId` fuera de su scope. Ver "Decisiones por
+  ambigüedad".
+- Nuevo handler `#btn_confirmar_avanzar_semestre` — `POST` a
+  `avanzar_semestre`; si `status === 'ok'`, cierra el modal y recarga
+  `tablaMatriculadosActual` **y** `tablaMatriculadosAnteriores` (la
+  fila vieja pasa a Per. Anteriores, la nueva aparece en Per. Actual);
+  si `status === 'error'`, deja el modal abierto y muestra el mensaje
+  del backend.
+
+### Decisiones por ambigüedad
+1. **`crearColumnasMatriculados(esPeriodoActual)` no viola la
+   advertencia de CLAUDE.md** contra "forzar una función compartida
+   con parámetros condicionales para columnas que en realidad son
+   distintas" — de las 13 columnas que retorna la función, 12 siguen
+   siendo idénticas entre ambas tablas; el parámetro solo afecta un
+   `<li>` dentro del `render()` ya existente de la columna Acciones,
+   no la estructura de columnas en sí.
+2. **`periodoActivoId` no se expuso fuera de su scope.**
+   `abrirAvanzarSemestre()` es una función global (invocada por
+   `onclick` inline desde el HTML de DataTables), mientras que
+   `periodoActivoId` es una variable local a `$(document).ready` —
+   inaccesible desde ahí. En vez de promover esa variable a un scope
+   más amplio o reimplementar el filtro "todos los períodos excepto el
+   activo", la función clona el `<select>` de Per. Anteriores, que ya
+   tiene exactamente esa lista resuelta desde `cargarPeriodos()`.
+
+### Pruebas realizadas
+Backend probado con `curl` autenticado contra el contenedor Docker
+vivo, 10/10 casos: avance exitoso (fila vieja → `cursado`, nueva con
+`matr_semestre + 1`); reintento sobre fila ya `cursado`; notas
+incompletas; `matr_estado_academico = 'Aplazamiento'` (temporal);
+último semestre (temporal); promedio `< 3.0` con notas completas
+(temporal); fila duplicada en el destino (simulada); mismo período
+como destino; sin sesión. Todos los datos de prueba temporales y los 2
+avances reales de prueba se revirtieron sin dejar rastro. Frontend:
+página y JS servidos sin errores/warnings, balance de `<div>` correcto,
+lógica de habilitado/deshabilitado trazada en Python contra los datos
+reales de `listar_matriculados` (17 filas — coincide exactamente con
+los 2 estudiantes aprobados). **Verificado en navegador por Jose Luis:
+6/6 puntos** (visibilidad condicional del ítem, habilitado/deshabilitado
+correcto, datos del modal, selector de período, transición de filas
+entre pestañas tras confirmar, bloqueo de reintento sobre fila ya
+avanzada).
+
+### Roadmap completo — "semestre en la UI" (5 piezas, cerrado)
+`c985188` (esquema + validación) → `8884cb4` (columna en listado) →
+`0aaa4e9` (pestañas Per. Actual/Anteriores) → `27a3915` (reporte +
+boletín PDF) → `0aef564` (acción de avance, esta entrada).
+
+---
+
 ## [27a3915] — 2026-09-02 — feat(reportes): agregar semestre del estudiante en reporte y boletín PDF
 
 ### Archivos modificados
