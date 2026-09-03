@@ -4,6 +4,97 @@
 
 ---
 
+## [6abbdae] — 2026-09-03 — chore: resuelve 4 pendientes menores (PDFs, SELECT *, coho_id, código muerto)
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/06_reportes/pdf_ficha.php
+- app/06_reportes/pdf_grupo.php
+- app/06_reportes/pdf_hoja_matricula.php
+- app/06_reportes/reportes_mdl.php
+- database/emdb_academica.sql
+
+### Por qué
+Resuelve 4 pendientes independientes ya documentados en CLAUDE.md
+("Deuda técnica / pendiente antes de producción"), detectados en un
+diagnóstico previo de solo lectura (sin commit, mismo día). Los 4
+puntos son independientes entre sí salvo el 2→3: el punto 3 requería
+primero que el punto 2 eliminara el único lector — aunque incidental,
+vía `SELECT *` — de `estudiantes.coho_id`.
+
+### 1. Centraliza el nombre institucional en los 3 PDFs restantes
+`pdf_grupo.php`, `pdf_hoja_matricula.php` y `pdf_ficha.php` tenían el
+string `"Escuela de Mecánica Dental Bolaños (EMDB)"` hardcodeado en su
+`<h1>` — los únicos 3 generadores de PDF del proyecto que no leían
+`configuracion.institucion_nombre`, ya centralizado en `pdf_boletin.php`
+desde el commit `ef429bd`. Se replicó el mismo patrón tal cual en los
+3: `SELECT institucion_nombre FROM configuracion WHERE config_id = 1`
+justo antes del bloque HTML, con el mismo fallback al string literal
+como default (`?? 'Escuela de Mecánica Dental Bolaños (EMDB)'`) y
+`htmlspecialchars()` en el `<h1>`. En `pdf_hoja_matricula.php` las
+variables se nombraron `$stmtConf2`/`$configInst` para no colisionar
+con el `$stmtConf` que el mismo archivo ya usaba más abajo, en el
+bloque de asignación segura de `matr_numero`.
+
+### 2. `SELECT *` → columnas explícitas en `aprobar_actualizacion`
+El `case 'aprobar_actualizacion'` (`est_mdl.php`) traía
+`SELECT * FROM estudiantes` completo a `$estudianteActual` — incluidas
+`coho_id`, `estu_activo`, `estu_foto`, `estu_origen` y `fechacreacion`,
+ninguna de las cuales el resto del `case` usa. Se reemplazó por una
+lista de columnas derivada dinámicamente del propio `$mapaEstudiantes`
+ya existente (`array_column($mapaEstudiantes, 0)`, sin escribirla dos
+veces a mano) más `estu_id`/`usua_id` (identidad/sesión, usadas para
+el paso de sincronización de correo). Este cambio era el prerequisito
+del punto 3: dejaba a `estudiantes.coho_id` sin ningún lector, ni
+siquiera incidental.
+
+### 3. Elimina `estudiantes.coho_id` (columna + FK `fk_estu_coho`)
+Columna reemplazada por `matriculas.coho_id` desde la migración del
+commit `3e551e5` (2026-08-30), conservada desde entonces como
+"respaldo histórico sin escrituras nuevas". Confirmado por grep (tras
+el punto 2) que no quedaba ningún lector activo en todo `app/` — ni
+siquiera vía `SELECT *`. Eliminada contra el contenedor Docker vivo
+con `ALTER TABLE estudiantes DROP FOREIGN KEY fk_estu_coho, DROP
+COLUMN coho_id`. `database/emdb_academica.sql` actualizado: columna y
+`CONSTRAINT fk_estu_coho` quitadas del `CREATE TABLE estudiantes`, y
+corregido el comentario de `matriculas` que todavía afirmaba que
+"`estudiantes.coho_id` se conserva como respaldo histórico" — ya no es
+cierto, la columna no existe.
+
+### 4. Elimina `mis_modulos`/`mis_notas` (código muerto)
+Ambos `case` de `reportes_mdl.php` (rol 4, módulos/notas del propio
+estudiante) confirmados sin ningún llamador en todo el proyecto —
+ningún `_ctrl.js` invoca `accion=mis_modulos` ni `accion=mis_notas`.
+Re-verificado con grep inmediatamente antes de eliminar (por si algún
+commit posterior al diagnóstico original hubiera agregado un
+llamador nuevo — no fue el caso). Eliminados por completo, incluidos
+sus comentarios de sección.
+
+### Pruebas realizadas
+Todo contra el contenedor Docker vivo, en el orden de los 4 puntos:
+- **PDFs:** generados los 4 (grupo, hoja de matrícula, ficha, y de
+  paso el boletín para comparar) vía `curl` autenticado y extraídos
+  con `pdftotext` — los 4 muestran
+  `"Escuela de Mecánica Dental Bolaños (EMDB)"` de forma idéntica,
+  confirmando que los 3 nuevos leen el mismo valor de `configuracion`
+  que el boletín ya leía.
+- **`aprobar_actualizacion`:** insertada una solicitud de prueba
+  (`soac_id=12`, estado `'recibido'`, `estu_id=12`) con cambios de
+  teléfono/ciudad/correo. `curl` respondió
+  `{"status":"ok","campos_aplicados":["Teléfono","Correo electrónico","Ciudad"]}`;
+  verificado en BD que `estudiantes` y `usuarios.usua_email`
+  (sincronización) se actualizaron y que
+  `solicitudes_actualizacion.soac_estado` pasó a `'aprobado'`. Datos
+  de prueba (estudiante, usuario, solicitud) revertidos a su estado
+  original al terminar.
+- **`DROP COLUMN`:** `DESCRIBE estudiantes` confirma la ausencia de
+  `coho_id`. `curl` a `listar_matriculados` y `obtener_completo`
+  (`estu_id=12`) respondieron `status: ok` con datos completos, sin
+  ningún error de columna faltante.
+- **`php -l`** sin errores en los 6 archivos modificados.
+
+---
+
 ## [70c45ba] — 2026-09-03 — feat(estudiantes): frontend de link de actualización de datos — Fase 4/5
 
 ### Archivos modificados
