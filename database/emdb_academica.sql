@@ -158,7 +158,6 @@ DROP TABLE IF EXISTS estudiantes;
 CREATE TABLE estudiantes (
   estu_id              INT UNSIGNED      NOT NULL AUTO_INCREMENT,
   usua_id              INT UNSIGNED      DEFAULT NULL,
-  coho_id              SMALLINT UNSIGNED DEFAULT NULL,
   estu_tipodoc         VARCHAR(20)       DEFAULT NULL,
   estu_numerodoc       VARCHAR(20)       DEFAULT NULL,
   estu_expedidoen      VARCHAR(60)       DEFAULT NULL,
@@ -186,8 +185,6 @@ CREATE TABLE estudiantes (
   UNIQUE KEY uq_estu_numerodoc (estu_numerodoc),
   UNIQUE KEY uq_estu_email (estu_email),
   CONSTRAINT fk_estu_usua FOREIGN KEY (usua_id) REFERENCES usuarios (usua_id)
-    ON UPDATE CASCADE ON DELETE SET NULL,
-  CONSTRAINT fk_estu_coho FOREIGN KEY (coho_id) REFERENCES cohortes (coho_id)
     ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Datos de estudiantes — formatos AC-FO-02 y AC-FO-09';
@@ -244,8 +241,9 @@ CREATE TABLE modulos (
 --    estudios, independiente de en qué grse_semestre de qué grupo curse
 --    sus módulos ese período.
 --    coho_id: cohorte de esta matrícula específica (cada matrícula/programa
---    tiene su propia cohorte). estudiantes.coho_id se conserva como respaldo
---    histórico, sin escrituras nuevas desde esta migración.
+--    tiene su propia cohorte). estudiantes.coho_id (respaldo histórico desde
+--    esta migración, sin escrituras nuevas) fue eliminada por completo al
+--    confirmarse sin lectores activos — ver CHANGELOG.md.
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS matriculas;
 CREATE TABLE matriculas (

@@ -50,6 +50,11 @@ if (!$d) {
     die('Estudiante no encontrado');
 }
 
+$stmtConf = $pdo->prepare("SELECT institucion_nombre FROM configuracion WHERE config_id = 1");
+$stmtConf->execute();
+$config = $stmtConf->fetch();
+$institucionNombre = $config['institucion_nombre'] ?? 'Escuela de Mecánica Dental Bolaños (EMDB)';
+
 // ── Helpers de formato ────────────────────────────────────────────────────────
 function fmt($valor) {
     return ($valor !== null && $valor !== '') ? htmlspecialchars((string)$valor) : '';
@@ -133,7 +138,7 @@ $html = '
     <table class="encabezado">
         <tr>
             <td style="width:70%;">
-                <h1>Escuela de Mecánica Dental Bolaños (EMDB)</h1>
+                <h1>' . htmlspecialchars($institucionNombre) . '</h1>
                 <h2>Ficha de Inscripción</h2>
                 <div class="codigo">Código: AC-FO-02</div>
             </td>

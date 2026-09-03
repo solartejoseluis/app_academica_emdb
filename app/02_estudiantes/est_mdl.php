@@ -1168,7 +1168,12 @@ switch ($accion) {
 
             $estu_id_int = (int)$solicitud['estu_id'];
 
-            $stmtEstu = $pdo->prepare("SELECT * FROM estudiantes WHERE estu_id = ?");
+            // Columnas explícitas: estu_id/usua_id (identidad/sesión) +
+            // las columnas destino de $mapaEstudiantes (estu_email incluida
+            // ahí). Evita traer coho_id/estu_activo/estu_foto/estu_origen/
+            // fechacreacion, que $estudianteActual nunca usa.
+            $columnasEstudiante = array_unique(array_merge(['estu_id', 'usua_id'], array_column($mapaEstudiantes, 0)));
+            $stmtEstu = $pdo->prepare("SELECT " . implode(', ', $columnasEstudiante) . " FROM estudiantes WHERE estu_id = ?");
             $stmtEstu->execute([$estu_id_int]);
             $estudianteActual = $stmtEstu->fetch();
             if (!$estudianteActual) {

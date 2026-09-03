@@ -22,6 +22,11 @@ if ($estu_id <= 0) {
 
 $pdo = getConexion();
 
+$stmtConf2 = $pdo->prepare("SELECT institucion_nombre FROM configuracion WHERE config_id = 1");
+$stmtConf2->execute();
+$configInst = $stmtConf2->fetch();
+$institucionNombre = $configInst['institucion_nombre'] ?? 'Escuela de Mecánica Dental Bolaños (EMDB)';
+
 // La matrícula más reciente del estudiante (matriculas es 1:N por estu_id —
 // un estudiante puede tener más de una a lo largo del tiempo). matr_id DESC
 // desempata de forma determinista.
@@ -173,7 +178,7 @@ $html = '
     <table class="encabezado">
         <tr>
             <td style="width:70%;">
-                <h1>Escuela de Mecánica Dental Bolaños (EMDB)</h1>
+                <h1>' . htmlspecialchars($institucionNombre) . '</h1>
                 <h2>Hoja de Matrícula</h2>
                 <div class="codigo">Código: AC-FO-09</div>
             </td>

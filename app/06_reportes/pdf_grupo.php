@@ -62,6 +62,11 @@ $stmtNotas = $pdo->prepare("
 $stmtNotas->execute([$grmo_id]);
 $estudiantes = $stmtNotas->fetchAll();
 
+$stmtConf = $pdo->prepare("SELECT institucion_nombre FROM configuracion WHERE config_id = 1");
+$stmtConf->execute();
+$config = $stmtConf->fetch();
+$institucionNombre = $config['institucion_nombre'] ?? 'Escuela de Mecánica Dental Bolaños (EMDB)';
+
 // ── Helpers de formato ────────────────────────────────────────────────────────
 function fmtNota($valor) {
     return $valor !== null ? number_format((float)$valor, 1) : '—';
@@ -134,7 +139,7 @@ $html = '
 </head>
 <body>
     <div class="codigo">GA-FO-04</div>
-    <h1>Escuela de Mecánica Dental Bolaños (EMDB)</h1>
+    <h1>' . htmlspecialchars($institucionNombre) . '</h1>
     <h2>PLANILLA DE CALIFICACIONES</h2>
     <div class="meta">Generado el ' . $fechaGenerado . ' por el sistema</div>
 
