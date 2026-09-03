@@ -4,6 +4,118 @@
 
 ---
 
+## [03e36fc] — 2026-09-02 — feat(estudiantes): backend de link de actualización de datos — Fase 2/5
+
+### Archivos modificados
+- app/00_files/helpers.php
+- app/02_estudiantes/est_mdl.php
+
+### Por qué
+Segunda fase del feature "Link de actualización de datos de
+estudiantes" — sobre el esquema ya creado en la Fase 1 (`3ba9f99`).
+Implementa el backend completo: generación de token, consulta de
+estado, aprobación con aplicación parcial de campos, y descarte. **Sin
+ningún archivo de vista/JS tocado** — probado enteramente con `curl`
+autenticado contra el contenedor Docker vivo.
+
+### Cambios — `sincronizarEmailUsuario()` (`00_files/helpers.php`)
+Nueva función compartida, extraída del patrón ya usado en
+`doc_mdl.php` (`case 'guardar'`, commit `b6cc503`): valida unicidad de
+`usuarios.usua_email` (excluyendo el propio `usua_id`) y actualiza.
+Lanza `Exception` (no `PDOException`) en caso de colisión, para que el
+llamador la capture con su propio mensaje — nunca abre ni cierra
+transacción propia, siempre corre dentro de la del llamador.
+
+### Fix de bug real — `case 'guardar_completo'` (`est_mdl.php`)
+El hallazgo documentado en el diagnóstico de la Fase 1 quedó
+confirmado y corregido: editar el correo de un estudiante con `usua_id`
+ahora sincroniza `usuarios.usua_email` en la misma transacción — antes
+el `UPDATE` solo tocaba `estudiantes.estu_email`, dejando la credencial
+de acceso desactualizada. Se lee `estu_email` ANTES del `UPDATE` (junto
+al `usua_id`, en la misma consulta ya existente) para comparar contra
+el valor vigente, no contra el recién escrito.
+
+### 4 cases nuevos (`est_mdl.php`) — solo `role_id IN (1,2)`
+- **`generar_link_actualizacion`**: valida elegibilidad (`matriculado`
+  + `Activo` + período activo, mismo criterio que separa "Per. Actual"
+  en `listar_matriculados`); invalida automáticamente cualquier
+  solicitud previa `'generado'`/`'recibido'` del mismo estudiante
+  (nunca conviven dos activas); genera `soac_token` con
+  `bin2hex(random_bytes(32))` (64 hex chars), expira en 24h.
+- **`estado_solicitud_actualizacion`**: trae la solicitud MÁS
+  RECIENTE del estudiante (`ORDER BY soac_id DESC LIMIT 1`, sin
+  filtrar por estado), `null` explícito si nunca tuvo ninguna.
+- **`aprobar_actualizacion`**: solo aplica los campos `soac_*` NO
+  nulos — un campo `NULL` significa que el estudiante no lo tocó y
+  nunca sobrescribe el valor vigente. Calcula
+  `soac_campos_modificados` comparando cada valor nuevo no-nulo contra
+  el vigente (comparación como `string` para evitar falsos positivos
+  de tipo). Sincroniza `usua_email` si cambió (misma función del punto
+  anterior). Todo en una transacción con rollback total ante
+  cualquier colisión — no se aprueba nada parcialmente.
+- **`descartar_actualizacion`**: borrado lógico
+  (`soac_estado = 'descartado'`) — rechaza si la solicitud ya está
+  resuelta (`'aprobado'`/`'descartado'`).
+
+### `listar_matriculados` — `soac_estado_activo`
+Subconsulta escalar (mismo patrón que `aprobado_periodo_actual`) que
+trae el `soac_estado` de la solicitud más reciente del estudiante,
+`NULL` si no hay ninguna `'generado'`/`'recibido'` activa — único dato
+que la Fase 4 necesitará para el badge del dropdown.
+
+### Bug encontrado y corregido durante las pruebas
+`aprobar_actualizacion` no validaba `estudiantes.estu_email` (tiene su
+propia `UNIQUE KEY uq_estu_email`, independiente de
+`usuarios.usua_email`) antes del `UPDATE` genérico — una colisión ahí
+lanzaba un `PDOException` crudo de MySQL, capturado por el catch
+genérico, perdiendo el mensaje específico. Corregido agregando el
+mismo chequeo de unicidad que ya usa `guardar_completo`, justo antes
+del `UPDATE`. Verificado con dos pruebas de colisión distintas (contra
+`estudiantes` y contra `usuarios`), cada una con su mensaje correcto.
+
+### Decisiones sin instrucción explícita
+1. **URL del link como ruta relativa, sin host dinámico** — construida
+   literalmente como se pidió
+   (`/11_actualizacion_datos/actualizar_view.php?token=...`), sin
+   agregar `$_SERVER['HTTP_HOST']`: no hay precedente en el proyecto
+   para construir URLs absolutas server-side, y hacerlo sin necesidad
+   real introduciría riesgo de host-header injection sin beneficio
+   claro en esta fase. Queda pendiente para la Fase 3/4 si se necesita
+   una URL completa con dominio.
+2. **Ubicación de `sincronizarEmailUsuario()` en `guardar_completo`**:
+   justo después del `UPDATE` de `estudiantes`, antes del bloque de
+   cambio de clave — interpretado literalmente de "justo después del
+   UPDATE de estudiantes y antes del bloque de fichas_inscripcion"
+   como inmediatamente después, no en cualquier punto anterior al
+   bloque de ficha.
+
+### Pruebas realizadas
+11 casos probados con `curl` autenticado contra el contenedor Docker
+vivo: elegibilidad (caso exitoso y rechazo por estudiante no activo del
+período), invalidación automática de solicitud previa al generar una
+nueva, consulta de estado (sin solicitud y con solicitud), aprobación
+con aplicación parcial (solo campos no-nulos se escriben, un campo
+enviado con el mismo valor vigente no cuenta como "modificado"), doble
+colisión de correo con rollback total verificado (contra
+`estudiantes.estu_email` y contra `usuarios.usua_email`, cada una con
+su mensaje), aprobación exitosa con sincronización de ambos correos,
+descarte válido e inválido (sobre solicitud ya resuelta), y el fix de
+`guardar_completo` confirmado contra datos reales (el `usua_email`
+desincronizado ya existía en la base antes del fix — evidencia directa
+del bug). Todos los datos de prueba (teléfonos, direcciones, correos)
+revertidos a su valor original exacto, verificado con consulta final
+de comparación; las filas de `solicitudes_actualizacion` generadas
+durante las pruebas quedan en su estado resuelto final
+(`aprobado`/`descartado`) como registro de auditoría legítimo del
+propio diseño de borrado lógico — no son datos de prueba a revertir.
+
+**Sigue siendo Fase 2 de 5.** Faltan: Fase 3 (formulario público que
+consume el token), Fase 4 (frontend — ítem de dropdown, badge,
+aprobar/descartar desde `tablaMatriculados`) y Fase 5 (documentación
+de cierre del feature completo).
+
+---
+
 ## [3ba9f99] — 2026-09-02 — feat(db): agrega tabla solicitudes_actualizacion — Fase 1/5 de link de actualización de datos
 
 ### Archivos modificados
