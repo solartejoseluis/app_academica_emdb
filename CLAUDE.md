@@ -616,6 +616,40 @@ tablaMatriculadosAnteriores = $('#tbl_matriculados_anteriores').DataTable({
 
 Primer uso: `crearColumnasMatriculados()` en `est_ctrl.js` (`02_estudiantes`, commit `0aaa4e9`, 2026-09-02), consumida por `tablaMatriculadosActual`/`tablaMatriculadosAnteriores` al dividir la pestaña "Matriculados" en Per. Actual/Per. Anteriores — ver también "Decisiones arquitectónicas activas" para el contexto completo. Si las columnas difieren aunque sea parcialmente entre las tablas, este patrón no aplica — no forzar una función compartida con parámetros condicionales para columnas que en realidad son distintas.
 
+### DataTable con `ajax.data` dependiente de un valor async debe construirse DESPUÉS de que ese valor esté resuelto, no antes con reload correctivo
+
+Cuando una tabla DataTable usa una función `data:` en su config de `ajax` que lee una variable poblada de forma asíncrona (ej. `periodoActivoId`, resuelto dentro del `success` de otra petición como `cargarPeriodos()`), inicializar esa tabla antes de que la variable esté lista dispara un auto-load con el filtro sin resolver (`null`/vacío). Si después se corrige con `.ajax.reload()` una vez que el valor ya está disponible, ambas peticiones (la prematura y la de reload) pueden superponerse en el tiempo y producir una condición de carrera donde DataTables termina sumando filas del dataset en vez de reemplazarlas limpiamente — **sin que exista ningún `rows.add()` explícito en el código**, el propio plugin gestiona mal la superposición.
+
+La corrección correcta es NO construir esa tabla hasta que la dependencia esté resuelta (ej. separarla en una función aparte e invocarla dentro del `success` que resuelve la dependencia), en vez de inicializar temprano y "corregir" después con reload.
+
+```js
+// PROHIBIDO — la tabla se auto-carga con periodoActivoId aún null
+function cargarTablas() {
+    tablaMatriculadosActual = $('#tbl_x').DataTable({
+        ajax: { data: function (d) { d.peri_id = periodoActivoId; } }
+    });
+}
+cargarTablas();       // dispara auto-load con peri_id = null
+cargarPeriodos();     // resuelve periodoActivoId más tarde, de forma async
+// ... y "corrige" con tablaMatriculadosActual.ajax.reload(null, false) —
+// puede superponerse con la petición prematura y duplicar filas.
+
+// CORRECTO — la tabla no existe hasta que la dependencia está resuelta
+function cargarTablasMatriculados() {
+    tablaMatriculadosActual = $('#tbl_x').DataTable({
+        ajax: { data: function (d) { d.peri_id = periodoActivoId; } }
+    });
+}
+function cargarPeriodos() {
+    $.ajax({ success: function (response) {
+        periodoActivoId = /* ... resuelto de response ... */;
+        cargarTablasMatriculados();   // única construcción, ya con el valor listo
+    }});
+}
+```
+
+Caso real: `tablaMatriculadosActual`/`tablaMatriculadosAnteriores` en `02_estudiantes` (commit `7052723`, 2026-09-03) — dependían de `periodoActivoId`, resuelto en `cargarPeriodos()`. Reportado por Jose Luis como filas duplicadas (fila #1 = fila #17 con 50 registros por página); descartado el backend con un diagnóstico de solo lectura (SQL de `listar_matriculados` verificado limpio contra Docker vivo) antes de tocar el frontend. Corregido separando la construcción de ambas tablas a `cargarTablasMatriculados()`, invocada una sola vez dentro del `success` de `cargarPeriodos()` — `cargarTablas()` quedó a cargo únicamente de `tablaAspirantes` (independiente del período).
+
 ### Queries PDO siempre parametrizadas
 
 ```php
