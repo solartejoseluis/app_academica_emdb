@@ -798,6 +798,16 @@ $(document).ready(function () {
             ]
         });
 
+    }
+
+    // Separada de cargarTablas() para que la construcción de estas 2 tablas
+    // ocurra solo después de que cargarPeriodos() resuelva periodoActivoId y
+    // preseleccione #slct_filtro_matr_peri_id_anteriores — antes vivían
+    // dentro de cargarTablas() y disparaban un auto-load prematuro con el
+    // filtro de período sin resolver, superpuesto con el reload posterior
+    // de cargarPeriodos() (causaba filas duplicadas en el DataTable
+    // renderizado, ver diagnóstico previo).
+    function cargarTablasMatriculados() {
         tablaMatriculadosActual = $('#tbl_matriculados_actual').DataTable({
             ajax: {
                 url: 'est_mdl.php?accion=listar_matriculados',
@@ -902,8 +912,7 @@ $(document).ready(function () {
                 // recién ahora tiene sentido cargar las dos tablas de
                 // Matriculados (antes de este punto, periodoActivoId es null y
                 // el select de Anteriores está vacío).
-                if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
-                if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                cargarTablasMatriculados();
             }
         });
     }
