@@ -4,6 +4,74 @@
 
 ---
 
+## [7052723] — 2026-09-03 — fix(estudiantes): elimina duplicación de filas en tablaMatriculados por condición de carrera (02_estudiantes)
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- `cargarTablas()` dejó de construir `tablaMatriculadosActual` y
+  `tablaMatriculadosAnteriores` — esas 2 definiciones se movieron intactas
+  (mismo `ajax`, `dataSrc`, funciones `data:`, `destroy: true`, `language`,
+  `columns`) a una nueva función `cargarTablasMatriculados()`.
+- `cargarTablasMatriculados()` se invoca una sola vez, dentro del `success`
+  de `cargarPeriodos()`, reemplazando las 2 llamadas previas a
+  `.ajax.reload(null, false)` — momento en el que `periodoActivoId` y el
+  select de Anteriores (`#slct_filtro_matr_peri_id_anteriores`) ya tienen su
+  valor definitivo.
+- `cargarTablas()` ahora solo construye `tablaAspirantes` (independiente del
+  período, sin cambios).
+
+### Decisiones
+- Causa raíz descartada en backend: el SQL de `listar_matriculados`
+  (`est_mdl.php`) se verificó contra el contenedor Docker vivo sin ningún
+  JOIN 1:N indebido y sin filas duplicadas en ningún escenario probado (con
+  y sin filtro de período, dataset completo y por estudiante) — confirmado
+  en un diagnóstico previo de solo lectura.
+- El bug era 100% de cliente: `cargarTablas()` disparaba el auto-load de
+  ambas tablas de Matriculados con `peri_id` todavía `null` (antes de que
+  `cargarPeriodos()` lo resolviera de forma asíncrona), y esa petición
+  prematura competía con el `.ajax.reload()` posterior — la superposición
+  entre ambas respuestas hacía que DataTables sumara filas en vez de
+  reemplazarlas.
+- Confirmado en el navegador con la pestaña Network: **4 peticiones** a
+  `listar_matriculados` antes del fix, **2** después (una por tabla).
+  Reportado originalmente por Jose Luis: con 50 registros por página, la
+  fila #1 aparecía idéntica a la fila #17.
+
+---
+
+## [ca744d0] — 2026-09-03 — feat(estudiantes): reemplaza columna Correo por Información en tablaMatriculados (02_estudiantes)
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Los 2 `<th>Correo</th>` (pestañas "Matriculados (Per. Actual)" y
+  "Matriculados (Per. Anteriores)") renombrados a `<th>Información</th>`.
+- En `crearColumnasMatriculados()`: la columna `estu_apellidos` se
+  simplifica a `{ data: 'estu_apellidos' }` sin `render` (ya no arma los
+  badges).
+- La columna que antes era `{ data: 'estu_email' }` pasa a `data: null` con
+  un `render()` que muestra los 3 badges que antes vivían junto al nombre:
+  🎓 N programas (`total_matriculas_estudiante`), 🔔 Link
+  enviado/Pendiente aprobación (`soac_estado_activo`), ✅ Actualizado
+  [fecha] (`soac_fecha_ultima_aprobacion`) — con fallback `'—'` si no hay
+  ninguno.
+- `est_mdl.php` sin cambios — `estu_email` sigue en el `SELECT` de
+  `listar_matriculados` (sigue usándose en la ficha del estudiante vía
+  `obtener_completo`).
+
+### Decisiones
+- El correo deja de mostrarse en `tablaMatriculados` por decisión explícita
+  de Jose Luis — ya no es necesario en ese listado, y cuando se requiere se
+  consulta en la ficha del estudiante (`#mdl_estudiante`).
+- Columna "Información" sin `width` fijo, igual que tenía "Correo", para
+  que DataTables siga redistribuyendo el espacio automáticamente.
+
+---
+
 ## [6abbdae] — 2026-09-03 — chore: resuelve 4 pendientes menores (PDFs, SELECT *, coho_id, código muerto)
 
 ### Archivos modificados
