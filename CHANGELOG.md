@@ -4,6 +4,137 @@
 
 ---
 
+## [70c45ba] — 2026-09-03 — feat(estudiantes): frontend de link de actualización de datos — Fase 4/5
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+- app/00_files/estilos.css
+- app/02_estudiantes/est_mdl.php (solo el fix de URL heredado, ver abajo)
+
+### Por qué
+Cuarta fase del feature "Link de actualización de datos de
+estudiantes" — conecta el backend de la Fase 2 (`03e36fc`) y el
+formulario público de la Fase 3 (`b739a60`) desde la UI del
+coordinador en `tablaMatriculados`. Por primera vez el flujo completo
+es utilizable de punta a punta por un coordinador real, sin `curl` ni
+Postman.
+
+### Ítem de dropdown "🔗 Generar link actualizar datos"
+Nuevo `<li>` después de "📝 Datos Estudiante" en el dropdown de
+Acciones — visible únicamente cuando `esPeriodoActual === true`
+(ausente por completo, ni siquiera deshabilitado, en "Per.
+Anteriores" — no aplica por diseño). Deshabilitado con tooltip si
+`matr_estado_academico !== 'Activo'`; no revalida `matr_estado`
+porque `listar_matriculados` ya lo garantiza `'matriculado'` en el
+`WHERE` (mismo criterio que "Hoja de Matrícula" no lo revalida en
+frontend).
+
+### Modal `#mdl_actualizacion_datos` ("Actualización de datos")
+Al abrir, consulta `estado_solicitud_actualizacion` para decidir el
+modo:
+- **Modo 1 — "Ver y aprobar actualización"** (si la solicitud más
+  reciente está `'recibido'`): abre `#mdl_estudiante` en modo
+  revisión.
+- **Modo 2 — "Generar link para actualización"** (sin solicitud
+  activa, o la más reciente ya resuelta): llama a
+  `generar_link_actualizacion` y muestra el link con botón "Copiar"
+  (`navigator.clipboard`, con fallback a `document.execCommand('copy')`
+  para navegadores sin la API o sin contexto seguro).
+
+### Modo revisión de `#mdl_estudiante` — reutilizado, no un modal nuevo
+- `abrirRevisionActualizacion(estu_id, soac_id)`: carga en paralelo el
+  estudiante vigente (`obtener_completo`) y la solicitud `'recibido'`
+  (`estado_solicitud_actualizacion`).
+- `poblarModalRevision(d, s)`: puebla el formulario con los valores
+  vigentes (mismo bloque que `abrirEditar()`) y luego sobrescribe cada
+  campo con su `soac_estu_*`/`soac_ficha_*` correspondiente cuando no
+  es `NULL`, aplicando la clase nueva **`.campo-actualizado`** (fondo
+  amarillo `#fff3cd`, distinta de `.campo-lleno` que ya existía en
+  verde). Casos especiales sin un simple `.val()`: `padr_vive`/
+  `madr_vive` (checkbox), `acud_es` (recalcula visibilidad
+  Padre/Madre/Acudiente con los valores ya sobrescritos) y
+  `multiculturalidad` (resalta el contenedor de checkboxes completo,
+  no un campo individual). Título cambia a "FICHA DE INSCRIPCIÓN —
+  código AC-FO-02"; formulario completo deshabilitado (todo
+  input/select/textarea del `.modal-body`); se ocultan
+  Guardar/Eliminar aspirante/PDFs/foto/cambio de clave; aparecen los 2
+  botones nuevos "Aprobar actualización"/"Descartar" (llaman a
+  `aprobar_actualizacion`/`descartar_actualizacion` con el `soac_id`,
+  cierran el modal y refrescan ambas tablas de Matriculados al
+  terminar).
+- `restaurarModoNormalEstudiante()`: revierte todo lo anterior — se
+  llama tanto en `hidden.bs.modal` de `#mdl_estudiante` (cierre normal
+  del modo revisión) como al inicio de `abrirEditar()` (defensivo, por
+  si se navegara de un modo a otro sin pasar por el cierre).
+
+### 3 badges independientes en la columna Apellidos de `tablaMatriculados`
+Pueden coexistir los tres a la vez, sin ser mutuamente excluyentes:
+- 🎓 N programas (ya existente, sin cambios).
+- 🔔 "Link enviado" (amarillo, `soac_estado_activo === 'generado'`) /
+  🔔 "Pendiente aprobación" (rojo, `=== 'recibido'`).
+- ✅ "Actualizado [fecha]" (verde, **permanente, sin ventana de
+  tiempo**) — historial de la aprobación más reciente
+  (`soac_fecha_ultima_aprobacion`), independiente de si hay algo
+  pendiente ahora mismo. **Este badge fue un pedido posterior al
+  prompt original de la Fase 4** — se implementó, probó y verificó en
+  el mismo ciclo, antes del commit, así que queda documentado como
+  parte de esta misma fase, no de una fase aparte.
+
+Formato de fecha del badge verde: reutiliza el mismo patrón "fecha
+simple" (`partes[2]/partes[1]/partes[0]` sobre un string
+`AAAA-MM-DD`) ya usado en el resumen de "Programas matriculados" de
+`abrirEditar()` — no `formatearUltimoAcceso()`, que incluye hora y no
+hacía falta aquí (la hora completa queda disponible en el `title` del
+badge).
+
+### `listar_matriculados` — 2 campos nuevos (subconsultas escalares)
+- `soac_estado_activo`: `soac_estado` de la solicitud más reciente
+  **solo si** está en `('generado','recibido')`, `NULL` si no hay
+  ninguna activa.
+- `soac_fecha_ultima_aprobacion`: `soac_resuelto_en` de la solicitud
+  más reciente **en estado `'aprobado'`**, `NULL` si nunca tuvo
+  ninguna — subconsulta independiente de la anterior, no filtra por
+  si hay algo pendiente ahora mismo.
+
+### Fix heredado de la Fase 2
+`generar_link_actualizacion` (`est_mdl.php`) construía la URL como
+`/11_actualizacion_datos/actualizar_view.php?token=...` — ruta
+provisional escrita en la Fase 2 antes de que el archivo real
+existiera. La Fase 3 lo creó bajo `app/11_actualizacion_datos/`, cuya
+ruta real servida por Apache es
+`/app_academica_emdb/app/11_actualizacion_datos/actualizar_view.php`.
+Sin este ajuste de una sola línea, el botón "Copiar" de esta fase
+habría copiado un link roto. Único cambio en `est_mdl.php` en esta
+fase — `11_actualizacion_datos/` queda intacto.
+
+### Pruebas realizadas
+Verificación no visual (sin navegador): `php -l` limpio, JS validado
+con un parser real (`esprima`) sin errores de sintaxis, balance de
+`<div>` en `est_view.php` (208/208), los 16 IDs nuevos existen
+exactamente una vez, y las 55 claves `soac_*`/`soac_ficha_*` usadas en
+el mapeo JS de revisión coinciden exactamente con las claves reales
+devueltas por `estado_solicitud_actualizacion` (verificado contra una
+solicitud `'recibido'` real ya generada por Jose Luis en la Fase 3).
+
+**Verificado en navegador por Jose Luis** — 8 pasos del flujo completo:
+generar link desde el dropdown y copiarlo; ver aparecer el badge
+amarillo; abrir el formulario público con ese link en otra pestaña y
+enviarlo; ver el badge cambiar a rojo; abrir el modal de revisión y
+ver los campos propuestos resaltados en amarillo; aprobar y confirmar
+que los datos del estudiante cambiaron en `tablaMatriculados`; repetir
+el ciclo y confirmar el caso de descartar sin cambios. Más 4 pasos de
+verificación del badge "✅ Actualizado": coexistencia visual de los 3
+badges sin que se encimen, fecha correcta en el badge verde, `title`
+con fecha y hora completas, y ausencia del badge en un estudiante sin
+ninguna solicitud en su historial.
+
+**Sigue siendo Fase 4 de 5.** Falta únicamente la Fase 5
+(documentación de cierre del feature completo) — la última fase de
+este roadmap.
+
+---
+
 ## [b739a60] — 2026-09-02 — feat(actualizacion-datos): formulario público de actualización — Fase 3/5
 
 ### Archivos modificados
