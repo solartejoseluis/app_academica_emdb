@@ -4,6 +4,116 @@
 
 ---
 
+## [b739a60] — 2026-09-02 — feat(actualizacion-datos): formulario público de actualización — Fase 3/5
+
+### Archivos modificados
+- app/11_actualizacion_datos/actualizar_mdl.php (nuevo)
+- app/11_actualizacion_datos/actualizar_view.php (nuevo)
+- app/11_actualizacion_datos/actualizar_ctrl.js (nuevo)
+
+### Por qué
+Tercera fase del feature "Link de actualización de datos de
+estudiantes" — sobre el backend ya implementado en la Fase 2
+(`03e36fc`). Crea el módulo público donde el estudiante abre su link
+(sin sesión) y completa/envía su propuesta de actualización. **Sin
+ningún cambio en `02_estudiantes/`** — el dropdown, el badge y el
+flujo de aprobar/descartar desde la UI del coordinador van en la
+Fase 4.
+
+### Módulo nuevo `11_actualizacion_datos/` — sin sesión
+Mismo criterio que `09_inscripcion_publica/`: sin `session_start()` ni
+`check_session.php`, accesible por cualquiera con el token en la URL
+(`?token=...`).
+
+### `actualizar_mdl.php` — 3 cases
+- **`validar_token`**: valida existencia del token, que
+  `soac_estado === 'generado'` (un token de un solo uso nunca vuelve a
+  ese estado) y que `soac_expira_en` no haya pasado — responde
+  `{status, motivo}` con uno de 3 códigos (`invalido`/`usado`/`expirado`),
+  deliberadamente distinto del envelope estándar `{status, message}`
+  del proyecto, para que el frontend distinga 3 mensajes. Si es válido,
+  trae los valores VIGENTES de `estudiantes`+`fichas_inscripcion`
+  (`LEFT JOIN`, mismo criterio que `obtener_completo` de `est_mdl.php`)
+  — el estudiante edita sobre sus datos actuales, no un formulario
+  vacío. `estu_tipodoc`/`estu_numerodoc` viajan de solo lectura, nunca
+  como campos editables.
+- **`guardar_actualizacion`**: **re-valida el token exactamente igual**
+  que `validar_token` — nunca confía en que el frontend ya lo validó
+  (pudo expirar o usarse entre que se abrió la página y que se dio
+  "Guardar"). Mismos campos/validación condicional que
+  `guardar_completo` (Padre/Madre/Acudiente según checkboxes, formato
+  de email). Escribe **únicamente** en las columnas `soac_*`/`soac_ficha_*`
+  de la fila de la solicitud — **nunca toca `estudiantes` ni
+  `fichas_inscripcion` directamente**, esa escritura real ocurre solo
+  al aprobar (Fase 2, ya implementada). El `UPDATE` es condicional:
+  `WHERE soac_token = ? AND soac_estado = 'generado'` en la misma
+  sentencia — previene la condición de carrera de un doble submit
+  simultáneo; si `rowCount() === 0`, responde "Este link ya no es
+  válido" sin asumir que ya se guardó.
+- **`listar_programas`**: catálogo público duplicado tal cual de
+  `insc_mdl.php` — esta vista no tiene sesión para llamar al
+  `listar_programas` restringido de `est_mdl.php`, y necesita poblar
+  `#slct_finc_prog_id`. No estaba en el alcance original de la fase,
+  agregado como necesidad funcional real (mismo patrón "catálogos
+  compartidos se duplican por módulo" ya documentado en CLAUDE.md).
+
+### `actualizar_view.php`
+Página completa, no modal (sin sesión no hay `tablaMatriculados`
+detrás que justifique uno) — las 5 secciones de `#mdl_estudiante`
+menos tipo/número de documento, mostrados como texto de solo lectura.
+Encabezado "Estás actualizando los datos de: [nombres] [apellidos],
+documento [tipodoc] [numerodoc]" para que el estudiante confirme que
+es su propia ficha. Botón "Guardar actualización" (no "Guardar" a
+secas, para dejar claro que es una propuesta pendiente de aprobación).
+3 mensajes de error según el `motivo` de `validar_token`
+(inválido/expirado — sugiere contactar al coordinador/usado — ya fue
+enviado o resuelto). Confirmación final tras guardar, sin permitir
+reenvío sin recargar con un nuevo link.
+
+### `actualizar_ctrl.js`
+Reutiliza por **copia, no import** — mismo criterio ya documentado en
+CLAUDE.md para `insc_view.php`/`insc_ctrl.js` — `marcarValidacion()`,
+`validarFormatoEmail()`, `marcarCampoLleno()` y su listener delegado,
+y la lógica condicional de mostrar/ocultar Padre/Madre/Acudiente de
+`est_ctrl.js`/`insc_ctrl.js`. Un solo submit AJAX a
+`guardar_actualizacion` con el token incluido. **Sin `grecaptcha`**
+(decisión ya tomada para este formulario).
+
+### Bug encontrado y corregido durante el desarrollo
+El primer borrador de la validación de campos de la ficha familiar
+usaba un `exit` dentro del `foreach` de `$camposFichaRequeridos` —
+cortaba la ejecución completa del script en cuanto encontraba el
+primer campo válido en vez de solo el primero `null`, sin llegar
+nunca al mensaje de error real. Corregido reemplazándolo por el mismo
+patrón de bandera + `break` que ya usa `guardar_completo`
+(`$campoFichaFaltante`), con la verificación del error después del
+loop.
+
+### Pruebas realizadas
+7 casos probados con `curl`, **sin ninguna cookie de sesión**:
+`actualizar_view.php` responde `HTTP 200` (contra `HTTP 302` de
+`est_view.php` sin sesión, confirmando el contraste); `validar_token`
+con token inexistente (`motivo: invalido`), token válido recién
+generado vía `generar_link_actualizacion` de la Fase 2 (precarga
+correcta de los 41 campos vigentes), token ya `'recibido'`
+(`motivo: usado`) y token expirado simulado con `UPDATE` directo de
+prueba (`motivo: expirado`); `guardar_actualizacion` exitoso
+(verificado en BD: `soac_estado='recibido'`, `soac_recibido_en`
+poblado, todos los `soac_*`/`soac_ficha_*` con los valores enviados),
+el mismo token dos veces seguidas (segunda rechazada — "Este link ya
+fue utilizado"), y sobre un token expirado (rechazado aunque el
+formulario ya se hubiera cargado antes de expirar). Los tokens de
+prueba quedaron resueltos (`recibido`/`descartado`) sin ninguna
+solicitud activa colgada. **Verificado en navegador por Jose Luis:
+4/4 puntos** (formulario completo, precarga de datos, guardado
+exitoso, mensajes de error de token inválido y ya usado).
+
+**Sigue siendo Fase 3 de 5.** Faltan: Fase 4 (frontend — ítem de
+dropdown, badge, aprobar/descartar desde `tablaMatriculados`) y
+Fase 5 (documentación de cierre del feature completo).
+
+---
+
 ## [03e36fc] — 2026-09-02 — feat(estudiantes): backend de link de actualización de datos — Fase 2/5
 
 ### Archivos modificados
