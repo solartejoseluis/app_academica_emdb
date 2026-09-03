@@ -824,6 +824,34 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </div>
 
+<div class="modal fade" id="mdl_avanzar_semestre" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Matricular al Siguiente Semestre</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="npt_avanzar_matr_id" value="">
+                <p class="mb-1"><strong>Estudiante:</strong> <span id="txt_avanzar_nombre"></span></p>
+                <p class="mb-3"><strong>Programa:</strong> <span id="txt_avanzar_prog_sigla"></span></p>
+                <p class="mb-3"><strong>Semestre actual:</strong> <span id="txt_avanzar_semestre_actual"></span> → <strong>Nuevo semestre:</strong> <span id="txt_avanzar_semestre_nuevo"></span></p>
+                <div class="mb-3">
+                    <label class="form-label">Período destino <span class="text-danger">*</span></label>
+                    <select class="form-select" id="slct_avanzar_peri_id_destino">
+                        <option value="">-- Seleccionar --</option>
+                    </select>
+                    <div class="form-text">No incluye el período activo actual.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn_confirmar_avanzar_semestre">Confirmar Avance</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>

@@ -39,6 +39,20 @@ function calcularEstadoFicha(array $fila): string {
     return 'incompleta';
 }
 
+// Extraída de los bloques inline (antes duplicados) de 'matricular' y
+// 'editar_matricula' — misma consulta y mismo rango exactos, sin cambio
+// de comportamiento. Retorna null si es válido, mensaje de error si no.
+function validarSemestrePrograma(PDO $pdo, int $prog_id, int $matr_semestre): ?string {
+    $stmt = $pdo->prepare("SELECT prog_duracion_semestres FROM programas WHERE prog_id = ?");
+    $stmt->execute([$prog_id]);
+    $duracion = $stmt->fetchColumn();
+    if ($duracion === false) return 'Programa no encontrado';
+    if ($matr_semestre < 1 || $matr_semestre > (int)$duracion) {
+        return 'Semestre inválido para este programa';
+    }
+    return null;
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {
@@ -171,8 +185,28 @@ switch ($accion) {
                             WHERE mt5.estu_id = e.estu_id
                               AND mt5.matr_estado = 'matriculado'
                               AND p3.prog_activo = 1) AS programas_matriculados_activos,
+                           -- Réplica exacta de la lógica de promedio de 'detalle_periodo'
+                           -- (reportes_mdl.php): promedio de cali_definitiva de los módulos
+                           -- de ESTE prog_id+peri_id para este estudiante, solo si TODAS
+                           -- están pobladas y el promedio es >= 3.0. Sin filtro por
+                           -- grmo_activo — detalle_periodo tampoco lo aplica. Duplicación
+                           -- consciente del umbral 3.0 (ya repetido en ~15 lugares del
+                           -- proyecto), no extraída a función compartida entre módulos.
+                           (SELECT CASE
+                                WHEN COUNT(*) = 0 THEN 0
+                                WHEN SUM(CASE WHEN c6.cali_definitiva IS NULL THEN 1 ELSE 0 END) > 0 THEN 0
+                                WHEN AVG(c6.cali_definitiva) >= 3.0 THEN 1
+                                ELSE 0
+                            END
+                            FROM grmoestudiantes ge6
+                            JOIN gruposmodulos gm6 ON ge6.grmo_id = gm6.grmo_id
+                            JOIN gruposemestres gs6 ON gm6.grse_id = gs6.grse_id
+                            LEFT JOIN calificaciones c6 ON c6.grmo_id = ge6.grmo_id AND c6.estu_id = ge6.estu_id
+                            WHERE ge6.estu_id = e.estu_id AND gs6.prog_id = m.prog_id AND gs6.peri_id = m.peri_id
+                           ) AS aprobado_periodo_actual,
                            p.prog_sigla, p.prog_duracion_semestres, m.matr_semestre,
-                           m.peri_id, pe.peri_codigo, m.matr_estado, m.matr_id, m.prog_id AS matr_prog_id,
+                           m.peri_id, pe.peri_codigo, m.matr_estado, m.matr_estado_academico,
+                           m.matr_id, m.prog_id AS matr_prog_id,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
                            fi.padr_telefono, fi.padr_direccion, fi.padr_barrio, fi.padr_ciudad,
@@ -482,15 +516,9 @@ switch ($accion) {
             $matr_semestre_raw = trim($_POST['matr_semestre'] ?? '');
             $matr_semestre = ($matr_semestre_raw === '') ? 1 : (int)$matr_semestre_raw;
 
-            $stmtProgDur = $pdo->prepare("SELECT prog_duracion_semestres FROM programas WHERE prog_id = ?");
-            $stmtProgDur->execute([$prog_id]);
-            $prog_duracion_semestres = $stmtProgDur->fetchColumn();
-            if ($prog_duracion_semestres === false) {
-                echo json_encode(['status' => 'error', 'message' => 'Programa no encontrado']);
-                break;
-            }
-            if ($matr_semestre < 1 || $matr_semestre > (int)$prog_duracion_semestres) {
-                echo json_encode(['status' => 'error', 'message' => 'Semestre inválido para este programa']);
+            $errorSemestre = validarSemestrePrograma($pdo, $prog_id, $matr_semestre);
+            if ($errorSemestre !== null) {
+                echo json_encode(['status' => 'error', 'message' => $errorSemestre]);
                 break;
             }
 
@@ -728,17 +756,10 @@ switch ($accion) {
             $matr_semestre_raw = trim($_POST['matr_semestre'] ?? '');
             $matr_semestre = ($matr_semestre_raw === '') ? 1 : (int)$matr_semestre_raw;
 
-            $stmtProgDur = $pdo->prepare("SELECT prog_duracion_semestres FROM programas WHERE prog_id = ?");
-            $stmtProgDur->execute([$prog_id]);
-            $prog_duracion_semestres = $stmtProgDur->fetchColumn();
-            if ($prog_duracion_semestres === false) {
+            $errorSemestre = validarSemestrePrograma($pdo, $prog_id, $matr_semestre);
+            if ($errorSemestre !== null) {
                 $pdo->rollBack();
-                echo json_encode(['status' => 'error', 'message' => 'Programa no encontrado']);
-                break;
-            }
-            if ($matr_semestre < 1 || $matr_semestre > (int)$prog_duracion_semestres) {
-                $pdo->rollBack();
-                echo json_encode(['status' => 'error', 'message' => 'Semestre inválido para este programa']);
+                echo json_encode(['status' => 'error', 'message' => $errorSemestre]);
                 break;
             }
 
@@ -791,6 +812,136 @@ switch ($accion) {
                 $pdo->rollBack();
             }
             echo json_encode(['status' => 'error', 'message' => 'Error al editar la matrícula']);
+        }
+        break;
+
+    // ── AVANZAR AL SIGUIENTE SEMESTRE ────────────────────────────────────
+    // Nueva fila en matriculas (matr_semestre + 1, mismo prog_id, nuevo
+    // peri_id elegido por el coordinador); la fila actual pasa a
+    // matr_estado = 'cursado' (valor reservado desde c985188). Solo
+    // coordinador/admin — nunca automático, siempre una acción deliberada.
+
+    case 'avanzar_semestre':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $matr_id         = (int)($_POST['matr_id'] ?? 0);
+        $peri_id_destino = (int)($_POST['peri_id_destino'] ?? 0);
+        if ($matr_id === 0 || $peri_id_destino === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Matrícula y período destino son requeridos']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+
+            $stmtActual = $pdo->prepare(
+                "SELECT estu_id, prog_id, peri_id, coho_id, matr_semestre, matr_estado, matr_estado_academico
+                 FROM matriculas WHERE matr_id = ?"
+            );
+            $stmtActual->execute([$matr_id]);
+            $actual = $stmtActual->fetch();
+            if (!$actual) {
+                echo json_encode(['status' => 'error', 'message' => 'Matrícula no encontrada']);
+                break;
+            }
+
+            if ($actual['matr_estado'] !== 'matriculado') {
+                echo json_encode(['status' => 'error', 'message' => 'Solo se puede avanzar una matrícula en estado "matriculado".']);
+                break;
+            }
+            if ($actual['matr_estado_academico'] !== 'Activo') {
+                echo json_encode(['status' => 'error', 'message' => 'El estudiante no está en condición académica Activa.']);
+                break;
+            }
+
+            $siguienteSemestre = (int)$actual['matr_semestre'] + 1;
+            $errorSemestre = validarSemestrePrograma($pdo, (int)$actual['prog_id'], $siguienteSemestre);
+            if ($errorSemestre !== null) {
+                echo json_encode(['status' => 'error', 'message' => $errorSemestre]);
+                break;
+            }
+
+            if ($peri_id_destino === (int)$actual['peri_id']) {
+                echo json_encode(['status' => 'error', 'message' => 'El período destino debe ser distinto del período actual.']);
+                break;
+            }
+
+            // Aprobación del período actual — misma lógica que 'detalle_periodo'
+            // (reportes_mdl.php): promedio simple de cali_definitiva de TODOS
+            // los módulos de este prog_id+peri_id, solo si todas están
+            // pobladas. Recalculada aquí en el momento de escribir, sin
+            // confiar en ningún valor recibido por POST ni en la columna
+            // aprobado_periodo_actual de listar_matriculados (esa es solo
+            // para decidir qué mostrar en el listado, no para autorizar).
+            $stmtModulos = $pdo->prepare(
+                "SELECT c.cali_definitiva
+                 FROM grmoestudiantes ge
+                 JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
+                 JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                 LEFT JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = ge.estu_id
+                 WHERE ge.estu_id = ? AND gs.prog_id = ? AND gs.peri_id = ?"
+            );
+            $stmtModulos->execute([$actual['estu_id'], $actual['prog_id'], $actual['peri_id']]);
+            $definitivas = array_column($stmtModulos->fetchAll(), 'cali_definitiva');
+
+            $aprobado = false;
+            if (count($definitivas) > 0 && !in_array(null, $definitivas, true)) {
+                $promedio = array_sum(array_map('floatval', $definitivas)) / count($definitivas);
+                $aprobado = ($promedio >= 3.0);
+            }
+            if (!$aprobado) {
+                echo json_encode(['status' => 'error', 'message' => 'El estudiante no ha aprobado el período actual.']);
+                break;
+            }
+
+            // Mismo criterio que el UNIQUE KEY uq_matr_estu_peri_prog — caso
+            // raro pero posible (ya avanzado por otro medio).
+            $stmtDup = $pdo->prepare(
+                "SELECT matr_id FROM matriculas WHERE estu_id = ? AND prog_id = ? AND peri_id = ?"
+            );
+            $stmtDup->execute([$actual['estu_id'], $actual['prog_id'], $peri_id_destino]);
+            if ($stmtDup->fetch()) {
+                echo json_encode(['status' => 'error', 'message' => 'Ya existe una matrícula de este estudiante en este programa para el período destino.']);
+                break;
+            }
+
+            $pdo->beginTransaction();
+
+            $stmtCursado = $pdo->prepare("UPDATE matriculas SET matr_estado = 'cursado' WHERE matr_id = ?");
+            $stmtCursado->execute([$matr_id]);
+
+            // Campos no heredados (matr_folio, matr_numero, matr_matriculadopor,
+            // fechainscripcion, matr_observacion, req_*): se dejan en su
+            // NULL/DEFAULT 0 de columna, igual que una matrícula nueva creada
+            // por 'matricular' sin esos datos por POST — son datos propios del
+            // trámite de ESTE semestre, no algo que tenga sentido heredar de la
+            // matrícula anterior. coho_id sí se hereda (misma cohorte de
+            // ingreso del estudiante, no cambia entre semestres).
+            $stmtNueva = $pdo->prepare(
+                "INSERT INTO matriculas
+                    (estu_id, prog_id, peri_id, coho_id, matr_estado, matr_estado_academico,
+                     matr_semestre, fechamatricula)
+                 VALUES (?, ?, ?, ?, 'matriculado', 'Activo', ?, CURDATE())"
+            );
+            $stmtNueva->execute([
+                $actual['estu_id'], $actual['prog_id'], $peri_id_destino, $actual['coho_id'],
+                $siguienteSemestre,
+            ]);
+
+            $pdo->commit();
+            echo json_encode(['status' => 'ok', 'message' => 'Estudiante avanzado al semestre ' . $siguienteSemestre . ' correctamente.']);
+
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al avanzar de semestre']);
         }
         break;
 

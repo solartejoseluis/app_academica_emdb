@@ -586,6 +586,33 @@ $(document).ready(function () {
         });
     });
 
+    $('#btn_confirmar_avanzar_semestre').click(function () {
+        const matr_id         = $('#npt_avanzar_matr_id').val();
+        const peri_id_destino = $('#slct_avanzar_peri_id_destino').val();
+
+        if (!peri_id_destino) { alert('Seleccione el período destino.'); return false; }
+
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=avanzar_semestre',
+            data: { matr_id: matr_id, peri_id_destino: peri_id_destino },
+            dataType: 'json',
+            success: function (response) {
+                if (response.status === 'ok') {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_avanzar_semestre')).hide();
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload();
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload();
+                    alert(response.message);
+                } else {
+                    // Sin cerrar el modal — el coordinador necesita ver el
+                    // motivo del rechazo (mismo patrón que otros submits del
+                    // módulo, ej. btn_guardar_editar_matricula arriba).
+                    alert('Error: ' + response.message);
+                }
+            }
+        });
+    });
+
     // -------------------------------------------------------------------------
     // Funciones internas
     // -------------------------------------------------------------------------
@@ -681,7 +708,7 @@ $(document).ready(function () {
             },
             destroy: true,
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
-            columns: crearColumnasMatriculados()
+            columns: crearColumnasMatriculados(true)
         });
 
         tablaMatriculadosAnteriores = $('#tbl_matriculados_anteriores').DataTable({
@@ -698,7 +725,7 @@ $(document).ready(function () {
             },
             destroy: true,
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
-            columns: crearColumnasMatriculados()
+            columns: crearColumnasMatriculados(false)
         });
     }
 
@@ -895,7 +922,11 @@ $(document).ready(function () {
 // Per. Actual/Per. Anteriores). Devuelve un array NUEVO en cada llamada: el
 // array de columns de un DataTable no debe compartirse por referencia entre
 // dos instancias.
-function crearColumnasMatriculados() {
+// esPeriodoActual distingue únicamente el ítem "Matricular al sgte. sem."
+// del dropdown de Acciones (solo tiene sentido avanzar desde el período EN
+// CURSO) — las demás 12 columnas son idénticas entre ambas tablas, por eso
+// se mantiene un solo parámetro puntual en vez de duplicar la función.
+function crearColumnasMatriculados(esPeriodoActual) {
     return [
         {
             data: 'estu_foto',
@@ -1013,6 +1044,34 @@ function crearColumnasMatriculados() {
                            <button class="dropdown-item" type="button" onclick="abrirMatricular(${row.estu_id})" title="Matricular en un programa adicional">➕ Matricular en otro programa</button>
                        </li>`;
 
+                // Solo tiene sentido avanzar desde el período EN CURSO — nunca
+                // en "Per. Anteriores" (esPeriodoActual === false). El primer
+                // motivo de bloqueo que aplique es el que se muestra en el
+                // tooltip, mismo patrón que itemMatricularOtroPrograma arriba.
+                let itemAvanzarSemestre = '';
+                if (esPeriodoActual) {
+                    let motivoDeshabilitado = null;
+                    if (row.matr_estado !== 'matriculado') {
+                        motivoDeshabilitado = 'Esta matrícula ya no está activa.';
+                    } else if (row.matr_estado_academico !== 'Activo') {
+                        motivoDeshabilitado = 'El estudiante no está en condición académica Activa.';
+                    } else if (row.matr_semestre >= row.prog_duracion_semestres) {
+                        motivoDeshabilitado = 'El estudiante ya está en su último semestre.';
+                    } else if (row.aprobado_periodo_actual != 1) {
+                        motivoDeshabilitado = 'El estudiante aún no ha aprobado el período actual.';
+                    }
+
+                    const nombreCompleto = (row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'");
+
+                    itemAvanzarSemestre = motivoDeshabilitado
+                        ? `<li tabindex="0" title="${motivoDeshabilitado}">
+                               <button class="dropdown-item disabled" type="button" disabled>⏩ Matricular al sgte. sem.</button>
+                           </li>`
+                        : `<li>
+                               <button class="dropdown-item" type="button" onclick="abrirAvanzarSemestre(${row.matr_id}, '${nombreCompleto}', ${row.matr_semestre}, ${row.prog_duracion_semestres}, '${row.prog_sigla}')">⏩ Matricular al sgte. sem.</button>
+                           </li>`;
+                }
+
                 return `<div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                                 <i class="bi bi-gear-fill"></i>
@@ -1026,6 +1085,7 @@ function crearColumnasMatriculados() {
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
                                 </li>
+                                ${itemAvanzarSemestre}
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
                                 </li>
@@ -1337,6 +1397,28 @@ function abrirEditarMatricula(matr_id) {
             new bootstrap.Modal(document.getElementById('mdl_editar_matricula')).show();
         }
     });
+}
+
+// Todos los datos ya viajan en la fila de listar_matriculados (matr_id,
+// matr_semestre, prog_duracion_semestres, prog_sigla) — sin llamada AJAX
+// adicional, mismo criterio que verModulosEstudiante() de abajo. El select
+// de período destino se puebla clonando las opciones ya calculadas de
+// #slct_filtro_matr_peri_id_anteriores (todos los períodos EXCEPTO el
+// activo, ya resuelto una vez por cargarPeriodos()) en vez de duplicar esa
+// misma exclusión aquí o depender de periodoActivoId — esa variable es
+// local a $(document).ready y esta función es global (invocada desde el
+// onclick inline del dropdown), así que no es accesible directamente.
+function abrirAvanzarSemestre(matr_id, nombreCompleto, matrSemestreActual, progDuracionSemestres, progSigla) {
+    $('#npt_avanzar_matr_id').val(matr_id);
+    $('#txt_avanzar_nombre').text(nombreCompleto);
+    $('#txt_avanzar_prog_sigla').text(progSigla);
+    $('#txt_avanzar_semestre_actual').text(matrSemestreActual + '/' + progDuracionSemestres);
+    $('#txt_avanzar_semestre_nuevo').text((matrSemestreActual + 1) + '/' + progDuracionSemestres);
+
+    const opcionesAnteriores = $('#slct_filtro_matr_peri_id_anteriores option[value!="0"]').clone();
+    $('#slct_avanzar_peri_id_destino').html('<option value="">-- Seleccionar --</option>').append(opcionesAnteriores);
+
+    new bootstrap.Modal(document.getElementById('mdl_avanzar_semestre')).show();
 }
 
 function descargarFichaPdf(estu_id) {
