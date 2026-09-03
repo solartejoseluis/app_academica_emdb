@@ -67,6 +67,9 @@ app_academica_emdb/
     06_reportes/       — Informe de calificaciones por programa→período→módulo (autoconsulta del estudiante o consulta del coordinador a cualquier estudiante, vía buscador) + reporte por grupo módulo (todos los estudiantes) + exportación Excel/PDF
     07_coordinador/    — Dashboard de seguimiento académico
     08_admin/          — Gestión de usuarios del sistema
+    09_inscripcion_publica/ — Formulario público de inscripción para aspirantes sin cuenta (sin sesión), verificación reCAPTCHA server-side, detección de duplicados por documento/correo
+    10_ayudas/         — Contenido de ayuda mostrado en el sidebar de cada sección de la aplicación (CRUD en 08_admin)
+    11_actualizacion_datos/ — Link público (sin sesión) para que un estudiante actualice su propia ficha (`estudiantes`+`fichas_inscripcion`) vía token de un solo uso, pendiente de aprobación del coordinador — Fase 3 de 5, ver Phase 2.11 en "Estado del roadmap"
   uploads/
     fotos_estudiantes/ — Fotos de estudiantes, fuera de app/, excluidas de git salvo .gitkeep
   CLAUDE.md
@@ -310,7 +313,7 @@ Orden de creación (respetando dependencias FK):
 | `calificaciones` | `cali_` | Notas por estudiante y grupo módulo |
 | `horariosgrupo` | `hora_` | Horarios por grupo (solo jornada SEMA) |
 | `fichas_inscripcion` | `finc_` | Datos familiares (padre/madre/acudiente) y estudios anteriores — formato AC-FO-02 |
-| `solicitudes_actualizacion` | `soac_`/`soac_ficha_` | Staging de cambios propuestos por el estudiante a su propia ficha (`estudiantes`+`fichas_inscripcion`) vía link público sin sesión, pendientes de que el coordinador apruebe o descarte — **Fase 2 de 5, esquema + backend probado, sin formulario público ni frontend todavía** (ver Phase 2.11 en "Estado del roadmap"). 3 decisiones de diseño: `soac_ficha_prog_id` sin FK hacia `programas` (valor propuesto sin validar hasta la aprobación, no en el momento de guardar la solicitud); `soac_estado` (`ENUM 'generado'/'recibido'/'aprobado'/'descartado'`) como borrado lógico — una solicitud descartada nunca se elimina, transiciona de estado; tabla ubicada al final del `.sql` en su propia sección "BLOQUE 6D", mismo patrón que `ayudas`/`configuracion` (ver nota debajo) |
+| `solicitudes_actualizacion` | `soac_`/`soac_ficha_` | Staging de cambios propuestos por el estudiante a su propia ficha (`estudiantes`+`fichas_inscripcion`) vía link público sin sesión, pendientes de que el coordinador apruebe o descarte — **Fase 3 de 5, esquema + backend + formulario público probados, sin frontend/dropdown/badge para el coordinador todavía** (ver Phase 2.11 en "Estado del roadmap"). 3 decisiones de diseño: `soac_ficha_prog_id` sin FK hacia `programas` (valor propuesto sin validar hasta la aprobación, no en el momento de guardar la solicitud); `soac_estado` (`ENUM 'generado'/'recibido'/'aprobado'/'descartado'`) como borrado lógico — una solicitud descartada nunca se elimina, transiciona de estado; tabla ubicada al final del `.sql` en su propia sección "BLOQUE 6D", mismo patrón que `ayudas`/`configuracion` (ver nota debajo) |
 
 **Nota de esquema — tablas fuera del "Orden de creación" numerado de arriba:** la lista `1.` a `15.` de esta sección quedó fija en el diseño original y ya no se ha actualizado con las tablas de soporte agregadas después — ni `ayudas` ni `configuracion` (ambas del bloque de utilidades, sin relación con el dominio académico) aparecen ahí, y `solicitudes_actualizacion` tampoco se agregó por el mismo motivo. Las tres sí están en la tabla "Resumen de tablas principales" de arriba (más `solicitudes_actualizacion`) y en el DDL real (`database/emdb_academica.sql`, comentario "Tablas creadas: 19"). No renumerar la lista `1.`-`15.` para insertar estas tablas — mantenerla como registro del diseño académico original y usar la tabla de resumen como inventario vigente.
 
@@ -1060,6 +1063,7 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Decisión:** Todas las vistas son `_view.php` e incluyen `check_session.php` al inicio.
 - **Razón:** Control de acceso real desde el servidor. Apache no sirve el layout a usuarios sin sesión válida.
 - **Consecuencia:** Todos los links internos referencian `.php`. Sin excepciones.
+- **Excepción documentada — módulos públicos sin sesión:** `09_inscripcion_publica/insc_view.php` y `11_actualizacion_datos/actualizar_view.php` son las únicas vistas del proyecto sin `check_session.php` — deliberado, no un descuido: ambas atienden a alguien sin cuenta en el sistema (un aspirante, un estudiante que solo tiene un link). Diferencia clave entre las dos: `insc_view.php` siempre **crea** un registro nuevo (un aspirante), mientras que `actualizar_view.php` **identifica** un registro ya existente mediante un token de un solo uso en la URL en vez de una sesión — ninguna de las dos necesita saber "quién" hace la petición más allá de esa identificación puntual.
 - **Estado:** Activa. Aplicar desde el módulo 01.
 
 ### Nota definitiva calculada en servidor
@@ -1386,20 +1390,21 @@ implementadas y verificadas en navegador.
 |---|---|---|
 | 2.11.A | Esquema — tabla `solicitudes_actualizacion` nueva (`database/emdb_academica.sql`), prefijo `soac_`/`soac_ficha_`: 10 columnas de control/auditoría, 17 espejo de `estudiantes` (excluye tipo/número de documento e identidad/sistema) y 35 espejo de `fichas_inscripcion` (excluye PK/FK/estado/auditoría), todas `NULLABLE`. Detalle completo de las 63 columnas y las 3 decisiones de diseño en CHANGELOG.md | ✅ 2026-09-02 (commit `3ba9f99`) |
 | 2.11.B | Backend — 4 `case` nuevos en `est_mdl.php` (solo `role_id IN (1,2)`): `generar_link_actualizacion` (valida elegibilidad matriculado+Activo+período activo, invalida automáticamente cualquier solicitud previa activa, token de 64 hex chars con `bin2hex(random_bytes(32))`, expira en 24h), `estado_solicitud_actualizacion` (la más reciente del estudiante, `null` si nunca tuvo una), `aprobar_actualizacion` (aplica solo campos `soac_*` no nulos sin sobrescribir con `NULL`, calcula `soac_campos_modificados`, sincroniza `usua_email` si cambió, rollback total ante cualquier colisión) y `descartar_actualizacion` (borrado lógico). Nueva función compartida `sincronizarEmailUsuario()` en `helpers.php` (ver esa sección), que además corrige un bug real en `guardar_completo` (editar el correo de un estudiante con `usua_id` ahora sí sincroniza `usuarios.usua_email`). `listar_matriculados` agrega `soac_estado_activo` para el badge de la Fase D. Detalle completo, incluido el bug de `estudiantes.estu_email` encontrado en pruebas, en CHANGELOG.md | ✅ 2026-09-02 (commit `03e36fc`) |
-| 2.11.C | Formulario público que consume el token (sin sesión, patrón de `09_inscripcion_publica/`) | ⬜ |
+| 2.11.C | Formulario público — módulo nuevo `11_actualizacion_datos/` (`actualizar_mdl.php`/`actualizar_view.php`/`actualizar_ctrl.js`), sin sesión (mismo criterio que `09_inscripcion_publica/`, ver la excepción documentada en "Vistas como `.php` en lugar de `.html`"). 3 `case`: `validar_token` (existencia + estado `'generado'` + expiración, responde `{status, motivo}` en vez del envelope estándar, precarga valores vigentes vía `LEFT JOIN` igual que `obtener_completo`), `guardar_actualizacion` (re-valida el token igual que `validar_token`, escribe solo en columnas `soac_*`/`soac_ficha_*` — nunca toca `estudiantes`/`fichas_inscripcion` directamente —, `UPDATE` condicional `WHERE soac_estado = 'generado'` contra doble submit) y `listar_programas` (catálogo público duplicado de `insc_mdl.php`). Bug encontrado y corregido durante el desarrollo: un `exit` dentro del `foreach` de validación de la ficha familiar cortaba el script en la primera iteración en vez de solo ante el primer campo `null` — corregido a bandera + `break`, mismo patrón que `guardar_completo`. Detalle completo, incluidos los 7 casos probados con `curl` sin sesión, en CHANGELOG.md | ✅ 2026-09-02 (commit `b739a60`), verificado en navegador por Jose Luis 4/4 puntos |
 | 2.11.D | Frontend — nuevo ítem del dropdown de `tablaMatriculados` + indicador de solicitud pendiente + flujo de aprobar/descartar | ⬜ |
 | 2.11.E | Documentación de cierre del feature completo | ⬜ |
 
-**Estado actual: Fase 2 de 5 completa (esquema + backend).** El
-backend existe y está probado con `curl` contra el contenedor Docker
-vivo (11 casos, ver CHANGELOG.md) — pero **sigue sin ningún componente
-visible en la aplicación real**: no hay formulario público que un
-estudiante pueda abrir, no hay ítem de dropdown ni badge en
-`tablaMatriculados`, y `est_view.php`/`est_ctrl.js` no se han tocado
-en ningún commit de este feature todavía. No usar esta entrada como
-referencia de una funcionalidad que el coordinador o el estudiante ya
-puedan usar — solo endpoints invocables por `curl`/Postman hasta que
-la Fase C tenga su propio commit.
+**Estado actual: Fase 3 de 5 completa (esquema + backend + formulario
+público).** Por primera vez existe una interfaz real que un
+estudiante puede abrir y usar de punta a punta (`11_actualizacion_datos/actualizar_view.php?token=...`,
+verificado en navegador) — pero **el coordinador todavía no tiene
+ninguna forma de generar ese link desde la aplicación**: no hay ítem
+de dropdown ni badge en `tablaMatriculados`, y `est_view.php`/`est_ctrl.js`
+no se han tocado en ningún commit de este feature todavía (el link de
+prueba usado para la verificación en navegador se generó a mano con
+`curl` contra `generar_link_actualizacion`). No usar esta entrada como
+referencia de un flujo utilizable de punta a punta por un coordinador
+real hasta que la Fase D tenga su propio commit.
 
 ### Phase 3 — Validación TRL5
 
