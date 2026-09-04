@@ -4,6 +4,55 @@
 
 ---
 
+## [4386b67] — 2026-09-04 — style: ajustar ancho de columnas Edad/Programa/Semestre en tablaMatriculados
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- 2 `<th>` abreviados en ambas tablas (`tbl_matriculados_actual`/
+  `tbl_matriculados_anteriores`, `est_view.php`): `<th>Programa</th>`
+  → `<th>Prog</th>`, `<th>Semestre</th>` → `<th>Sem</th>`. `<th>Edad</th>`
+  sin cambios de texto — solo de ancho, en la columna correspondiente.
+- 3 anchos ajustados en `crearColumnasMatriculados()` (`est_ctrl.js`),
+  sin tocar ningún `render()`:
+  - **Edad** (`fechanacimiento`): `100px` → `85px`. Contenido real
+    hasta ~12 caracteres (`"N (dd mes)"`, ej. `"32 (16 jun)"`), más el
+    padding del badge azul cuando el estudiante es menor de edad.
+  - **Programa** (`prog_sigla`): `70px` → `85px` — **ampliado, no
+    reducido**. El peor caso real confirmado en el sistema no son las
+    siglas cortas (`ASO`/`MD`, 3 caracteres) sino `ASO2016`/`AMD2016`
+    (7 caracteres, programas reales ya existentes en el catálogo) —
+    un ancho pensado solo en el caso típico las habría cortado.
+  - **Semestre** (columna calculada `matr_semestre`/`prog_duracion_semestres`):
+    `60px` → `50px`. Contenido real máximo confirmado es `"N/M"` (3
+    caracteres, ej. `"3/5"`), con margen para el padding del badge
+    verde del último semestre.
+- Verificado con Playwright headless en ambas tablas: encabezados
+  "Prog"/"Sem" confirmados, sin overflow horizontal en ningún caso
+  (medido con `scrollWidth > clientWidth`) — incluyendo el peor
+  escenario real, probado con un estudiante y matrícula temporales en
+  `ASO2016` (semestre 3/3, último) y edad de 2 dígitos con badge azul;
+  comparado también contra siglas cortas y semestres típicos ya
+  existentes. Resto de columnas (Cohorte, Período, Módulos, Estado,
+  Último acceso, Acciones) sin desalinear. Datos de prueba (estudiante
+  y matrícula temporales) eliminados al terminar.
+- Etapa 2.12.G (de 10) del roadmap "Gestión de requisitos de
+  estudiantes" — sin dependencias con el resto del roadmap.
+
+### Decisiones
+- Cada columna se dimensionó por el peor caso real confirmado en el
+  sistema, no por el caso típico — mismo criterio ya documentado en
+  CLAUDE.md para "código autogenerado por concatenación: dimensionar
+  la columna contra el peor caso, no el caso típico". Esto llevó a que
+  Programa terminara **más** ancho (`70px` → `85px`) que lo sugerido
+  originalmente (`50px`): el pedido inicial de "ancho al contenido"
+  asumía solo siglas cortas, sin considerar las variantes largas
+  (`ASO2016`/`AMD2016`) ya presentes en datos reales del sistema.
+
+---
+
 ## [a5ef1e5] — 2026-09-04 — feat: wiring de guardado del checklist de requisitos por matrícula
 
 ### Archivos modificados
