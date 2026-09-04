@@ -1482,7 +1482,7 @@ un bug de datos).
 | 2.12.F2 | Frontend Coordinador — ítem "Requisitos" en dropdown Acciones + HTML del modal #mdl_requisitos_matricula (estructura, sin JS de guardado) | ✅ 2026-09-03 (commit `caa3cff`) |
 | 2.12.F3 | Frontend Coordinador — JS: listar los requisitos de la matrícula en el modal, tabla con selects de estado editables, mensaje "x de y completados" | ✅ 2026-09-04 (commit `9196f18`) |
 | 2.12.F4 | Frontend Coordinador — JS: wiring del guardado (actualizar_requisito_estudiante por fila) + refresco de la columna en la tabla principal al cerrar el modal | ✅ 2026-09-04 (commit `a5ef1e5`) |
-| 2.12.G | Ajustes de columnas de tablaMatriculados — Edad/Programa→Prog/Semestre→Sem, ancho al contenido (independiente, sin dependencias) | ⬜ |
+| 2.12.G | Ajustes de columnas de tablaMatriculados — Edad/Programa→Prog/Semestre→Sem, ancho al contenido (independiente, sin dependencias) | ✅ 2026-09-04 (commit `4386b67`) |
 | 2.12.H | Frontend Matrícula — agrega en #mdl_matricular una lista informativa de solo lectura de los requisitos del programa seleccionado (reemplazo funcional de los 9 checkboxes retirados en 2.12.A2) | ⬜ |
 | 2.12.I | Frontend Estudiante — barra superior (rojo/verde con conteo pendiente) + sección de requisitos de solo lectura en reportes_view.php/reportes_ctrl.js, dentro de cada pestaña de programa, antes del selector de período | ⬜ |
 | 2.12.J | Documentación de cierre del roadmap completo | ⬜ |
