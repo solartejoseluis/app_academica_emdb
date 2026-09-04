@@ -60,7 +60,7 @@ app_academica_emdb/
     00_img/            — Recursos estáticos: logo, iconos
     00_files/          — Componentes PHP compartidos: navbar.php (roles 1 y 2), helpers.php (funciones PHP compartidas, ej. formatearUltimoAcceso()), favicon, robots.txt, .htaccess
     01_login/          — Autenticación por sesión y redirección por rol
-    02_estudiantes/    — CRUD estudiantes + matrícula a programas
+    02_estudiantes/    — CRUD estudiantes + matrícula a programas + gestión de requisitos documentales configurables (catálogo por programa, checklist por matrícula) — roadmap en Phase 2.12
     03_docentes/       — CRUD docentes
     04_grupos/         — Cohortes, grupos semestre, grupos módulo
     05_calificaciones/ — Registro de notas por docente (módulo crítico)
@@ -1453,6 +1453,36 @@ descartarla — sin ningún pendiente abierto de este roadmap específico
 salvo el hallazgo puntual documentado en "Deuda técnica" (no bloqueante,
 una inconsistencia de presentación entre dos partes de la misma UI, no
 un bug de datos).
+
+### Phase 2.12 — Gestión de requisitos de estudiantes de matrícula (10 etapas, en curso)
+
+> Objetivo: reemplazar las 9 columnas `req_*` fijas de `matriculas`
+> (sin per-programa, sin descripción, sin edición posterior una vez
+> creada la matrícula) por un catálogo de requisitos documentales
+> configurable por programa (`requisitos_programa`, gestionado por el
+> Admin) con un checklist editable por matrícula
+> (`requisitos_estudiante`), visible tanto para el coordinador
+> (`tablaMatriculados`, `02_estudiantes`) como para el propio
+> estudiante (`06_reportes`). Precedido de un diagnóstico de solo
+> lectura (sin commit) que confirmó que las 9 columnas legacy estaban
+> aisladas al flujo de matriculación inicial, sin ningún lector en
+> otros listados, reportes, PDFs, vistas, índices ni procedimientos
+> almacenados del proyecto.
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| 2.12.0 | Diagnóstico de solo lectura — confirma que las 9 columnas req_* legacy no tienen ningún lector fuera de est_mdl.php/est_view.php/est_ctrl.js | ✅ 2026-09-03 |
+| 2.12.A | Esquema — elimina las 9 columnas req_* de matriculas; crea requisitos_programa (catálogo por programa, prefijo reqp_, borrado lógico) y requisitos_estudiante (estado por matrícula, prefijo reqe_, ancla en matr_id) | ✅ 2026-09-03 (commit `ea03618`) |
+| 2.12.A2 | Retiro coordinado del flujo legacy en el mismo commit que 2.12.A: case 'matricular' deja de leer/escribir req_*, modal #mdl_matricular pierde los 9 checkboxes sin reemplazo aún, btn_confirmar_matricula deja de recolectarlos | ✅ 2026-09-03 (commit `ea03618`) |
+| 2.12.B | Backend Admin — CRUD del catálogo requisitos_programa en est_mdl.php (solo role_id === 1), con backfill automático de requisitos_estudiante en 'pendiente' a las matrículas activas del programa al crear/reactivar un requisito | ⬜ |
+| 2.12.C | Backend Matrícula — case 'matricular' inserta automáticamente en requisitos_estudiante los requisitos activos del programa como 'pendiente' al crear una matrícula nueva | ⬜ |
+| 2.12.D | Backend Coordinador — nuevos case para listar/actualizar los requisitos de una matrícula puntual, y extender listar_matriculados con conteo x/y y fecha de última actualización para el badge | ⬜ |
+| 2.12.E | Frontend Admin — nueva ficha "Configurar Requisitos" en est_view.php (select de programa + tabla + agregar/editar/borrar) | ⬜ |
+| 2.12.F | Frontend Coordinador — columna "Requisitos" en tablaMatriculadosActual/Anteriores (después de "Información") + ítem "Requisitos" en dropdown Acciones + modal de gestión | ⬜ |
+| 2.12.G | Ajustes de columnas de tablaMatriculados — Edad/Programa→Prog/Semestre→Sem, ancho al contenido (independiente, sin dependencias) | ⬜ |
+| 2.12.H | Frontend Matrícula — agrega en #mdl_matricular una lista informativa de solo lectura de los requisitos del programa seleccionado (reemplazo funcional de los 9 checkboxes retirados en 2.12.A2) | ⬜ |
+| 2.12.I | Frontend Estudiante — barra superior (rojo/verde con conteo pendiente) + sección de requisitos de solo lectura en reportes_view.php/reportes_ctrl.js, dentro de cada pestaña de programa, antes del selector de período | ⬜ |
+| 2.12.J | Documentación de cierre del roadmap completo | ⬜ |
 
 ### Phase 3 — Validación TRL5
 
