@@ -25,3 +25,26 @@ function sincronizarEmailUsuario(PDO $pdo, ?int $usua_id, string $nuevoEmail): v
     $update = $pdo->prepare("UPDATE usuarios SET usua_email = ? WHERE usua_id = ?");
     $update->execute([$nuevoEmail, $usua_id]);
 }
+
+/**
+ * Crea registros 'pendiente' en requisitos_estudiante para todas
+ * las matrículas activas (matr_estado = 'matriculado') de un
+ * programa que aún no tengan el requisito indicado. Se usa al
+ * crear o reactivar un requisito en el catálogo, y también desde
+ * el flujo de matrícula (Etapa 2.12.C).
+ */
+function backfillRequisitoAMatriculasActivas(PDO $pdo, int $prog_id, int $reqp_id): void
+{
+    $stmt = $pdo->prepare("
+        INSERT INTO requisitos_estudiante (matr_id, reqp_id, reqe_estado)
+        SELECT m.matr_id, ?, 'pendiente'
+        FROM matriculas m
+        WHERE m.prog_id = ?
+          AND m.matr_estado = 'matriculado'
+          AND NOT EXISTS (
+              SELECT 1 FROM requisitos_estudiante re
+              WHERE re.matr_id = m.matr_id AND re.reqp_id = ?
+          )
+    ");
+    $stmt->execute([$reqp_id, $prog_id, $reqp_id]);
+}

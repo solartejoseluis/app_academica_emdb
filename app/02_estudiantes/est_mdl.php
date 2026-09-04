@@ -1894,6 +1894,175 @@ switch ($accion) {
         }
         break;
 
+    // ── CATÁLOGO DE REQUISITOS POR PROGRAMA (Etapa 2.12.B, solo Admin) ──────
+
+    case 'listar_requisitos_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if ($role_id !== 1) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $prog_id = (int)($_REQUEST['prog_id'] ?? 0);
+        if ($prog_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'prog_id es requerido']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT reqp_id, prog_id, reqp_nombre, reqp_descripcion,
+                       reqp_activo, reqp_fecha_actualizacion
+                FROM requisitos_programa
+                WHERE prog_id = ?
+                ORDER BY reqp_activo DESC, reqp_nombre ASC
+            ");
+            $stmt->execute([$prog_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al listar los requisitos del programa']);
+        }
+        break;
+
+    case 'crear_requisito_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if ($role_id !== 1) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $prog_id     = (int)($_POST['prog_id'] ?? 0);
+        $reqp_nombre = trim($_POST['reqp_nombre'] ?? '');
+        $reqp_descripcion = trim($_POST['reqp_descripcion'] ?? '') ?: null;
+        if ($prog_id === 0 || $reqp_nombre === '') {
+            echo json_encode(['status' => 'error', 'message' => 'Programa y nombre del requisito son requeridos']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $pdo->beginTransaction();
+
+            $stmtIns = $pdo->prepare(
+                "INSERT INTO requisitos_programa (prog_id, reqp_nombre, reqp_descripcion) VALUES (?, ?, ?)"
+            );
+            $stmtIns->execute([$prog_id, $reqp_nombre, $reqp_descripcion]);
+            $reqp_id = $pdo->lastInsertId();
+
+            backfillRequisitoAMatriculasActivas($pdo, $prog_id, (int)$reqp_id);
+
+            $pdo->commit();
+            echo json_encode(['status' => 'ok', 'message' => 'Requisito creado', 'reqp_id' => $reqp_id]);
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al crear el requisito']);
+        }
+        break;
+
+    case 'editar_requisito_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if ($role_id !== 1) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $reqp_id     = (int)($_POST['reqp_id'] ?? 0);
+        $reqp_nombre = trim($_POST['reqp_nombre'] ?? '');
+        $reqp_descripcion = trim($_POST['reqp_descripcion'] ?? '') ?: null;
+        if ($reqp_id === 0 || $reqp_nombre === '') {
+            echo json_encode(['status' => 'error', 'message' => 'reqp_id y nombre del requisito son requeridos']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare(
+                "UPDATE requisitos_programa SET reqp_nombre = ?, reqp_descripcion = ? WHERE reqp_id = ?"
+            );
+            $stmt->execute([$reqp_nombre, $reqp_descripcion, $reqp_id]);
+            echo json_encode(['status' => 'ok', 'message' => 'Requisito actualizado']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el requisito']);
+        }
+        break;
+
+    case 'eliminar_requisito_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if ($role_id !== 1) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $reqp_id = (int)($_POST['reqp_id'] ?? 0);
+        if ($reqp_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'reqp_id es requerido']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("UPDATE requisitos_programa SET reqp_activo = 0 WHERE reqp_id = ?");
+            $stmt->execute([$reqp_id]);
+            echo json_encode(['status' => 'ok', 'message' => 'Requisito desactivado']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al desactivar el requisito']);
+        }
+        break;
+
+    case 'reactivar_requisito_programa':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if ($role_id !== 1) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $reqp_id = (int)($_POST['reqp_id'] ?? 0);
+        if ($reqp_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'reqp_id es requerido']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $pdo->beginTransaction();
+
+            $stmtProg = $pdo->prepare("SELECT prog_id FROM requisitos_programa WHERE reqp_id = ?");
+            $stmtProg->execute([$reqp_id]);
+            $prog_id = $stmtProg->fetchColumn();
+            if ($prog_id === false) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'Requisito no encontrado']);
+                break;
+            }
+
+            $stmtUpd = $pdo->prepare("UPDATE requisitos_programa SET reqp_activo = 1 WHERE reqp_id = ?");
+            $stmtUpd->execute([$reqp_id]);
+
+            backfillRequisitoAMatriculasActivas($pdo, (int)$prog_id, $reqp_id);
+
+            $pdo->commit();
+            echo json_encode(['status' => 'ok', 'message' => 'Requisito reactivado']);
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al reactivar el requisito']);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;
