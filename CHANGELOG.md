@@ -4,6 +4,69 @@
 
 ---
 
+## [8450a24] — 2026-09-03 — feat: columna "Requisitos" de solo lectura en tablaMatriculados
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Nuevo `<th>Requisitos</th>` en el `<thead>` de `tbl_matriculados_actual`
+  y `tbl_matriculados_anteriores` (`est_view.php`), inmediatamente
+  después de `<th>Información</th>` y antes de `<th>Cohorte</th>`,
+  idéntico en ambas tablas.
+- Nueva columna en `crearColumnasMatriculados()` (`est_ctrl.js`), misma
+  posición que el `<th>`: `data: null`, `title: 'Requisitos'`. Render:
+  `'—'` si `requisitos_total` es `0`; si no, un badge
+  `${entregados}/${total}` — verde (`bg-success`) si `entregados ===
+  total`, amarillo (`bg-warning text-dark`) en cualquier otro caso —
+  con la fecha de `requisitos_ultima_actualizacion` debajo del badge
+  (`<small class="text-muted d-block">`) cuando existe, formateada
+  dd/mm/aaaa con el mismo patrón inline ya usado en
+  `cargarTablaRequisitosPrograma()` (split `' '`/`'-'`, sin función
+  compartida extraída). Columna puramente informativa — sin `onclick`
+  ni acción en esta sub-entrega.
+- **Bug detectado y corregido durante el desarrollo:** la columna se
+  agregó primero solo en el array `columns` de `est_ctrl.js`, sin su
+  `<th>` correspondiente en `est_view.php` — el alcance del cambio
+  original excluía explícitamente tocar `est_view.php`, corregido
+  luego en un cambio separado una vez detectado el bug. Con 16
+  entradas en `columns` contra 15 `<th>` reales, DataTables rompía por
+  completo en ambas tablas: `pageerror: Cannot read properties of
+  undefined (reading 'style')`, `tbody` vacío, cero filas renderizadas.
+  Se diagnosticó con `git stash` (revirtiendo temporalmente el cambio
+  de `est_ctrl.js` y repitiendo la misma prueba en navegador) que la
+  causa era exclusivamente el desajuste 15 vs 16 columnas — con las 15
+  columnas originales la tabla renderizaba sin problema pese a los
+  mismos errores de CORS del CDN `i18n` de DataTables ya conocidos en
+  este entorno (esos errores resultaron ser inofensivos, no la causa
+  del `pageerror`). Corregido agregando el `<th>` faltante en las 2
+  tablas.
+- Verificado con Playwright headless: sin `pageerror` en ninguna de las
+  2 tablas; encabezados (16) = celdas por fila (16) en ambas pestañas
+  ("Per. Actual" y "Per. Anteriores"); los 3 escenarios de badge
+  confirmados con datos de prueba reales (catálogo temporal +
+  backfill): `'—'` para una matrícula sin catálogo configurado
+  (programa MD), badge amarillo `0/1` para una matrícula con un
+  requisito `pendiente`, badge verde `1/1` con fecha para una
+  matrícula con su único requisito marcado `entregado`. Datos de
+  prueba eliminados al terminar.
+- Etapa 2.12.F1 (de 4 sub-entregas de la Etapa 2.12.F) del roadmap
+  "Gestión de requisitos de estudiantes".
+
+### Decisiones
+- El badge usa verde cuando `entregados === total` y amarillo en
+  cualquier otro caso, incluyendo `0` entregados — no hay un tercer
+  color para distinguir "0 entregados" de "parcialmente entregado";
+  ambos se ven igual (amarillo). Decisión de simplicidad visual, sin
+  necesidad explícita de distinguirlos en esta etapa.
+- La columna es exclusivamente de solo lectura en esta sub-entrega —
+  la acción de editar el estado de un requisito por matrícula vive en
+  el modal que llega en 2.12.F2/F3/F4, no en la celda misma de la
+  tabla.
+
+---
+
 ## [f3c0ca4] — 2026-09-03 — feat: ficha "Configurar Requisitos" para Admin
 
 ### Archivos modificados
