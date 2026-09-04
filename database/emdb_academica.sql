@@ -61,6 +61,28 @@ CREATE TABLE programas (
   COMMENT='Programas académicos ofertados por la EMDB';
 
 -- -----------------------------------------------------------------------------
+-- requisitos_programa
+--    Catálogo de requisitos documentales exigidos por programa (ej. copia de
+--    diploma, examen médico, carné de salud), configurable por el
+--    Administrador. Reemplaza las 9 columnas req_* fijas que antes vivían
+--    directamente en matriculas — ver requisitos_estudiante más abajo para
+--    el estado de cada requisito por matrícula.
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS requisitos_programa;
+CREATE TABLE requisitos_programa (
+    reqp_id                 SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    prog_id                 SMALLINT UNSIGNED NOT NULL,
+    reqp_nombre             VARCHAR(100)      NOT NULL,
+    reqp_descripcion        VARCHAR(255)      DEFAULT NULL,
+    reqp_activo             TINYINT(1)        NOT NULL DEFAULT 1,
+    reqp_fecha_actualizacion TIMESTAMP        NOT NULL DEFAULT current_timestamp()
+                                               ON UPDATE current_timestamp(),
+    PRIMARY KEY (reqp_id),
+    CONSTRAINT fk_reqp_prog FOREIGN KEY (prog_id) REFERENCES programas (prog_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Catálogo de requisitos documentales configurable por programa';
+
+-- -----------------------------------------------------------------------------
 -- 3. periodos
 --    Períodos académicos semestrales.
 --    peri_semestre: 1 = primer semestre, 2 = segundo semestre del año.
@@ -262,15 +284,6 @@ CREATE TABLE matriculas (
   matr_matriculadopor  VARCHAR(80)       DEFAULT NULL,
   fechainscripcion     DATE              DEFAULT NULL,
   fechamatricula       DATE              DEFAULT NULL,
-  req_copiadiploma     TINYINT(1)        NOT NULL DEFAULT 0,
-  req_actagrado        TINYINT(1)        NOT NULL DEFAULT 0,
-  req_documento        TINYINT(1)        NOT NULL DEFAULT 0,
-  req_carnetsalud      TINYINT(1)        NOT NULL DEFAULT 0,
-  req_examenmedico     TINYINT(1)        NOT NULL DEFAULT 0,
-  req_fotos            TINYINT(1)        NOT NULL DEFAULT 0,
-  req_carpeta          TINYINT(1)        NOT NULL DEFAULT 0,
-  req_vacunastetano    TINYINT(1)        NOT NULL DEFAULT 0,
-  req_hepatitisb       TINYINT(1)        NOT NULL DEFAULT 0,
   matr_observacion     TEXT              DEFAULT NULL,
   PRIMARY KEY (matr_id),
   UNIQUE KEY uq_matr_estu_peri_prog (estu_id, peri_id, prog_id),
@@ -285,6 +298,28 @@ CREATE TABLE matriculas (
     ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Inscripción y matrícula por período — AC-FO-02 y AC-FO-09';
+
+-- -----------------------------------------------------------------------------
+-- requisitos_estudiante
+--    Estado de cada requisito documental (requisitos_programa) para una
+--    matrícula específica — instancia por matr_id + reqp_id. Reemplaza las
+--    9 columnas req_* fijas que antes vivían directamente en matriculas.
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS requisitos_estudiante;
+CREATE TABLE requisitos_estudiante (
+    reqe_id                 INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+    matr_id                 INT UNSIGNED      NOT NULL,
+    reqp_id                 SMALLINT UNSIGNED NOT NULL,
+    reqe_estado             ENUM('pendiente','entregado') NOT NULL DEFAULT 'pendiente',
+    reqe_fecha              DATE              DEFAULT NULL,
+    reqe_fecha_actualizacion TIMESTAMP        NOT NULL DEFAULT current_timestamp()
+                                               ON UPDATE current_timestamp(),
+    PRIMARY KEY (reqe_id),
+    UNIQUE KEY uq_reqe_matr_reqp (matr_id, reqp_id),
+    CONSTRAINT fk_reqe_matr FOREIGN KEY (matr_id) REFERENCES matriculas (matr_id) ON DELETE CASCADE,
+    CONSTRAINT fk_reqe_reqp FOREIGN KEY (reqp_id) REFERENCES requisitos_programa (reqp_id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Estado de requisitos documentales entregados por matrícula';
 
 -- -----------------------------------------------------------------------------
 -- 10. fichas_inscripcion
@@ -808,6 +843,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =============================================================================
 -- FIN DEL SCRIPT
 -- emdb_academica.sql — v1.0.0 — 2026-04-30
--- Tablas creadas: 19
+-- Tablas creadas: 21
 -- Registros semilla: 4 roles + 2 programas + 3 períodos + 36 módulos + 1 usuario admin + 1 fila de configuración institucional
 -- =============================================================================

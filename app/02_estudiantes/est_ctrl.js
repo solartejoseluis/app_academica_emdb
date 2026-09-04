@@ -456,16 +456,7 @@ $(document).ready(function () {
             fechamatricula:    $('#npt_fechamatricula').val(),
             matr_observacion:  $('#npt_matr_observacion').val().trim(),
             tipo_acceso:       tipo_acceso,
-            clave_manual:      $('#npt_clave_manual').val().trim(),
-            req_copiadiploma:  $('#npt_req_copiadiploma').is(':checked') ? 1 : 0,
-            req_actagrado:     $('#npt_req_actagrado').is(':checked')    ? 1 : 0,
-            req_documento:     $('#npt_req_documento').is(':checked')    ? 1 : 0,
-            req_carnetsalud:   $('#npt_req_carnetsalud').is(':checked')  ? 1 : 0,
-            req_examenmedico:  $('#npt_req_examenmedico').is(':checked') ? 1 : 0,
-            req_fotos:         $('#npt_req_fotos').is(':checked')        ? 1 : 0,
-            req_carpeta:       $('#npt_req_carpeta').is(':checked')      ? 1 : 0,
-            req_vacunastetano: $('#npt_req_vacunastetano').is(':checked')? 1 : 0,
-            req_hepatitisb:    $('#npt_req_hepatitisb').is(':checked')   ? 1 : 0
+            clave_manual:      $('#npt_clave_manual').val().trim()
         };
 
         $.ajax({

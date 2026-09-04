@@ -720,25 +720,6 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
 
-                <h6 class="text-muted border-bottom pb-2 mb-2">Requisitos entregados</h6>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_copiadiploma"><label class="form-check-label" for="npt_req_copiadiploma">Copia diploma</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_actagrado"><label class="form-check-label" for="npt_req_actagrado">Acta de grado</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_documento"><label class="form-check-label" for="npt_req_documento">Documento identidad</label></div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_carnetsalud"><label class="form-check-label" for="npt_req_carnetsalud">Carné de salud</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_examenmedico"><label class="form-check-label" for="npt_req_examenmedico">Examen médico</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_fotos"><label class="form-check-label" for="npt_req_fotos">Fotos</label></div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_carpeta"><label class="form-check-label" for="npt_req_carpeta">Carpeta</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_vacunastetano"><label class="form-check-label" for="npt_req_vacunastetano">Vacuna tétano</label></div>
-                        <div class="form-check"><input class="form-check-input" type="checkbox" id="npt_req_hepatitisb"><label class="form-check-label" for="npt_req_hepatitisb">Hepatitis B</label></div>
-                    </div>
-                </div>
-
                 <h6 class="text-muted border-bottom pb-2 mb-2">Datos de matrícula</h6>
                 <div class="row">
                     <div class="col-md-4 mb-3">

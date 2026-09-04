@@ -500,18 +500,6 @@ switch ($accion) {
         $fechamatricula   = trim($_POST['fechamatricula'] ?? '') ?: null;
         $matr_observacion = trim($_POST['matr_observacion'] ?? '') ?: null;
 
-        $req = [
-            'req_copiadiploma'  => (int)($_POST['req_copiadiploma'] ?? 0),
-            'req_actagrado'     => (int)($_POST['req_actagrado'] ?? 0),
-            'req_documento'     => (int)($_POST['req_documento'] ?? 0),
-            'req_carnetsalud'   => (int)($_POST['req_carnetsalud'] ?? 0),
-            'req_examenmedico'  => (int)($_POST['req_examenmedico'] ?? 0),
-            'req_fotos'         => (int)($_POST['req_fotos'] ?? 0),
-            'req_carpeta'       => (int)($_POST['req_carpeta'] ?? 0),
-            'req_vacunastetano' => (int)($_POST['req_vacunastetano'] ?? 0),
-            'req_hepatitisb'    => (int)($_POST['req_hepatitisb'] ?? 0),
-        ];
-
         try {
             $pdo = getConexion();
 
@@ -592,37 +580,24 @@ switch ($accion) {
                 $stmtM = $pdo->prepare(
                     "UPDATE matriculas
                      SET matr_estado = 'matriculado', coho_id = ?, matr_semestre = ?, matr_folio = ?,
-                         fechamatricula = ?, matr_observacion = ?,
-                         req_copiadiploma = ?, req_actagrado = ?, req_documento = ?,
-                         req_carnetsalud = ?, req_examenmedico = ?, req_fotos = ?,
-                         req_carpeta = ?, req_vacunastetano = ?, req_hepatitisb = ?
+                         fechamatricula = ?, matr_observacion = ?
                      WHERE matr_id = ?"
                 );
                 $stmtM->execute([
                     $coho_id, $matr_semestre,
                     $matr_folio, $fechamatricula, $matr_observacion,
-                    $req['req_copiadiploma'], $req['req_actagrado'], $req['req_documento'],
-                    $req['req_carnetsalud'], $req['req_examenmedico'], $req['req_fotos'],
-                    $req['req_carpeta'], $req['req_vacunastetano'], $req['req_hepatitisb'],
                     $existingMatr['matr_id']
                 ]);
             } else {
                 $stmtM = $pdo->prepare(
                     "INSERT INTO matriculas
                         (estu_id, prog_id, peri_id, coho_id, matr_estado, matr_semestre, matr_folio,
-                         fechainscripcion, fechamatricula, matr_observacion,
-                         req_copiadiploma, req_actagrado, req_documento,
-                         req_carnetsalud, req_examenmedico, req_fotos,
-                         req_carpeta, req_vacunastetano, req_hepatitisb)
-                     VALUES (?, ?, ?, ?, 'matriculado', ?, ?, CURDATE(), ?, ?,
-                             ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                         fechainscripcion, fechamatricula, matr_observacion)
+                     VALUES (?, ?, ?, ?, 'matriculado', ?, ?, CURDATE(), ?, ?)"
                 );
                 $stmtM->execute([
                     $estu_id, $prog_id, $peri_id, $coho_id, $matr_semestre,
-                    $matr_folio, $fechamatricula, $matr_observacion,
-                    $req['req_copiadiploma'], $req['req_actagrado'], $req['req_documento'],
-                    $req['req_carnetsalud'], $req['req_examenmedico'], $req['req_fotos'],
-                    $req['req_carpeta'], $req['req_vacunastetano'], $req['req_hepatitisb']
+                    $matr_folio, $fechamatricula, $matr_observacion
                 ]);
             }
 
