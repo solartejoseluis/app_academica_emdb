@@ -4,6 +4,77 @@
 
 ---
 
+## [c4b81f2] — 2026-09-03 — feat: backend Admin del catálogo de requisitos por programa
+
+### Archivos modificados
+- app/00_files/helpers.php
+- app/02_estudiantes/est_mdl.php
+
+### Cambios
+- Nueva función `backfillRequisitoAMatriculasActivas(PDO $pdo, int $prog_id,
+  int $reqp_id): void` en `helpers.php` — inserta una fila `'pendiente'` en
+  `requisitos_estudiante` por cada matrícula `matr_estado = 'matriculado'`
+  del programa indicado que todavía no tenga ese requisito, mediante un
+  `INSERT ... SELECT ... WHERE NOT EXISTS (...)` correlacionado contra la
+  propia `requisitos_estudiante`. El `NOT EXISTS` la vuelve idempotente:
+  ejecutarla dos veces sobre el mismo `prog_id`/`reqp_id` nunca duplica
+  filas, incluso sin depender únicamente del `UNIQUE KEY (matr_id, reqp_id)`
+  como salvavidas — mismo criterio de "verificar antes, no solo confiar en
+  la constraint" ya documentado para otras validaciones de unicidad del
+  proyecto.
+- 5 `case` nuevos en `est_mdl.php`, todos guardados con `role_id === 1`
+  (Admin estricto): `listar_requisitos_programa` (`SELECT` por `prog_id`,
+  orden `reqp_activo DESC, reqp_nombre ASC` — los inactivos quedan al
+  final), `crear_requisito_programa` (`INSERT` en `requisitos_programa` +
+  `backfillRequisitoAMatriculasActivas()` del `reqp_id` recién creado,
+  dentro de una única transacción), `editar_requisito_programa` (`UPDATE`
+  de `reqp_nombre`/`reqp_descripcion`, sin tocar `reqp_activo`),
+  `eliminar_requisito_programa` (`UPDATE requisitos_programa SET
+  reqp_activo = 0` — borrado lógico) y `reactivar_requisito_programa`
+  (`UPDATE reqp_activo = 1` + `backfillRequisitoAMatriculasActivas()` otra
+  vez, también en transacción, para que las matrículas activadas o creadas
+  mientras el requisito estaba inactivo también reciban su fila
+  `'pendiente'`).
+- `crear_requisito_programa` y `reactivar_requisito_programa` corren dentro
+  de `$pdo->beginTransaction()`/`commit()`, con `rollBack()` en el
+  `catch (PDOException $e)` — mismo patrón ya usado en `case 'matricular'`.
+  `editar_requisito_programa`/`eliminar_requisito_programa` no abren
+  transacción propia por tratarse de un único `UPDATE` sobre una sola
+  tabla.
+- Verificado con `curl` contra el contenedor Docker vivo, autenticando con
+  cookie-jar (mismo patrón de la Fase 2.11.C): (1)
+  `crear_requisito_programa` sobre `prog_id=1` (ASO, 9 matrículas activas)
+  produjo exactamente 9 filas `'pendiente'` en `requisitos_estudiante`,
+  confirmado con una consulta SQL directa contra el contenedor; (2) un
+  ciclo `eliminar_requisito_programa` → `reactivar_requisito_programa`
+  sobre el mismo `reqp_id` conservó las mismas 9 filas (`reqe_id` 1-9), sin
+  ningún duplicado del segundo backfill; (3) una sesión de Coordinador
+  (`role_id = 2`) fue rechazada con `{"status":"error","message":"Sin
+  autorización"}` en los 5 endpoints. Datos de prueba (el requisito
+  "Copia diploma" y sus 9 filas de backfill) eliminados al terminar, sin
+  dejar residuos en la BD de desarrollo.
+- Etapa 2.12.B (de 10) del roadmap "Gestión de requisitos de estudiantes".
+
+### Decisiones
+- El guard es `role_id === 1` estricto, no `in_array($role_id, [1, 2],
+  true)` como el resto de `02_estudiantes` — la configuración del catálogo
+  es exclusiva de Admin; el Coordinador solo gestionará el checklist por
+  matrícula, en una etapa posterior del roadmap (2.12.D/F).
+- `eliminar_requisito_programa` usa borrado lógico (`reqp_activo = 0`) en
+  vez de `DELETE` físico porque `requisitos_estudiante` tiene una FK
+  `ON DELETE RESTRICT` hacia `requisitos_programa` — un `DELETE` físico
+  fallaría en cuanto existiera al menos una fila de historial (que
+  `crear_requisito_programa` ya genera de inmediato vía el backfill), y
+  además destruiría la trazabilidad de qué se le pidió al estudiante en el
+  pasado.
+- `editar_requisito_programa` y `eliminar_requisito_programa` no verifican
+  la existencia previa del `reqp_id` — un `UPDATE` sobre un `reqp_id`
+  inexistente afecta 0 filas y de todas formas responde `'ok'`. Deuda
+  técnica menor, no bloqueante, documentada aquí para una decisión futura
+  (ej. verificar `rowCount()` antes de responder éxito).
+
+---
+
 ## [ea03618] — 2026-09-03 — refactor: reemplazar 9 columnas req_* fijas por esquema configurable de requisitos
 
 ### Archivos modificados
