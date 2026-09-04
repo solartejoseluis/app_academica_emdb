@@ -1180,6 +1180,30 @@ function crearColumnasMatriculados(esPeriodoActual) {
                 return badges.trim() !== '' ? badges.trim() : '—';
             }
         },
+        {
+            data: null,
+            title: 'Requisitos',
+            render: function (data, type, row) {
+                if (type !== 'display') return '';
+                const total = row.requisitos_total || 0;
+                if (total === 0) {
+                    return '—';
+                }
+                const entregados = row.requisitos_entregados || 0;
+                const completo = entregados === total;
+                const claseBadge = completo ? 'bg-success' : 'bg-warning text-dark';
+                let html = `<span class="badge ${claseBadge}">${entregados}/${total}</span>`;
+                if (row.requisitos_ultima_actualizacion) {
+                    // Mismo patrón inline ya usado en cargarTablaRequisitosPrograma()
+                    // (Etapa 2.12.E2) — split ' '/'-' y reordenar a dd/mm/aaaa,
+                    // sin función compartida extraída en el archivo.
+                    const partes = row.requisitos_ultima_actualizacion.split(' ')[0].split('-');
+                    const fechaFmt = partes[2] + '/' + partes[1] + '/' + partes[0];
+                    html += ` <small class="text-muted d-block">${fechaFmt}</small>`;
+                }
+                return html;
+            }
+        },
         { data: 'coho_codigo', render: v => v || '—' },
         { data: 'prog_sigla', width: '70px' },
         {
