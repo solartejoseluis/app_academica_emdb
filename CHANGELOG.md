@@ -4,6 +4,66 @@
 
 ---
 
+## [b745774] — 2026-09-04 — feat: backend de resumen de requisitos para la vista del Estudiante
+
+### Archivos modificados
+- app/06_reportes/reportes_mdl.php
+
+### Cambios
+- Nuevo `case 'resumen_requisitos_estudiante'`, guardado con el mismo
+  patrón ya usado en `'mis_programas'` (`in_array($role_id, [1, 2, 4],
+  true)`) y resolviendo el estudiante objetivo con
+  `resolverEstuIdObjetivo()` (ya existente, sin reimplementar) — mismo
+  mensaje de error (`'No se pudo determinar el estudiante'`) cuando
+  resuelve `null`.
+- Filtra explícitamente `matriculas.matr_estado = 'matriculado'` y
+  trae, por cada matrícula, 2 subqueries correlacionadas contra
+  `requisitos_estudiante` (`total` y `entregados`) — mismo patrón de
+  subqueries correlacionadas ya usado en `listar_matriculados`
+  (`est_mdl.php`, `02_estudiantes`), aplicado aquí por primera vez en
+  `06_reportes`.
+- Responde `{status: 'ok', data: {total_global, entregados_global,
+  por_matricula}}` — `total_global`/`entregados_global` son la suma en
+  PHP de las columnas `total`/`entregados` de todas las filas de
+  `por_matricula` (no una subquery adicional); `por_matricula` es el
+  array completo (`matr_id`, `prog_nombre`, `total`, `entregados`) que
+  usará la Etapa 2.12.I2 para decidir qué pestañas de programa
+  muestran badge.
+- El detalle fila por fila de cada requisito (nombre, descripción,
+  estado, fecha) **no se duplica aquí** — sigue pidiéndose con el
+  endpoint ya existente `listar_requisitos_matricula` (Etapa 2.12.D,
+  `02_estudiantes/est_mdl.php`), por pestaña, cuando el estudiante la
+  abre.
+- Verificado con `curl` contra Docker vivo, autenticando como
+  Estudiante real (usuario de prueba temporal con su propio login):
+  (1) 1 matrícula `'matriculado'` con catálogo — `total_global`/
+  `entregados_global` coinciden exactamente con la única fila de
+  `por_matricula`; (2) 2 matrículas `'matriculado'` en programas
+  distintos — `total_global` es la suma de ambas (`2+1=3`), no solo la
+  primera; (3) una 3ª matrícula en estado `'retirado'` — la respuesta
+  quedó idéntica a la del caso (2), esa matrícula no aparece en
+  `por_matricula` ni suma al total; (4) un intento como Docente
+  (`role_id=3`) respondió `"Sin autorización"`, mismo guard que
+  `mis_programas`. Datos de prueba (catálogo temporal, estudiante con
+  usuario propio, 3 matrículas) eliminados al terminar.
+- Etapa 2.12.I1 (de 2 sub-entregas de la Etapa 2.12.I) del roadmap
+  "Gestión de requisitos de estudiantes".
+
+### Decisiones
+- Se filtra explícitamente por `matr_estado = 'matriculado'` porque
+  solo esas matrículas reciben filas en `requisitos_estudiante` por el
+  backfill automático de la Etapa 2.12.C — incluir
+  `aspirante`/`retirado`/`graduado`/`cursado` generaría ruido en la
+  respuesta sin ningún dato real que mostrar.
+- El resumen (este `case`) y el detalle (`listar_requisitos_matricula`,
+  ya existente) se mantienen deliberadamente separados: el resumen
+  alimenta la barra global y decide qué pestañas muestran badge; el
+  detalle completo de requisitos de una matrícula solo se pide cuando
+  el estudiante realmente abre esa pestaña, evitando traer el desglose
+  fila por fila de todas sus matrículas de una sola vez sin necesidad.
+
+---
+
 ## [b84eda2] — 2026-09-04 — feat: lista informativa de requisitos en el modal de matrícula
 
 ### Archivos modificados
