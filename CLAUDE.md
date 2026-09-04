@@ -1477,7 +1477,7 @@ un bug de datos).
 | 2.12.B | Backend Admin — CRUD del catálogo requisitos_programa en est_mdl.php (solo role_id === 1), con backfill automático de requisitos_estudiante en 'pendiente' a las matrículas activas del programa al crear/reactivar un requisito | ✅ 2026-09-03 (commit `c4b81f2`) |
 | 2.12.C | Backend Matrícula — case 'matricular' inserta automáticamente en requisitos_estudiante los requisitos activos del programa como 'pendiente' al crear una matrícula nueva | ✅ 2026-09-03 (commit `f14331d`) |
 | 2.12.D | Backend Coordinador — nuevos case para listar/actualizar los requisitos de una matrícula puntual, y extender listar_matriculados con conteo x/y y fecha de última actualización para el badge | ✅ 2026-09-03 (commit `350c614`) |
-| 2.12.E | Frontend Admin — nueva ficha "Configurar Requisitos" en est_view.php (select de programa + tabla + agregar/editar/borrar) | ⬜ |
+| 2.12.E | Frontend Admin — nueva ficha "Configurar Requisitos" en est_view.php (select de programa + tabla + agregar/editar/borrar) | ✅ 2026-09-03 (commit `f3c0ca4`) |
 | 2.12.F | Frontend Coordinador — columna "Requisitos" en tablaMatriculadosActual/Anteriores (después de "Información") + ítem "Requisitos" en dropdown Acciones + modal de gestión | ⬜ |
 | 2.12.G | Ajustes de columnas de tablaMatriculados — Edad/Programa→Prog/Semestre→Sem, ancho al contenido (independiente, sin dependencias) | ⬜ |
 | 2.12.H | Frontend Matrícula — agrega en #mdl_matricular una lista informativa de solo lectura de los requisitos del programa seleccionado (reemplazo funcional de los 9 checkboxes retirados en 2.12.A2) | ⬜ |

@@ -268,6 +268,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Actualización de datos por el estudiante:** el coordinador puede generar, desde el listado de Matriculados, un link temporal para que un estudiante actualice sus propios datos personales y familiares sin necesidad de una cuenta en el sistema. El estudiante abre el link, revisa y corrige su información, y la envía — pero el cambio no se aplica de inmediato: queda pendiente de que el coordinador la revise, viendo exactamente qué propone cambiar el estudiante, y decida aprobarla o descartarla. El listado de Matriculados muestra en todo momento si un estudiante tiene un link esperando respuesta, una actualización pendiente de revisión, o la fecha de la última vez que se le aprobó una.
 
+> **Requisitos documentales configurables por programa:** el Administrador puede configurar, por cada programa, qué documentos se le piden a un estudiante para su proceso (ej. copia de diploma, examen médico, carné de salud) desde una nueva ficha "Configurar Requisitos" en la vista de Estudiantes — cada requisito tiene un nombre y una descripción, y puede desactivarse temporalmente sin perder el historial de lo que ya se le pidió a un estudiante en el pasado. Al matricular a un estudiante nuevo, el sistema le asigna automáticamente como pendientes todos los requisitos activos del programa correspondiente, sin intervención manual.
+
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
 ---
