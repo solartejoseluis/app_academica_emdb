@@ -1269,6 +1269,14 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Ejemplo:** `crearColumnasMatriculados()` en `est_ctrl.js` (`02_estudiantes`, commit `0aaa4e9`), consumida por `tablaMatriculadosActual` y `tablaMatriculadosAnteriores` en `cargarTablas()` — ver también la entrada correspondiente en "Patrones de ingeniería" con el fragmento de código.
 - **Estado:** Activa.
 
+### `gestionar_clave` reporta como error explícito casos que `matricular`/`guardar_completo` ignoran en silencio (numerodoc duplicado, tipo_clave vacío)
+
+- **Contexto:** El commit `183e9b1` (Fase 2.13.A) agrega el `case 'gestionar_clave'` (`est_mdl.php`, `02_estudiantes`), que replica en una acción aislada la lógica de creación de acceso de `'matricular'` (rama sin `usua_id`) y la lógica de cambio de clave de `'guardar_completo'` (rama con `usua_id`). Ambos `case` originales tienen, cada uno, una condición que silenciosamente no hace nada en vez de fallar: `'matricular'` pone `$crear_acceso = false` sin avisar si ya existe un `usua_login` con ese `estu_numerodoc` (el usuario solo se entera de que no se creó acceso porque `response.clave_generada` no llega); `'guardar_completo'` simplemente no entra al bloque de cambio de clave si `tipo_clave_estudiante === ''` (comportamiento correcto ahí, porque el usuario pudo haber editado el formulario sin tocar la clave a propósito).
+- **Decisión:** `gestionar_clave` reporta ambos casos como error explícito (`"Ya existe un usuario con ese número de documento"` y `"Seleccione una opción"` respectivamente) en vez de replicar el silencio de los `case` originales.
+- **Razón:** en `'matricular'` y `'guardar_completo'`, la creación/cambio de clave es un efecto secundario opcional de una operación más amplia (completar una matrícula, guardar el formulario completo de un estudiante) — que ese efecto secundario no ocurra no invalida el resto de la operación, así que fallar en silencio ahí es el comportamiento correcto (la matrícula o el guardado igual se completan). En `gestionar_clave`, en cambio, gestionar la clave **es la única finalidad de la llamada** — no hay ninguna otra operación que "sí se completó" como consuelo. Fallar en silencio dejaría al coordinador creyendo que la acción tuvo efecto cuando no lo tuvo, sin ningún indicio de por qué.
+- **Consecuencia:** mismo principio que "Hoja de Matrícula"/"Ficha de Inscripción" en el dropdown de Acciones (ver esta misma sección, más arriba) — dos flujos que comparten lógica pueden divergir deliberadamente en qué reportan como error, según si esa condición es un efecto secundario tolerable o la finalidad única de la llamada. Antes de replicar lógica de un `case` existente en una acción aislada nueva, revisar primero qué condiciones ese `case` ignora en silencio y evaluar si siguen siendo ignorables fuera de su contexto original.
+- **Estado:** Activa.
+
 ---
 
 ## Frontend stack
@@ -1504,6 +1512,22 @@ solo lectura, una barra de pendientes y el detalle por programa desde
 `06_reportes`. Verificado en cada etapa con `curl` contra Docker vivo
 y Playwright headless para los flujos de UI, sin dejar ningún dato de
 prueba en la base de datos de desarrollo.
+
+### Phase 2.13 — Gestión de claves de estudiantes fuera del flujo de matrícula (2 fases, en curso)
+
+> Objetivo: cubrir el vacío entre `'matricular'` (solo crea acceso al
+> completar una matrícula, y solo si el estudiante todavía no tiene
+> `usua_id`) y `'guardar_completo'` (solo cambia clave si el estudiante
+> ya tiene `usua_id`) — ninguno de los dos permite crear acceso a un
+> estudiante ya matriculado que nunca recibió clave, ni cambiar la
+> clave de uno que ya tiene acceso sin reabrir todo el formulario de
+> edición. Ver "Decisiones arquitectónicas activas" para la asimetría
+> deliberada entre `gestionar_clave` y los dos `case` que replica.
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| 2.13.A | Backend — nuevo `case 'gestionar_clave'` en `est_mdl.php`, con rama sin `usua_id` (crear acceso, replica `'matricular'`) y rama con `usua_id` (cambiar clave, replica `'guardar_completo'`); reutiliza `generarClaveAuto()` sin cambios; guards idénticos a `'matricular'`; verificado 10/10 casos vía `curl` contra Docker vivo, datos de prueba revertidos sin dejar rastro | ✅ 2026-09-04 (commit `183e9b1`) |
+| 2.13.B | Frontend — ítem nuevo "🔑 Gestionar claves" en el dropdown de Acciones de `tablaMatriculados` (`02_estudiantes`) + modal `#mdl_gestionar_claves`, siguiendo el mismo patrón ya usado para `#mdl_avanzar_semestre`/`#mdl_requisitos_matricula` | ⬜ |
 
 ### Phase 3 — Validación TRL5
 
