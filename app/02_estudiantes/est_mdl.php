@@ -222,6 +222,12 @@ switch ($accion) {
                             WHERE soac2.estu_id = e.estu_id AND soac2.soac_estado = 'aprobado'
                             ORDER BY soac2.soac_id DESC LIMIT 1
                            ) AS soac_fecha_ultima_aprobacion,
+                           (SELECT COUNT(*) FROM requisitos_estudiante re
+                            WHERE re.matr_id = m.matr_id) AS requisitos_total,
+                           (SELECT COUNT(*) FROM requisitos_estudiante re
+                            WHERE re.matr_id = m.matr_id AND re.reqe_estado = 'entregado') AS requisitos_entregados,
+                           (SELECT MAX(re.reqe_fecha_actualizacion) FROM requisitos_estudiante re
+                            WHERE re.matr_id = m.matr_id) AS requisitos_ultima_actualizacion,
                            p.prog_sigla, p.prog_duracion_semestres, m.matr_semestre,
                            m.peri_id, pe.peri_codigo, m.matr_estado, m.matr_estado_academico,
                            m.matr_id, m.prog_id AS matr_prog_id,
@@ -1900,6 +1906,80 @@ switch ($accion) {
             echo json_encode(['status' => 'ok', 'data' => $row]);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al obtener los datos del estudiante']);
+        }
+        break;
+
+    // ── REQUISITOS DE UNA MATRÍCULA PUNTUAL (Etapa 2.12.D, Admin/Coordinador) ──
+
+    case 'listar_requisitos_matricula':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $matr_id = (int)($_REQUEST['matr_id'] ?? 0);
+        if ($matr_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'matr_id es requerido']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            // INNER JOIN (no LEFT): toda fila de requisitos_estudiante ya
+            // referencia un reqp_id válido por FK — incluso si el requisito
+            // fue desactivado después (reqp_activo=0) en el catálogo, debe
+            // seguir apareciendo aquí con su nombre y descripción, para no
+            // perder visibilidad de un requisito que ya se le pidió al
+            // estudiante en el pasado.
+            $stmt = $pdo->prepare("
+                SELECT re.reqe_id, re.reqp_id, rp.reqp_nombre, rp.reqp_descripcion,
+                       re.reqe_estado, re.reqe_fecha
+                FROM requisitos_estudiante re
+                INNER JOIN requisitos_programa rp ON re.reqp_id = rp.reqp_id
+                WHERE re.matr_id = ?
+                ORDER BY rp.reqp_nombre ASC
+            ");
+            $stmt->execute([$matr_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al listar los requisitos de la matrícula']);
+        }
+        break;
+
+    case 'actualizar_requisito_estudiante':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $reqe_id     = (int)($_POST['reqe_id'] ?? 0);
+        $reqe_estado = trim($_POST['reqe_estado'] ?? '');
+        if ($reqe_id === 0 || !in_array($reqe_estado, ['pendiente', 'entregado'], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'reqe_id y reqe_estado (pendiente/entregado) son requeridos']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            if ($reqe_estado === 'entregado') {
+                $stmt = $pdo->prepare(
+                    "UPDATE requisitos_estudiante SET reqe_estado = 'entregado', reqe_fecha = CURDATE() WHERE reqe_id = ?"
+                );
+            } else {
+                $stmt = $pdo->prepare(
+                    "UPDATE requisitos_estudiante SET reqe_estado = 'pendiente', reqe_fecha = NULL WHERE reqe_id = ?"
+                );
+            }
+            $stmt->execute([$reqe_id]);
+            echo json_encode(['status' => 'ok', 'message' => 'Requisito actualizado']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el requisito']);
         }
         break;
 
