@@ -4,6 +4,62 @@
 
 ---
 
+## [9196f18] — 2026-09-04 — feat: listado real de requisitos dentro del modal de matrícula
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- El ítem "📋 Requisitos" del dropdown de Acciones ahora pasa también
+  el nombre del estudiante en el `onclick`
+  (`abrirRequisitosMatricula(matr_id, nombreEstudiante)`), reutilizando
+  el mismo patrón de escape de apóstrofes ya existente en el archivo
+  (`.replace(/'/g, "\\'")`, ya usado en `verModulosEstudiante()` y
+  `abrirAvanzarSemestre()`) — sin inventar un patrón nuevo.
+- `abrirRequisitosMatricula()` gana el parámetro `nombreEstudiante`:
+  fija el título dinámico (`#mdl_requisitos_matricula_titulo`, "Requisitos
+  del estudiante: [nombre]"), fija `#npt_matr_id_requisitos` (igual que
+  antes) y, tras abrir el modal, llama a la nueva
+  `cargarRequisitosMatricula(matr_id)`.
+- Nueva función global `cargarRequisitosMatricula(matr_id)`: `AJAX GET`
+  a `listar_requisitos_matricula`. Si `response.data.length === 0`,
+  muestra `#bloque_sin_requisitos_matricula` y oculta la tabla. Si
+  trae filas, oculta ese bloque, muestra `#tbl_requisitos_matricula` y
+  puebla el `<tbody>` con una fila por requisito: numeración
+  consecutiva, `reqp_nombre`, `reqp_descripcion` (o `—`), un `<select
+  class="select-estado-requisito" data-reqe-id="...">` con
+  `pendiente`/`entregado` preseleccionado según `reqe_estado` (sin
+  ningún handler de guardado todavía), y la fecha (`reqe_fecha`)
+  formateada dd/mm/aaaa o `—` — mismo patrón inline de formateo ya
+  usado en `cargarTablaRequisitosPrograma()` y en la columna
+  "Requisitos" de `listar_matriculados`. Calcula y fija
+  `#txt_progreso_requisitos_matricula` con `"${entregados} de ${total}
+  requisitos completados"`.
+- Verificado con Playwright headless, 3 casos: (1) matrícula con 2
+  requisitos (1 `entregado`, 1 `pendiente`) — título con el nombre
+  correcto, tabla con las 2 filas y sus selects/fechas reflejando el
+  estado real, progreso `"1 de 2 requisitos completados"` (correcto);
+  (2) matrícula de un programa sin catálogo — mensaje "Este programa
+  no tiene requisitos configurados en el catálogo.", tabla oculta; (3)
+  cambio manual de un `<select>` en el DOM sin guardar — sin ningún
+  error de consola, cambio puramente visual. Datos de prueba (catálogo
+  temporal de 2 requisitos + su backfill) eliminados al terminar.
+- Etapa 2.12.F3 (de 4 sub-entregas de la Etapa 2.12.F) del roadmap
+  "Gestión de requisitos de estudiantes".
+
+### Decisiones
+- Se prefirió pasar el nombre del estudiante desde el frontend (ya
+  disponible en la fila de `tablaMatriculados` al momento del click)
+  en vez de extender `listar_requisitos_matricula` con un `JOIN` hacia
+  `estudiantes` — mismo criterio ya aplicado en
+  `abrirEditarRequisitoPrograma()` de reutilizar datos ya presentes en
+  el DOM/respuesta en vez de una llamada AJAX adicional solo para un
+  campo de presentación. Mantiene además a `listar_requisitos_matricula`
+  con una sola responsabilidad (requisitos de la matrícula, no datos
+  del estudiante).
+
+---
+
 ## [caa3cff] — 2026-09-03 — feat: dropdown + modal (estructura) para requisitos por matrícula
 
 ### Archivos modificados
