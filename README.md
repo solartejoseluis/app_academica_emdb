@@ -270,6 +270,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 
 > **Requisitos documentales configurables por programa:** el Administrador puede configurar, por cada programa, qué documentos se le piden a un estudiante para su proceso (ej. copia de diploma, examen médico, carné de salud) desde una ficha "Configurar Requisitos" en la vista de Estudiantes — cada requisito tiene un nombre y una descripción, y puede desactivarse temporalmente sin perder el historial de lo que ya se le pidió a un estudiante en el pasado. Al matricular a un estudiante nuevo, el sistema le asigna automáticamente como pendientes todos los requisitos activos del programa correspondiente, sin intervención manual. El coordinador ve, en el propio listado de Matriculados, cuántos requisitos lleva entregados cada estudiante (ej. "3/10") y puede marcarlos como entregados o pendientes desde un detalle por estudiante, con fecha de entrega. El estudiante, a su vez, ve en su propia vista una alerta con cuántos requisitos le faltan por entregar y el detalle de cada uno, sin poder modificarlos — la actualización siempre la hace el coordinador tras verificar el documento físico.
 
+> **Gestión de claves de acceso:** desde el menú de acciones del listado de Matriculados, el coordinador o administrador ahora puede crear el acceso al sistema de un estudiante que fue matriculado sin clave, o cambiar la clave de uno que ya tiene acceso, sin pasar por el modal de matrícula ni por la ficha completa de edición del estudiante — un atajo directo para esta única operación, con la misma opción de generar una clave automática o asignar una manual que ya existía en esos otros dos flujos.
+
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
 ---
