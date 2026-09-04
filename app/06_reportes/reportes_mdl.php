@@ -318,6 +318,58 @@ switch ($accion) {
         }
         break;
 
+    // ── RESUMEN DE REQUISITOS DEL ESTUDIANTE OBJETIVO (roles 1, 2, 4) ───────
+    // Solo el resumen (totales globales y por matrícula) para la barra
+    // superior y para saber qué pestañas de programa muestran badge — el
+    // detalle fila por fila de cada requisito se pide aparte, por pestaña,
+    // con el endpoint ya existente listar_requisitos_matricula (Etapa 2.12.D,
+    // 02_estudiantes/est_mdl.php), sin duplicar esa consulta aquí.
+
+    case 'resumen_requisitos_estudiante':
+        try {
+            $role_id = (int)($_SESSION['role_id'] ?? 0);
+            if (!in_array($role_id, [1, 2, 4], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+            $estu_id = resolverEstuIdObjetivo();
+            if ($estu_id === null) {
+                echo json_encode(['status' => 'error', 'message' => 'No se pudo determinar el estudiante']);
+                break;
+            }
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT m.matr_id, p.prog_nombre,
+                       (SELECT COUNT(*) FROM requisitos_estudiante re WHERE re.matr_id = m.matr_id) AS total,
+                       (SELECT COUNT(*) FROM requisitos_estudiante re WHERE re.matr_id = m.matr_id AND re.reqe_estado = 'entregado') AS entregados
+                FROM matriculas m
+                INNER JOIN programas p ON m.prog_id = p.prog_id
+                WHERE m.estu_id = ? AND m.matr_estado = 'matriculado'
+                ORDER BY m.matr_id ASC
+            ");
+            $stmt->execute([$estu_id]);
+            $porMatricula = $stmt->fetchAll();
+
+            $totalGlobal = 0;
+            $entregadosGlobal = 0;
+            foreach ($porMatricula as $fila) {
+                $totalGlobal += (int)$fila['total'];
+                $entregadosGlobal += (int)$fila['entregados'];
+            }
+
+            echo json_encode([
+                'status' => 'ok',
+                'data' => [
+                    'total_global'      => $totalGlobal,
+                    'entregados_global' => $entregadosGlobal,
+                    'por_matricula'     => $porMatricula,
+                ],
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;
