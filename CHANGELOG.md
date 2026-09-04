@@ -4,6 +4,72 @@
 
 ---
 
+## [350c614] — 2026-09-03 — feat: backend Coordinador para checklist de requisitos por matrícula
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+
+### Cambios
+- 2 `case` nuevos en `est_mdl.php`, guardados con el mismo patrón que
+  `listar_matriculados`/`matricular` (`in_array($role_id, [1, 2], true)`,
+  no `role_id === 1` como el catálogo de la Etapa 2.12.B — aquí sí puede
+  operar el Coordinador, no solo el Admin):
+  - `listar_requisitos_matricula`: recibe `matr_id`, hace `SELECT
+    re.reqe_id, re.reqp_id, rp.reqp_nombre, rp.reqp_descripcion,
+    re.reqe_estado, re.reqe_fecha FROM requisitos_estudiante re INNER
+    JOIN requisitos_programa rp ON re.reqp_id = rp.reqp_id WHERE
+    re.matr_id = ? ORDER BY rp.reqp_nombre ASC`.
+  - `actualizar_requisito_estudiante`: recibe `reqe_id` y `reqe_estado`,
+    validado con `in_array($reqe_estado, ['pendiente', 'entregado'],
+    true)` — cualquier otro valor responde error sin tocar la BD. Si
+    `'entregado'`: `UPDATE requisitos_estudiante SET reqe_estado =
+    'entregado', reqe_fecha = CURDATE() WHERE reqe_id = ?`. Si
+    `'pendiente'`: mismo `UPDATE` pero con `reqe_fecha = NULL` — revertir
+    a pendiente borra la fecha de entrega, no la conserva.
+- El `JOIN` de `listar_requisitos_matricula` es deliberadamente `INNER`,
+  no `LEFT` — toda fila de `requisitos_estudiante` ya referencia un
+  `reqp_id` válido por FK, y aunque ese requisito se desactive después en
+  el catálogo (`reqp_activo = 0`), debe seguir apareciendo aquí con su
+  nombre y descripción: es historial de lo que ya se le pidió al
+  estudiante, no debe desaparecer solo porque el catálogo cambió.
+- `listar_matriculados` gana 3 subqueries correlacionadas nuevas por
+  `m.matr_id` (mismo patrón que las ya existentes
+  `total_matriculas_estudiante`/`soac_estado_activo` — subquery en el
+  `SELECT`, no un `JOIN` adicional que multiplicaría filas):
+  `requisitos_total` (`COUNT(*)`), `requisitos_entregados` (`COUNT(*)`
+  filtrado por `reqe_estado = 'entregado'`) y
+  `requisitos_ultima_actualizacion` (`MAX(reqe_fecha_actualizacion)`).
+  Ninguna columna existente se quitó del `SELECT`.
+- Verificado con `curl` contra el contenedor Docker vivo, autenticando
+  como Coordinador (`role_id = 2`): (1) `listar_requisitos_matricula`
+  sobre una matrícula de prueba trajo correctamente `reqp_nombre`/
+  `reqp_descripcion` vía el `INNER JOIN`; (2)
+  `actualizar_requisito_estudiante` a `'entregado'` dejó `reqe_fecha` en
+  la fecha de hoy, y revertir a `'pendiente'` la dejó en `NULL`,
+  confirmado con SQL directo en ambos casos; (3) un intento con
+  `reqe_estado='cualquier_otra_cosa'` respondió error sin modificar la
+  fila; (4) `listar_matriculados` sin filtros mostró las 3 columnas
+  nuevas en las 19 filas de la respuesta — `0`/`0`/`null` en las 9 sin
+  ningún requisito asignado, valores correctos en las 10 que sí tenían.
+  Datos de prueba (estudiante temporal, matrícula, requisito de catálogo
+  temporal) eliminados al terminar.
+- Etapa 2.12.D (de 10) del roadmap "Gestión de requisitos de
+  estudiantes" — con esta etapa se cierra todo el backend (2.12.0 a
+  2.12.D); las etapas restantes (E en adelante) son frontend.
+
+### Decisiones
+- `listar_requisitos_matricula` usa `INNER JOIN` en vez de `LEFT JOIN`
+  contra `requisitos_programa` por decisión deliberada: un requisito
+  desactivado en el catálogo después de habérsele asignado a una
+  matrícula debe seguir siendo visible en el historial de esa matrícula,
+  con su nombre y descripción — no tiene sentido de negocio que
+  desactivar un requisito del catálogo borre silenciosamente su rastro
+  de las matrículas que ya lo tenían asignado (`LEFT JOIN` habría dejado
+  `reqp_nombre`/`reqp_descripcion` en `NULL` para esas filas en vez de
+  mostrarlas).
+
+---
+
 ## [f14331d] — 2026-09-03 — feat: asignar requisitos automáticamente al crear una matrícula nueva
 
 ### Archivos modificados
