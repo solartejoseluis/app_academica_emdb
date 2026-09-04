@@ -49,6 +49,11 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
         <li class="nav-item">
             <a class="nav-link" id="tab-matriculados-anteriores" data-bs-toggle="tab" href="#pane-matriculados-anteriores">Matriculados (Per. Anteriores)</a>
         </li>
+        <?php if ((int)$_SESSION['role_id'] === 1): ?>
+        <li class="nav-item">
+            <a class="nav-link" id="tab-config-requisitos" data-bs-toggle="tab" href="#pane-config-requisitos">Configurar Requisitos</a>
+        </li>
+        <?php endif; ?>
     </ul>
 
     <div class="tab-content">
@@ -184,6 +189,38 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </div>
             </div>
         </div>
+        <?php if ((int)$_SESSION['role_id'] === 1): ?>
+        <div class="tab-pane fade" id="pane-config-requisitos">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Programa</label>
+                    <select class="form-select" id="slct_prog_config_requisitos">
+                        <option value="">— Seleccione un programa —</option>
+                    </select>
+                </div>
+                <div class="col-md-8 d-flex align-items-end justify-content-end">
+                    <button type="button" class="btn btn-primary" id="btn_agregar_requisito" disabled>
+                        ➕ Agregar Requisito
+                    </button>
+                </div>
+            </div>
+            <div id="bloque_sin_programa" class="text-muted">
+                Selecciona un programa para ver o configurar sus requisitos.
+            </div>
+            <table class="table table-striped table-hover d-none" id="tbl_requisitos_programa">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Requisito</th>
+                        <th>Descripción</th>
+                        <th>Actualizado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -880,6 +917,34 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
             </div>
         </div>
     </div>
+</div>
+
+<!-- Modal Agregar/Editar Requisito del Catálogo (Configurar Requisitos) -->
+<div class="modal fade" id="mdl_requisito_programa" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mdl_requisito_programa_titulo">Agregar Requisito</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="npt_reqp_id" value="">
+        <input type="hidden" id="npt_reqp_prog_id_modal" value="">
+        <div class="mb-3">
+          <label class="form-label">Nombre del requisito</label>
+          <input type="text" class="form-control" id="npt_reqp_nombre" maxlength="100">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-control" id="npt_reqp_descripcion" maxlength="255" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn_guardar_requisito_programa">Guardar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -8,6 +8,11 @@ const CAMPOS_ESTUDIANTE = [
     '#slct_estu_estadocivil', '#slct_estu_discapacidad'
 ];
 
+// Última respuesta de listar_requisitos_programa — evita una llamada AJAX
+// extra en abrirEditarRequisitoPrograma() (función global, invocada vía
+// onclick inline) solo para precargar nombre/descripción.
+let ultimoListadoRequisitosPrograma = [];
+
 function marcarValidacion($campo) {
     const valor = ($campo.val() || '').toString().trim();
     $campo.removeClass('is-invalid is-valid');
@@ -968,6 +973,76 @@ $(document).ready(function () {
         }
     });
 
+    // --- Pestaña "Configurar Requisitos" (solo Admin) — Etapa 2.12.E2 ---
+    $('#slct_prog_config_requisitos').on('change', function () {
+        const prog_id = $(this).val();
+        if (!prog_id) {
+            $('#tbl_requisitos_programa').addClass('d-none');
+            $('#bloque_sin_programa')
+                .text('Selecciona un programa para ver o configurar sus requisitos.')
+                .removeClass('d-none');
+            $('#btn_agregar_requisito').prop('disabled', true);
+            return;
+        }
+        // data-attribute del botón (mismo estilo que data-duracion en las
+        // <option> de programa) — lo usará #btn_guardar_requisito_programa
+        // en la Etapa 2.12.E3 para saber a qué prog_id atar un requisito nuevo.
+        $('#btn_agregar_requisito').prop('disabled', false).attr('data-prog-id', prog_id);
+        cargarTablaRequisitosPrograma(prog_id);
+    });
+
+    $('#btn_agregar_requisito').click(function () {
+        const prog_id = $(this).attr('data-prog-id');
+        $('#npt_reqp_id').val('');
+        $('#npt_reqp_nombre').val('').removeClass('is-invalid');
+        $('#npt_reqp_descripcion').val('');
+        $('#npt_reqp_prog_id_modal').val(prog_id);
+        $('#mdl_requisito_programa_titulo').text('Agregar Requisito');
+        new bootstrap.Modal(document.getElementById('mdl_requisito_programa')).show();
+    });
+
+    $('#btn_guardar_requisito_programa').click(function () {
+        const reqp_id = $('#npt_reqp_id').val();
+        const prog_id = $('#npt_reqp_prog_id_modal').val().trim();
+        const reqp_nombre = $('#npt_reqp_nombre').val().trim();
+        const reqp_descripcion = $('#npt_reqp_descripcion').val().trim();
+
+        if (reqp_nombre === '') {
+            $('#npt_reqp_nombre').addClass('is-invalid');
+            return;
+        }
+        $('#npt_reqp_nombre').removeClass('is-invalid');
+
+        const esEdicion = reqp_id !== '';
+        const accion = esEdicion ? 'editar_requisito_programa' : 'crear_requisito_programa';
+        const datos = esEdicion
+            ? { reqp_id: reqp_id, reqp_nombre: reqp_nombre, reqp_descripcion: reqp_descripcion }
+            : { prog_id: prog_id, reqp_nombre: reqp_nombre, reqp_descripcion: reqp_descripcion };
+
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=' + accion,
+            data: datos,
+            dataType: 'json',
+            success: function (response) {
+                if (response.status !== 'ok') {
+                    alert('Error: ' + response.message);
+                    return;
+                }
+                bootstrap.Modal.getInstance(document.getElementById('mdl_requisito_programa')).hide();
+                cargarTablaRequisitosPrograma($('#slct_prog_config_requisitos').val());
+            }
+        });
+    });
+
+    // --- Reset modal Agregar/Editar Requisito al cerrar (X/Cancelar) ---
+    $('#mdl_requisito_programa').on('hidden.bs.modal', function () {
+        $('#npt_reqp_id').val('');
+        $('#npt_reqp_nombre').val('').removeClass('is-invalid');
+        $('#npt_reqp_descripcion').val('');
+        $('#npt_reqp_prog_id_modal').val('');
+    });
+
     function limpiarFormulario() {
         $('#npt_estu_id').val('');
         $('#npt_estu_usua_id_actual').val('');
@@ -1019,6 +1094,8 @@ $(document).ready(function () {
         });
         return seleccionadas.join(',');
     }
+
+    cargarProgramasConfigRequisitos();
 });
 
 // Fuera de ready — usada por tablaMatriculadosActual y tablaMatriculadosAnteriores
@@ -1933,5 +2010,154 @@ function limpiarFormularioFicha() {
 
     CAMPOS_FICHA_SIEMPRE.concat(CAMPOS_FICHA_PADRE, CAMPOS_FICHA_MADRE).forEach(function (selector) {
         $(selector).removeClass('is-invalid is-valid');
+    });
+}
+
+// ── Configurar Requisitos (Etapa 2.12.E2, solo Admin) ───────────────────
+
+// Llamada independiente con su propio $.ajax en vez de extender
+// cargarProgramas() (que ya dispara el suyo) — cargarProgramas() no
+// expone la respuesta fuera de su propio success, así que reutilizarla
+// habría exigido restructurarla; se prefirió una segunda consulta al
+// mismo catálogo simple, mismo criterio ya aplicado en el proyecto para
+// catálogos compartidos (duplicar una consulta barata en vez de acoplar
+// dos funciones ya estables).
+function cargarProgramasConfigRequisitos() {
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=listar_programas',
+        dataType: 'json',
+        success: function (response) {
+            if (response.status !== 'ok') return;
+            let opciones = '';
+            response.data.forEach(function (p) {
+                if (p.prog_activo == 1) {
+                    opciones += `<option value="${p.prog_id}">${p.prog_nombre}</option>`;
+                }
+            });
+            $('#slct_prog_config_requisitos').append(opciones);
+        }
+    });
+}
+
+// Global (no dentro de $(document).ready) — se invoca desde el listener
+// de change de #slct_prog_config_requisitos (dentro de ready) y también
+// desde desactivarRequisitoPrograma()/reactivarRequisitoPrograma()
+// (global) para refrescar la tabla tras la acción — mismo motivo de
+// scope global que cargarCohortesPorPrograma().
+function cargarTablaRequisitosPrograma(prog_id) {
+    $.ajax({
+        type: 'GET',
+        url: 'est_mdl.php?accion=listar_requisitos_programa&prog_id=' + prog_id,
+        dataType: 'json',
+        success: function (response) {
+            if (response.status !== 'ok') {
+                alert('Error: ' + response.message);
+                return;
+            }
+            ultimoListadoRequisitosPrograma = response.data;
+
+            if (response.data.length === 0) {
+                $('#tbl_requisitos_programa').addClass('d-none');
+                $('#bloque_sin_programa')
+                    .text('Este programa aún no tiene requisitos configurados.')
+                    .removeClass('d-none');
+                return;
+            }
+
+            $('#bloque_sin_programa').addClass('d-none');
+            $('#tbl_requisitos_programa').removeClass('d-none');
+
+            const $tbody = $('#tbl_requisitos_programa tbody').empty();
+            response.data.forEach(function (r, idx) {
+                const descripcion = r.reqp_descripcion || '—';
+
+                // Mismo patrón inline ya usado en crearColumnasMatriculados()
+                // para soac_fecha_ultima_aprobacion: split '-' y reordenar a
+                // dd/mm/aaaa — sin función compartida extraída en el archivo.
+                let fechaFmt = '—';
+                if (r.reqp_fecha_actualizacion) {
+                    const partes = r.reqp_fecha_actualizacion.split(' ')[0].split('-');
+                    fechaFmt = partes[2] + '/' + partes[1] + '/' + partes[0];
+                }
+
+                let claseFila = '';
+                let acciones;
+                if (r.reqp_activo == 1) {
+                    acciones = `<button class="btn btn-sm btn-outline-primary" onclick="abrirEditarRequisitoPrograma(${r.reqp_id})">✏️</button> ` +
+                               `<button class="btn btn-sm btn-outline-danger" onclick="desactivarRequisitoPrograma(${r.reqp_id})">🗑️</button>`;
+                } else {
+                    claseFila = 'table-secondary text-muted';
+                    acciones = `<span class="badge bg-secondary">Inactivo</span> ` +
+                               `<button class="btn btn-sm btn-outline-success" onclick="reactivarRequisitoPrograma(${r.reqp_id})">♻️ Reactivar</button>`;
+                }
+
+                $tbody.append(`<tr class="${claseFila}">
+                    <td>${idx + 1}</td>
+                    <td>${r.reqp_nombre}</td>
+                    <td>${descripcion}</td>
+                    <td>${fechaFmt}</td>
+                    <td>${acciones}</td>
+                </tr>`);
+            });
+        }
+    });
+}
+
+// Global — invocada vía onclick inline desde #tbl_requisitos_programa.
+// Abre el modal y precarga nombre/descripción/prog_id desde
+// ultimoListadoRequisitosPrograma (sin llamada AJAX adicional) — el
+// guardado (#btn_guardar_requisito_programa) se conectó en la Etapa 2.12.E3.
+function abrirEditarRequisitoPrograma(reqp_id) {
+    const requisito = ultimoListadoRequisitosPrograma.find(function (r) { return r.reqp_id == reqp_id; });
+    if (!requisito) return;
+
+    $('#mdl_requisito_programa_titulo').text('Editar Requisito');
+    $('#npt_reqp_id').val(requisito.reqp_id);
+    $('#npt_reqp_nombre').val(requisito.reqp_nombre).removeClass('is-invalid');
+    $('#npt_reqp_descripcion').val(requisito.reqp_descripcion || '');
+    // Mismo campo hidden que usa el flujo de "Agregar" — editar_requisito_programa
+    // no necesita prog_id en el UPDATE, pero se fija igual para mantener el
+    // estado del modal consistente entre ambos modos (Agregar/Editar).
+    $('#npt_reqp_prog_id_modal').val(requisito.prog_id);
+
+    new bootstrap.Modal(document.getElementById('mdl_requisito_programa')).show();
+}
+
+// Global — invocada vía onclick inline desde #tbl_requisitos_programa.
+function desactivarRequisitoPrograma(reqp_id) {
+    if (!confirm('¿Desactivar este requisito? Los estudiantes que ya lo tengan asignado lo conservarán en su historial.')) {
+        return;
+    }
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=eliminar_requisito_programa',
+        data: { reqp_id: reqp_id },
+        dataType: 'json',
+        success: function (response) {
+            if (response.status !== 'ok') {
+                alert('Error: ' + response.message);
+                return;
+            }
+            cargarTablaRequisitosPrograma($('#slct_prog_config_requisitos').val());
+        }
+    });
+}
+
+// Global — invocada vía onclick inline desde #tbl_requisitos_programa.
+// Sin confirm(): reactivar no es una acción destructiva.
+function reactivarRequisitoPrograma(reqp_id) {
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=reactivar_requisito_programa',
+        data: { reqp_id: reqp_id },
+        dataType: 'json',
+        success: function (response) {
+            if (response.status !== 'ok') {
+                alert('Error: ' + response.message);
+                return;
+            }
+            cargarTablaRequisitosPrograma($('#slct_prog_config_requisitos').val());
+        }
     });
 }

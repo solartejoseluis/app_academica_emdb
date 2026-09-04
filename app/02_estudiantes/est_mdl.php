@@ -275,7 +275,7 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
-            $stmt = $pdo->prepare("SELECT prog_id, prog_nombre, prog_sigla, prog_duracion_semestres FROM programas ORDER BY prog_nombre ASC");
+            $stmt = $pdo->prepare("SELECT prog_id, prog_nombre, prog_sigla, prog_duracion_semestres, prog_activo FROM programas ORDER BY prog_nombre ASC");
             $stmt->execute();
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
         } catch (PDOException $e) {
