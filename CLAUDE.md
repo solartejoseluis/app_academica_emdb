@@ -1485,7 +1485,7 @@ un bug de datos).
 | 2.12.G | Ajustes de columnas de tablaMatriculados — Edad/Programa→Prog/Semestre→Sem, ancho al contenido (independiente, sin dependencias) | ✅ 2026-09-04 (commit `4386b67`) |
 | 2.12.H | Frontend Matrícula — agrega en #mdl_matricular una lista informativa de solo lectura de los requisitos del programa seleccionado (reemplazo funcional de los 9 checkboxes retirados en 2.12.A2) | ✅ 2026-09-04 (commit `b84eda2`) |
 | 2.12.I1 | Frontend Estudiante — backend: case 'resumen_requisitos_estudiante' en reportes_mdl.php (total/entregados global y por matrícula, solo matr_estado='matriculado') | ✅ 2026-09-04 (commit `b745774`) |
-| 2.12.I2 | Frontend Estudiante — HTML/JS: barra superior (rojo/verde con conteo pendiente) + sección de requisitos de solo lectura dentro de cada pestaña de programa, antes del selector de período | ⬜ |
+| 2.12.I2 | Frontend Estudiante — HTML/JS: barra superior (rojo/verde con conteo pendiente) + sección de requisitos de solo lectura dentro de cada pestaña de programa, antes del selector de período | ✅ 2026-09-04 (commit `ac76748`) |
 | 2.12.J | Documentación de cierre del roadmap completo | ⬜ |
 
 ### Phase 3 — Validación TRL5
