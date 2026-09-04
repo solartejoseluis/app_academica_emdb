@@ -648,6 +648,120 @@ switch ($accion) {
         }
         break;
 
+    // ── GESTIONAR CLAVES DE UN ESTUDIANTE (crear acceso o cambiar clave) ────
+    // Unifica en una sola acción, fuera del flujo de matrícula, lo que
+    // 'matricular' (crear acceso, líneas ~477-649) y 'guardar_completo'
+    // (cambiar clave, ver más abajo) ya hacían por separado — para un
+    // estudiante que no fue por ninguno de esos dos caminos (ej. ya
+    // matriculado sin acceso, o acceso ya creado y se necesita cambiar la
+    // clave sin reabrir todo el formulario de edición).
+
+    case 'gestionar_clave':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $estu_id      = (int)($_POST['estu_id'] ?? 0);
+        $tipo_clave   = trim($_POST['tipo_clave'] ?? 'no');
+        $clave_manual = trim($_POST['clave_manual'] ?? '');
+
+        if ($estu_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Estudiante requerido']);
+            break;
+        }
+        if ($tipo_clave === 'manual' && $clave_manual === '') {
+            echo json_encode(['status' => 'error', 'message' => 'Ingrese la clave manual']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            $stmtEstu = $pdo->prepare(
+                "SELECT usua_id, estu_apellidos, estu_numerodoc, estu_email, fechanacimiento
+                 FROM estudiantes WHERE estu_id = ?"
+            );
+            $stmtEstu->execute([$estu_id]);
+            $estudiante = $stmtEstu->fetch();
+
+            if (!$estudiante) {
+                echo json_encode(['status' => 'error', 'message' => 'Estudiante no encontrado']);
+                break;
+            }
+
+            if ($estudiante['usua_id'] === null) {
+                // ── Sin acceso todavía: crear ──────────────────────────────
+                if ($tipo_clave === 'no') {
+                    echo json_encode(['status' => 'ok', 'rows' => 0]);
+                    break;
+                }
+
+                $stmtLogin = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_login = ?");
+                $stmtLogin->execute([$estudiante['estu_numerodoc']]);
+                if ($stmtLogin->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'Ya existe un usuario con ese número de documento']);
+                    break;
+                }
+
+                if (trim($estudiante['estu_email'] ?? '') === '') {
+                    echo json_encode(['status' => 'error', 'message' => 'Este estudiante no tiene correo registrado. Actualice el correo antes de crear el acceso.']);
+                    break;
+                }
+
+                $clave_generada = ($tipo_clave === 'automatica')
+                    ? generarClaveAuto($estudiante['estu_apellidos'], $estudiante['fechanacimiento'])
+                    : $clave_manual;
+
+                $pdo->beginTransaction();
+
+                $hash = password_hash($clave_generada, PASSWORD_BCRYPT);
+                $stmtU = $pdo->prepare(
+                    "INSERT INTO usuarios (role_id, usua_login, usua_email, usua_passwordhash) VALUES (4, ?, ?, ?)"
+                );
+                $stmtU->execute([$estudiante['estu_numerodoc'], $estudiante['estu_email'], $hash]);
+                $new_usua_id = $pdo->lastInsertId();
+
+                $stmtUpdEstu = $pdo->prepare("UPDATE estudiantes SET usua_id = ? WHERE estu_id = ?");
+                $stmtUpdEstu->execute([$new_usua_id, $estu_id]);
+
+                $pdo->commit();
+
+                echo json_encode([
+                    'status' => 'ok', 'rows' => 1,
+                    'clave_generada' => $clave_generada,
+                    'usua_email' => $estudiante['estu_email'],
+                ]);
+            } else {
+                // ── Ya tiene acceso: cambiar clave ─────────────────────────
+                if ($tipo_clave === 'no' || $tipo_clave === '') {
+                    echo json_encode(['status' => 'error', 'message' => 'Seleccione una opción']);
+                    break;
+                }
+
+                $clave_generada = ($tipo_clave === 'automatica')
+                    ? generarClaveAuto($estudiante['estu_apellidos'], $estudiante['fechanacimiento'])
+                    : $clave_manual;
+
+                $hash = password_hash($clave_generada, PASSWORD_BCRYPT);
+                $stmtPass = $pdo->prepare("UPDATE usuarios SET usua_passwordhash = ? WHERE usua_id = ?");
+                $stmtPass->execute([$hash, $estudiante['usua_id']]);
+
+                echo json_encode(['status' => 'ok', 'rows' => 1, 'clave_generada' => $clave_generada]);
+            }
+
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al gestionar la clave del estudiante']);
+        }
+        break;
+
     // ── RESUMEN DE MATRÍCULAS DE UN ESTUDIANTE (todas, cualquier estado) ────
     // Alimenta el contexto del modal "Matricular en otro programa" y la
     // sección "Programas matriculados" del modal "Datos Estudiante".
