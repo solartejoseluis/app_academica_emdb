@@ -4,6 +4,81 @@
 
 ---
 
+## [a5ef1e5] — 2026-09-04 — feat: wiring de guardado del checklist de requisitos por matrícula
+
+### Archivos modificados
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Nuevo handler `change` delegado sobre `.select-estado-requisito`
+  (`$(document).off('change.requisitosMatricula', ...).on('change.requisitosMatricula',
+  ...)`, agregado al final de `cargarRequisitosMatricula()`) — mismo
+  patrón de delegación ya usado en el archivo para elementos dinámicos
+  (`marcarCampoLleno` sobre `'#mdl_estudiante input, select, textarea'`).
+  El `.off()` con namespace antes del `.on()` es obligatorio aquí
+  porque `cargarRequisitosMatricula()` corre en cada apertura del
+  modal: sin ese guard, cada apertura apilaría un handler adicional y
+  un solo cambio de estado dispararía el AJAX una vez por cada
+  apertura previa de esa sesión.
+- Al dispararse: `AJAX POST` a `actualizar_requisito_estudiante` con
+  `reqe_id`/`reqe_estado`. En éxito: actualiza al instante la celda
+  `.celda-fecha-requisito` de esa misma fila (fecha de hoy calculada
+  en JS con `new Date()` si `'entregado'`, `'—'` si `'pendiente'` —
+  sin pedirle la fecha al backend) y recalcula
+  `#txt_progreso_requisitos_matricula` contando los `<select>` en
+  `'entregado'` sobre el total, ambos sin volver a pedir el listado
+  completo al servidor.
+- Refresca la columna "Requisitos" de la fila correspondiente en la
+  tabla principal vía `$('#tbl_matriculados_actual').DataTable().ajax.reload(null,
+  false)` (o `tbl_matriculados_anteriores`, según cuál pestaña esté
+  activa — `$('#pane-matriculados-actual').hasClass('active')`),
+  recuperando la instancia de DataTables por selector DOM en vez de
+  una variable directa: `tablaMatriculadosActual`/`tablaMatriculadosAnteriores`
+  son variables `let` locales al closure de `$(document).ready()`,
+  inaccesibles desde este handler (declarado en scope global, fuera de
+  `ready`) — mismo patrón de recuperación por DOM ya documentado en el
+  proyecto para este tipo de caso.
+- En error (`response.status !== 'ok'` o fallo de red): `alert(message)`
+  y el `<select>` revierte a su valor previo, guardado en
+  `data-valor-previo` al poblar cada fila y actualizado tras cada
+  guardado exitoso.
+- Sin `confirm()` para este cambio — a diferencia de
+  `desactivarRequisitoPrograma()`, cambiar `pendiente`/`entregado` no
+  es una acción destructiva ni pierde historial, se revierte con otro
+  click.
+- Verificado con Playwright headless, 4 casos: (1)
+  `pendiente → entregado` — fecha de hoy al instante en la celda,
+  progreso recalculado correctamente, confirmado con SQL directo
+  (`reqe_estado='entregado'`, `reqe_fecha` = fecha de hoy); (2)
+  `entregado → pendiente` — fecha vuelve a `'—'`, progreso
+  recalculado, SQL confirma `reqe_fecha = NULL`; (3) tras cerrar el
+  modal, el badge `x/y` de esa fila en la tabla principal ya refleja
+  el conteo actualizado sin recargar la página; (4) error de red
+  simulado interceptando la ruta con Playwright (sin tocar el backend
+  real) — `alert()` con el mensaje de error y el `<select>` revertido
+  a su valor previo. Datos de prueba (catálogo temporal de 2
+  requisitos + su backfill) eliminados al terminar.
+- Con esta sub-entrega se cierra por completo la Etapa 2.12.F (F1 a
+  F4) del roadmap "Gestión de requisitos de estudiantes" — el
+  checklist de requisitos por matrícula es funcional de punta a punta
+  para el Coordinador: ver la columna resumen en el listado, abrir el
+  detalle por matrícula, y marcar/desmarcar cada requisito con
+  persistencia y refresco inmediato, sin salir de `tablaMatriculados`.
+
+### Decisiones
+- El namespace en el evento delegado (`change.requisitosMatricula`)
+  junto con `.off()` antes de `.on()` es necesario porque
+  `cargarRequisitosMatricula()` se ejecuta en cada apertura del modal
+  — sin ese guard, cada apertura agregaría un handler adicional y un
+  solo cambio de estado dispararía el AJAX una vez por cada apertura
+  previa de esa sesión.
+- Sin `confirm()` para el cambio de estado, a diferencia de
+  `desactivarRequisitoPrograma()` — cambiar `pendiente`/`entregado` no
+  es una acción destructiva ni pierde historial, se puede revertir con
+  otro click.
+
+---
+
 ## [9196f18] — 2026-09-04 — feat: listado real de requisitos dentro del modal de matrícula
 
 ### Archivos modificados
