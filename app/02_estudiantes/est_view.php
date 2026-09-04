@@ -949,6 +949,40 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
   </div>
 </div>
 
+<!-- Modal Requisitos de una matrícula (dropdown Acciones, Matriculados) -->
+<div class="modal fade" id="mdl_requisitos_matricula" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mdl_requisitos_matricula_titulo">Requisitos del estudiante</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="npt_matr_id_requisitos" value="">
+        <div id="bloque_sin_requisitos_matricula" class="text-muted d-none">
+          Este programa no tiene requisitos configurados en el catálogo.
+        </div>
+        <table class="table table-striped table-hover d-none" id="tbl_requisitos_matricula">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Requisito</th>
+              <th>Descripción</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <span id="txt_progreso_requisitos_matricula" class="fw-semibold"></span>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>

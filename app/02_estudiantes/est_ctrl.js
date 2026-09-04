@@ -1315,6 +1315,9 @@ function crearColumnasMatriculados(esPeriodoActual) {
                                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
                                     </button>
                                 </li>
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="abrirRequisitosMatricula(${row.matr_id})">📋 Requisitos</button>
+                                </li>
                                 ${itemActualizacionDatos}
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
@@ -1438,6 +1441,16 @@ function abrirActualizacionDatos(estu_id) {
             alert('Error al consultar el estado de la solicitud.');
         }
     });
+}
+
+// Abre el modal de requisitos de una matrícula puntual (ítem "📋 Requisitos"
+// del dropdown de Acciones, disponible en ambas pestañas — Per. Actual y
+// Per. Anteriores, sin condición). Etapa 2.12.F2: solo fija el matr_id y
+// abre el modal — el listado (AJAX a listar_requisitos_matricula) y el
+// wiring del guardado se conectan en las Etapas 2.12.F3/F4.
+function abrirRequisitosMatricula(matr_id) {
+    $('#npt_matr_id_requisitos').val(matr_id);
+    new bootstrap.Modal(document.getElementById('mdl_requisitos_matricula')).show();
 }
 
 // Carga el estudiante (valores vigentes) + la solicitud 'recibido' y llama a
