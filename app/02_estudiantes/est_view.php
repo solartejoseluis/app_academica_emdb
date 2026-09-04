@@ -759,6 +759,14 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                 </div>
 
+                <div id="bloque_requisitos_info_matricula" class="mb-3 d-none">
+                    <h6 class="text-muted border-bottom pb-2 mb-2">Requisitos que se le asignarán al estudiante</h6>
+                    <ul id="lista_requisitos_info_matricula" class="mb-0"></ul>
+                </div>
+                <div id="bloque_sin_requisitos_info_matricula" class="text-muted mb-3 d-none">
+                    Este programa no tiene requisitos configurados en el catálogo.
+                </div>
+
                 <h6 class="text-muted border-bottom pb-2 mb-2">Datos de matrícula</h6>
                 <div class="row">
                     <div class="col-md-4 mb-3">

@@ -1991,7 +1991,7 @@ switch ($accion) {
             break;
         }
         $role_id = (int)($_SESSION['role_id'] ?? 0);
-        if ($role_id !== 1) {
+        if (!in_array($role_id, [1, 2], true)) {
             echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
             break;
         }

@@ -954,11 +954,45 @@ $(document).ready(function () {
             $('#slct_coho_id').prop('disabled', false);
             cargarCohortesPorPrograma(prog_id);
             poblarSelectSemestre('#slct_matr_semestre', $(this).find('option:selected').data('duracion'));
+            cargarRequisitosInfoMatricula(prog_id);
         } else {
             $('#slct_coho_id').prop('disabled', true).html('<option value="">-- Primero seleccione un programa --</option>');
             poblarSelectSemestre('#slct_matr_semestre', 0);
+            $('#bloque_requisitos_info_matricula').addClass('d-none');
+            $('#bloque_sin_requisitos_info_matricula').addClass('d-none');
         }
     });
+
+    // Lista informativa de solo lectura de los requisitos activos del
+    // programa seleccionado en #mdl_matricular — reemplazo funcional de
+    // los 9 checkboxes fijos retirados en la Etapa 2.12.A2. Local a este
+    // closure: solo la invoca el listener de #slct_prog_id de arriba.
+    function cargarRequisitosInfoMatricula(prog_id) {
+        $.ajax({
+            type: 'GET',
+            url: 'est_mdl.php?accion=listar_requisitos_programa&prog_id=' + prog_id,
+            dataType: 'json',
+            success: function (response) {
+                if (response.status !== 'ok') return;
+
+                const activos = response.data.filter(function (r) { return r.reqp_activo == 1; });
+
+                if (activos.length === 0) {
+                    $('#bloque_requisitos_info_matricula').addClass('d-none');
+                    $('#bloque_sin_requisitos_info_matricula').removeClass('d-none');
+                    return;
+                }
+
+                $('#bloque_sin_requisitos_info_matricula').addClass('d-none');
+                $('#bloque_requisitos_info_matricula').removeClass('d-none');
+
+                const $lista = $('#lista_requisitos_info_matricula').empty();
+                activos.forEach(function (r) {
+                    $lista.append(`<li>${r.reqp_nombre}</li>`);
+                });
+            }
+        });
+    }
 
     $('#slct_editar_prog_id').on('change', function () {
         const prog_id = $(this).val();
@@ -1931,6 +1965,8 @@ function abrirMatricular(estu_id) {
     $('#npt_fechamatricula').val(new Date().toISOString().slice(0, 10));
     $('#bloque_matriculas_previas').hide();
     $('#lista_matriculas_previas').empty();
+    $('#bloque_requisitos_info_matricula').addClass('d-none');
+    $('#bloque_sin_requisitos_info_matricula').addClass('d-none');
 
     $.ajax({
         type: 'POST',
