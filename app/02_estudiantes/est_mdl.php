@@ -599,6 +599,15 @@ switch ($accion) {
                     $estu_id, $prog_id, $peri_id, $coho_id, $matr_semestre,
                     $matr_folio, $fechamatricula, $matr_observacion
                 ]);
+
+                $matr_id_nuevo = $pdo->lastInsertId();
+                $stmtReq = $pdo->prepare("
+                    INSERT INTO requisitos_estudiante (matr_id, reqp_id, reqe_estado)
+                    SELECT ?, reqp_id, 'pendiente'
+                    FROM requisitos_programa
+                    WHERE prog_id = ? AND reqp_activo = 1
+                ");
+                $stmtReq->execute([$matr_id_nuevo, $prog_id]);
             }
 
             if ($crear_acceso && $clave_generada !== null) {
