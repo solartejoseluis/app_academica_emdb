@@ -991,6 +991,56 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
   </div>
 </div>
 
+<!-- Modal Gestionar Claves (crear acceso o cambiar clave, dropdown Acciones) -->
+<div class="modal fade" id="mdl_gestionar_claves" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mdl_gestionar_claves_titulo">Gestionar claves</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="npt_gestionar_estu_id" value="">
+        <p class="mb-3"><strong>Estudiante:</strong> <span id="txt_gestionar_nombre"></span></p>
+
+        <div id="bloque_gestionar_sin_acceso" class="d-none">
+          <h6 class="text-muted border-bottom pb-2 mb-2">Crear acceso al sistema</h6>
+          <div class="mb-2">
+            <div class="form-check"><input class="form-check-input" type="radio" name="tipo_gestionar_clave" id="radio_gestionar_automatica" value="automatica"><label class="form-check-label" for="radio_gestionar_automatica">Generar clave automática</label></div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="tipo_gestionar_clave" id="radio_gestionar_manual" value="manual"><label class="form-check-label" for="radio_gestionar_manual">Asignar clave manual</label></div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="tipo_gestionar_clave" id="radio_gestionar_no" value="no" checked><label class="form-check-label" for="radio_gestionar_no">No crear acceso</label></div>
+          </div>
+        </div>
+
+        <div id="bloque_gestionar_con_acceso" class="d-none">
+          <h6 class="text-muted border-bottom pb-2 mb-2">Cambiar clave de acceso</h6>
+          <p class="text-muted small">Usuario actual: <strong id="txt_gestionar_email_actual"></strong></p>
+          <div class="mb-2">
+            <div class="form-check"><input class="form-check-input" type="radio" name="tipo_gestionar_clave" id="radio_gestionar_automatica_cambio" value="automatica"><label class="form-check-label" for="radio_gestionar_automatica_cambio">Generar clave automática</label></div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="tipo_gestionar_clave" id="radio_gestionar_manual_cambio" value="manual"><label class="form-check-label" for="radio_gestionar_manual_cambio">Asignar clave manual</label></div>
+          </div>
+        </div>
+
+        <div class="mb-3 d-none" id="bloque_gestionar_clave_manual">
+          <label class="form-label">Clave</label>
+          <input type="text" class="form-control" id="npt_gestionar_clave_manual" placeholder="Ingrese la clave" autocomplete="off">
+        </div>
+
+        <div class="alert alert-success d-none" id="div_gestionar_clave_generada">
+          Usuario (correo de acceso): <strong id="spn_gestionar_usua_email_valor"></strong><br>
+          Clave asignada: <strong id="spn_gestionar_clave_valor"></strong>
+          <div class="mt-1 small text-muted">Anote esta clave — no se volverá a mostrar.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success d-none" id="btn_cerrar_gestionar_claves">Cerrar y actualizar lista</button>
+        <button type="button" class="btn btn-primary" id="btn_confirmar_gestionar_claves">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>

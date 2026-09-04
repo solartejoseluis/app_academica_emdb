@@ -432,6 +432,16 @@ $(document).ready(function () {
         }
     });
 
+    // --- Radio tipo_gestionar_clave (modal Gestionar Claves — comparte
+    // name entre los bloques sin/con acceso, nunca visibles a la vez) ---
+    $('input[name="tipo_gestionar_clave"]').change(function () {
+        if ($(this).val() === 'manual') {
+            $('#bloque_gestionar_clave_manual').removeClass('d-none');
+        } else {
+            $('#bloque_gestionar_clave_manual').addClass('d-none');
+        }
+    });
+
     // --- Confirmar matrícula ---
     $('#btn_confirmar_matricula').click(function () {
         let estu_id  = $('#npt_estu_id_matricular').val();
@@ -607,6 +617,50 @@ $(document).ready(function () {
                 }
             }
         });
+    });
+
+    // --- Confirmar Gestionar Claves (crear acceso o cambiar clave) ---
+    $('#btn_confirmar_gestionar_claves').click(function () {
+        const estu_id = $('#npt_gestionar_estu_id').val();
+        const tipo_clave = $('input[name="tipo_gestionar_clave"]:checked').val();
+        const clave_manual = $('#npt_gestionar_clave_manual').val().trim();
+
+        if (tipo_clave === 'manual' && clave_manual === '') {
+            alert('Ingrese la clave manual.');
+            return false;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=gestionar_clave',
+            data: { estu_id: estu_id, tipo_clave: tipo_clave, clave_manual: clave_manual },
+            dataType: 'json',
+            success: function (response) {
+                if (response.status !== 'ok') {
+                    alert(response.message);
+                    return;
+                }
+                if (response.clave_generada) {
+                    $('#spn_gestionar_clave_valor').text(response.clave_generada);
+                    $('#spn_gestionar_usua_email_valor').text(response.usua_email || $('#txt_gestionar_email_actual').text());
+                    $('#div_gestionar_clave_generada').removeClass('d-none');
+                    $('#btn_confirmar_gestionar_claves').addClass('d-none');
+                    $('#btn_cerrar_gestionar_claves').removeClass('d-none');
+                } else {
+                    // No-op (ej. tipo_clave='no' sobre un estudiante sin
+                    // acceso) — sin cambio real, sin necesidad de recargar
+                    // tablas.
+                    $('#mdl_gestionar_claves').modal('hide');
+                }
+            }
+        });
+    });
+
+    // --- Cerrar y actualizar lista (tras mostrar clave, Gestionar Claves) ---
+    $('#btn_cerrar_gestionar_claves').click(function () {
+        $('#mdl_gestionar_claves').modal('hide');
+        if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
+        if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
     });
 
     // --- Link de actualización de datos (Fase 4 de 5) ---
@@ -1348,6 +1402,9 @@ function crearColumnasMatriculados(esPeriodoActual) {
                                     <button class="dropdown-item" type="button" onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
                                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
                                     </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="abrirGestionarClaves(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">🔑 Gestionar claves</button>
                                 </li>
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="abrirRequisitosMatricula(${row.matr_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">📋 Requisitos</button>
@@ -2114,6 +2171,52 @@ function abrirAvanzarSemestre(matr_id, nombreCompleto, matrSemestreActual, progD
     $('#slct_avanzar_peri_id_destino').html('<option value="">-- Seleccionar --</option>').append(opcionesAnteriores);
 
     new bootstrap.Modal(document.getElementById('mdl_avanzar_semestre')).show();
+}
+
+// Reset a estado inicial + apertura inmediata (mismo criterio que
+// abrirRequisitosMatricula() — no esperar el AJAX para mostrar el modal),
+// seguido de accion=obtener_completo para decidir qué bloque mostrar según
+// si el estudiante ya tiene usua_id. Función global — invocada desde el
+// onclick inline del dropdown de Acciones.
+function abrirGestionarClaves(estu_id, nombreCompleto) {
+    $('#bloque_gestionar_sin_acceso').addClass('d-none');
+    $('#bloque_gestionar_con_acceso').addClass('d-none');
+    $('input[name="tipo_gestionar_clave"]').prop('checked', false);
+    $('#radio_gestionar_no').prop('checked', true);
+    $('#bloque_gestionar_clave_manual').addClass('d-none');
+    $('#npt_gestionar_clave_manual').val('');
+    $('#div_gestionar_clave_generada').addClass('d-none');
+    $('#btn_confirmar_gestionar_claves').removeClass('d-none');
+    $('#btn_cerrar_gestionar_claves').addClass('d-none');
+
+    $('#npt_gestionar_estu_id').val(estu_id);
+    $('#txt_gestionar_nombre').text(nombreCompleto);
+
+    new bootstrap.Modal(document.getElementById('mdl_gestionar_claves')).show();
+
+    $.ajax({
+        type: 'POST',
+        url: 'est_mdl.php?accion=obtener_completo',
+        data: { estu_id: estu_id },
+        dataType: 'json',
+        success: function (response) {
+            if (response.status !== 'ok') {
+                alert(response.message);
+                return;
+            }
+            const d = response.data;
+            if (!d.usua_id) {
+                $('#bloque_gestionar_sin_acceso').removeClass('d-none');
+                $('#bloque_gestionar_con_acceso').addClass('d-none');
+                $('#mdl_gestionar_claves_titulo').text('Crear acceso al sistema');
+            } else {
+                $('#bloque_gestionar_con_acceso').removeClass('d-none');
+                $('#bloque_gestionar_sin_acceso').addClass('d-none');
+                $('#mdl_gestionar_claves_titulo').text('Cambiar clave de acceso');
+                $('#txt_gestionar_email_actual').text(d.estu_email || '(sin correo)');
+            }
+        }
+    });
 }
 
 function descargarFichaPdf(estu_id) {
