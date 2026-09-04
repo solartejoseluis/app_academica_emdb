@@ -1498,7 +1498,7 @@ function cargarRequisitosMatricula(matr_id) {
                     <td>${r.reqp_nombre}</td>
                     <td>${descripcion}</td>
                     <td>
-                        <select class="form-select form-select-sm select-estado-requisito" data-reqe-id="${r.reqe_id}">
+                        <select class="form-select form-select-sm select-estado-requisito" data-reqe-id="${r.reqe_id}" data-valor-previo="${r.reqe_estado}">
                             <option value="pendiente" ${r.reqe_estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
                             <option value="entregado" ${r.reqe_estado === 'entregado' ? 'selected' : ''}>Entregado</option>
                         </select>
@@ -1510,6 +1510,72 @@ function cargarRequisitosMatricula(matr_id) {
             const total = response.data.length;
             const entregados = response.data.filter(function (r) { return r.reqe_estado === 'entregado'; }).length;
             $('#txt_progreso_requisitos_matricula').text(`${entregados} de ${total} requisitos completados`);
+
+            // Delegación sobre $(document) — mismo patrón ya usado en el
+            // archivo para elementos dinámicos (ver el listener de
+            // marcarCampoLleno sobre '#mdl_estudiante input, select, textarea').
+            // .off() primero porque cargarRequisitosMatricula() se ejecuta en
+            // cada apertura del modal — sin este guard, cada apertura
+            // agregaría un handler nuevo y un solo cambio dispararía el AJAX
+            // una vez por cada apertura previa del modal en esta misma sesión.
+            $(document)
+                .off('change.requisitosMatricula', '.select-estado-requisito')
+                .on('change.requisitosMatricula', '.select-estado-requisito', function () {
+                    const $select = $(this);
+                    const reqe_id = $select.data('reqe-id');
+                    const nuevoValor = $select.val();
+                    const valorPrevio = $select.data('valor-previo');
+
+                    $.ajax({
+                        type: 'POST',
+                        url: 'est_mdl.php?accion=actualizar_requisito_estudiante',
+                        data: { reqe_id: reqe_id, reqe_estado: nuevoValor },
+                        dataType: 'json',
+                        success: function (resp) {
+                            if (resp.status !== 'ok') {
+                                alert(resp.message);
+                                $select.val(valorPrevio);
+                                return;
+                            }
+                            $select.data('valor-previo', nuevoValor);
+
+                            const $fila = $select.closest('tr');
+                            if (nuevoValor === 'entregado') {
+                                const hoy = new Date();
+                                const dd = String(hoy.getDate()).padStart(2, '0');
+                                const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+                                $fila.find('.celda-fecha-requisito').text(`${dd}/${mm}/${hoy.getFullYear()}`);
+                            } else {
+                                $fila.find('.celda-fecha-requisito').text('—');
+                            }
+
+                            // Progreso recalculado en el cliente, sin pedir de
+                            // nuevo el listado completo al backend.
+                            const $selects = $('#tbl_requisitos_matricula .select-estado-requisito');
+                            const totalActual = $selects.length;
+                            const entregadosActual = $selects.filter(function () {
+                                return $(this).val() === 'entregado';
+                            }).length;
+                            $('#txt_progreso_requisitos_matricula').text(`${entregadosActual} de ${totalActual} requisitos completados`);
+
+                            // tablaMatriculadosActual/tablaMatriculadosAnteriores son
+                            // variables `let` locales al closure de $(document).ready()
+                            // — inaccesibles desde esta función global. Se recupera la
+                            // instancia ya inicializada vía el propio DOM (mismo patrón
+                            // ya documentado en el proyecto para este tipo de caso),
+                            // recargando solo la pestaña visible en este momento.
+                            if ($('#pane-matriculados-actual').hasClass('active')) {
+                                $('#tbl_matriculados_actual').DataTable().ajax.reload(null, false);
+                            } else if ($('#pane-matriculados-anteriores').hasClass('active')) {
+                                $('#tbl_matriculados_anteriores').DataTable().ajax.reload(null, false);
+                            }
+                        },
+                        error: function () {
+                            alert('Error al actualizar el requisito.');
+                            $select.val(valorPrevio);
+                        }
+                    });
+                });
         }
     });
 }
