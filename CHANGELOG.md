@@ -4,6 +4,120 @@
 
 ---
 
+## [ac76748] — 2026-09-04 — feat: barra de pendientes y detalle de requisitos en la vista del Estudiante
+
+### Archivos modificados
+- app/06_reportes/reportes_view.php
+- app/06_reportes/reportes_ctrl.js
+- app/06_reportes/reportes_mdl.php
+
+### Cambios
+- Nueva barra global `#barra_requisitos_pendientes` (`reportes_view.php`),
+  envuelta en `<?php if (!$es_coordinador): ?>` — mismo patrón inverso
+  al `$es_coordinador` ya usado en el resto del archivo, confirmado
+  antes de escribirla en vez de asumirlo. Vive dentro de
+  `#bloque_reporte`, inmediatamente antes del encabezado institucional
+  y de `#tabsProgramas`/`#contenidoProgramas` — el único lugar fijo
+  del layout independiente de qué pestaña de programa esté activa.
+- Nueva `cargarResumenRequisitosEstudiante()` (`reportes_ctrl.js`):
+  `AJAX GET` a `resumen_requisitos_estudiante` (Etapa 2.12.I1). Si
+  `total_global === 0`, la barra queda oculta (`d-none`) sin más. Si
+  no, calcula `pendientes = total_global - entregados_global`: `0`
+  pendientes → `alert-success` con "✅ Tienes todos tus requisitos
+  completos (x/x)."; `>0` pendientes → `alert-danger` con "⚠️ Tienes x
+  de y requisitos pendientes por entregar." Guarda además
+  `response.data.por_matricula` en la variable de módulo
+  `porMatriculaRequisitos`, para que otras funciones sepan si una
+  matrícula puntual tiene requisitos sin una llamada AJAX extra.
+- Nuevo contenedor `.requisitos-programa-container` en el template de
+  cada `$pane.html(...)` de `cargarProgramas()`, en la posición ya
+  confirmada por diagnóstico previo: después del row de encabezado
+  (Programa/Cohorte/Semestre/Períodos realizados/Estado actual) y
+  antes del row de `.sel-periodo`.
+- Nueva `cargarDetalleRequisitosPestana(matr_id, $contenedor)`: si el
+  `matr_id` no aparece en `porMatriculaRequisitos` o su `total` es
+  `0`, deja el contenedor vacío sin ningún AJAX — no hay nada que
+  mostrar. Si sí tiene requisitos, `AJAX GET` al endpoint nuevo
+  `mis_requisitos_matricula` (`reportes_mdl.php`) y puebla una tabla
+  de solo lectura (sin `<select>` ni `<input>`: #, Requisito,
+  Descripción, Estado como texto plano "Entregado"/"Pendiente", Fecha
+  formateada dd/mm/aaaa o `—`, mismo patrón inline ya usado en el
+  resto del proyecto) con el encabezado "Requisitos del programa (x de
+  y completados)". Carga diferida: se llama de inmediato solo para la
+  primera pestaña (mismo punto donde ya se llama `cargarPeriodos()`
+  por primera vez) y para las demás dentro del `shown.bs.tab` ya
+  existente, con un flag `requisitosLoaded` en el contenedor —mismo
+  patrón que `periodosLoaded` en `cargarPeriodos()`— para no repetir
+  la petición cada vez que se vuelve a mostrar la misma pestaña.
+- **Bug de condición de carrera detectado y corregido durante el
+  desarrollo:** `cargarProgramas()` y `cargarResumenRequisitosEstudiante()`
+  se disparan en paralelo (como se pidió, no encadenadas), pero
+  `cargarDetalleRequisitosPestana()` de la primera pestaña dependía de
+  que `porMatriculaRequisitos` ya estuviera poblado — si
+  `cargarProgramas()` terminaba primero, la sección de requisitos
+  quedaba silenciosamente vacía, sin ningún error visible. Corregido
+  capturando el `jqXHR` de `cargarResumenRequisitosEstudiante()` en la
+  variable de módulo `resumenRequisitosPromise`, y haciendo que
+  `cargarDetalleRequisitosPestana()` espere esa promesa
+  (`$.when(resumenRequisitosPromise).always(...)`) antes de decidir —
+  sin volver secuenciales las dos llamadas iniciales, y sin romper el
+  caso Coordinador (que nunca llama a
+  `cargarResumenRequisitosEstudiante()`; ahí `resumenRequisitosPromise`
+  sigue `null` y `$.when(null)` resuelve de inmediato).
+- Nuevo `case 'mis_requisitos_matricula'` en `reportes_mdl.php`,
+  guardado con `in_array($role_id, [1, 2, 4], true)` (mismo criterio
+  que `mis_periodos`/`detalle_periodo`) y `resolverEstuIdObjetivo()`.
+  Replica el mismo `SELECT` que `listar_requisitos_matricula`
+  (`est_mdl.php`, Etapa 2.12.D) pero **como endpoint separado**, no
+  ampliando ese existente: ese `case` no verifica que el `matr_id`
+  recibido pertenezca a quien consulta — algo que era seguro mientras
+  sus únicos consumidores fueran Admin/Coordinador con alcance amplio
+  legítimo, pero que habría permitido a un estudiante ver el checklist
+  de una matrícula ajena con solo cambiar el `matr_id` si se le
+  hubiera agregado `role_id=4` sin más. El endpoint nuevo agrega esa
+  verificación de pertenencia (`WHERE matr_id = ? AND estu_id = ?`,
+  mismo patrón ya establecido en `mis_periodos`/`detalle_periodo` de
+  este mismo archivo) antes de traer el detalle, con el mismo mensaje
+  genérico `"Sin autorización"` sin distinguir "no existe" de "es de
+  otro estudiante" (mismo criterio ya usado en el boletín individual).
+- Verificado con Playwright + `curl`, 4 casos: (1) pestaña con
+  requisitos asignados (1 entregado + 1 pendiente) — tabla poblada
+  correctamente, solo lectura; (2) pestaña sin requisitos asignados —
+  contenedor vacío, sin mensaje ni tabla; (3) `curl` con el `matr_id`
+  de otro estudiante — `"Sin autorización"`, sin exponer datos,
+  confirmado también con un control usando el `matr_id` propio; (4)
+  carga diferida confirmada por Network — la segunda pestaña nunca
+  disparó ningún AJAX, ni antes ni después del click (el chequeo
+  contra `porMatriculaRequisitos` la descarta de entrada, más
+  eficiente que una simple carga diferida). Datos de prueba (catálogo
+  temporal, estudiantes con login propio, matrículas) eliminados al
+  terminar.
+- Con esta sub-entrega se cierra por completo la Etapa 2.12.I (I1+I2)
+  y, con ella, **toda la funcionalidad nueva** del roadmap "Gestión de
+  requisitos de estudiantes" (2.12.0 a 2.12.I) — solo resta la Etapa
+  2.12.J de documentación de cierre.
+- **Nota operativa:** el commit original de este cambio (`b30e084`)
+  quedó con el mensaje mutilado por una expansión de historial de bash
+  (`!$es_coordinador` interpretado fuera de comillas simples) y se
+  corrigió con `git commit --amend`, resultando en el hash final
+  `ac76748` — `b30e084` ya no existe en el historial de `main`.
+
+### Decisiones
+- `mis_requisitos_matricula` se creó como endpoint separado en vez de
+  ampliar el guard de `listar_requisitos_matricula` a `role_id=4`,
+  porque ese endpoint no verifica que el `matr_id` pertenezca a quien
+  consulta — seguro hoy solo porque sus consumidores son
+  Admin/Coordinador con alcance amplio legítimo; ampliarlo sin más
+  habría permitido a un estudiante ver el checklist de una matrícula
+  ajena. El endpoint nuevo replica el mismo `SELECT` pero con la
+  verificación de pertenencia ya establecida en
+  `mis_periodos`/`detalle_periodo` de este mismo archivo.
+- Lección operativa: usar heredocs con `'EOF'` entre comillas simples
+  para mensajes de commit que contengan `!` o `$`, evitando que bash
+  los interprete como expansión de historial o de variable.
+
+---
+
 ## [b745774] — 2026-09-04 — feat: backend de resumen de requisitos para la vista del Estudiante
 
 ### Archivos modificados
