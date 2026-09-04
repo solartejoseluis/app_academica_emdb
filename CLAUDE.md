@@ -1486,7 +1486,24 @@ un bug de datos).
 | 2.12.H | Frontend Matrícula — agrega en #mdl_matricular una lista informativa de solo lectura de los requisitos del programa seleccionado (reemplazo funcional de los 9 checkboxes retirados en 2.12.A2) | ✅ 2026-09-04 (commit `b84eda2`) |
 | 2.12.I1 | Frontend Estudiante — backend: case 'resumen_requisitos_estudiante' en reportes_mdl.php (total/entregados global y por matrícula, solo matr_estado='matriculado') | ✅ 2026-09-04 (commit `b745774`) |
 | 2.12.I2 | Frontend Estudiante — HTML/JS: barra superior (rojo/verde con conteo pendiente) + sección de requisitos de solo lectura dentro de cada pestaña de programa, antes del selector de período | ✅ 2026-09-04 (commit `ac76748`) |
-| 2.12.J | Documentación de cierre del roadmap completo | ⬜ |
+| 2.12.J | Documentación de cierre del roadmap completo | ✅ 2026-09-04 |
+
+Con 2.12.J, el roadmap completo de "Gestión de requisitos de
+estudiantes" queda cerrado: 15 sub-etapas (2.12.0, A, A2, B, C, D, E,
+F1-F4, G, H, I1, I2, J) a lo largo de ~16 commits de código y
+documentación, reemplazando las 9 columnas `req_*` fijas y sin
+per-programa que existían en `matriculas` por un sistema configurable
+de punta a punta: el Admin define el catálogo de requisitos por
+programa (nombre + descripción, con borrado lógico) desde una ficha
+dedicada; al matricular a un estudiante, el sistema le asigna
+automáticamente como pendientes los requisitos activos de su programa;
+el Coordinador gestiona el checklist de cada matrícula (columna
+resumen x/y en `tablaMatriculados`, modal de detalle con selects
+editables) desde `02_estudiantes`; y el propio estudiante consulta, de
+solo lectura, una barra de pendientes y el detalle por programa desde
+`06_reportes`. Verificado en cada etapa con `curl` contra Docker vivo
+y Playwright headless para los flujos de UI, sin dejar ningún dato de
+prueba en la base de datos de desarrollo.
 
 ### Phase 3 — Validación TRL5
 
