@@ -4,6 +4,75 @@
 
 ---
 
+## [b84eda2] — 2026-09-04 — feat: lista informativa de requisitos en el modal de matrícula
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- `case 'listar_requisitos_programa'` (`est_mdl.php`): guard ampliado
+  de `$role_id !== 1` a `!in_array($role_id, [1, 2], true)` — único
+  cambio en ese archivo, confirmado antes de aplicar que no toca
+  ningún otro `case`. Es una consulta de solo lectura, por eso ahora
+  también la usa el Coordinador; los otros 4 `case` del catálogo
+  (`crear`/`editar`/`eliminar`/`reactivar_requisito_programa`) siguen
+  exclusivos de Admin (`role_id === 1`), sin ningún cambio.
+- Nuevo bloque en `#mdl_matricular` (`est_view.php`), en la misma
+  posición donde vivían los 9 checkboxes fijos "Requisitos entregados"
+  retirados en la Etapa 2.12.A2 — entre "Período" y "Datos de
+  matrícula": `#bloque_requisitos_info_matricula` (lista `<ul>` de
+  solo lectura) y `#bloque_sin_requisitos_info_matricula` (mensaje
+  cuando el programa no tiene catálogo), ambos ocultos por defecto.
+- `est_ctrl.js`: el handler `change` existente de `#slct_prog_id`
+  (dentro de `#mdl_matricular`) gana una llamada a la nueva función
+  `cargarRequisitosInfoMatricula(prog_id)` cuando hay programa
+  seleccionado, y oculta ambos bloques cuando el select vuelve a
+  vacío — sin tocar la lógica de cohortes/semestre que ya disparaba.
+  `cargarRequisitosInfoMatricula()` (declarada local al closure de
+  `$(document).ready()`, ya que solo la usa ese handler): `AJAX GET` a
+  `listar_requisitos_programa`, filtra client-side solo
+  `reqp_activo == 1` (la respuesta trae activos e inactivos, como ya
+  se sabía desde la Etapa 2.12.E) y puebla la lista con `reqp_nombre`
+  únicamente — sin descripción, sin checkbox, es puramente informativa.
+  `abrirMatricular()` gana 2 líneas de reset (ocultar ambos bloques)
+  sumadas al bloque de reset ya existente de esa función, en vez de
+  crear un reset nuevo separado.
+- Con esta etapa se completa el reemplazo funcional de los 9
+  checkboxes fijos retirados en la Etapa 2.12.A2 — el coordinador
+  vuelve a ver, al matricular, qué se le va a pedir al estudiante,
+  ahora derivado del catálogo configurable en vez de una lista fija.
+- Verificado con Playwright + `curl`, 5 casos: (1) programa con
+  requisitos activos — lista con los nombres correctos, sin
+  descripción ni checkbox; (2) programa sin catálogo — mensaje "no
+  tiene requisitos configurados", lista oculta; (3) cerrar el modal y
+  reabrirlo para otro estudiante — ambos bloques inician ocultos, sin
+  arrastrar datos de la apertura anterior; (4) matrícula real
+  completada sin error en un programa con requisitos — confirmado con
+  SQL directo que `requisitos_estudiante` recibió las filas
+  `'pendiente'` esperadas, sin que el bloque informativo interfiriera
+  con el submit; (5) `curl` como Coordinador confirmando que
+  `listar_requisitos_programa` ahora responde `'ok'` (antes
+  rechazado) mientras `crear_requisito_programa` sigue respondiendo
+  "Sin autorización" para ese mismo rol. Datos de prueba (catálogo
+  temporal, estudiante y matrícula) eliminados al terminar.
+- Etapa 2.12.H (de 10) del roadmap "Gestión de requisitos de
+  estudiantes".
+
+### Decisiones
+- Se amplió el guard existente de `listar_requisitos_programa` en vez
+  de crear un endpoint duplicado — es la misma consulta de solo
+  lectura, y el criterio de permisos del proyecto ya distingue "leer"
+  de "modificar" el catálogo (los 4 `case` de escritura siguen
+  Admin-only). Un endpoint nuevo habría duplicado mantenimiento sin
+  ninguna razón técnica real, a diferencia del caso de
+  `cargarProgramas()` en la Etapa 2.12.E2, donde sí había una razón
+  técnica concreta (la función no exponía su respuesta fuera de su
+  propio `success`) para no reutilizarla.
+
+---
+
 ## [4386b67] — 2026-09-04 — style: ajustar ancho de columnas Edad/Programa/Semestre en tablaMatriculados
 
 ### Archivos modificados
