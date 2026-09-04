@@ -4,6 +4,56 @@
 
 ---
 
+## [f14331d] — 2026-09-03 — feat: asignar requisitos automáticamente al crear una matrícula nueva
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+
+### Cambios
+- En `case 'matricular'`, dentro de la rama de creación nueva (el `else`
+  que ejecuta el `INSERT INTO matriculas`), inmediatamente después de que
+  `$stmtM->execute([...])` inserta la fila: se toma `$matr_id_nuevo =
+  $pdo->lastInsertId()` y se inserta automáticamente en
+  `requisitos_estudiante` un registro `'pendiente'` por cada requisito
+  activo (`reqp_activo = 1`) del `prog_id` que se está matriculando,
+  mediante `INSERT INTO requisitos_estudiante (matr_id, reqp_id,
+  reqe_estado) SELECT ?, reqp_id, 'pendiente' FROM requisitos_programa
+  WHERE prog_id = ? AND reqp_activo = 1`.
+- El `INSERT` corre dentro de la transacción PDO ya existente de esta
+  `case` (`beginTransaction()`/`commit()` que ya envolvía el
+  `INSERT`/`UPDATE` de `matriculas` y la creación de acceso opcional) — no
+  se abrió ninguna transacción nueva.
+- La rama `$existingMatr` (re-matrícula sobre la misma fila
+  estu+prog+peri, que hace `UPDATE` en vez de `INSERT`) no se tocó — sigue
+  sin ningún `INSERT` a `requisitos_estudiante`.
+- Verificado con `curl` contra el contenedor Docker vivo, autenticando
+  como Coordinador (`role_id = 2`, el rol real que matricula en el flujo
+  de producción): (1) matriculando a un estudiante de prueba en un
+  programa con 2 requisitos activos en el catálogo, la matrícula nueva
+  recibió exactamente 2 filas `'pendiente'` con el `matr_id` correcto,
+  confirmado con SQL directo; (2) matriculando en un programa sin ningún
+  requisito activo en el catálogo, la matrícula se creó sin error y con 0
+  filas en `requisitos_estudiante`; (3) re-matriculando sobre la misma
+  fila estu+prog+peri (rama `$existingMatr`), el conteo de
+  `requisitos_estudiante` de esa matrícula se mantuvo igual antes y
+  después, mientras que `matr_observacion` sí se actualizó — confirma que
+  se tomó la rama `UPDATE` y no se disparó ningún `INSERT` adicional.
+  Datos de prueba (estudiante temporal, 2 matrículas, 2 requisitos de
+  catálogo y sus filas de `requisitos_estudiante`) eliminados al terminar.
+- Etapa 2.12.C (de 10) del roadmap "Gestión de requisitos de estudiantes".
+
+### Decisiones
+- Se confirmó explícitamente con Jose Luis que la rama `$existingMatr` no
+  necesita este `INSERT` porque el `matr_id` no cambia en una
+  re-matrícula sobre la misma fila — los requisitos ya existen desde la
+  creación original de esa matrícula.
+- El `INSERT ... SELECT` sobre un catálogo sin requisitos activos
+  simplemente no inserta ninguna fila, sin necesidad de ningún manejo
+  especial de "caso vacío" — es comportamiento esperado del propio SQL,
+  no un error a capturar.
+
+---
+
 ## [c4b81f2] — 2026-09-03 — feat: backend Admin del catálogo de requisitos por programa
 
 ### Archivos modificados
