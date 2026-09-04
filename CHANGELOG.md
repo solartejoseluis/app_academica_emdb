@@ -4,6 +4,82 @@
 
 ---
 
+## [183e9b1] — 2026-09-04 — feat: backend de gestión de claves (case 'gestionar_clave')
+
+### Archivos modificados
+- app/02_estudiantes/est_mdl.php
+
+### Cambios
+- Nuevo `case 'gestionar_clave'` que cubre un vacío funcional entre los
+  dos únicos lugares del proyecto que hasta ahora tocaban
+  `usuarios.usua_passwordhash`/`usua_id` de un estudiante:
+  `'matricular'` solo crea acceso en el momento de matricular (y solo
+  si el estudiante todavía no tiene `usua_id`), y `'guardar_completo'`
+  solo cambia la clave si el estudiante **ya** tiene `usua_id` — no
+  existía ninguna acción para crear el acceso de un estudiante que ya
+  está matriculado pero nunca recibió clave, ni para cambiar la clave
+  de uno que sí tiene acceso sin reabrir todo el formulario de
+  edición. `gestionar_clave` es una acción aislada e independiente de
+  ambos flujos, pensada para conectarse desde el dropdown de Acciones
+  de `tablaMatriculados` (Fase B, pendiente).
+- Insertado entre `'matricular'` y `'matriculas_estudiante'`, con los
+  mismos guards de sesión/rol exactos que `'matricular'`
+  (`in_array($role_id, [1, 2], true)`).
+- **Rama sin `usua_id` (crear acceso)** — replica tal cual la lógica
+  de `'matricular'` (verificación de `usua_login` duplicado contra
+  `estu_numerodoc`, validación de `estu_email` no vacío, INSERT en
+  `usuarios` + UPDATE `estudiantes.usua_id` dentro de una transacción
+  PDO). Única diferencia deliberada: el duplicado de `usua_login` se
+  reporta como **error explícito** (`"Ya existe un usuario con ese
+  número de documento"`) en vez de ignorarse en silencio como hace
+  `'matricular'` — ahí ese caso es un efecto secundario tolerable de
+  una operación más amplia (completar la matrícula), aquí es la única
+  finalidad de la llamada, así que fallar en silencio dejaría al
+  coordinador sin saber por qué no se creó el acceso.
+- **Rama con `usua_id` (cambiar clave)** — replica la lógica de cambio
+  de clave de `'guardar_completo'` (`UPDATE usuarios SET
+  usua_passwordhash = ?`). Única diferencia deliberada:
+  `tipo_clave` vacío o `'no'` responde **error explícito**
+  (`"Seleccione una opción"`) en vez de ignorar la intención en
+  silencio — en `'guardar_completo'` ese caso es normal (el usuario
+  edita otros datos sin tocar la clave), pero aquí el propósito único
+  de la llamada es gestionar la clave, así que no seleccionar nada es
+  un error de uso, no una omisión válida.
+- Reutiliza `generarClaveAuto()` sin ningún cambio.
+- Verificado con 10/10 casos vía `curl` contra el contenedor Docker
+  vivo (crear automática, crear manual, crear con `tipo_clave=no`
+  como no-op, numerodoc duplicado, sin correo registrado, cambiar
+  clave automática, cambiar clave manual, cambiar clave con
+  `tipo_clave` vacío, sin sesión, `estu_id` inexistente), incluida
+  verificación de los hashes con `password_verify()` contra las
+  claves en texto plano esperadas. Datos de prueba (6 estudiantes
+  dedicados + usuarios asociados) creados y eliminados sin dejar
+  rastro — conteo de `usuarios WHERE role_id = 4` confirmado igual
+  antes y después (11).
+- **Fase A de 2 (Fase 2.13.A del roadmap) — solo backend.** `est_view.php`
+  y `est_ctrl.js` sin tocar. Falta la **Fase B (2.13.B)**: ítem nuevo
+  "🔑 Gestionar claves" en el dropdown de Acciones de
+  `tablaMatriculados` + modal `#mdl_gestionar_claves`, siguiendo el
+  mismo patrón ya usado para `#mdl_avanzar_semestre`/
+  `#mdl_requisitos_matricula`.
+
+### Decisiones
+- El caso de numerodoc duplicado (`usua_login` ya existente sin que el
+  estudiante tenga `usua_id`) solo puede darse hoy por una
+  inconsistencia manual de datos (`estudiantes.estu_numerodoc` y
+  `usuarios.usua_login` tienen cada uno su propia `UNIQUE KEY`, así
+  que dos estudiantes nunca pueden compartir número de documento por
+  el flujo normal de la aplicación) — se decidió mantener la
+  validación de todas formas, como salvaguarda explícita, en vez de
+  asumir que nunca puede ocurrir.
+- Se numera esta feature como Phase 2.13 (2.13.A backend, 2.13.B
+  frontend) en vez de sumarla a Phase 2.12 — Phase 2.12 (Gestión de
+  requisitos de estudiantes) ya cerró por completo el 2026-09-04
+  (commit `bd8e560`) y esta feature es conceptualmente independiente
+  (gestión de acceso/credenciales, no requisitos documentales).
+
+---
+
 ## [ac76748] — 2026-09-04 — feat: barra de pendientes y detalle de requisitos en la vista del Estudiante
 
 ### Archivos modificados
