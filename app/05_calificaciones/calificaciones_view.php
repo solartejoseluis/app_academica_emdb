@@ -104,7 +104,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
 
         <!-- Panel izquierdo: lista de grupos -->
         <div class="col-md-3" id="panel_grupos">
-            <h6 class="fw-bold mb-3">Mis Módulos</h6>
+            <h6 class="fw-bold mb-3">
+                <?= in_array((int)$_SESSION['role_id'], [1, 2]) ? 'Módulos' : 'Mis Módulos' ?>
+            </h6>
             <?php if (in_array((int)$_SESSION['role_id'], [1, 2])): ?>
             <div id="bloque_filtros_grupos" class="mb-3">
                 <div class="mb-2">
