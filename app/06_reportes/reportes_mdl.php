@@ -370,6 +370,61 @@ switch ($accion) {
         }
         break;
 
+    // ── DETALLE DE REQUISITOS DE UNA MATRÍCULA PUNTUAL (roles 1, 2, 4) ──────
+    // Mismo SELECT que listar_requisitos_matricula (Etapa 2.12.D,
+    // 02_estudiantes/est_mdl.php) — ese endpoint no permite role_id=4 ni
+    // verifica pertenencia del matr_id (seguro solo porque hasta ahora sus
+    // únicos consumidores eran Admin/Coordinador con alcance amplio
+    // legítimo). Se replica aquí, con la verificación de pertenencia ya
+    // establecida en mis_periodos/detalle_periodo de este mismo archivo, en
+    // vez de ampliar ese endpoint compartido.
+
+    case 'mis_requisitos_matricula':
+        try {
+            $role_id = (int)($_SESSION['role_id'] ?? 0);
+            if (!in_array($role_id, [1, 2, 4], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+            $estu_id = resolverEstuIdObjetivo();
+            if ($estu_id === null) {
+                echo json_encode(['status' => 'error', 'message' => 'No se pudo determinar el estudiante']);
+                break;
+            }
+            $matr_id = (int)($_REQUEST['matr_id'] ?? 0);
+            if ($matr_id === 0) {
+                echo json_encode(['status' => 'error', 'message' => 'matr_id inválido']);
+                break;
+            }
+            $pdo = getConexion();
+
+            // El matr_id debe pertenecer al estudiante objetivo — mismo
+            // patrón ya usado en mis_periodos/detalle_periodo. Mensaje
+            // genérico "Sin autorización" sin distinguir "no existe" de
+            // "es de otro estudiante" (mismo criterio ya usado en el
+            // boletín individual).
+            $stmtMatr = $pdo->prepare("SELECT matr_id FROM matriculas WHERE matr_id = ? AND estu_id = ?");
+            $stmtMatr->execute([$matr_id, $estu_id]);
+            if (!$stmtMatr->fetch()) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+
+            $stmt = $pdo->prepare("
+                SELECT re.reqe_id, re.reqp_id, rp.reqp_nombre, rp.reqp_descripcion,
+                       re.reqe_estado, re.reqe_fecha
+                FROM requisitos_estudiante re
+                INNER JOIN requisitos_programa rp ON re.reqp_id = rp.reqp_id
+                WHERE re.matr_id = ?
+                ORDER BY rp.reqp_nombre ASC
+            ");
+            $stmt->execute([$matr_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;

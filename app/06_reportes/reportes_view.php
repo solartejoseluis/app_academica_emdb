@@ -209,6 +209,10 @@ if (!$es_coordinador) {
             <!-- ── Reporte (oculto hasta elegir estudiante, si aplica) ─────── -->
             <div id="bloque_reporte" class="<?= $es_coordinador ? 'd-none' : '' ?>">
 
+                <?php if (!$es_coordinador): ?>
+                <div id="barra_requisitos_pendientes" class="alert d-none mb-3" role="alert"></div>
+                <?php endif; ?>
+
                 <div class="mb-3">
                     <h5 class="fw-bold mb-1"><?= htmlspecialchars($institucionNombre) ?></h5>
                     <h6 class="text-muted mb-0">

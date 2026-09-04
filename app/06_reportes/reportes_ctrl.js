@@ -2,6 +2,19 @@ $(document).ready(function () {
 
     let estudianteActualId = null;
     let tablaReporte = null;
+    // Última respuesta de resumen_requisitos_estudiante — permite que
+    // cargarDetalleRequisitosPestana() sepa si una matrícula puntual tiene
+    // requisitos asignados sin una llamada AJAX extra.
+    let porMatriculaRequisitos = [];
+    // jqXHR de resumen_requisitos_estudiante — cargarProgramas() y
+    // cargarResumenRequisitosEstudiante() se disparan en paralelo (no
+    // encadenadas) desde el arranque del Estudiante, así que
+    // porMatriculaRequisitos puede seguir vacío cuando cargarProgramas()
+    // termina primero. cargarDetalleRequisitosPestana() espera esta promesa
+    // (vía $.when, que resuelve de inmediato si sigue en null — caso
+    // Coordinador, que nunca llama a cargarResumenRequisitosEstudiante())
+    // antes de decidir si el contenedor va vacío o pide el detalle.
+    let resumenRequisitosPromise = null;
 
     // ── Helpers de formato (idénticos a la versión anterior de este archivo,
     //    reutilizados sin cambios de lógica) ──────────────────────────────────
@@ -211,6 +224,84 @@ $(document).ready(function () {
         });
     }
 
+    // Detalle de requisitos de UNA matrícula, de solo lectura (sin selects,
+    // sin edición — esa acción es exclusiva del Coordinador, ver
+    // 02_estudiantes/est_ctrl.js). Usa porMatriculaRequisitos (ya cargado por
+    // cargarResumenRequisitosEstudiante()) para decidir si hace falta pedir
+    // el detalle — si la matrícula no tiene ningún requisito asignado, no
+    // dispara ningún AJAX y deja el contenedor vacío.
+    function cargarDetalleRequisitosPestana(matr_id, $contenedor) {
+        // Mismo criterio que periodosLoaded en cargarPeriodos() — evita
+        // volver a pedir el detalle cada vez que se vuelve a mostrar la
+        // misma pestaña (shown.bs.tab dispara en cada cambio de pestaña,
+        // no solo la primera vez).
+        $contenedor.data('requisitosLoaded', true);
+
+        // Espera a que resumen_requisitos_estudiante haya terminado antes de
+        // consultar porMatriculaRequisitos — cargarProgramas() y
+        // cargarResumenRequisitosEstudiante() corren en paralelo, así que
+        // para la primera pestaña ese arreglo puede seguir vacío en este
+        // punto. $.when(null) resuelve de inmediato (caso Coordinador, que
+        // nunca llama a cargarResumenRequisitosEstudiante()).
+        $.when(resumenRequisitosPromise).always(function () {
+            const resumenMatricula = porMatriculaRequisitos.find(function (r) { return r.matr_id == matr_id; });
+            if (!resumenMatricula || resumenMatricula.total === 0) {
+                $contenedor.empty();
+                return;
+            }
+
+            $.ajax({
+                type: 'GET',
+                url: 'reportes_mdl.php?accion=mis_requisitos_matricula&matr_id=' + matr_id,
+                dataType: 'json',
+                success: function (r) {
+                    if (r.status !== 'ok') { $contenedor.empty(); return; }
+
+                    let filas = '';
+                    r.data.forEach(function (req, idx) {
+                        const descripcion = req.reqp_descripcion || '—';
+                        const estadoTexto = req.reqe_estado === 'entregado' ? 'Entregado' : 'Pendiente';
+
+                        // Mismo patrón inline de formateo de fecha ya usado en
+                        // el resto del proyecto (est_ctrl.js) — split ' '/'-'
+                        // y reordenar a dd/mm/aaaa, sin función compartida.
+                        let fechaFmt = '—';
+                        if (req.reqe_fecha) {
+                            const partes = req.reqe_fecha.split(' ')[0].split('-');
+                            fechaFmt = partes[2] + '/' + partes[1] + '/' + partes[0];
+                        }
+
+                        filas += `<tr>
+                            <td>${idx + 1}</td>
+                            <td>${req.reqp_nombre}</td>
+                            <td>${descripcion}</td>
+                            <td>${estadoTexto}</td>
+                            <td>${fechaFmt}</td>
+                        </tr>`;
+                    });
+
+                    $contenedor.html(`
+                        <h6>Requisitos del programa (${resumenMatricula.entregados} de ${resumenMatricula.total} completados)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Requisito</th>
+                                        <th>Descripción</th>
+                                        <th>Estado</th>
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${filas}</tbody>
+                            </table>
+                        </div>
+                    `);
+                }
+            });
+        });
+    }
+
     function cargarProgramas() {
         const data = ES_COORDINADOR ? { estu_id: estudianteActualId } : {};
 
@@ -250,6 +341,7 @@ $(document).ready(function () {
                             <div class="col-md-2"><strong>Períodos realizados:</strong> <span class="periodos-realizados">—</span></div>
                             <div class="col-md-2"><strong>Estado actual:</strong> ${badgeEstadoAcademico(matr.matr_estado_academico)}</div>
                         </div>
+                        <div class="requisitos-programa-container mb-3"></div>
                         <div class="row g-2 align-items-end mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Período</label>
@@ -269,7 +361,45 @@ $(document).ready(function () {
                 // se carga de una vez, sin esperar shown.bs.tab (que solo
                 // dispara al CAMBIAR de pestaña, nunca en el estado inicial).
                 const primerMatrId = r.data[0].matr_id;
-                cargarPeriodos(primerMatrId, $content.find('.tab-pane').first());
+                const $primerPane = $content.find('.tab-pane').first();
+                cargarPeriodos(primerMatrId, $primerPane);
+                cargarDetalleRequisitosPestana(primerMatrId, $primerPane.find('.requisitos-programa-container'));
+            }
+        });
+    }
+
+    // Barra global roja/verde con el conteo de requisitos pendientes —
+    // exclusiva del Estudiante (el HTML de #barra_requisitos_pendientes solo
+    // existe en el DOM cuando !$es_coordinador, ver reportes_view.php).
+    // Independiente de cargarProgramas() — no depende de qué pestaña de
+    // programa esté activa, por eso se llama en paralelo, no encadenada.
+    function cargarResumenRequisitosEstudiante() {
+        resumenRequisitosPromise = $.ajax({
+            type: 'GET',
+            url: 'reportes_mdl.php?accion=resumen_requisitos_estudiante',
+            dataType: 'json',
+            success: function (r) {
+                if (r.status !== 'ok') return;
+
+                porMatriculaRequisitos = r.data.por_matricula;
+
+                const total = r.data.total_global;
+                if (total === 0) {
+                    $('#barra_requisitos_pendientes').addClass('d-none');
+                    return;
+                }
+
+                const entregados = r.data.entregados_global;
+                const pendientes = total - entregados;
+
+                const $barra = $('#barra_requisitos_pendientes').removeClass('d-none alert-success alert-danger');
+                if (pendientes === 0) {
+                    $barra.addClass('alert alert-success')
+                        .text(`✅ Tienes todos tus requisitos completos (${total}/${total}).`);
+                } else {
+                    $barra.addClass('alert alert-danger')
+                        .text(`⚠️ Tienes ${pendientes} de ${total} requisitos pendientes por entregar.`);
+                }
             }
         });
     }
@@ -448,8 +578,13 @@ $(document).ready(function () {
 
     $(document).on('shown.bs.tab', '#tabsProgramas button[data-bs-toggle="tab"]', function () {
         const $pane = $($(this).data('bs-target'));
+        const matrId = $pane.data('matrId');
         if (!$pane.data('periodosLoaded')) {
-            cargarPeriodos($pane.data('matrId'), $pane);
+            cargarPeriodos(matrId, $pane);
+        }
+        const $contenedorReq = $pane.find('.requisitos-programa-container');
+        if (!$contenedorReq.data('requisitosLoaded')) {
+            cargarDetalleRequisitosPestana(matrId, $contenedorReq);
         }
     });
 
@@ -536,8 +671,11 @@ $(document).ready(function () {
 
     } else {
         // Estudiante (role 4): el estu_id ya se resolvió en sesión — pasa
-        // directo al reporte, sin buscador.
+        // directo al reporte, sin buscador. cargarResumenRequisitosEstudiante()
+        // es independiente de cargarProgramas() — no depende de ninguna
+        // pestaña de programa, corre en paralelo, no encadenada.
         cargarProgramas();
+        cargarResumenRequisitosEstudiante();
     }
 
 });
