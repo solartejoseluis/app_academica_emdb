@@ -4,6 +4,58 @@
 
 ---
 
+## [caa3cff] — 2026-09-03 — feat: dropdown + modal (estructura) para requisitos por matrícula
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Nuevo modal `#mdl_requisitos_matricula` (`est_view.php`, `modal-lg`
+  — va a contener una tabla), mismo estilo Bootstrap 5 que los demás
+  modales del archivo: título estático `#mdl_requisitos_matricula_titulo`
+  ("Requisitos del estudiante", se completará dinámicamente con el
+  nombre del estudiante en la Etapa 2.12.F3), hidden `#npt_matr_id_requisitos`,
+  bloque `#bloque_sin_requisitos_matricula` (mensaje cuando el programa
+  no tiene catálogo), tabla `#tbl_requisitos_matricula` (columnas #,
+  Requisito, Descripción, Estado, Fecha) y `#txt_progreso_requisitos_matricula`
+  en el footer para el mensaje "x de y completados". Estructura completa,
+  sin datos todavía.
+- Nuevo ítem "📋 Requisitos" en el dropdown de Acciones de
+  `crearColumnasMatriculados()` (`est_ctrl.js`), insertado entre
+  "📝 Datos Estudiante" y "🔗 Generar link actualizar datos" — posición
+  confirmada por un diagnóstico previo de solo lectura del orden real
+  del dropdown (fijos: Datos Estudiante, Matrícula, Hoja de Matrícula,
+  Matricular en otro programa; condicionales a `esPeriodoActual`:
+  Generar link actualizar datos, Matricular al sgte. sem.), antes de
+  decidir dónde insertarlo.
+- Nueva función global `abrirRequisitosMatricula(matr_id)` (fuera de
+  `$(document).ready`, patrón obligatorio del proyecto para `onclick`
+  inline de filas dinámicas) — en esta sub-entrega solo fija
+  `#npt_matr_id_requisitos` y abre el modal
+  (`new bootstrap.Modal(...).show()`), sin ninguna llamada AJAX
+  todavía.
+- Verificado con Playwright headless en ambas tablas
+  (`tbl_matriculados_actual`/`tbl_matriculados_anteriores`): el ítem
+  "📋 Requisitos" aparece en el 100% de las filas de ambas páginas (10/10
+  y 1/1 en los datasets probados); el modal abre correctamente con el
+  `matr_id` esperado fijado en el hidden y el título estático, sin
+  ningún `pageerror` (solo los errores de CORS del CDN `i18n` ya
+  conocidos en este entorno, ajenos al cambio); se cierra correctamente
+  tanto con el botón "Cerrar" como con la X, en ambas tablas.
+- Etapa 2.12.F2 (de 4 sub-entregas de la Etapa 2.12.F) del roadmap
+  "Gestión de requisitos de estudiantes".
+
+### Decisiones
+- "Requisitos" es el único ítem del dropdown de esta columna que NO es
+  condicional — a diferencia de "Generar link actualizar datos" o
+  "Matricular al sgte. sem." (ambos exclusivos de `esPeriodoActual`),
+  aparece siempre, tanto en Per. Actual como en Per. Anteriores: un
+  coordinador puede necesitar revisar o completar los requisitos de una
+  matrícula de un período ya finalizado, no solo del período en curso.
+
+---
+
 ## [8450a24] — 2026-09-03 — feat: columna "Requisitos" de solo lectura en tablaMatriculados
 
 ### Archivos modificados
