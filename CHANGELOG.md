@@ -4,6 +4,91 @@
 
 ---
 
+## [ef295f7] — 2026-09-04 — feat: frontend de gestión de claves (case 'gestionar_clave'), cierra Phase 2.13
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Nuevo ítem **"🔑 Gestionar claves"** en el dropdown de Acciones de
+  `tablaMatriculados` (`crearColumnasMatriculados()`), colocado justo
+  después de "📝 Datos Estudiante". A diferencia de
+  `itemAvanzarSemestre`/`itemActualizacionDatos` (condicionados a
+  `esPeriodoActual`), este ítem **siempre está habilitado**, en ambas
+  pestañas — Per. Actual y Per. Anteriores — porque gestionar el
+  acceso de un estudiante no depende de si su matrícula corresponde
+  al período en curso.
+- Nuevo modal `#mdl_gestionar_claves` en `est_view.php`, con la misma
+  estructura de 3 radios (automática/manual/no crear) que
+  `#mdl_matricular` para la rama sin acceso, y 2 radios
+  (automática/manual, sin "no crear") para la rama con acceso — ambos
+  bloques comparten el mismo `name="tipo_gestionar_clave"` en sus
+  radios porque nunca están visibles a la vez.
+- Nueva función global `abrirGestionarClaves(estu_id, nombreCompleto)`
+  — abre el modal **de inmediato**, antes de que resuelva el AJAX
+  (mismo criterio ya usado en `abrirRequisitosMatricula()`, no el de
+  `abrirEditarMatricula()`/`abrirAvanzarSemestre()` que esperan datos
+  ya disponibles en la fila). Dispara `accion=obtener_completo` y, en
+  el `success`, decide qué bloque mostrar según `d.usua_id`: si es
+  `null`/falsy, bloque "Crear acceso al sistema" con los 3 radios y
+  título "Crear acceso al sistema"; si no, bloque "Cambiar clave de
+  acceso" con los 2 radios, título "Cambiar clave de acceso" y el
+  correo actual (`d.estu_email`) mostrado como referencia.
+- Handler de radio `tipo_gestionar_clave` (mismo patrón que
+  `tipo_acceso`/`tipo_clave_estudiante`): muestra el campo de clave
+  manual solo si el radio marcado es `value="manual"`.
+- `btn_confirmar_gestionar_claves`: valida clave manual no vacía (igual
+  que `btn_confirmar_matricula`), hace `POST` a `accion=gestionar_clave`
+  con `estu_id`/`tipo_clave`/`clave_manual`. Si `response.clave_generada`
+  viene en la respuesta, muestra el mismo bloque verde persistente que
+  `#mdl_matricular` (`#div_gestionar_clave_generada`) con el email y la
+  clave, oculta "Confirmar" y muestra "Cerrar y actualizar lista" — el
+  modal **no se cierra solo** para que el coordinador pueda copiar la
+  clave con calma. Si no viene `clave_generada` (el no-op de "no crear
+  acceso" sobre un estudiante sin `usua_id`), cierra el modal
+  directamente **sin recargar ninguna tabla** — no hubo cambio real
+  que reflejar.
+- `btn_cerrar_gestionar_claves`: cierra el modal y recarga
+  `tablaMatriculadosActual`/`tablaMatriculadosAnteriores` — mismo
+  patrón inline exacto que `btn_cerrar_matricula` ya usa para esas
+  mismas dos tablas (confirmado que no existe ninguna función
+  compartida de recarga en el archivo antes de replicar el patrón —
+  las 20 llamadas a `.ajax.reload()` sobre estas tablas están todas
+  inline, consistente con el estilo ya establecido).
+- Reset completo del modal (ambos bloques ocultos, radios limpios con
+  `#radio_gestionar_no` marcado por defecto, campo de clave manual
+  vacío, bloque de éxito oculto, botones en su estado inicial) ocurre
+  al **abrir** (`abrirGestionarClaves()`), no vía `hidden.bs.modal` —
+  mismo criterio ya usado en `abrirAvanzarSemestre()`/
+  `abrirRequisitosMatricula()`, los dos modales más recientes del
+  dropdown, ninguno de los cuales tiene un handler de cierre dedicado.
+- Verificado en navegador por Jose Luis, 13/13 pasos: ítem visible en
+  el dropdown en ambas pestañas de Matriculados, apertura inmediata
+  del modal, 3 radios para un estudiante sin acceso, creación
+  automática con bloque de éxito persistente, reapertura del mismo
+  estudiante mostrando ahora "Cambiar clave de acceso" con el correo
+  ya creado, cambio de clave manual, no-op de "no crear acceso" cierra
+  sin recargar tablas, cancelar sin seleccionar nada no deja estado
+  arrastrado en la siguiente apertura, recarga correcta de la tabla
+  tras "Cerrar y actualizar lista", sin errores en consola.
+- **Cierra Phase 2.13 por completo** (2.13.A backend en `183e9b1` +
+  2.13.B frontend en este commit) — el vacío entre `'matricular'` y
+  `'guardar_completo'` documentado en la Fase A queda resuelto de
+  punta a punta, con punto de entrada real desde la interfaz.
+
+### Decisiones
+- El modal no tiene handler `hidden.bs.modal` — el reset se hace al
+  abrir, no al cerrar, replicando el criterio ya establecido por los
+  dos modales más recientes del dropdown (`#mdl_avanzar_semestre`,
+  `#mdl_requisitos_matricula`) en vez de introducir un tercer patrón
+  de reset distinto en el mismo módulo.
+- `est_mdl.php` no se tocó en este commit — el backend (`183e9b1`) ya
+  estaba completo y verificado con 10/10 casos vía `curl`; esta fase
+  fue estrictamente de frontend.
+
+---
+
 ## [183e9b1] — 2026-09-04 — feat: backend de gestión de claves (case 'gestionar_clave')
 
 ### Archivos modificados

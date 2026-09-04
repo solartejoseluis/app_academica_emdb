@@ -1513,7 +1513,7 @@ solo lectura, una barra de pendientes y el detalle por programa desde
 y Playwright headless para los flujos de UI, sin dejar ningún dato de
 prueba en la base de datos de desarrollo.
 
-### Phase 2.13 — Gestión de claves de estudiantes fuera del flujo de matrícula (2 fases, en curso)
+### Phase 2.13 — Gestión de claves de estudiantes fuera del flujo de matrícula (2 fases, cerrada)
 
 > Objetivo: cubrir el vacío entre `'matricular'` (solo crea acceso al
 > completar una matrícula, y solo si el estudiante todavía no tiene
@@ -1527,7 +1527,7 @@ prueba en la base de datos de desarrollo.
 | Ítem | Descripción | Estado |
 |---|---|---|
 | 2.13.A | Backend — nuevo `case 'gestionar_clave'` en `est_mdl.php`, con rama sin `usua_id` (crear acceso, replica `'matricular'`) y rama con `usua_id` (cambiar clave, replica `'guardar_completo'`); reutiliza `generarClaveAuto()` sin cambios; guards idénticos a `'matricular'`; verificado 10/10 casos vía `curl` contra Docker vivo, datos de prueba revertidos sin dejar rastro | ✅ 2026-09-04 (commit `183e9b1`) |
-| 2.13.B | Frontend — ítem nuevo "🔑 Gestionar claves" en el dropdown de Acciones de `tablaMatriculados` (`02_estudiantes`) + modal `#mdl_gestionar_claves`, siguiendo el mismo patrón ya usado para `#mdl_avanzar_semestre`/`#mdl_requisitos_matricula` | ⬜ |
+| 2.13.B | Frontend — ítem nuevo "🔑 Gestionar claves" en el dropdown de Acciones de `tablaMatriculados` (`02_estudiantes`) + modal `#mdl_gestionar_claves`, siguiendo el mismo patrón ya usado para `#mdl_avanzar_semestre`/`#mdl_requisitos_matricula` | ✅ 2026-09-04 (commit `ef295f7`) |
 
 ### Phase 3 — Validación TRL5
 
