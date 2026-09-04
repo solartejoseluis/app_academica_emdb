@@ -1137,7 +1137,7 @@ function crearColumnasMatriculados(esPeriodoActual) {
         },
         {
             data: 'fechanacimiento',
-            width: '100px',
+            width: '85px',
             render: function (data) {
                 if (!data) return '—';
 
@@ -1205,10 +1205,10 @@ function crearColumnasMatriculados(esPeriodoActual) {
             }
         },
         { data: 'coho_codigo', render: v => v || '—' },
-        { data: 'prog_sigla', width: '70px' },
+        { data: 'prog_sigla', width: '85px' },
         {
             data: null,
-            width: '60px',
+            width: '50px',
             render: function (data, type, row) {
                 if (row.matr_semestre == null || row.prog_duracion_semestres == null) return '—';
                 const texto = `${row.matr_semestre}/${row.prog_duracion_semestres}`;
