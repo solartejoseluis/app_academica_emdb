@@ -1316,7 +1316,7 @@ function crearColumnasMatriculados(esPeriodoActual) {
                                     </button>
                                 </li>
                                 <li>
-                                    <button class="dropdown-item" type="button" onclick="abrirRequisitosMatricula(${row.matr_id})">📋 Requisitos</button>
+                                    <button class="dropdown-item" type="button" onclick="abrirRequisitosMatricula(${row.matr_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">📋 Requisitos</button>
                                 </li>
                                 ${itemActualizacionDatos}
                                 <li>
@@ -1445,12 +1445,73 @@ function abrirActualizacionDatos(estu_id) {
 
 // Abre el modal de requisitos de una matrícula puntual (ítem "📋 Requisitos"
 // del dropdown de Acciones, disponible en ambas pestañas — Per. Actual y
-// Per. Anteriores, sin condición). Etapa 2.12.F2: solo fija el matr_id y
-// abre el modal — el listado (AJAX a listar_requisitos_matricula) y el
-// wiring del guardado se conectan en las Etapas 2.12.F3/F4.
-function abrirRequisitosMatricula(matr_id) {
+// Per. Anteriores, sin condición). Etapa 2.12.F3: ya carga el listado real
+// (cargarRequisitosMatricula()) — el wiring del guardado por fila
+// (handler change de .select-estado-requisito) se conecta en la Etapa 2.12.F4.
+function abrirRequisitosMatricula(matr_id, nombreEstudiante) {
+    $('#mdl_requisitos_matricula_titulo').text('Requisitos del estudiante: ' + nombreEstudiante);
     $('#npt_matr_id_requisitos').val(matr_id);
     new bootstrap.Modal(document.getElementById('mdl_requisitos_matricula')).show();
+    cargarRequisitosMatricula(matr_id);
+}
+
+// Global — llamada desde abrirRequisitosMatricula(). Puebla la tabla del
+// modal con los requisitos de la matrícula (listar_requisitos_matricula,
+// Etapa 2.12.D). Los <select> de estado quedan visualmente funcionales
+// pero sin persistir ningún cambio todavía — eso es la Etapa 2.12.F4.
+function cargarRequisitosMatricula(matr_id) {
+    $.ajax({
+        type: 'GET',
+        url: 'est_mdl.php?accion=listar_requisitos_matricula&matr_id=' + matr_id,
+        dataType: 'json',
+        success: function (response) {
+            if (response.status !== 'ok') {
+                alert('Error: ' + response.message);
+                return;
+            }
+
+            if (response.data.length === 0) {
+                $('#bloque_sin_requisitos_matricula').removeClass('d-none');
+                $('#tbl_requisitos_matricula').addClass('d-none');
+                $('#txt_progreso_requisitos_matricula').text('');
+                return;
+            }
+
+            $('#bloque_sin_requisitos_matricula').addClass('d-none');
+            $('#tbl_requisitos_matricula').removeClass('d-none');
+
+            const $tbody = $('#tbl_requisitos_matricula tbody').empty();
+            response.data.forEach(function (r, idx) {
+                const descripcion = r.reqp_descripcion || '—';
+
+                // Mismo patrón inline ya usado en cargarTablaRequisitosPrograma()
+                // y en la columna "Requisitos" de listar_matriculados — split
+                // ' '/'-' y reordenar a dd/mm/aaaa, sin función compartida.
+                let fechaFmt = '—';
+                if (r.reqe_fecha) {
+                    const partes = r.reqe_fecha.split(' ')[0].split('-');
+                    fechaFmt = partes[2] + '/' + partes[1] + '/' + partes[0];
+                }
+
+                $tbody.append(`<tr>
+                    <td>${idx + 1}</td>
+                    <td>${r.reqp_nombre}</td>
+                    <td>${descripcion}</td>
+                    <td>
+                        <select class="form-select form-select-sm select-estado-requisito" data-reqe-id="${r.reqe_id}">
+                            <option value="pendiente" ${r.reqe_estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="entregado" ${r.reqe_estado === 'entregado' ? 'selected' : ''}>Entregado</option>
+                        </select>
+                    </td>
+                    <td class="celda-fecha-requisito">${fechaFmt}</td>
+                </tr>`);
+            });
+
+            const total = response.data.length;
+            const entregados = response.data.filter(function (r) { return r.reqe_estado === 'entregado'; }).length;
+            $('#txt_progreso_requisitos_matricula').text(`${entregados} de ${total} requisitos completados`);
+        }
+    });
 }
 
 // Carga el estudiante (valores vigentes) + la solicitud 'recibido' y llama a
