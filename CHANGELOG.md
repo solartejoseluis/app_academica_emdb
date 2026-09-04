@@ -4,6 +4,98 @@
 
 ---
 
+## [f3c0ca4] — 2026-09-03 — feat: ficha "Configurar Requisitos" para Admin
+
+### Archivos modificados
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Nueva pestaña "Configurar Requisitos" en `est_view.php`, visible
+  **solo** si `(int)$_SESSION['role_id'] === 1` (Admin) — primer
+  condicional inline del proyecto que usa un único rol en vez del
+  `in_array([1, 2])` ya repetido en el resto del archivo, replicando la
+  misma forma sobre un conjunto de roles reducido a uno. Contenido:
+  select `#slct_prog_config_requisitos`, botón "➕ Agregar Requisito"
+  (deshabilitado hasta elegir programa), bloque de mensaje
+  `#bloque_sin_programa` y tabla `#tbl_requisitos_programa` (columnas
+  #, Requisito, Descripción, Actualizado, Acciones). Nuevo modal
+  `#mdl_requisito_programa` (formulario de 2 campos: nombre y
+  descripción, más 2 hidden `npt_reqp_id`/`npt_reqp_prog_id_modal`),
+  mismo estilo Bootstrap 5 que los demás modales del archivo.
+- `case 'listar_programas'` (`est_mdl.php`) agrega `prog_activo` al
+  `SELECT` existente — cambio puramente aditivo, sin `WHERE` nuevo ni
+  columnas quitadas; verificado con `curl` que el resto de columnas
+  (`prog_id`, `prog_nombre`, `prog_sigla`, `prog_duracion_semestres`)
+  no cambió para ningún consumidor existente del endpoint.
+- JS completo en `est_ctrl.js`:
+  - `cargarProgramasConfigRequisitos()`: puebla el select con su propia
+    llamada a `listar_programas`, filtrando client-side por
+    `p.prog_activo == 1` (mismo criterio `==` no estricto ya usado en
+    el archivo, ej. `reqp_activo == 1`).
+  - `cargarTablaRequisitosPrograma(prog_id)`: puebla la tabla desde
+    `listar_requisitos_programa`; requisitos inactivos se renderizan
+    con `<tr class="table-secondary text-muted">`, badge "Inactivo" y
+    botón "♻️ Reactivar" en vez de los botones ✏️/🗑️.
+  - 3 funciones globales (fuera de `$(document).ready`, patrón
+    obligatorio del proyecto para `onclick` inline de filas
+    dinámicas): `abrirEditarRequisitoPrograma()` (precarga desde
+    `ultimoListadoRequisitosPrograma`, sin llamada AJAX extra),
+    `desactivarRequisitoPrograma()` (con `confirm()` nativo) y
+    `reactivarRequisitoPrograma()` (sin `confirm()` — no destructiva).
+  - Wiring de Agregar/Editar: `#btn_agregar_requisito` limpia el modal
+    y lo abre en modo creación (usa `data-prog-id` del propio botón,
+    fijado por el `change` del select);
+    `#btn_guardar_requisito_programa` decide `crear_requisito_programa`
+    vs. `editar_requisito_programa` según si `#npt_reqp_id` trae valor,
+    con validación mínima de nombre no vacío (`is-invalid`, mismo
+    patrón que `marcarValidacion()`).
+  - Listener `hidden.bs.modal` nuevo sobre `#mdl_requisito_programa`
+    (no existía ninguno antes) para resetear el formulario al cerrarse
+    por X/Cancelar sin haber guardado — mismo patrón ya usado en
+    `#mdl_matricular`.
+- No se usó SweetAlert — confirmado por diagnóstico previo que el
+  proyecto no lo tiene integrado en ningún archivo; todo el flujo usa
+  `alert()`/`confirm()` nativos, consistente con el resto del código.
+- Verificado en 3 niveles: `curl` para los flujos de creación y edición
+  del catálogo (payload simulado, confirmado con `listar_requisitos_programa`
+  antes/después); Playwright headless (instalado puntualmente en esta
+  sesión, sin quedar integrado como dependencia del proyecto) para
+  confirmar visualmente que el select de la nueva pestaña solo lista
+  programas activos, mediante la desactivación reversible de un
+  programa real y su reactivación inmediata al terminar; y en
+  navegador por Jose Luis, el ciclo completo agregar → editar →
+  desactivar → reactivar → matricular un estudiante con esos
+  requisitos ya asignados.
+- Etapa 2.12.E (de 10) del roadmap "Gestión de requisitos de
+  estudiantes" — con esta etapa el Admin ya puede configurar el
+  catálogo de punta a punta desde la UI.
+
+### Decisiones
+- No se reutilizó `cargarProgramas()` para poblar el nuevo select —
+  esa función no expone su respuesta AJAX fuera de su propio `success`,
+  así que reutilizarla habría exigido reestructurar una función
+  existente y estable, fuera del alcance de esta etapa. Se optó por
+  una segunda función (`cargarProgramasConfigRequisitos()`) con su
+  propia llamada al mismo endpoint `listar_programas`.
+- `listar_programas` gana `prog_activo` como columna aditiva en vez de
+  agregar un `WHERE prog_activo = 1` directo en el backend — es un
+  endpoint compartido con el flujo de matrícula (`#slct_prog_id`,
+  `#slct_editar_prog_id`, filtros de `tablaMatriculados`), y filtrar
+  ahí habría sido un cambio de comportamiento no verificado para esos
+  otros consumidores. El filtro se aplicó únicamente client-side, en
+  la función nueva.
+- `eliminar_requisito_programa` sigue siendo borrado lógico
+  exclusivamente — no existe ni existirá un botón de borrado físico en
+  esta UI; es una decisión ya tomada en la Etapa 2.12.B por el FK
+  `RESTRICT` de `requisitos_estudiante` hacia `requisitos_programa`.
+  Cualquier limpieza de datos de prueba que requiera borrado físico
+  real se hace por SQL directo, fuera de la aplicación, como ya ocurrió
+  en esta misma etapa.
+
+---
+
 ## [350c614] — 2026-09-03 — feat: backend Coordinador para checklist de requisitos por matrícula
 
 ### Archivos modificados
