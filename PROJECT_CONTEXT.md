@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-03
-> Versión: 91 — reemplaza la columna "Correo" de `tablaMatriculados` por una columna "Información" (commit `ca744d0`) y corrige un bug de filas duplicadas en esa misma tabla (commit `7052723`), ambos del `02_estudiantes` en el mismo ciclo de sesión. El primero, a pedido explícito de Jose Luis, traslada los 3 badges (🎓 N programas, 🔔 Link enviado/Pendiente aprobación, ✅ Actualizado [fecha]) que antes vivían pegados al nombre del estudiante a una columna dedicada sin campo propio en BD (`data: null` con `render()`), dejando `estu_apellidos` simplificado sin `render`; el correo (`estu_email`) deja de mostrarse en este listado pero sigue disponible sin cambios en la ficha del estudiante (`obtener_completo`) — decisión consciente de que ya no aporta valor en la vista de listado. El segundo resuelve un bug reportado por Jose Luis (con 50 registros por página, la fila #1 aparecía idéntica a la fila #17), diagnosticado en varias rondas de solo lectura antes de tocar código: se descartó el backend por completo — el SQL de `listar_matriculados` (`est_mdl.php`) se verificó contra Docker vivo sin ningún JOIN 1:N indebido y sin duplicados en ningún escenario probado — y se confirmó con la pestaña Network del navegador que `est_view.php` disparaba 4 peticiones a `listar_matriculados` en vez de las 2 esperadas (una por tabla); la causa raíz resultó ser una condición de carrera en `est_ctrl.js`: `cargarTablas()` construía `tablaMatriculadosActual`/`tablaMatriculadosAnteriores` en el mismo tick en que `periodoActivoId` todavía era `null`, disparando un auto-load prematuro de ambas tablas que competía con el `.ajax.reload(null, false)` que `cargarPeriodos()` volvía a lanzar una vez resuelto el período — la superposición entre ambas rondas de respuestas hacía que DataTables sumara filas en vez de reemplazarlas. La corrección separó la construcción de esas 2 tablas a una nueva función `cargarTablasMatriculados()`, invocada una sola vez desde el `success` de `cargarPeriodos()` (reemplazando las 2 llamadas previas a `.ajax.reload()`), dejando `cargarTablas()` solo a cargo de `tablaAspirantes` (independiente del período). Verificado en navegador: 2 peticiones en vez de 4, sin filas repetidas, filtros y badges de "Información" funcionando correctamente.
+> Versión: 92 — reemplaza las 9 columnas `req_*` fijas de `matriculas` (`req_copiadiploma`, `req_actagrado`, `req_documento`, `req_carnetsalud`, `req_examenmedico`, `req_fotos`, `req_carpeta`, `req_vacunastetano`, `req_hepatitisb`) por un esquema configurable de 2 tablas nuevas (commit `ea03618`, DDL + retiro coordinado del flujo legacy en `02_estudiantes` en el mismo commit): `requisitos_programa` (catálogo por programa, prefijo `reqp_`, con borrado lógico vía `reqp_activo`) y `requisitos_estudiante` (estado `'pendiente'`/`'entregado'` por matrícula, prefijo `reqe_`, ancla en `matr_id` — no en `estu_id` — con FK a `reqp_id` y `UNIQUE(matr_id, reqp_id)`, para que un estudiante con 2+ matrículas activas en programas distintos conserve un set de requisitos independiente por cada una). Retirado en el mismo ciclo el flujo legacy en los 3 archivos de `02_estudiantes`: `case 'matricular'` (`est_mdl.php`) ya no lee ni escribe ninguna de las 9 columnas, el modal `#mdl_matricular` (`est_view.php`) pierde el bloque "Requisitos entregados" (9 checkboxes) sin ningún reemplazo todavía, y `btn_confirmar_matricula` (`est_ctrl.js`) ya no las recolecta en el payload AJAX. Un diagnóstico previo de solo lectura confirmó que las 9 columnas legacy estaban aisladas por completo al flujo de matriculación inicial, sin ningún lector en listados, reportes, PDFs, vistas, índices ni procedimientos almacenados del proyecto — se eliminaron sin migrar su historial, decisión explícita de Jose Luis. Etapa 2.12.A+A2 (de 10) del roadmap "Gestión de requisitos de estudiantes"; el catálogo CRUD para el Admin y la UI de checklist por matrícula en `tablaMatriculados` quedan pendientes en etapas posteriores.
 
 ---
 
@@ -156,7 +156,7 @@ app_academica_emdb/
 
 ---
 
-## Tablas de la BD (15 tablas — todas creadas)
+## Tablas de la BD (17 tablas — todas creadas)
 
 ```
 1.  roles              — role_id, role_nombre
@@ -174,6 +174,8 @@ app_academica_emdb/
 13. calificaciones     — cali_id, grmo_id(FK), estu_id(FK), N1-N4, sup_N1/N2/N4, cali_nota_final, cali_habilitacion, cali_definitiva
 14. horariosgrupo      — hora_id, grse_id(FK), hora_diasemana, hora_horainicio
 15. fichas_inscripcion — finc_id, estu_id(FK), datos familiares (padre/madre/acudiente), estudios anteriores, código temporal
+16. requisitos_programa   — reqp_id, prog_id(FK), reqp_nombre, reqp_descripcion, reqp_activo
+17. requisitos_estudiante — reqe_id, matr_id(FK), reqp_id(FK), reqe_estado, reqe_fecha  [UNIQUE(matr_id, reqp_id)]
 ```
 
 Seeds cargados: 4 roles, 2 programas, 3 períodos, 36 módulos (17 ASO + 19 MD), 1 usuario admin.

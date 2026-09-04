@@ -4,6 +4,71 @@
 
 ---
 
+## [ea03618] — 2026-09-03 — refactor: reemplazar 9 columnas req_* fijas por esquema configurable de requisitos
+
+### Archivos modificados
+- database/emdb_academica.sql
+- app/02_estudiantes/est_mdl.php
+- app/02_estudiantes/est_view.php
+- app/02_estudiantes/est_ctrl.js
+
+### Cambios
+- Elimina de `matriculas` (`database/emdb_academica.sql`) las 9 columnas
+  `TINYINT(1)` `req_copiadiploma`, `req_actagrado`, `req_documento`,
+  `req_carnetsalud`, `req_examenmedico`, `req_fotos`, `req_carpeta`,
+  `req_vacunastetano`, `req_hepatitisb`, que hasta ahora vivían fijas en la
+  tabla y solo se diligenciaban desde el propio flujo de matriculación.
+- Crea `requisitos_programa` (catálogo configurable por programa, prefijo
+  `reqp_`): `reqp_id`, `prog_id` (FK a `programas`, `ON DELETE RESTRICT`),
+  `reqp_nombre`, `reqp_descripcion`, `reqp_activo` (borrado lógico, default
+  `1`), `reqp_fecha_actualizacion`. Insertada inmediatamente después de
+  `programas` en el DDL.
+- Crea `requisitos_estudiante` (estado de cada requisito por matrícula,
+  prefijo `reqe_`): `reqe_id`, `matr_id` (FK a `matriculas`, `ON DELETE
+  CASCADE`), `reqp_id` (FK a `requisitos_programa`, `ON DELETE RESTRICT`),
+  `reqe_estado` (`ENUM('pendiente','entregado')`, default `'pendiente'`),
+  `reqe_fecha`, `reqe_fecha_actualizacion`, con `UNIQUE KEY (matr_id,
+  reqp_id)` — un requisito del catálogo solo puede tener una fila de estado
+  por matrícula. Insertada inmediatamente después de `matriculas` en el
+  DDL.
+- Actualiza el comentario final `-- Tablas creadas` de 19 a 21.
+- Retira el flujo legacy en los 3 archivos de `02_estudiantes`, coordinado
+  en el mismo commit que el cambio de esquema: `case 'matricular'`
+  (`est_mdl.php`) ya no arma el array `$req` desde `$_POST` ni referencia
+  ninguna de las 9 columnas en los `UPDATE`/`INSERT` de `matriculas` (sin
+  tocar ninguna otra validación o columna de esa `case`); el modal
+  `#mdl_matricular` (`est_view.php`) pierde el `<h6>` "Requisitos
+  entregados" y los 9 checkboxes, sin ningún reemplazo todavía — el modal
+  pasa directo de Programa/Cohorte/Semestre/Jornada/Período a "Datos de
+  matrícula"; el handler `btn_confirmar_matricula` (`est_ctrl.js`) ya no
+  recolecta esos 9 checkboxes al armar el payload AJAX.
+- Etapa 2.12.A+A2 (de 10) del roadmap "Gestión de requisitos de
+  estudiantes" — el resto de las etapas (catálogo CRUD para el Admin, UI de
+  checklist por matrícula en `tablaMatriculados`, indicador visual, etc.)
+  queda pendiente.
+
+### Decisiones
+- Se optó por eliminar las 9 columnas legacy sin migrar su historial —
+  decisión explícita de Jose Luis — tras confirmar mediante un diagnóstico
+  previo de solo lectura que estaban aisladas por completo al flujo de
+  matriculación inicial: sin ningún lector en otros listados, reportes,
+  PDFs, vistas, índices ni procedimientos almacenados del proyecto (el
+  proyecto no usa procedimientos almacenados ni triggers desde el commit
+  `304127b`).
+- `requisitos_estudiante` se ancla a `matr_id`, no a `estu_id`, para
+  soportar correctamente el caso ya vigente en el esquema de un estudiante
+  con 2+ matrículas activas en programas distintos (ver "Matrícula a un
+  segundo programa requiere un flujo explícito..." en CLAUDE.md) — cada
+  matrícula conserva su propio set de requisitos, independiente de
+  cualquier otra matrícula del mismo estudiante.
+- `reqp_id` se referencia por FK en `requisitos_estudiante` en vez de
+  copiar `reqp_nombre`/`reqp_descripcion` en cada fila — una edición futura
+  del catálogo (ej. corregir el nombre de un requisito) se refleja sola en
+  todas las matrículas que lo tengan, sin necesidad de ningún resync
+  manual.
+
+---
+
 ## [7052723] — 2026-09-03 — fix(estudiantes): elimina duplicación de filas en tablaMatriculados por condición de carrera (02_estudiantes)
 
 ### Archivos modificados
