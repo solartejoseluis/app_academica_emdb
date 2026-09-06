@@ -161,7 +161,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                                 <th class="text-center celda-sup">Sup N1</th>
                                 <th class="text-center">N2<br><small class="fw-normal">20%</small></th>
                                 <th class="text-center celda-sup">Sup N2</th>
-                                <th class="text-center">N3<br><small class="fw-normal">20%</small></th>
+                                <th class="text-center">
+                                    <a href="#" data-bs-toggle="modal" data-bs-target="#mdl_registro_n3" class="text-decoration-none text-reset">N3</a>
+                                    <br><small class="fw-normal">20%</small>
+                                </th>
                                 <th class="text-center">N4<br><small class="fw-normal">40%</small></th>
                                 <th class="text-center celda-sup">Sup N4</th>
                                 <th class="text-center">Nota Final</th>
@@ -187,6 +190,78 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- Modal Registro y cálculo de N3 (Fase 2.14.E1 — estructura; JS en E2/E3) -->
+<div class="modal fade" id="mdl_registro_n3" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registro y cálculo de N3</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">
+                    En esta sección el docente recopila las actividades y las
+                    calificaciones que al final son promediadas y equivalen a
+                    la N3 que tiene un peso del 20% en la nota final de cada
+                    estudiante.
+                </p>
+                <div class="mb-3">
+                    <!-- Bootstrap 5.3 no soporta bien un modal-sobre-modal
+                         (el backdrop/scroll del primero queda inconsistente
+                         al cerrar el segundo) — este botón NO usa
+                         data-bs-toggle/target directo. La Fase E2 lo conecta
+                         por JS: cierra este modal y abre #mdl_configurar_actividades_n3. -->
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btn_abrir_configurar_n3">Configurar</button>
+                </div>
+                <div class="table-responsive">
+                    <table id="tbl_registro_n3" class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Estudiante</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Configurar actividades de N3 (Fase 2.14.E1 — estructura; JS en E2) -->
+<div class="modal fade" id="mdl_configurar_actividades_n3" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configurar actividades</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="lista_actividades_n3"></div>
+                <hr>
+                <form id="frm_actividad_n3">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la actividad</label>
+                        <input type="text" class="form-control" id="txt_acn3_nombre" maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Comentarios</label>
+                        <textarea class="form-control" id="txt_acn3_comentario" maxlength="255" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btn_guardar_actividad_n3">Guardar</button>
+            </div>
+        </div>
     </div>
 </div>
 
