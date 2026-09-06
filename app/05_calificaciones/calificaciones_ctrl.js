@@ -238,6 +238,46 @@ $(document).ready(function () {
         `;
     }
 
+    // ── Normalizar valor de nota: coma→punto, entero→.0 (compartida entre
+    //    N1/N2/N4 y los inputs de actividad N3 del modal de registro) ────────
+    function normalizarValorNota(valorCrudo) {
+        let valorNorm = valorCrudo.trim().replace(',', '.');
+        if (valorNorm !== '' && /^\d+$/.test(valorNorm)) {
+            valorNorm = valorNorm + '.0';
+        }
+        return valorNorm;
+    }
+
+    // ── Actualizar badges de Nota Final/Definitiva de una fila (tabla
+    //    principal) — compartida con la actualización que dispara el
+    //    autosave de N3 sobre esa misma fila (ver actualizarCeldaN3EnTablaPrincipal) ──
+    function actualizarNotaFinalYDefinitivaEnFila(fila, notaFinal, definitiva) {
+        const notaFinalTexto = (notaFinal !== null && notaFinal !== undefined) ? notaFinal : '—';
+        const badgeNotaFinal = fila.find('.notafinal-badge');
+        badgeNotaFinal.text(notaFinalTexto);
+        badgeNotaFinal.removeClass('bg-secondary bg-success bg-danger');
+        badgeNotaFinal.addClass(
+            notaFinalTexto !== '—'
+                ? (parseFloat(notaFinalTexto) >= 3.0 ? 'bg-success' : 'bg-danger')
+                : 'bg-secondary'
+        );
+
+        const definitivaTexto = (definitiva !== null && definitiva !== undefined) ? definitiva : '—';
+        const badgeDefinitiva = fila.find('.definitiva-badge');
+        badgeDefinitiva.text(definitivaTexto);
+        badgeDefinitiva.removeClass('bg-secondary bg-success bg-danger');
+        badgeDefinitiva.addClass(
+            definitivaTexto !== '—'
+                ? (parseFloat(definitivaTexto) >= 3.0 ? 'bg-success' : 'bg-danger')
+                : 'bg-secondary'
+        );
+
+        badgeNotaFinal.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
+            .addClass(colorSemaforo(notaFinalTexto));
+        badgeDefinitiva.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
+            .addClass(colorSemaforo(definitivaTexto));
+    }
+
     // ── Autosave on blur ─────────────────────────────────────────────────────
     $(document).on('blur', '.input-nota', function () {
         const input  = $(this);
@@ -246,12 +286,7 @@ $(document).ready(function () {
         const grmo_id = fila.data('grmo');
         const campo  = input.data('campo');
         const valor  = input.val().trim();
-        // Normalizar separador decimal: coma → punto
-        let valorNorm = valor.replace(',', '.');
-        // Si es número entero válido, agregar decimal .0
-        if (valorNorm !== '' && /^\d+$/.test(valorNorm)) {
-            valorNorm = valorNorm + '.0';
-        }
+        const valorNorm = normalizarValorNota(valor);
         input.val(valorNorm);
 
         // Validar que el valor sea numérico (si no está vacío)
@@ -283,46 +318,18 @@ $(document).ready(function () {
                     input.removeClass('guardando').addClass('guardado');
                     input.attr('data-valor-original', valorNorm);
 
-                    // Actualizar Nota Final en tiempo real (maneja null explícitamente)
-                    const notaFinal = r.cali_nota_final;
-                    const notaFinalTexto = (notaFinal !== null && notaFinal !== undefined) ? notaFinal : '—';
-                    const badgeNotaFinal = fila.find('.notafinal-badge');
-                    badgeNotaFinal.text(notaFinalTexto);
-                    badgeNotaFinal.removeClass('bg-secondary bg-success bg-danger');
-                    badgeNotaFinal.addClass(
-                        notaFinalTexto !== '—'
-                            ? (parseFloat(notaFinalTexto) >= 3.0 ? 'bg-success' : 'bg-danger')
-                            : 'bg-secondary'
-                    );
-
-                    // Actualizar Definitiva en tiempo real (maneja null explícitamente)
-                    const definitiva = r.cali_definitiva;
-                    const definitivaTexto = (definitiva !== null && definitiva !== undefined) ? definitiva : '—';
-                    const badgeDefinitiva = fila.find('.definitiva-badge');
-                    badgeDefinitiva.text(definitivaTexto);
-                    badgeDefinitiva.removeClass('bg-secondary bg-success bg-danger');
-                    badgeDefinitiva.addClass(
-                        definitivaTexto !== '—'
-                            ? (parseFloat(definitivaTexto) >= 3.0 ? 'bg-success' : 'bg-danger')
-                            : 'bg-secondary'
-                    );
+                    actualizarNotaFinalYDefinitivaEnFila(fila, r.cali_nota_final, r.cali_definitiva);
 
                     // Actualizar color semáforo del td del input que se acaba de guardar
                     input.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
                         .addClass(colorSemaforo(valorNorm));
-
-                    // Actualizar color semáforo de los td de Nota Final y Definitiva
-                    badgeNotaFinal.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
-                        .addClass(colorSemaforo(notaFinalTexto));
-                    badgeDefinitiva.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
-                        .addClass(colorSemaforo(definitivaTexto));
 
                     // Mostrar/ocultar supletorios según valor guardado
                     actualizarVisibilidadSupletorio(fila, campo, valorNorm);
 
                     // Mostrar/ocultar habilitación según la Nota Final recalculada
                     // (dato leído directamente de la respuesta del servidor, no del DOM)
-                    actualizarVisibilidadHabilitacion(fila, notaFinal);
+                    actualizarVisibilidadHabilitacion(fila, r.cali_nota_final);
 
                     // Quitar clase guardado después de 2 segundos
                     setTimeout(() => input.removeClass('guardado'), 2000);
@@ -373,7 +380,7 @@ $(document).ready(function () {
     }
 
     // ── Guardar valor original al hacer focus ────────────────────────────────
-    $(document).on('focus', '.input-nota', function () {
+    $(document).on('focus', '.input-nota, .input-nota-n3', function () {
         $(this).attr('data-valor-original', $(this).val());
         // Seleccionar todo el texto al entrar al campo
         $(this).select();
@@ -662,7 +669,8 @@ $(document).ready(function () {
 
                 // Clase distinta de .input-nota a propósito: esa clase ya tiene
                 // un handler global de blur -> guardar_nota (N1/N2/N4), que no
-                // aplica aquí. El autosave de estos inputs es la Fase 2.14.E3.2.
+                // aplica aquí — el autosave de estos inputs (más abajo) llama a
+                // guardar_nota_n3 en su lugar.
                 const input = $('<input type="text" class="input-nota-n3 form-control form-control-sm text-center">')
                     .attr('data-acn3-id', act.acn3_id)
                     .attr('data-estu-id', e.estu_id)
@@ -673,10 +681,88 @@ $(document).ready(function () {
             // Mismo criterio que recalcularN3() en PHP: promedio solo si TODAS
             // las actividades de la fila tienen valor; si no, "—".
             const notaFinalTexto = todasCompletas ? (suma / actividades.length).toFixed(1) : '—';
-            tr.append($('<td class="text-center fw-bold"></td>').text(notaFinalTexto));
+            tr.append($('<td class="text-center fw-bold celda-notafinal-n3"></td>').text(notaFinalTexto));
 
             tbody.append(tr);
         });
+    }
+
+    // ── Autosave on blur — notas por actividad N3 (Fase 2.14.E3.2) ───────────
+    $(document).on('blur', '#tbl_registro_n3 .input-nota-n3', function () {
+        const input = $(this);
+        const fila = input.closest('tr');
+        const acn3Id = input.data('acn3-id');
+        const estuId = input.data('estu-id');
+        const valor = input.val().trim();
+        const valorNorm = normalizarValorNota(valor);
+        input.val(valorNorm);
+
+        // Validar numérico y rango (mismo feedback visual que .input-nota:
+        // clase 'error', alert(), limpiar y reenfocar) — nunca hay supletorio
+        // que evaluar aquí, N3 no lo tiene bajo ninguna circunstancia.
+        if (valorNorm !== '' &&
+            (isNaN(parseFloat(valorNorm)) || parseFloat(valorNorm) < 0.0 || parseFloat(valorNorm) > 5.0)) {
+            input.removeClass('guardando').addClass('error');
+            alert('Valor inválido: solo se permiten números (0.0 - 5.0)');
+            input.val('');
+            setTimeout(() => input.trigger('focus'), 50);
+            return;
+        }
+
+        // No guardar si está vacío y no había valor antes
+        if (valor === '' && input.attr('data-valor-original') === '') return;
+
+        input.removeClass('guardado error').addClass('guardando');
+
+        $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=guardar_nota_n3',
+            data: { acn3_id: acn3Id, estu_id: estuId, non3_valor: valorNorm },
+            dataType: 'json',
+            success: function (r) {
+                if (r.status === 'ok') {
+                    input.removeClass('guardando').addClass('guardado');
+                    input.attr('data-valor-original', valorNorm);
+
+                    input.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
+                        .addClass(colorSemaforo(valorNorm));
+
+                    const n3Texto = (r.cali_n3 !== null && r.cali_n3 !== undefined)
+                        ? parseFloat(r.cali_n3).toFixed(1) : '—';
+                    fila.find('.celda-notafinal-n3').text(n3Texto);
+
+                    actualizarCeldaN3EnTablaPrincipal(estuId, r.cali_n3, r.cali_nota_final, r.cali_definitiva);
+
+                    setTimeout(() => input.removeClass('guardado'), 2000);
+                } else {
+                    input.removeClass('guardando').addClass('error');
+                    alert('Error al guardar: ' + r.message);
+                    input.val('');
+                    setTimeout(() => input.trigger('focus'), 50);
+                }
+            },
+            error: function () {
+                input.removeClass('guardando').addClass('error');
+            }
+        });
+    });
+
+    // ── Reflejar cali_n3/Nota Final/Definitiva en la tabla principal (fuera
+    //    del modal) tras un autosave de N3 — reutiliza el mismo mecanismo de
+    //    actualización de celdas que .input-nota (N1/N2/N4). El input N3 de la
+    //    tabla principal sigue siendo editable directamente hasta la Fase
+    //    2.14.F (columna de solo lectura) — no se toca ese comportamiento aquí.
+    function actualizarCeldaN3EnTablaPrincipal(estuId, cali_n3, notaFinal, definitiva) {
+        const filaPrincipal = $(`#tbody_calificaciones tr[data-estu="${estuId}"]`);
+        if (!filaPrincipal.length) return;
+
+        const n3Texto = (cali_n3 !== null && cali_n3 !== undefined) ? cali_n3 : '';
+        const inputN3 = filaPrincipal.find('input[data-campo="cali_n3"]');
+        inputN3.val(n3Texto);
+        inputN3.closest('td').removeClass('semaforo-rojo semaforo-amarillo semaforo-verde')
+            .addClass(colorSemaforo(n3Texto));
+
+        actualizarNotaFinalYDefinitivaEnFila(filaPrincipal, notaFinal, definitiva);
     }
 
 });
