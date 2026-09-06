@@ -1585,6 +1585,15 @@ prueba en la base de datos de desarrollo.
 | 2.14.G | Reglas de eliminación de actividades — bloqueo si tiene notas registradas o es la última actividad activa del `grmo_id` (ver decisión en Fase A) | ⬜ |
 | 2.14.H | Documentación de cierre del roadmap completo | ⬜ |
 
+> **Nota sobre 2.14.E:** internamente dividida en E1/E2/E3 para no
+> saturar la ventana de implementación de un solo commit — la fila de
+> arriba no se marca ✅ hasta que las tres estén completas. E1
+> (estructura HTML de ambos modales, commit `0cbb2cb`) y E2 (JS del
+> modal "Configurar actividades" — CRUD conectado a los 4 endpoints de
+> la Fase B, commit `352a4f1`) ya están cerradas. Resta E3 (tabla
+> dinámica estudiante×actividad con autosave, dentro de
+> `#mdl_registro_n3`).
+
 ### Phase 3 — Validación TRL5
 
 | Ítem | Descripción | Estado |

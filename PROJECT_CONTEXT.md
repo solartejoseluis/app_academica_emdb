@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-05
-> Versión: 109 — Fase 2.14.D del roadmap "N3 configurable por actividades", cierra el backend completo (Fases A-D): cali_n3 ahora se calcula como promedio de notasn3 (recalcularN3()) y se propaga automáticamente a cali_nota_final/cali_definitiva vía recalcularNotaFinalYDefinitiva() (extraída de guardar_nota para reutilización). Fix incidental: esa función ahora siempre persiste el resultado, incluyendo NULL, corrigiendo un bug latente de actualización parcial nunca antes explotado. Restan las Fases E-H, todas de frontend.
+> Versión: 110 — Fases 2.14.E1 y E2 del roadmap "N3 configurable por actividades": estructura HTML de ambos modales (Registro y Configurar actividades) y JS completo del modal Configurar (CRUD conectado a los 4 endpoints de la Fase B, con límites de UX y conexión modal-a-modal sin conflicto de backdrop). Resta la Fase E3 (tabla dinámica estudiante×actividad con autosave) para completar el frontend del modal de registro.
 
 ---
 

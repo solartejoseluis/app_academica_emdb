@@ -4,6 +4,68 @@
 
 ---
 
+## [352a4f1] — 2026-09-05 — feat(calificaciones): JS del modal Configurar actividades N3 — Fase 2.14.E2 (6/8)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_view.php
+- app/05_calificaciones/calificaciones_ctrl.js
+
+### Por qué
+Sexta sub-fase del roadmap "N3 configurable por actividades" (Fase
+2.14). Conecta la estructura HTML de la Fase E1 con los 4 endpoints
+CRUD de la Fase B.
+
+### Cambios
+- `calificaciones_view.php`: campo oculto `#hdn_acn3_id` en
+  `#frm_actividad_n3` (crear y editar comparten el mismo formulario).
+- `calificaciones_ctrl.js`: `cargarActividadesN3()`/
+  `renderizarListaActividadesN3()` (lista con botones Editar/Eliminar),
+  `guardarActividadN3()` (crea o edita según `#hdn_acn3_id`), límites de
+  UX (botón Eliminar deshabilitado en la última actividad, formulario
+  deshabilitado a las 15), conexión modal-a-modal vía `hidden.bs.modal`
+  → `show()` (evita el conflicto de backdrop de Bootstrap 5.3 con
+  modales anidados), `confirm()` nativo para eliminar (mismo patrón que
+  `est_ctrl.js`).
+
+### Pruebas realizadas
+Verificado con Playwright (Chromium) contra `grmo_id=1` real: lista
+vacía inicial, crear/editar/eliminar, botón deshabilitado en última
+actividad, 1 solo `.modal-backdrop` en cada transición sin
+apilamiento. Confirmado que `eliminar_actividad_n3` rechaza el borrado
+de la última actividad incluso bypaseando el botón deshabilitado
+(llamada directa al endpoint) — defensa en profundidad intacta. Sin
+datos de prueba remanentes.
+
+---
+
+## [0cbb2cb] — 2026-09-05 — feat(calificaciones): estructura HTML de modales N3 — Fase 2.14.E1 (5/8)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_view.php
+
+### Por qué
+Quinta sub-fase del roadmap "N3 configurable por actividades" (Fase
+2.14) — primera pieza de frontend, sobre el backend ya completo (Fases
+A-D).
+
+### Cambios
+- Link "N3" en el encabezado de columna, abre `#mdl_registro_n3`.
+- Modal `#mdl_registro_n3` (`modal-xl` scrollable): título, texto
+  explicativo, botón "Configurar", tabla `#tbl_registro_n3` vacía
+  (columnas de actividades se agregan dinámicamente en la Fase E3).
+- Modal `#mdl_configurar_actividades_n3`: lista de actividades,
+  formulario de creación/edición, botón Guardar.
+- Decisión de diseño: el botón "Configurar" no usa
+  `data-bs-toggle`/`target` directo porque Bootstrap 5.3 no soporta de
+  forma confiable un modal-sobre-modal (backdrop/scroll-lock
+  inconsistente al cerrar el anidado) — conectado por JS en la Fase E2.
+
+### Pruebas realizadas
+Sin JS en este commit — verificado únicamente que ambos modales abren
+correctamente en el navegador (confirmado por Jose Luis).
+
+---
+
 ## [24a43c7] — 2026-09-05 — feat(calificaciones): cálculo derivado de N3 + integración con Nota Final — Fase 2.14.D (4/8)
 
 ### Archivos modificados
