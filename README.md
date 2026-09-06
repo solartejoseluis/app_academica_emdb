@@ -96,6 +96,9 @@ app_academica_emdb/
   database/
     emdb_academica.sql — Script DDL completo (16 tablas)
     seeds/             — Datos iniciales de configuración
+    hosting_deploy/    — Backups con datos reales para subir al hosting (fuera de git, ver scripts/)
+  scripts/
+    export_para_hosting.sh — Genera un backup de la BD listo para importar en phpMyAdmin del hosting
   CLAUDE.md
   README.md
   CHANGELOG.md
@@ -275,6 +278,8 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 > **Requisitos documentales configurables por programa:** el Administrador puede configurar, por cada programa, qué documentos se le piden a un estudiante para su proceso (ej. copia de diploma, examen médico, carné de salud) desde una ficha "Configurar Requisitos" en la vista de Estudiantes — cada requisito tiene un nombre y una descripción, y puede desactivarse temporalmente sin perder el historial de lo que ya se le pidió a un estudiante en el pasado. Al matricular a un estudiante nuevo, el sistema le asigna automáticamente como pendientes todos los requisitos activos del programa correspondiente, sin intervención manual. El coordinador ve, en el propio listado de Matriculados, cuántos requisitos lleva entregados cada estudiante (ej. "3/10") y puede marcarlos como entregados o pendientes desde un detalle por estudiante, con fecha de entrega. El estudiante, a su vez, ve en su propia vista una alerta con cuántos requisitos le faltan por entregar y el detalle de cada uno, sin poder modificarlos — la actualización siempre la hace el coordinador tras verificar el documento físico.
 
 > **Gestión de claves de acceso:** desde el menú de acciones del listado de Matriculados, el coordinador o administrador ahora puede crear el acceso al sistema de un estudiante que fue matriculado sin clave, o cambiar la clave de uno que ya tiene acceso, sin pasar por el modal de matrícula ni por la ficha completa de edición del estudiante — un atajo directo para esta única operación, con la misma opción de generar una clave automática o asignar una manual que ya existía en esos otros dos flujos.
+
+> **Backup estandarizado para el hosting:** `scripts/export_para_hosting.sh` genera con un solo comando (`./scripts/export_para_hosting.sh`, sin argumentos) un backup de la base de datos listo para importar directamente en phpMyAdmin del hosting (pruebas o producción) — corrige automáticamente una diferencia de colación entre MySQL 8 (el motor del entorno local) y MariaDB (el motor real del hosting) que antes hacía fallar la importación. El repositorio del proyecto es público, así que este backup con datos reales de estudiantes nunca se sube a GitHub — se guarda localmente en `database/hosting_deploy/`, separado por completo del script de estructura de base de datos que sí está versionado (`database/emdb_academica.sql`, sin datos reales).
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 

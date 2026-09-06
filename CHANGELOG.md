@@ -4,7 +4,7 @@
 
 ---
 
-## Nueva utilidad — script estandarizado de export de BD para hosting (`scripts/export_para_hosting.sh`) — 2026-09-06
+## [40b28c8] — 2026-09-06 — chore: script estandarizado de export de BD para hosting (`scripts/export_para_hosting.sh`)
 
 ### Archivos nuevos
 - `scripts/export_para_hosting.sh` — genera un dump de `emdb_academica` listo para subir al hosting (pruebas o producción, vía cPanel/phpMyAdmin)
