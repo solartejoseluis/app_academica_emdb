@@ -545,6 +545,49 @@ CREATE TABLE calificaciones (
 -- ALTER TABLE calificaciones CHANGE cali_definitiva_original
 --   cali_nota_final DECIMAL(3,1) DEFAULT NULL;
 
+-- -----------------------------------------------------------------------------
+-- actividadesn3
+--    Catálogo de actividades que componen la nota N3 configurable de un
+--    grupo módulo (Fase 2.14) — reemplaza la captura directa de un único
+--    valor cali_n3 por N actividades definidas por el docente, cada una
+--    con su propia nota por estudiante (ver notasn3 más abajo).
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS actividadesn3;
+CREATE TABLE actividadesn3 (
+  acn3_id         INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+  grmo_id         INT UNSIGNED      NOT NULL,
+  acn3_nombre     VARCHAR(100)      NOT NULL,
+  acn3_comentario VARCHAR(255)      DEFAULT NULL,
+  acn3_orden      TINYINT UNSIGNED  NOT NULL DEFAULT 0,
+  fecharegistro   TIMESTAMP         DEFAULT current_timestamp(),
+  PRIMARY KEY (acn3_id),
+  CONSTRAINT fk_acn3_grmo FOREIGN KEY (grmo_id) REFERENCES gruposmodulos (grmo_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Actividades que componen la nota N3 configurable por grupo módulo';
+
+-- -----------------------------------------------------------------------------
+-- notasn3
+--    Nota de cada estudiante por actividad de N3 (actividadesn3) — una fila
+--    por actividad+estudiante. El promedio de estas notas por grmo_id es el
+--    valor que reemplazará a cali_n3 en el cálculo de la nota definitiva
+--    (lógica de cálculo pendiente de Fase 2.14.B, fuera de este esquema).
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS notasn3;
+CREATE TABLE notasn3 (
+  non3_id            INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+  acn3_id            INT UNSIGNED      NOT NULL,
+  estu_id            INT UNSIGNED      NOT NULL,
+  non3_valor         DECIMAL(3,1)      DEFAULT NULL CHECK (non3_valor BETWEEN 0.0 AND 5.0),
+  fechaactualizacion TIMESTAMP         DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (non3_id),
+  UNIQUE KEY uq_non3_acn3_estu (acn3_id, estu_id),   -- una nota por estudiante por actividad
+  CONSTRAINT fk_non3_acn3 FOREIGN KEY (acn3_id) REFERENCES actividadesn3 (acn3_id) ON DELETE CASCADE,
+  CONSTRAINT fk_non3_estu FOREIGN KEY (estu_id) REFERENCES estudiantes (estu_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Nota de cada estudiante por actividad de N3 (nota configurable)';
+
 -- =============================================================================
 -- BLOQUE 6: HORARIOS (complementario)
 -- =============================================================================
@@ -830,6 +873,19 @@ VALUES (1, 1, '', '');
 -- RESTAURAR FOREIGN KEY CHECKS
 -- =============================================================================
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- =============================================================================
+-- MIGRACIÓN DE DATOS — N3 configurable (Fase 2.14.A)
+--    cali_n3 deja de capturarse directamente (reemplazado por el promedio de
+--    notasn3, ver actividadesn3/notasn3 en BLOQUE 5). Cualquier valor de
+--    cali_n3/cali_nota_final/cali_definitiva calculado bajo el modelo
+--    anterior queda inválido y debe recalcularse desde cero una vez migradas
+--    las actividades — no aplica sobre datos transaccionales del seed local
+--    (calificaciones no se siembra aquí, ver nota en CLAUDE.md), pero si este
+--    script se ejecuta manualmente contra una base con datos reales
+--    (ej. producción), este UPDATE limpia los 3 campos afectados.
+-- =============================================================================
+UPDATE calificaciones SET cali_n3 = NULL, cali_nota_final = NULL, cali_definitiva = NULL;
 
 -- =============================================================================
 -- VERIFICACIÓN (ejecutar manualmente para confirmar estructura)
