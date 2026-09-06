@@ -377,6 +377,254 @@ switch ($accion) {
         }
         break;
 
+    // ── ACTIVIDADES N3 CONFIGURABLES (Fase 2.14.B) ────────────────────────────
+
+    case 'listar_actividades_n3':
+        try {
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+                break;
+            }
+
+            $pdo = getConexion();
+            $role_id = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id = (int)($_SESSION['usua_id'] ?? 0);
+            $grmo_id = (int)($_POST['grmo_id'] ?? 0);
+
+            if ($role_id === 3) {
+                // Docente: solo puede consultar actividades de grupos asignados a él
+                // (mismo criterio de pertenencia que listar_calificaciones/guardar_nota: docentes.usua_id)
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                // Coordinador/Admin: sin restricción de ownership. Cualquier otro rol (ej. estudiante) → rechazado.
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+
+            $stmt = $pdo->prepare("
+                SELECT acn3_id, acn3_nombre, acn3_comentario, acn3_orden
+                FROM actividadesn3
+                WHERE grmo_id = ?
+                ORDER BY acn3_orden ASC, acn3_id ASC
+            ");
+            $stmt->execute([$grmo_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'guardar_actividad_n3':
+        try {
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+                break;
+            }
+
+            $pdo = getConexion();
+            $role_id         = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id         = (int)($_SESSION['usua_id'] ?? 0);
+            $grmo_id         = (int)($_POST['grmo_id'] ?? 0);
+            $acn3_nombre     = trim($_POST['acn3_nombre'] ?? '');
+            $acn3_comentario = trim($_POST['acn3_comentario'] ?? '');
+
+            if ($role_id === 3) {
+                // Docente: solo puede crear actividades en grupos asignados a él
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+
+            if ($acn3_nombre === '') {
+                echo json_encode(['status' => 'error', 'message' => 'El nombre de la actividad es obligatorio']);
+                break;
+            }
+            if ($acn3_comentario === '') {
+                $acn3_comentario = null;
+            }
+
+            // Límite de actividades + siguiente orden en una sola consulta.
+            // acn3_orden = MAX(acn3_orden)+1 (no COUNT(*)): tras eliminar una
+            // actividad intermedia, COUNT(*) reasignaría un acn3_orden ya usado
+            // por otra fila existente — MAX+1 nunca colisiona.
+            $info = $pdo->prepare("
+                SELECT COUNT(*) AS total, COALESCE(MAX(acn3_orden), -1) AS max_orden
+                FROM actividadesn3 WHERE grmo_id = ?
+            ");
+            $info->execute([$grmo_id]);
+            $fila = $info->fetch();
+            if ((int)$fila['total'] >= 15) {
+                echo json_encode(['status' => 'error', 'message' => 'Máximo 15 actividades por grupo módulo.']);
+                break;
+            }
+            $acn3_orden = (int)$fila['max_orden'] + 1;
+
+            $stmt = $pdo->prepare("
+                INSERT INTO actividadesn3 (grmo_id, acn3_nombre, acn3_comentario, acn3_orden)
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([$grmo_id, $acn3_nombre, $acn3_comentario, $acn3_orden]);
+
+            echo json_encode([
+                'status'          => 'ok',
+                'acn3_id'         => $pdo->lastInsertId(),
+                'grmo_id'         => $grmo_id,
+                'acn3_nombre'     => $acn3_nombre,
+                'acn3_comentario' => $acn3_comentario,
+                'acn3_orden'      => $acn3_orden,
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'editar_actividad_n3':
+        try {
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+                break;
+            }
+
+            $pdo = getConexion();
+            $role_id         = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id         = (int)($_SESSION['usua_id'] ?? 0);
+            $acn3_id         = (int)($_POST['acn3_id'] ?? 0);
+            $acn3_nombre     = trim($_POST['acn3_nombre'] ?? '');
+            $acn3_comentario = trim($_POST['acn3_comentario'] ?? '');
+
+            // Resolver grmo_id de la actividad ANTES de verificar ownership
+            // (no se puede validar pertenencia sin saber a qué grupo pertenece)
+            $act = $pdo->prepare("SELECT grmo_id FROM actividadesn3 WHERE acn3_id = ?");
+            $act->execute([$acn3_id]);
+            $actividad = $act->fetch();
+            if (!$actividad) {
+                echo json_encode(['status' => 'error', 'message' => 'Actividad no encontrada']);
+                break;
+            }
+            $grmo_id = (int)$actividad['grmo_id'];
+
+            if ($role_id === 3) {
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+
+            if ($acn3_nombre === '') {
+                echo json_encode(['status' => 'error', 'message' => 'El nombre de la actividad es obligatorio']);
+                break;
+            }
+            if ($acn3_comentario === '') {
+                $acn3_comentario = null;
+            }
+
+            $stmt = $pdo->prepare("
+                UPDATE actividadesn3 SET acn3_nombre = ?, acn3_comentario = ?
+                WHERE acn3_id = ?
+            ");
+            $stmt->execute([$acn3_nombre, $acn3_comentario, $acn3_id]);
+
+            echo json_encode(['status' => 'ok', 'rows' => $stmt->rowCount()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'eliminar_actividad_n3':
+        try {
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+                break;
+            }
+
+            $pdo = getConexion();
+            $role_id = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id = (int)($_SESSION['usua_id'] ?? 0);
+            $acn3_id = (int)($_POST['acn3_id'] ?? 0);
+
+            // Resolver grmo_id de la actividad ANTES de verificar ownership
+            $act = $pdo->prepare("SELECT grmo_id FROM actividadesn3 WHERE acn3_id = ?");
+            $act->execute([$acn3_id]);
+            $actividad = $act->fetch();
+            if (!$actividad) {
+                echo json_encode(['status' => 'error', 'message' => 'Actividad no encontrada']);
+                break;
+            }
+            $grmo_id = (int)$actividad['grmo_id'];
+
+            if ($role_id === 3) {
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+
+            // Verificación 1: no eliminar la última actividad del grupo módulo
+            $total = $pdo->prepare("SELECT COUNT(*) AS total FROM actividadesn3 WHERE grmo_id = ?");
+            $total->execute([$grmo_id]);
+            if ((int)$total->fetch()['total'] <= 1) {
+                echo json_encode(['status' => 'error', 'message' => 'No se puede eliminar: debe existir al menos 1 actividad.']);
+                break;
+            }
+
+            // Verificación 2: no eliminar si ya tiene notas registradas
+            $notas = $pdo->prepare("SELECT COUNT(*) AS total FROM notasn3 WHERE acn3_id = ? AND non3_valor IS NOT NULL");
+            $notas->execute([$acn3_id]);
+            if ((int)$notas->fetch()['total'] > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'No se puede eliminar: ya tiene notas registradas.']);
+                break;
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM actividadesn3 WHERE acn3_id = ?");
+            $stmt->execute([$acn3_id]);
+
+            echo json_encode(['status' => 'ok', 'rows' => $stmt->rowCount()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;
