@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-05
-> Versión: 112 — cierra la Fase 2.14.F: la columna N3 de la tabla principal de calificaciones queda de solo lectura (readonly, sin disparar guardar_nota), su valor se deriva exclusivamente del modal "Registro y cálculo de N3". Con esto el feature de N3 configurable queda FUNCIONALMENTE COMPLETO (100%) — restan únicamente G y H, ambas de documentación, sin código nuevo.
+> Versión: 113 — Fase 2.14.G: consolida como regla de negocio de primer nivel las condiciones de eliminación de actividades N3 (ya implementadas desde la Fase B), documentándolas junto a las demás reglas críticas de calificaciones en vez de dejarlas dispersas en el historial de fases. Resta únicamente H (cierre del roadmap).
 
 ---
 
@@ -87,6 +87,7 @@ Estudiantes dependen de WhatsApp para conocer calificaciones. Sin trazabilidad d
 - Estructura: N1 (20%) + N2 (20%) + N3 (20%) + N4 (40%) = 100%
 - Supletorios: solo N1, N2 y N4. **N3 nunca tiene supletorio — nunca.**
 - N3 (20%) desde Fase 2.14: ya no es un valor capturado directamente — es el promedio de notasn3 (actividades configurables por el docente en actividadesn3, ancla grmo_id, mínimo 1 y máximo 15 actividades). Se calcula solo cuando todas las actividades activas tienen nota registrada para ese estudiante; si falta alguna, cali_n3 queda NULL (se muestra como guiones en la UI).
+- Eliminación de actividades N3: bloqueada si la actividad tiene alguna nota registrada en notasn3 (non3_valor no nulo) O si es la última actividad activa del grmo_id (mínimo 1 exigido). Editar nombre/comentario sí se permite siempre. A diferencia de requisitos_programa (que usa borrado lógico vía reqp_activo), aquí el borrado es físico porque solo procede cuando la actividad está vacía — no hace falta un flag de estado.
 - Supletorio se activa únicamente si nota original = 0.0
 - Nota Final: siempre se calcula con la fórmula estándar, sin importar si aprueba o no
 - Habilitación: entrada manual (0.0-5.0), se activa únicamente si Nota Final < 3.0, un solo intento (sin ciclo de re-habilitación)
