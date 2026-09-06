@@ -247,6 +247,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                 <div id="lista_actividades_n3"></div>
                 <hr>
                 <form id="frm_actividad_n3">
+                    <input type="hidden" id="hdn_acn3_id" value="">
                     <div class="mb-3">
                         <label class="form-label">Nombre de la actividad</label>
                         <input type="text" class="form-control" id="txt_acn3_nombre" maxlength="100">

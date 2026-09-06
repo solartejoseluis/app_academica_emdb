@@ -390,4 +390,184 @@ $(document).ready(function () {
         return 'semaforo-verde';
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // MODALES N3 — Registro/Configurar actividades (Fase 2.14.E2)
+    // ══════════════════════════════════════════════════════════════════════
+
+    let totalActividadesN3Actual = 0;
+
+    // ── Conexión modal-a-modal: Registro → Configurar (evita el problema de
+    //    backdrop de modales anidados, ver decisión de la Fase 2.14.E1) ──────
+    $('#btn_abrir_configurar_n3').on('click', function () {
+        $('#mdl_registro_n3').one('hidden.bs.modal', function () {
+            cargarActividadesN3(grmo_id_activo);
+            bootstrap.Modal.getOrCreateInstance('#mdl_configurar_actividades_n3').show();
+        });
+        bootstrap.Modal.getOrCreateInstance('#mdl_registro_n3').hide();
+    });
+
+    // Al cerrar Configurar, siempre vuelve a mostrar Registro.
+    // TODO (Fase 2.14.E3): si las actividades cambiaron, refrescar acá también
+    // la tabla de notas (#tbl_registro_n3), no solo la lista de actividades.
+    $('#mdl_configurar_actividades_n3').on('hidden.bs.modal', function () {
+        limpiarFormularioActividadN3();
+        bootstrap.Modal.getOrCreateInstance('#mdl_registro_n3').show();
+    });
+
+    // ── Cargar lista de actividades del grupo activo ─────────────────────────
+    function cargarActividadesN3(grmoId) {
+        $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=listar_actividades_n3',
+            data: { grmo_id: grmoId },
+            dataType: 'json',
+            success: function (r) {
+                if (r.status !== 'ok') {
+                    alert('Error al cargar actividades: ' + r.message);
+                    return;
+                }
+                totalActividadesN3Actual = r.data.length;
+                renderizarListaActividadesN3(r.data);
+                actualizarEstadoFormularioActividadN3();
+            }
+        });
+    }
+
+    // ── Renderizar la lista de actividades con sus botones Editar/Eliminar ──
+    function renderizarListaActividadesN3(actividades) {
+        const contenedor = $('#lista_actividades_n3');
+        contenedor.empty();
+
+        if (!actividades.length) {
+            contenedor.html('<p class="text-muted small mb-0">Sin actividades configuradas todavía.</p>');
+            return;
+        }
+
+        const esUltima = actividades.length === 1;
+        const tabla = $(`
+            <table class="table table-sm table-bordered mb-0">
+                <thead>
+                    <tr><th>Actividad</th><th>Comentario</th><th class="text-end">Acciones</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        `);
+        const tbody = tabla.find('tbody');
+
+        actividades.forEach(a => {
+            const comentario = a.acn3_comentario || '';
+            const comentarioMostrado = comentario.length > 40 ? comentario.substring(0, 40) + '…' : comentario;
+
+            const btnEditar = $('<button type="button" class="btn btn-sm btn-outline-secondary btn-editar-actividad-n3">Editar</button>')
+                .attr('data-acn3-id', a.acn3_id)
+                .attr('data-nombre', a.acn3_nombre)
+                .attr('data-comentario', comentario);
+
+            const btnEliminar = esUltima
+                ? $('<button type="button" class="btn btn-sm btn-outline-danger" disabled>Eliminar</button>')
+                    .attr('title', 'No se puede eliminar la última actividad.')
+                : $('<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-actividad-n3">Eliminar</button>')
+                    .attr('data-acn3-id', a.acn3_id);
+
+            const fila = $('<tr></tr>');
+            fila.append($('<td></td>').text(a.acn3_nombre));
+            fila.append($('<td></td>').append($('<small class="text-muted"></small>').text(comentarioMostrado)));
+            fila.append($('<td class="text-end"></td>').append(btnEditar, ' ', btnEliminar));
+            tbody.append(fila);
+        });
+
+        contenedor.append(tabla);
+    }
+
+    // ── Habilitar/deshabilitar el formulario según el límite de 15 ──────────
+    function actualizarEstadoFormularioActividadN3() {
+        const enEdicion = $('#hdn_acn3_id').val() !== '';
+        const limiteAlcanzado = !enEdicion && totalActividadesN3Actual >= 15;
+
+        $('#txt_acn3_nombre, #txt_acn3_comentario, #btn_guardar_actividad_n3').prop('disabled', limiteAlcanzado);
+
+        let msg = $('#msg_limite_actividades_n3');
+        if (limiteAlcanzado && !msg.length) {
+            msg = $('<p id="msg_limite_actividades_n3" class="text-danger small mb-2">Máximo de actividades alcanzado (15).</p>');
+            $('#frm_actividad_n3').before(msg);
+        }
+        msg.toggle(limiteAlcanzado);
+    }
+
+    // ── Limpiar formulario (crear/editar) ────────────────────────────────────
+    function limpiarFormularioActividadN3() {
+        $('#hdn_acn3_id').val('');
+        $('#txt_acn3_nombre').val('');
+        $('#txt_acn3_comentario').val('');
+        actualizarEstadoFormularioActividadN3();
+    }
+
+    // ── Guardar (crear o editar según #hdn_acn3_id) ──────────────────────────
+    function guardarActividadN3() {
+        const acn3Id = $('#hdn_acn3_id').val();
+        const nombre = $('#txt_acn3_nombre').val().trim();
+        const comentario = $('#txt_acn3_comentario').val().trim();
+
+        if (nombre === '') {
+            alert('El nombre de la actividad es obligatorio');
+            return;
+        }
+
+        const esEdicion = acn3Id !== '';
+        const accion = esEdicion ? 'editar_actividad_n3' : 'guardar_actividad_n3';
+        const datos = esEdicion
+            ? { acn3_id: acn3Id, acn3_nombre: nombre, acn3_comentario: comentario }
+            : { grmo_id: grmo_id_activo, acn3_nombre: nombre, acn3_comentario: comentario };
+
+        $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=' + accion,
+            data: datos,
+            dataType: 'json',
+            success: function (r) {
+                if (r.status === 'ok') {
+                    limpiarFormularioActividadN3();
+                    cargarActividadesN3(grmo_id_activo);
+                } else {
+                    alert('Error al guardar: ' + r.message);
+                }
+            }
+        });
+    }
+
+    $('#frm_actividad_n3').on('submit', function (e) {
+        e.preventDefault();
+        guardarActividadN3();
+    });
+    $('#btn_guardar_actividad_n3').on('click', guardarActividadN3);
+
+    // ── Click en "Editar" de una fila ─────────────────────────────────────────
+    $(document).on('click', '.btn-editar-actividad-n3', function () {
+        const btn = $(this);
+        $('#hdn_acn3_id').val(btn.data('acn3-id'));
+        $('#txt_acn3_nombre').val(btn.data('nombre'));
+        $('#txt_acn3_comentario').val(btn.data('comentario'));
+        actualizarEstadoFormularioActividadN3();
+    });
+
+    // ── Click en "Eliminar" de una fila ────────────────────────────────────────
+    $(document).on('click', '.btn-eliminar-actividad-n3', function () {
+        const acn3Id = $(this).data('acn3-id');
+        if (!confirm('¿Eliminar esta actividad?')) return;
+
+        $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=eliminar_actividad_n3',
+            data: { acn3_id: acn3Id },
+            dataType: 'json',
+            success: function (r) {
+                if (r.status === 'ok') {
+                    cargarActividadesN3(grmo_id_activo);
+                } else {
+                    alert('Error al eliminar: ' + r.message);
+                }
+            }
+        });
+    });
+
 });
