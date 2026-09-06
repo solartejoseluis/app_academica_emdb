@@ -4,6 +4,54 @@
 
 ---
 
+## [953a50f] — 2026-09-05 — feat(calificaciones): backend de notas por actividad N3 — Fase 2.14.C (3/8)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php
+
+### Por qué
+Tercera sub-fase del roadmap "N3 configurable por actividades" (Fase
+2.14). Agrega el backend de captura de notas individuales por
+estudiante y actividad, sobre el catálogo creado en la Fase B
+(`actividadesn3`, commit `7dadd80`).
+
+### Cambios — Backend (`calificaciones_mdl.php`)
+- 2 `case` nuevos: `listar_notas_n3`, `guardar_nota_n3`.
+- `guardar_nota_n3`: resuelve `grmo_id` desde `acn3_id`, aplica el
+  mismo guard de ownership de las fases anteriores, verifica que el
+  estudiante pertenezca al `grmo_id` vía `grmoestudiantes`, valida
+  rango 0.0-5.0 sin ninguna lógica de supletorio (`notasn3` no tiene
+  columna `sup_n3` — N3 nunca tiene supletorio), permite guardar valor
+  vacío para borrar una nota existente, y hace upsert (`UPDATE` si
+  existe la fila para `acn3_id`+`estu_id`, `INSERT` si no).
+- No toca la tabla `calificaciones` en ningún punto —
+  `cali_n3`/`cali_nota_final`/`cali_definitiva` quedan sin recalcular,
+  eso llega en la Fase 2.14.D.
+
+### Decisiones de diseño
+1. Upsert protegido contra condición de carrera: `catch` de
+   `PDOException` con `SQLSTATE 23000` (colisión del `UNIQUE
+   uq_non3_acn3_estu`), reintenta como `UPDATE` en vez de fallar —
+   mismo criterio ya usado en el proyecto para `matr_numero`/
+   `doce_sigla`.
+2. Separación deliberada de responsabilidades: "guardar nota" (esta
+   fase) y "recalcular/propagar a `calificaciones`" (Fase 2.14.D) son
+   dos `case` distintos, decisión tomada explícitamente para verificar
+   cada uno de forma independiente.
+
+### Pruebas realizadas
+12 casos vía `curl` contra Docker vivo: nota válida, nota fuera de
+rango (6.0 y -1), estudiante no-miembro del `grmo_id`, borrado de nota
+(valor vacío), actualización sin duplicar, ownership cruzado (Docente
+A/B), acceso sin restricción de Coordinador, `listar_notas_n3`
+reflejando el estado exacto tras varios guardados, sesión inválida,
+`acn3_id` inexistente — más confirmación explícita de que
+`calificaciones` no fue tocada (`COUNT(*) = 0` al final). Fixtures (2
+docentes, 3 estudiantes, 2 `gruposmodulos`, 3 actividades) creados y
+eliminados sin dejar rastro.
+
+---
+
 ## [7dadd80] — 2026-09-05 — feat(calificaciones): backend CRUD de actividades N3 — Fase 2.14.B (2/8)
 
 ### Archivos modificados

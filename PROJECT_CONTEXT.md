@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-05
-> Versión: 107 — Fase 2.14.B del roadmap "N3 configurable por actividades": backend CRUD de actividades (actividadesn3) con guard idéntico a guardar_nota/listar_calificaciones. Reglas de negocio: máximo 15 actividades, mínimo 1, bloqueo de eliminación si tiene notas registradas. Sin cambios en frontend todavía.
+> Versión: 108 — Fase 2.14.C del roadmap "N3 configurable por actividades": backend de notas por actividad (notasn3) vía listar_notas_n3/guardar_nota_n3, con upsert y verificación de membresía del estudiante en el grmo_id. Aún no recalcula cali_n3 — eso es la Fase 2.14.D.
 
 ---
 
