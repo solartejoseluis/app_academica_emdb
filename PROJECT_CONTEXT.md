@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-05
-> Versión: 113 — Fase 2.14.G: consolida como regla de negocio de primer nivel las condiciones de eliminación de actividades N3 (ya implementadas desde la Fase B), documentándolas junto a las demás reglas críticas de calificaciones en vez de dejarlas dispersas en el historial de fases. Resta únicamente H (cierre del roadmap).
+> Versión: 114 — cierra el roadmap completo "N3 configurable por actividades" (Fase 2.14, A-H). El docente ya no anota calificaciones de actividades de clase en papel/libreta personal para calcular manualmente el promedio al final del periodo (el problema descrito en la propuesta de proyecto aplicado, sección "vida real" del planteamiento) — ahora registra cada actividad en el sistema y N3 se calcula automáticamente. Constituye evidencia concreta de la fase "Implementar" del ciclo CDIO, avanzando hacia la validación TRL5 con datos reales de 2026-2.
 
 ---
 
@@ -145,7 +145,7 @@ app_academica_emdb/
     02_estudiantes/    — CRUD estudiantes + matrícula (AC-FO-02, AC-FO-09)
     03_docentes/       — CRUD docentes
     04_grupos/         — Cohortes, grupos semestre, grupos módulo
-    05_calificaciones/ — Registro notas GA-FO-04 (módulo crítico)
+    05_calificaciones/ — Registro notas GA-FO-04 (módulo crítico) — incluye N3 configurable por actividades (Fase 2.14, A-H) ✅ COMPLETO
     06_reportes/       — Consulta estudiante + PDF/Excel
     07_coordinador/    — Dashboard seguimiento
     08_admin/          — Gestión usuarios ✅ IMPLEMENTADO

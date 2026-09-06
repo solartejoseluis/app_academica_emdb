@@ -4,6 +4,38 @@
 
 ---
 
+## Cierre del roadmap "N3 configurable por actividades" (Fase 2.14, A-H) — 2026-09-05
+
+Roadmap completo en 9 commits a lo largo de un solo día (2026-09-05),
+reemplazando la captura directa de un único valor `cali_n3` por un
+sistema donde el docente define entre 1 y 15 actividades por grupo
+módulo (`actividadesn3`), registra una nota individual por estudiante y
+actividad (`notasn3`), y el sistema calcula automáticamente el
+promedio como N3 solo cuando todas las actividades están completas —
+propagándolo en cascada a Nota Final y Definitiva. Mismo patrón
+catálogo+instancia que `requisitos_programa`/`requisitos_estudiante`
+(Fase 2.12), pero con borrado físico en vez de lógico (la eliminación
+de una actividad solo procede si está vacía).
+
+Sub-fases: A (esquema BD, `f592885`) → B (CRUD de actividades,
+`7dadd80`) → C (notas por actividad, `953a50f`) → D (cálculo derivado +
+integración con Nota Final, `24a43c7`) → E1-E3.2 (frontend completo del
+modal "Registro y cálculo de N3", `0cbb2cb`/`352a4f1`/`b827d14`/
+`5c9ee42`) → F (columna N3 de solo lectura en la tabla principal,
+`84448da`) → G (consolidación documental de reglas de eliminación, sin
+commit de código).
+
+Incidente relevante durante el desarrollo: pérdida y recuperación
+exitosa de datos reales de 2026-2 (ver sección "Incidente de pérdida de
+datos y recuperación" en PROJECT_CONTEXT.md) — motivó la regla
+permanente de respaldo obligatorio antes de cualquier comando
+destructivo sobre la BD.
+
+Con este roadmap no queda ningún pendiente abierto de "N3 configurable
+por actividades".
+
+---
+
 ## [84448da] — 2026-09-05 — feat(calificaciones): columna N3 de solo lectura en tabla principal — Fase 2.14.F (commit 9 de la Fase 2.14 hasta ahora)
 
 ### Archivos modificados

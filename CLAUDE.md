@@ -1592,7 +1592,7 @@ prueba en la base de datos de desarrollo.
 | 2.14.E | Frontend Docente — modal "Registro y cálculo de N3" en `calificaciones_view.php`/`_ctrl.js`: gestión de actividades + captura de notas por actividad | ✅ 2026-09-05 (commits `0cbb2cb`, `352a4f1`, `b827d14`, `5c9ee42` — sub-fases E1-E3.2) |
 | 2.14.F | Frontend — columna N3 de la planilla pasa de input directo a valor de solo lectura (resultado del promedio), con acceso al modal de la Fase E | ✅ 2026-09-05 (commit `84448da`) |
 | 2.14.G | Reglas de eliminación de actividades — bloqueo si tiene notas registradas o es la última actividad activa del `grmo_id` (ver decisión en Fase A) | ✅ 2026-09-05 (documentación consolidada, sin commit de código — regla ya implementada desde `7dadd80`) |
-| 2.14.H | Documentación de cierre del roadmap completo | ⬜ |
+| 2.14.H | Documentación de cierre del roadmap completo | ✅ 2026-09-05 (cierre documental, sin commit de código — ver CHANGELOG.md) |
 
 > **Nota sobre 2.14.E:** internamente dividida en E1/E2/E3.1/E3.2 para
 > no saturar la ventana de implementación de un solo commit — las 4
@@ -1602,6 +1602,18 @@ prueba en la base de datos de desarrollo.
 > (tabla dinámica estudiante×actividad — estructura y carga, commit
 > `b827d14`) y E3.2 (autosave de esa tabla + sincronización con la
 > tabla principal, commit `5c9ee42`).
+
+Con 2.14.H, el roadmap completo de "N3 configurable por actividades"
+queda cerrado: 9 commits en un solo día (2026-09-05) — `f592885`
+(esquema) → `7dadd80` (CRUD de actividades) → `953a50f` (notas por
+actividad) → `24a43c7` (cálculo derivado + integración con Nota Final)
+→ `0cbb2cb`/`352a4f1`/`b827d14`/`5c9ee42` (frontend completo del modal
+"Registro y cálculo de N3") → `84448da` (columna N3 de solo lectura en
+la tabla principal) — más la consolidación documental de reglas de
+eliminación (G) sin commit de código propio. El feature reemplaza la
+captura manual de N3 por un sistema de actividades configurables por
+docente con cálculo automático del promedio, sin ningún pendiente
+abierto de este roadmap específico.
 
 ### Phase 3 — Validación TRL5
 
