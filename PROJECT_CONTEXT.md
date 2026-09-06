@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-09-04
-> Versión: 105 — cierra el roadmap completo de "Gestión de requisitos de estudiantes" (Etapa 2.12.J, documentación de cierre, sin código nuevo). 15 sub-etapas (2.12.0, A, A2, B, C, D, E, F1-F4, G, H, I1, I2, J) a lo largo de ~16 commits de código y documentación, reemplazando las 9 columnas `req_*` fijas y sin per-programa que existían en `matriculas` por un sistema configurable de punta a punta: el Admin define el catálogo de requisitos por programa (nombre + descripción, con borrado lógico) desde una ficha dedicada en `02_estudiantes`; al matricular a un estudiante, el sistema le asigna automáticamente como pendientes los requisitos activos de su programa; el Coordinador gestiona el checklist de cada matrícula (columna resumen x/y en `tablaMatriculados`, modal de detalle con selects editables) desde ese mismo módulo; y el propio estudiante consulta, de solo lectura, una barra de pendientes y el detalle por programa desde `06_reportes`. Cada etapa se verificó de forma independiente con `curl` contra Docker vivo (backend) y Playwright headless (flujos de UI), sin dejar ningún dato de prueba en la base de datos de desarrollo — patrón sostenido durante las 15 sub-etapas. Con esta versión no queda ningún pendiente abierto del roadmap "Gestión de requisitos de estudiantes".
+> Última actualización: 2026-09-05
+> Versión: 106 — abre el roadmap "N3 configurable por actividades" (Fase 2.14, 8 sub-etapas A-H). Cierra la sub-etapa A: esquema de BD. Reemplaza la captura directa de cali_n3 por un catálogo de actividades definidas por el docente (actividadesn3, ancla grmo_id) con nota individual por estudiante y actividad (notasn3, UNIQUE(acn3_id, estu_id)) — mismo patrón catálogo+instancia que requisitos_programa/requisitos_estudiante. cali_n3/cali_nota_final/cali_definitiva reseteados a NULL en toda la tabla calificaciones: el cálculo de N3 pasará a ser 100% derivado del promedio de notasn3 (lógica pendiente en 2.14.B+). N3 mantiene la regla invariable de no tener supletorio — notasn3 no incluye ningún campo de supletorio, por diseño.
 
 ---
 
@@ -86,6 +86,7 @@ Estudiantes dependen de WhatsApp para conocer calificaciones. Sin trazabilidad d
 
 - Estructura: N1 (20%) + N2 (20%) + N3 (20%) + N4 (40%) = 100%
 - Supletorios: solo N1, N2 y N4. **N3 nunca tiene supletorio — nunca.**
+- N3 (20%) desde Fase 2.14: ya no es un valor capturado directamente — es el promedio de notasn3 (actividades configurables por el docente en actividadesn3, ancla grmo_id, mínimo 1 y máximo 15 actividades). Se calcula solo cuando todas las actividades activas tienen nota registrada para ese estudiante; si falta alguna, cali_n3 queda NULL (se muestra como guiones en la UI).
 - Supletorio se activa únicamente si nota original = 0.0
 - Nota Final: siempre se calcula con la fórmula estándar, sin importar si aprueba o no
 - Habilitación: entrada manual (0.0-5.0), se activa únicamente si Nota Final < 3.0, un solo intento (sin ciclo de re-habilitación)
@@ -156,7 +157,7 @@ app_academica_emdb/
 
 ---
 
-## Tablas de la BD (17 tablas — todas creadas)
+## Tablas de la BD (19 tablas — todas creadas)
 
 ```
 1.  roles              — role_id, role_nombre
@@ -176,6 +177,8 @@ app_academica_emdb/
 15. fichas_inscripcion — finc_id, estu_id(FK), datos familiares (padre/madre/acudiente), estudios anteriores, código temporal
 16. requisitos_programa   — reqp_id, prog_id(FK), reqp_nombre, reqp_descripcion, reqp_activo
 17. requisitos_estudiante — reqe_id, matr_id(FK), reqp_id(FK), reqe_estado, reqe_fecha  [UNIQUE(matr_id, reqp_id)]
+18. actividadesn3         — acn3_id, grmo_id(FK), acn3_nombre, acn3_comentario, acn3_orden
+19. notasn3               — non3_id, acn3_id(FK), estu_id(FK), non3_valor  [UNIQUE(acn3_id, estu_id)]
 ```
 
 Seeds cargados: 4 roles, 2 programas, 3 períodos, 36 módulos (17 ASO + 19 MD), 1 usuario admin.
@@ -576,6 +579,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | Edición manual de `matr_numero` no desincroniza la asignación automática | La asignación automática (`pdf_hoja_matricula.php`) no usa un contador cacheado en `configuracion` — `matr_numero_inicial` es solo un piso mínimo. Cada asignación relee `MAX(matr_numero) FROM matriculas` en vivo, así que un valor editado manualmente desde "Editar Matrícula" (commit `59775e4`) ya queda reflejado en el siguiente cálculo. No reabrir esta pregunta ni agregar un mecanismo de resincronización — no hace falta. |
 | Formulario público de inscripción es de un solo paso, sin código de retomar | El diseño original de 2 pasos (Fase 3 del roadmap histórico, `finc_codigotemporal`) se eliminó por completo en el commit `0e098bb` (2026-08-24) — `fam_view.php`/`fam_mdl.php`/`fam_ctrl.js` ya no existen, y la columna `finc_codigotemporal` ya no existe en el esquema. No reintroducir un mecanismo de "retomar después" sin decisión explícita de Jose Luis — el formulario actual es de una sola pantalla, un solo guardado transaccional. |
 | El formulario público de inscripción nunca genera clave de acceso al sistema | Confirmado por diagnóstico (grep de `generarClaveAuto`/`clave_generada`/`usua_passwordhash` en `09_inscripcion_publica/`, sin resultados) antes y después del commit `0e098bb` — la generación de clave es y siempre fue tarea exclusiva del coordinador vía `matricular` en `est_mdl.php`. No confundir con `finc_codigotemporal` (un puente técnico para retomar el Paso 2, nunca una credencial), ya eliminado. |
+| N3 configurable (Fase 2.14.A, commit `f592885`) — 3 decisiones de esquema | (1) Histórico de N3 se descarta, no se migra — el reseteo de `cali_n3`/`cali_nota_final`/`cali_definitiva` a `NULL` asume que las notas existentes son datos de prueba sin valor de negocio real; no hay mecanismo de migración hacia `notasn3`. (2) Roles autorizados = Docente con verificación de ownership + Coordinador/Admin sin restricción, igual que el resto de `calificaciones_mdl.php` (`listar_calificaciones`/`guardar_nota`) — sin backend nuevo todavía, decisión que rige las fases siguientes. (3) Eliminación de una actividad de `actividadesn3` quedará bloqueada si tiene notas en `notasn3` o si es la última actividad activa del `grmo_id` — a diferencia de `requisitos_programa` (borrado lógico vía `reqp_activo`), aquí no hace falta un flag porque el borrado físico solo procede si la actividad está vacía. |
 
 ---
 

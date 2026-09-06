@@ -4,6 +4,80 @@
 
 ---
 
+## [f592885] — 2026-09-05 — feat(calificaciones): agrega esquema BD para N3 configurable — Fase 2.14.A (1/8)
+
+### Archivos modificados
+- database/emdb_academica.sql
+
+### Por qué
+Abre el roadmap "N3 configurable por actividades" (Fase 2.14, 8
+sub-etapas A–H) — reemplaza la captura directa de `cali_n3` por un
+catálogo de actividades definidas por el docente, cada una con su
+propia nota por estudiante, siguiendo el mismo patrón catálogo+instancia
+ya usado en `requisitos_programa`/`requisitos_estudiante` (Fase 2.12).
+
+**Esta es la Fase A de 8 — solo esquema.** Ningún archivo PHP/JS se
+tocó en este commit. Faltan las 7 sub-fases restantes (backend,
+frontend Admin/Docente, cálculo derivado de N3, etc.) antes de que el
+feature esté operativo — no confundir esta entrada con un cambio
+funcional visible en la UI.
+
+### Cambios — Esquema (`database/emdb_academica.sql`)
+- Nueva tabla `actividadesn3` (ancla `grmo_id`, FK a `gruposmodulos`
+  `ON DELETE RESTRICT`) — catálogo de actividades por grupo módulo:
+  `acn3_id` (PK), `grmo_id` (FK), `acn3_nombre`, `acn3_comentario`,
+  `acn3_orden`, `fecharegistro`. Patrón análogo a
+  `requisitos_programa`.
+- Nueva tabla `notasn3` — nota de cada estudiante por actividad:
+  `non3_id` (PK), `acn3_id` (FK → `actividadesn3`, `ON DELETE
+  CASCADE`), `estu_id` (FK → `estudiantes`, `ON DELETE RESTRICT`),
+  `non3_valor DECIMAL(3,1)` con `CHECK` 0.0–5.0, `fechaactualizacion`.
+  `UNIQUE KEY uq_non3_acn3_estu (acn3_id, estu_id)` — una nota por
+  estudiante por actividad. Patrón análogo a `requisitos_estudiante`.
+- `UPDATE calificaciones SET cali_n3 = NULL, cali_nota_final = NULL,
+  cali_definitiva = NULL` agregado al final del script — el valor
+  directo de `cali_n3` queda obsoleto: será reemplazado por el
+  promedio de `notasn3` una vez completadas todas las actividades
+  configuradas de un `grmo_id` (lógica de cálculo pendiente en
+  2.14.B+). Sin efecto sobre el seed local (`calificaciones` no siembra
+  datos transaccionales, ver nota en CLAUDE.md); pensado para ejecución
+  manual contra datos reales (ej. producción).
+
+### Decisiones de diseño
+1. **Sin cambios en `calificaciones_mdl.php`/`_view.php`/`_ctrl.js`**
+   — Fase A es esquema puro.
+2. **Histórico de N3 se descarta, no se migra** — el reseteo a `NULL`
+   asume que las notas de N3 existentes son datos de prueba sin valor
+   de negocio real que preservar; no existe ningún mecanismo de
+   migración de `cali_n3` hacia filas de `notasn3`.
+3. **`notasn3` no incluye ningún campo de supletorio** — por diseño,
+   consistente con la regla invariable "N3 nunca tiene supletorio".
+4. Roles autorizados para las fases siguientes (backend, aún no
+   implementado): Docente con verificación de ownership +
+   Coordinador/Admin sin restricción — mismo criterio ya usado en el
+   resto de `calificaciones_mdl.php` (`listar_calificaciones`/
+   `guardar_nota`).
+5. Eliminación de una actividad de `actividadesn3` (backend, aún no
+   implementado) quedará bloqueada si tiene notas registradas en
+   `notasn3` o si es la última actividad activa del `grmo_id` — a
+   diferencia de `requisitos_programa`, que usa borrado lógico
+   (`reqp_activo`), aquí no se agrega un flag: el borrado físico basta
+   porque solo procede cuando la actividad está vacía.
+
+### Aplicación
+`docker compose down -v && docker compose up -d` — reimportación
+completa del `.sql` desde cero (aceptable: el seed local no tiene
+datos transaccionales que perder).
+
+### Pruebas realizadas
+`SHOW CREATE TABLE` sobre ambas tablas nuevas — columnas, tipos, FKs y
+`CHECK` confirmados. `SELECT COUNT(*)` sobre `calificaciones` → 0 filas
+tras el reset. Prueba de FK: `INSERT INTO actividadesn3 (grmo_id, ...)
+VALUES (999999, ...)` rechazado con `ERROR 1452`; sin filas de prueba
+remanentes. Conteo total de tablas: 21 → 23.
+
+---
+
 ## [ef295f7] — 2026-09-04 — feat: frontend de gestión de claves (case 'gestionar_clave'), cierra Phase 2.13
 
 ### Archivos modificados
