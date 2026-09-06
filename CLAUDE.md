@@ -365,6 +365,14 @@ cálculo de N3" (pendiente de implementar en fases B-G, ver "Estado del
 roadmap"). Esquema (`actividadesn3`/`notasn3`) creado en la Fase A,
 commit `f592885`.
 
+**Nota técnica (Fase 2.14.D, commit `24a43c7`):**
+`recalcularNotaFinalYDefinitiva()` SIEMPRE persiste
+`cali_nota_final`/`cali_definitiva`, incluso como `NULL` cuando N1-N4
+no están completas. No cambiar esto a "solo actualizar si las 4 notas
+están presentes" — esa era la versión original y dejaba valores
+obsoletos en BD si una nota se borraba después de haber estado
+completa.
+
 ---
 
 ## Roles de usuario

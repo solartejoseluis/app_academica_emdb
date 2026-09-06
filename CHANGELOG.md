@@ -4,6 +4,63 @@
 
 ---
 
+## [24a43c7] — 2026-09-05 — feat(calificaciones): cálculo derivado de N3 + integración con Nota Final — Fase 2.14.D (4/8)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php
+
+### Por qué
+Cuarta sub-fase del roadmap "N3 configurable por actividades" (Fase
+2.14) — cierra el backend completo del feature. Conecta las notas
+individuales por actividad (`notasn3`, Fase C) con `cali_n3` y, en
+cascada, con `cali_nota_final`/`cali_definitiva`.
+
+### Cambios — Backend (`calificaciones_mdl.php`)
+- Extrae `recalcularNotaFinalYDefinitiva(PDO, grmo_id, estu_id): void`
+  del bloque inline que antes vivía dentro de `guardar_nota` — ahora
+  reutilizable desde cualquier `case` que modifique una nota.
+- Nueva `recalcularN3(PDO, grmo_id, estu_id): ?float` — cuenta
+  actividades activas del `grmo_id` vs. notas completas del
+  estudiante; si coinciden y son mayor a 0, retorna el promedio
+  redondeado a 1 decimal; si no, `NULL` (incluye el caso de 0
+  actividades configuradas).
+- `guardar_nota` ahora llama a `recalcularNotaFinalYDefinitiva()` en
+  vez del cálculo inline original — mismo resultado para todos los
+  casos que ya cubrían las pruebas previas del proyecto.
+- `guardar_nota_n3` (Fase C) se extiende: tras el upsert de `notasn3`,
+  invoca `recalcularN3()`, hace upsert sobre `calificaciones` (`INSERT`
+  con solo `cali_n3` poblado si la fila no existía todavía), y llama a
+  `recalcularNotaFinalYDefinitiva()`. La respuesta JSON ahora incluye
+  `cali_n3`/`cali_nota_final`/`cali_definitiva` actualizados.
+
+### Fix de comportamiento incidental
+`recalcularNotaFinalYDefinitiva()` ahora siempre persiste el resultado
+(incluyendo `NULL` cuando N1-N4 no están completas) — el bloque inline
+original solo hacía el `UPDATE` si las 4 notas estaban presentes,
+dejando `cali_nota_final`/`cali_definitiva` obsoletos si una nota se
+borraba después de haber estado completa. Bug latente nunca antes
+explotado porque no existía ningún flujo capaz de borrar una nota ya
+guardada hasta `guardar_nota_n3` (Fase C permite valor vacío = borrar).
+
+### Pruebas realizadas
+Bloque A (regresión N1/N2/N4): 5 casos — notas parciales, activación de
+supletorio, nota final con las 4 notas completas, caso reprobado sin
+habilitación, habilitación tras reprobar. Todos coinciden con la
+fórmula documentada en CLAUDE.md, confirmando que el refactor no
+alteró el comportamiento de `guardar_nota`.
+
+Bloque B (funcionalidad nueva): N3 incompleto → `cali_n3` `NULL`; 2ª
+nota completa el conjunto → `cali_n3` = promedio exacto y
+`cali_nota_final` se recalcula con N1/N2/N4 ya existentes; borrar una
+nota vuelve todo a `NULL`; nota de N3 para estudiante sin fila previa
+en `calificaciones` crea la fila vía `INSERT` con solo `cali_n3`
+poblado; respuesta JSON confirmada con los 3 campos en todos los
+casos.
+
+Fixtures creados y eliminados sin dejar rastro en ambos bloques.
+
+---
+
 ## [953a50f] — 2026-09-05 — feat(calificaciones): backend de notas por actividad N3 — Fase 2.14.C (3/8)
 
 ### Archivos modificados
