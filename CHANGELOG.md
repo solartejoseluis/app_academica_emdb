@@ -4,6 +4,52 @@
 
 ---
 
+## [7dadd80] — 2026-09-05 — feat(calificaciones): backend CRUD de actividades N3 — Fase 2.14.B (2/8)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_mdl.php
+
+### Por qué
+Segunda sub-fase del roadmap "N3 configurable por actividades" (Fase
+2.14). Agrega el backend CRUD para que el docente (o
+coordinador/admin) gestione el catálogo de actividades de un
+`grmo_id`, sobre el esquema creado en la Fase A
+(`actividadesn3`/`notasn3`, commit `f592885`).
+
+### Cambios — Backend (`calificaciones_mdl.php`)
+- 4 `case` nuevos: `listar_actividades_n3`, `guardar_actividad_n3`,
+  `editar_actividad_n3`, `eliminar_actividad_n3`.
+- Guard idéntico al ya usado en `guardar_nota`/`listar_calificaciones`:
+  Docente restringido a su propio `grmo_id` (JOIN `gruposmodulos`→
+  `docentes.usua_id`), Coordinador/Admin sin restricción, cualquier
+  otro rol rechazado.
+- En `editar_actividad_n3`/`eliminar_actividad_n3` el `grmo_id` se
+  resuelve primero desde `acn3_id` antes de aplicar el guard de
+  ownership.
+- Reglas de negocio: máximo 15 actividades por `grmo_id`, mínimo 1
+  (bloquea eliminar la última actividad activa), bloquea eliminar si
+  ya tiene alguna nota registrada en `notasn3` (`non3_valor` no nulo)
+  — el check de "última actividad" se evalúa antes que el de "tiene
+  notas".
+
+### Decisiones de diseño
+1. `acn3_orden` se calcula con `MAX(acn3_orden)+1`, no `COUNT(*)` —
+   evita una colisión de orden si se elimina una actividad intermedia
+   y luego se agrega una nueva (verificado con prueba real durante
+   esta fase).
+2. Sin cambios en `calificaciones_view.php`/`_ctrl.js` — todavía no
+   hay UI para estos endpoints, llega en las Fases 2.14.E/F.
+
+### Pruebas realizadas
+17+ casos vía `curl` contra Docker vivo: ownership cruzado (Docente
+A/B), acceso sin restricción de Coordinador/Admin, validación de
+nombre vacío, límite de 15 actividades, ambos rechazos de eliminación
+(última actividad y actividad con notas) en el orden correcto, rechazo
+por sesión inválida. Fixtures de prueba (2 docentes, 1 estudiante, 2
+`gruposmodulos`) creados y eliminados sin dejar rastro.
+
+---
+
 ## [f592885] — 2026-09-05 — feat(calificaciones): agrega esquema BD para N3 configurable — Fase 2.14.A (1/8)
 
 ### Archivos modificados

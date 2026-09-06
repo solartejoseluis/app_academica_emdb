@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-05
-> Versión: 106 — abre el roadmap "N3 configurable por actividades" (Fase 2.14, 8 sub-etapas A-H). Cierra la sub-etapa A: esquema de BD. Reemplaza la captura directa de cali_n3 por un catálogo de actividades definidas por el docente (actividadesn3, ancla grmo_id) con nota individual por estudiante y actividad (notasn3, UNIQUE(acn3_id, estu_id)) — mismo patrón catálogo+instancia que requisitos_programa/requisitos_estudiante. cali_n3/cali_nota_final/cali_definitiva reseteados a NULL en toda la tabla calificaciones: el cálculo de N3 pasará a ser 100% derivado del promedio de notasn3 (lógica pendiente en 2.14.B+). N3 mantiene la regla invariable de no tener supletorio — notasn3 no incluye ningún campo de supletorio, por diseño.
+> Versión: 107 — Fase 2.14.B del roadmap "N3 configurable por actividades": backend CRUD de actividades (actividadesn3) con guard idéntico a guardar_nota/listar_calificaciones. Reglas de negocio: máximo 15 actividades, mínimo 1, bloqueo de eliminación si tiene notas registradas. Sin cambios en frontend todavía.
 
 ---
 
