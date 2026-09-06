@@ -1580,19 +1580,19 @@ prueba en la base de datos de desarrollo.
 | 2.14.B | Backend — CRUD de actividades (`actividadesn3`) para el docente, restringido a su propio `grmo_id` | ✅ 2026-09-05 (commit `7dadd80`) |
 | 2.14.C | Backend — guardar/actualizar `notasn3` por estudiante y actividad (autosave, mismo patrón que `guardar_nota`) | ✅ 2026-09-05 (commit `953a50f`) |
 | 2.14.D | Backend — cálculo derivado de `cali_n3` (promedio de `notasn3`, solo si todas las actividades activas tienen nota) e integración con el cálculo existente de `cali_nota_final`/`cali_definitiva` | ✅ 2026-09-05 (commit `24a43c7`) |
-| 2.14.E | Frontend Docente — modal "Registro y cálculo de N3" en `calificaciones_view.php`/`_ctrl.js`: gestión de actividades + captura de notas por actividad | ⬜ |
+| 2.14.E | Frontend Docente — modal "Registro y cálculo de N3" en `calificaciones_view.php`/`_ctrl.js`: gestión de actividades + captura de notas por actividad | ✅ 2026-09-05 (commits `0cbb2cb`, `352a4f1`, `b827d14`, `5c9ee42` — sub-fases E1-E3.2) |
 | 2.14.F | Frontend — columna N3 de la planilla pasa de input directo a valor de solo lectura (resultado del promedio), con acceso al modal de la Fase E | ⬜ |
 | 2.14.G | Reglas de eliminación de actividades — bloqueo si tiene notas registradas o es la última actividad activa del `grmo_id` (ver decisión en Fase A) | ⬜ |
 | 2.14.H | Documentación de cierre del roadmap completo | ⬜ |
 
-> **Nota sobre 2.14.E:** internamente dividida en E1/E2/E3 para no
-> saturar la ventana de implementación de un solo commit — la fila de
-> arriba no se marca ✅ hasta que las tres estén completas. E1
-> (estructura HTML de ambos modales, commit `0cbb2cb`) y E2 (JS del
-> modal "Configurar actividades" — CRUD conectado a los 4 endpoints de
-> la Fase B, commit `352a4f1`) ya están cerradas. Resta E3 (tabla
-> dinámica estudiante×actividad con autosave, dentro de
-> `#mdl_registro_n3`).
+> **Nota sobre 2.14.E:** internamente dividida en E1/E2/E3.1/E3.2 para
+> no saturar la ventana de implementación de un solo commit — las 4
+> sub-fases ya están cerradas: E1 (estructura HTML de ambos modales,
+> commit `0cbb2cb`), E2 (JS del modal "Configurar actividades" — CRUD
+> conectado a los 4 endpoints de la Fase B, commit `352a4f1`), E3.1
+> (tabla dinámica estudiante×actividad — estructura y carga, commit
+> `b827d14`) y E3.2 (autosave de esa tabla + sincronización con la
+> tabla principal, commit `5c9ee42`).
 
 ### Phase 3 — Validación TRL5
 

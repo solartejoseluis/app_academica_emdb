@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-05
-> Versión: 110 — Fases 2.14.E1 y E2 del roadmap "N3 configurable por actividades": estructura HTML de ambos modales (Registro y Configurar actividades) y JS completo del modal Configurar (CRUD conectado a los 4 endpoints de la Fase B, con límites de UX y conexión modal-a-modal sin conflicto de backdrop). Resta la Fase E3 (tabla dinámica estudiante×actividad con autosave) para completar el frontend del modal de registro.
+> Versión: 111 — cierra por completo la Fase 2.14.E del roadmap "N3 configurable por actividades" (E1+E2+E3.1+E3.2): modal "Registro y cálculo de N3" completamente funcional — tabla dinámica estudiante×actividad, autosave sin supletorio, sincronización en vivo con la tabla principal de calificaciones. Con esto el feature es funcionalmente completo salvo que la columna N3 de la tabla principal sigue siendo editable directamente (se bloquea en la Fase 2.14.F). Restan F (solo lectura + semáforo), G (documentación de reglas de eliminación, ya implementadas desde la Fase B) y H (cierre de documentación del roadmap).
 
 ---
 

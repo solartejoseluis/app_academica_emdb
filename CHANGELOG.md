@@ -4,6 +4,71 @@
 
 ---
 
+## [5c9ee42] — 2026-09-05 — feat(calificaciones): autosave de la tabla de registro N3 — Fase 2.14.E3.2 (8/8 de la sub-división E)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_ctrl.js
+
+### Por qué
+Última pieza de la Fase 2.14.E — conecta los inputs de la tabla dinámica
+(Fase E3.1) con `guardar_nota_n3`, con sincronización en vivo hacia la
+tabla principal de calificaciones.
+
+### Cambios
+- Handler `blur` sobre `#tbl_registro_n3 .input-nota-n3`: valida rango
+  0.0-5.0 sin ninguna lógica de supletorio, guarda vía
+  `guardar_nota_n3`, actualiza semáforo y "Nota final" del modal.
+- `actualizarCeldaN3EnTablaPrincipal()`: sincroniza el input N3 (aún
+  editable directamente hasta la Fase F) y las celdas Nota
+  Final/Definitiva de la fila correspondiente en la tabla principal,
+  fuera del modal.
+- Refactors puros extraídos del handler de `.input-nota`, ahora
+  compartidos: `normalizarValorNota()` y
+  `actualizarNotaFinalYDefinitivaEnFila()` — verificado que el
+  comportamiento de N1/N2/N4 no cambió.
+
+### Pruebas realizadas
+Playwright: 0 elementos de supletorio en todo momento, guardado válido
+con semáforo correcto, "Nota final" completa solo con ambas actividades
+llenas, sincronización confirmada con la tabla principal (incluyendo el
+caso correcto de Nota Final/Definitiva en "—" por depender de N1/N2/N4
+no llenadas), rechazo de valor fuera de rango, borrado de nota vuelve a
+`NULL`. Sin datos de prueba remanentes.
+
+---
+
+## [b827d14] — 2026-09-05 — feat(calificaciones): tabla dinámica de registro N3 — estructura y carga — Fase 2.14.E3.1 (7/8 de la sub-división E)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_ctrl.js
+
+### Por qué
+Penúltima pieza de la Fase 2.14.E — construye la tabla
+estudiante×actividad dentro de `#mdl_registro_n3`, sobre las
+actividades y notas ya existentes.
+
+### Cambios
+- `cargarTablaRegistroN3()`/`renderizarTablaRegistroN3()`: thead
+  dinámico (columna por actividad, truncado a 10 caracteres + `title`
+  con nombre completo y comentario), tbody con una fila por estudiante
+  matriculado, inputs precargados desde `notasn3`, columna "Nota final"
+  calculada en cliente con el mismo criterio que `recalcularN3()` en
+  PHP.
+- Roster obtenido reutilizando `listar_calificaciones` (no existía una
+  variable de scope superior con los estudiantes ya cargados).
+- Refresco unificado vía un solo listener `show.bs.modal` en
+  `#mdl_registro_n3` — cubre tanto la primera apertura como el reopen
+  tras cerrar el modal de Configurar actividades.
+
+### Pruebas realizadas
+Playwright contra `grmo_id` real: mensaje correcto sin actividades,
+columnas/roster correctos, precarga exacta desde `notasn3`,
+promedio/guiones correctos, sin duplicación al reabrir el modal
+repetidamente. Sin autosave todavía (esa es la E3.2). Sin datos de
+prueba remanentes.
+
+---
+
 ## [352a4f1] — 2026-09-05 — feat(calificaciones): JS del modal Configurar actividades N3 — Fase 2.14.E2 (6/8)
 
 ### Archivos modificados
