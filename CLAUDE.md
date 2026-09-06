@@ -1311,6 +1311,18 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 
 ---
 
+## Advertencias operativas — comandos destructivos en BD (entorno local)
+
+NUNCA ejecutar `docker compose down -v`, `DROP TABLE`, `TRUNCATE` o un
+reimport completo del `.sql` sin generar antes un `mysqldump` de
+respaldo y confirmar explícitamente con Jose Luis qué datos reales
+existen en la BD. Incidente de referencia: pérdida de datos reales de
+2026-2 el 2026-09-05, Fase 2.14.A, recuperado gracias a un backup
+manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
+"Incidente de pérdida de datos y recuperación (2026-09-05)".
+
+---
+
 ## Checklist de deploy a producción
 
 | Acción antes de cada deploy | Estado |

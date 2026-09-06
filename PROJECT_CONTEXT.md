@@ -597,6 +597,45 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 
 ---
 
+## Incidente de pérdida de datos y recuperación (2026-09-05)
+
+Durante la Fase 2.14.A, `docker compose down -v && docker compose up -d`
+(ejecutado para aplicar el nuevo esquema de `actividadesn3`/`notasn3`)
+borró el volumen completo de MySQL, no solo los datos de prueba de N3
+que se habían autorizado borrar. Se perdieron datos reales de 2026-2
+(18 estudiantes, 5 docentes, 20 matrículas del estado de la mañana),
+incluida la cuenta de acceso de la coordinadora — detectado cuando el
+login de coordinador dejó de funcionar.
+
+Recuperación exitosa gracias a un respaldo manual que Jose Luis había
+hecho esa misma mañana a las 09:17 (`2026-09-05_emdb_academica.sql`,
+independiente de esta sesión, parte de su propio flujo de
+limpieza/recarga de aspirantes de cambio de semestre). Se restauró ese
+dump y se re-ejecutaron en orden sus scripts
+`01_limpieza_matriculados.sql` y `02_carga_aspirantes.sql`,
+reconstruyendo el estado exacto previo al incidente (54 aspirantes
+nuevos, 5 docentes intactos).
+
+Problema secundario detectado y corregido en el proceso: el import
+inicial usó el cliente `mysql` sin `--default-character-set=utf8mb4`,
+causando doble codificación UTF-8→Latin1→UTF-8 en 8 de los 54 registros
+con Ñ (ej. "PEÑA" → "PEÃ‘A"). Corregido borrando y re-importando
+`02_carga_aspirantes.sql` con el flag correcto.
+
+Efecto colateral: una matrícula real de un estudiante (Isabella
+Alegría Bedoya) creada durante las pruebas de login posteriores al
+incidente se perdió en el proceso de corrección de codificación —
+pendiente de rematricular manualmente.
+
+**Regla permanente adoptada:** antes de cualquier comando que pueda
+borrar datos de la BD (`docker compose down -v`, `DROP TABLE`,
+`TRUNCATE`, reimport completo), siempre generar un `mysqldump` de
+respaldo y confirmar explícitamente con Jose Luis qué datos reales
+existen — nunca asumir que todo es "de prueba". Ver también la nota
+equivalente en CLAUDE.md.
+
+---
+
 ## Flujo de trabajo establecido
 Claude IA (chat)          Claude Code              Jose Luis
 ──────────────────────────────────────────────────────────────
