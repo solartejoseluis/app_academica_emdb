@@ -396,6 +396,14 @@ $(document).ready(function () {
 
     let totalActividadesN3Actual = 0;
 
+    // ── Cargar la tabla dinámica de #mdl_registro_n3 cada vez que se abre —
+    //    cubre tanto el primer open (link "N3") como el reopen tras cerrar
+    //    #mdl_configurar_actividades_n3 (ver TODO de la Fase E2 más abajo:
+    //    ambos casos llaman a .show(), que dispara este mismo evento) ────────
+    $('#mdl_registro_n3').on('show.bs.modal', function () {
+        cargarTablaRegistroN3(grmo_id_activo);
+    });
+
     // ── Conexión modal-a-modal: Registro → Configurar (evita el problema de
     //    backdrop de modales anidados, ver decisión de la Fase 2.14.E1) ──────
     $('#btn_abrir_configurar_n3').on('click', function () {
@@ -406,9 +414,10 @@ $(document).ready(function () {
         bootstrap.Modal.getOrCreateInstance('#mdl_registro_n3').hide();
     });
 
-    // Al cerrar Configurar, siempre vuelve a mostrar Registro.
-    // TODO (Fase 2.14.E3): si las actividades cambiaron, refrescar acá también
-    // la tabla de notas (#tbl_registro_n3), no solo la lista de actividades.
+    // Al cerrar Configurar, siempre vuelve a mostrar Registro. El .show() de
+    // abajo dispara 'show.bs.modal' (ver arriba), que ya recarga
+    // #tbl_registro_n3 — cubre el caso "las actividades cambiaron" sin
+    // necesidad de una segunda llamada explícita aquí (Fase 2.14.E3.1).
     $('#mdl_configurar_actividades_n3').on('hidden.bs.modal', function () {
         limpiarFormularioActividadN3();
         bootstrap.Modal.getOrCreateInstance('#mdl_registro_n3').show();
@@ -569,5 +578,105 @@ $(document).ready(function () {
             }
         });
     });
+
+    // ── Tabla dinámica estudiante×actividad de #mdl_registro_n3 (Fase 2.14.E3.1) ──
+    function cargarTablaRegistroN3(grmoId) {
+        const reqActividades = $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=listar_actividades_n3',
+            data: { grmo_id: grmoId },
+            dataType: 'json'
+        });
+        const reqNotas = $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=listar_notas_n3',
+            data: { grmo_id: grmoId },
+            dataType: 'json'
+        });
+        // Mismo endpoint que ya usa la tabla principal (listar_calificaciones) —
+        // se reutiliza solo por el roster (estu_id/nombres/apellidos), ignorando
+        // los campos de notas N1-N4 que trae de más.
+        const reqEstudiantes = $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=listar_calificaciones',
+            data: { grmo_id: grmoId },
+            dataType: 'json'
+        });
+
+        $.when(reqActividades, reqNotas, reqEstudiantes).done(function (rActividades, rNotas, rEstudiantes) {
+            const actividades = rActividades[0].status === 'ok' ? rActividades[0].data : [];
+            const notas = rNotas[0].status === 'ok' ? rNotas[0].data : [];
+            const estudiantes = rEstudiantes[0].status === 'ok' ? rEstudiantes[0].data : [];
+            renderizarTablaRegistroN3(actividades, notas, estudiantes);
+        });
+    }
+
+    function renderizarTablaRegistroN3(actividades, notas, estudiantes) {
+        const theadTr = $('#tbl_registro_n3 thead tr');
+        const tbody = $('#tbl_registro_n3 tbody');
+
+        // Quitar columnas dinámicas de una carga anterior — deja solo # y Estudiante
+        theadTr.find('th').slice(2).remove();
+        tbody.empty();
+
+        if (!actividades.length) {
+            tbody.html('<tr><td colspan="2" class="text-center text-muted">Configura al menos una actividad para comenzar.</td></tr>');
+            return;
+        }
+
+        actividades.forEach(act => {
+            const nombreCorto = act.acn3_nombre.length > 10 ? act.acn3_nombre.substring(0, 10) + '…' : act.acn3_nombre;
+            const tooltipTexto = act.acn3_comentario ? `${act.acn3_nombre} — ${act.acn3_comentario}` : act.acn3_nombre;
+            theadTr.append($('<th class="text-center"></th>').text(nombreCorto).attr('title', tooltipTexto));
+        });
+        theadTr.append('<th class="text-center">Nota final</th>');
+
+        if (!estudiantes.length) {
+            tbody.html(`<tr><td colspan="${actividades.length + 3}" class="text-center text-muted">Sin estudiantes asignados a este módulo</td></tr>`);
+            return;
+        }
+
+        // notaMap[acn3_id][estu_id] = non3_valor
+        const notaMap = {};
+        notas.forEach(n => {
+            if (!notaMap[n.acn3_id]) notaMap[n.acn3_id] = {};
+            notaMap[n.acn3_id][n.estu_id] = n.non3_valor;
+        });
+
+        estudiantes.forEach((e, idx) => {
+            const tr = $('<tr></tr>');
+            tr.append($('<td></td>').text(idx + 1));
+            tr.append($('<td></td>').text(`${e.estu_apellidos}, ${e.estu_nombres}`));
+
+            let todasCompletas = true;
+            let suma = 0;
+
+            actividades.forEach(act => {
+                const porEstudiante = notaMap[act.acn3_id] || {};
+                const valor = porEstudiante[e.estu_id];
+                if (valor === undefined || valor === null) {
+                    todasCompletas = false;
+                } else {
+                    suma += parseFloat(valor);
+                }
+
+                // Clase distinta de .input-nota a propósito: esa clase ya tiene
+                // un handler global de blur -> guardar_nota (N1/N2/N4), que no
+                // aplica aquí. El autosave de estos inputs es la Fase 2.14.E3.2.
+                const input = $('<input type="text" class="input-nota-n3 form-control form-control-sm text-center">')
+                    .attr('data-acn3-id', act.acn3_id)
+                    .attr('data-estu-id', e.estu_id)
+                    .val(valor !== undefined && valor !== null ? valor : '');
+                tr.append($('<td></td>').append(input));
+            });
+
+            // Mismo criterio que recalcularN3() en PHP: promedio solo si TODAS
+            // las actividades de la fila tienen valor; si no, "—".
+            const notaFinalTexto = todasCompletas ? (suma / actividades.length).toFixed(1) : '—';
+            tr.append($('<td class="text-center fw-bold"></td>').text(notaFinalTexto));
+
+            tbody.append(tr);
+        });
+    }
 
 });
