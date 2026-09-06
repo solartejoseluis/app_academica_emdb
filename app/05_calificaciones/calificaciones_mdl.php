@@ -625,6 +625,156 @@ switch ($accion) {
         }
         break;
 
+    // ── NOTAS POR ACTIVIDAD N3 (Fase 2.14.C) ──────────────────────────────────
+
+    case 'listar_notas_n3':
+        try {
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+                break;
+            }
+
+            $pdo = getConexion();
+            $role_id = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id = (int)($_SESSION['usua_id'] ?? 0);
+            $grmo_id = (int)($_POST['grmo_id'] ?? 0);
+
+            if ($role_id === 3) {
+                // Docente: solo puede consultar notas de grupos asignados a él
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+
+            // Array plano estudiante+actividad — el frontend arma la matriz
+            // estudiante×actividad en la Fase 2.14.E, este case no pivotea nada.
+            $stmt = $pdo->prepare("
+                SELECT n.acn3_id, n.estu_id, n.non3_valor
+                FROM notasn3 n
+                INNER JOIN actividadesn3 a ON n.acn3_id = a.acn3_id
+                WHERE a.grmo_id = ?
+            ");
+            $stmt->execute([$grmo_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'guardar_nota_n3':
+        try {
+            if (!isset($_SESSION['usua_id'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+                break;
+            }
+
+            $pdo        = getConexion();
+            $role_id    = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id    = (int)($_SESSION['usua_id'] ?? 0);
+            $acn3_id    = (int)($_POST['acn3_id'] ?? 0);
+            $estu_id    = (int)($_POST['estu_id'] ?? 0);
+            $non3_valor = trim($_POST['non3_valor'] ?? '');
+
+            // Resolver grmo_id de la actividad ANTES de verificar ownership
+            $act = $pdo->prepare("SELECT grmo_id FROM actividadesn3 WHERE acn3_id = ?");
+            $act->execute([$acn3_id]);
+            $actividad = $act->fetch();
+            if (!$actividad) {
+                echo json_encode(['status' => 'error', 'message' => 'Actividad no encontrada']);
+                break;
+            }
+            $grmo_id = (int)$actividad['grmo_id'];
+
+            if ($role_id === 3) {
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+                break;
+            }
+
+            // El estudiante debe pertenecer al grupo módulo de la actividad
+            $miembro = $pdo->prepare("SELECT COUNT(*) AS total FROM grmoestudiantes WHERE grmo_id = ? AND estu_id = ?");
+            $miembro->execute([$grmo_id, $estu_id]);
+            if ((int)$miembro->fetch()['total'] === 0) {
+                echo json_encode(['status' => 'error', 'message' => 'El estudiante no pertenece a este grupo módulo.']);
+                break;
+            }
+
+            // Validar valor — SIN lógica de supletorio (N3 nunca tiene
+            // supletorio, no existe cali_sup_n3 ni equivalente aquí)
+            if ($non3_valor === '') {
+                $non3_valor = null;
+            } elseif (!is_numeric($non3_valor)) {
+                echo json_encode(['status' => 'error', 'message' => 'Valor no numérico']);
+                break;
+            } else {
+                $non3_valor = round((float)$non3_valor, 1);
+                if ($non3_valor < 0.0 || $non3_valor > 5.0) {
+                    echo json_encode(['status' => 'error', 'message' => 'Nota fuera de rango (0.0 - 5.0)']);
+                    break;
+                }
+            }
+
+            // Upsert: UPDATE si ya existe la fila (acn3_id, estu_id), INSERT si no
+            $check = $pdo->prepare("SELECT non3_id FROM notasn3 WHERE acn3_id = ? AND estu_id = ?");
+            $check->execute([$acn3_id, $estu_id]);
+            $existente = $check->fetch();
+
+            try {
+                if ($existente) {
+                    $stmt = $pdo->prepare("UPDATE notasn3 SET non3_valor = ? WHERE non3_id = ?");
+                    $stmt->execute([$non3_valor, $existente['non3_id']]);
+                } else {
+                    $stmt = $pdo->prepare("INSERT INTO notasn3 (acn3_id, estu_id, non3_valor) VALUES (?, ?, ?)");
+                    $stmt->execute([$acn3_id, $estu_id, $non3_valor]);
+                }
+            } catch (PDOException $e) {
+                // Condición de carrera: otra petición insertó la fila entre el
+                // SELECT y el INSERT — uq_non3_acn3_estu la protege. Reintentar
+                // como UPDATE en vez de fallar (mismo criterio ya documentado
+                // en CLAUDE.md para SQLSTATE 23000 sobre asignaciones concurrentes).
+                if ($e->getCode() === '23000') {
+                    $stmt = $pdo->prepare("UPDATE notasn3 SET non3_valor = ? WHERE acn3_id = ? AND estu_id = ?");
+                    $stmt->execute([$non3_valor, $acn3_id, $estu_id]);
+                } else {
+                    throw $e;
+                }
+            }
+
+            // NO se toca calificaciones ni se recalcula cali_n3/cali_nota_final/
+            // cali_definitiva aquí — eso es exclusivamente la Fase 2.14.D.
+            echo json_encode([
+                'status'     => 'ok',
+                'acn3_id'    => $acn3_id,
+                'estu_id'    => $estu_id,
+                'non3_valor' => $non3_valor,
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
     default:
         echo json_encode(['status' => 'error', 'message' => 'Acción no reconocida']);
         break;
