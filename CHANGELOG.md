@@ -4,6 +4,66 @@
 
 ---
 
+## Nueva utilidad — script estandarizado de export de BD para hosting (`scripts/export_para_hosting.sh`) — 2026-09-06
+
+### Archivos nuevos
+- `scripts/export_para_hosting.sh` — genera un dump de `emdb_academica` listo para subir al hosting (pruebas o producción, vía cPanel/phpMyAdmin)
+- `database/hosting_deploy/.gitkeep` — placeholder para trackear la carpeta en git pese a que su contenido está ignorado
+
+### Archivos modificados
+- `.gitignore` — agrega `database/hosting_deploy/*` / `!database/hosting_deploy/.gitkeep`, mismo patrón ya usado para `uploads/fotos_estudiantes/`
+
+### Por qué
+Al intentar restaurar un backup local en el hosting de pruebas
+(`aurusmind.com`, confirmado 2026-09-06) se identificaron dos
+problemas recurrentes al importar: (1) error #1273 "Cotejo
+desconocido" — el hosting corre MariaDB, no MySQL 8, y rechaza la
+colación `utf8mb4_0900_ai_ci` generada por el `mysqldump` del entorno
+local; (2) error #1044 — el usuario de BD del hosting no tiene permiso
+`SELECT` sobre `information_schema`, por lo que el vaciado completo de
+tablas en ese hosting debe hacerse manualmente desde phpMyAdmin
+(Estructura → seleccionar todo → Eliminar, con `FOREIGN_KEY_CHECKS=0`
+primero) y no vía consulta SQL dinámica — este segundo problema queda
+como procedimiento manual documentado, el script no lo resuelve.
+
+### Cómo funciona
+- Ejecuta `docker compose exec -T db mysqldump -u root --routines
+  --triggers --single-transaction emdb_academica` — el flag `-T`
+  deshabilita el pseudo-TTY que `docker compose exec` asigna por
+  defecto, necesario porque de lo contrario la salida redirigida a
+  archivo puede corromperse o fallar al no correr en modo interactivo.
+- Guarda el resultado en `database/hosting_deploy/` con nombre
+  timestamped (`AAAA-MM-DD_HHMM_emdb_academica_hosting.sql`, hora
+  America/Bogota vía `TZ=America/Bogota date`).
+- Corrige automáticamente con `sed -i` todas las apariciones de
+  `utf8mb4_0900_ai_ci` (exclusiva de MySQL 8) a `utf8mb4_unicode_ci`
+  (compatible con MariaDB).
+- Valida con `grep` que no quede ninguna aparición de `utf8mb4_0900`
+  tras el reemplazo — si queda alguna, muestra un aviso explícito con
+  el conteo y las líneas encontradas, para revisión manual.
+- Imprime al finalizar la ruta completa del archivo, su tamaño en KB,
+  y un mensaje de confirmación "listo para importar en phpMyAdmin del
+  hosting (pruebas o producción)".
+
+### Decisión de diseño — separación estricta entre seed público y snapshot real
+El repositorio GitHub de este proyecto es **público**. Por eso:
+- `database/emdb_academica.sql` (seed versionado en git) contiene
+  únicamente estructura y datos base/de ejemplo — **nunca** datos
+  reales de estudiantes (nombres, documentos, notas, contactos), para
+  no exponer datos personales bajo la Ley 1581 de 2012 (Habeas Data)
+  en un repo público. Este script no lo toca ni lo sincroniza.
+- `database/hosting_deploy/` (agregada a `.gitignore`, excepto
+  `.gitkeep`) es donde vive exclusivamente el snapshot con datos
+  reales generado por este script, para uso local y subida manual al
+  hosting — nunca se sube a GitHub.
+
+### Pruebas realizadas
+Primera ejecución de prueba: 2026-09-06 — generó un dump de 92 KB sin
+ninguna colación incompatible restante (`grep utf8mb4_0900` → 0
+coincidencias).
+
+---
+
 ## Cierre del roadmap "N3 configurable por actividades" (Fase 2.14, A-H) — 2026-09-05
 
 Roadmap completo en 9 commits a lo largo de un solo día (2026-09-05),

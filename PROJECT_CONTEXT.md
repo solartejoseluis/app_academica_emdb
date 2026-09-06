@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-09-05
-> Versión: 114 — cierra el roadmap completo "N3 configurable por actividades" (Fase 2.14, A-H). El docente ya no anota calificaciones de actividades de clase en papel/libreta personal para calcular manualmente el promedio al final del periodo (el problema descrito en la propuesta de proyecto aplicado, sección "vida real" del planteamiento) — ahora registra cada actividad en el sistema y N3 se calcula automáticamente. Constituye evidencia concreta de la fase "Implementar" del ciclo CDIO, avanzando hacia la validación TRL5 con datos reales de 2026-2.
+> Última actualización: 2026-09-06
+> Versión: 115 — agrega `scripts/export_para_hosting.sh`, utilidad que estandariza la generación de un backup de la BD listo para subir al hosting de pruebas/producción (cPanel/phpMyAdmin), corrigiendo automáticamente la colación exclusiva de MySQL 8 que MariaDB (motor real del hosting) rechaza. Primera pieza de infraestructura operativa hacia la instalación en el servidor institucional EMDB (OE4 — VALIDAR TRL5, ítem 1).
 
 ---
 
@@ -581,6 +581,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | Formulario público de inscripción es de un solo paso, sin código de retomar | El diseño original de 2 pasos (Fase 3 del roadmap histórico, `finc_codigotemporal`) se eliminó por completo en el commit `0e098bb` (2026-08-24) — `fam_view.php`/`fam_mdl.php`/`fam_ctrl.js` ya no existen, y la columna `finc_codigotemporal` ya no existe en el esquema. No reintroducir un mecanismo de "retomar después" sin decisión explícita de Jose Luis — el formulario actual es de una sola pantalla, un solo guardado transaccional. |
 | El formulario público de inscripción nunca genera clave de acceso al sistema | Confirmado por diagnóstico (grep de `generarClaveAuto`/`clave_generada`/`usua_passwordhash` en `09_inscripcion_publica/`, sin resultados) antes y después del commit `0e098bb` — la generación de clave es y siempre fue tarea exclusiva del coordinador vía `matricular` en `est_mdl.php`. No confundir con `finc_codigotemporal` (un puente técnico para retomar el Paso 2, nunca una credencial), ya eliminado. |
 | N3 configurable (Fase 2.14.A, commit `f592885`) — 3 decisiones de esquema | (1) Histórico de N3 se descarta, no se migra — el reseteo de `cali_n3`/`cali_nota_final`/`cali_definitiva` a `NULL` asume que las notas existentes son datos de prueba sin valor de negocio real; no hay mecanismo de migración hacia `notasn3`. (2) Roles autorizados = Docente con verificación de ownership + Coordinador/Admin sin restricción, igual que el resto de `calificaciones_mdl.php` (`listar_calificaciones`/`guardar_nota`) — sin backend nuevo todavía, decisión que rige las fases siguientes. (3) Eliminación de una actividad de `actividadesn3` quedará bloqueada si tiene notas en `notasn3` o si es la última actividad activa del `grmo_id` — a diferencia de `requisitos_programa` (borrado lógico vía `reqp_activo`), aquí no hace falta un flag porque el borrado físico solo procede si la actividad está vacía. |
+| Seed público (`database/emdb_academica.sql`) y snapshot real (`database/hosting_deploy/`) son dos archivos deliberadamente separados, nunca sincronizados entre sí | El repositorio GitHub de este proyecto es **público**. `database/emdb_academica.sql` (versionado en git) contiene únicamente estructura y datos base/de ejemplo — **nunca** debe llevar datos reales de estudiantes (nombres, documentos, notas, contactos), porque eso expondría datos personales bajo la Ley 1581 de 2012 (Habeas Data) en un repo público. Los snapshots con datos reales, generados por `scripts/export_para_hosting.sh`, viven exclusivamente en `database/hosting_deploy/` — carpeta en `.gitignore` (excepto `.gitkeep`) que nunca se sube a GitHub, de uso puramente local para la subida manual al hosting. No reintroducir un mecanismo que sincronice o actualice el seed público a partir de datos reales sin decisión explícita de Jose Luis. |
 
 ---
 
@@ -634,6 +635,47 @@ borrar datos de la BD (`docker compose down -v`, `DROP TABLE`,
 respaldo y confirmar explícitamente con Jose Luis qué datos reales
 existen — nunca asumir que todo es "de prueba". Ver también la nota
 equivalente en CLAUDE.md.
+
+---
+
+## Script de export estandarizado para hosting (2026-09-06)
+
+`scripts/export_para_hosting.sh` — nueva utilidad que estandariza la
+generación de un backup de la BD listo para subir al hosting (pruebas
+o producción, vía cPanel/phpMyAdmin). Ejecuta `mysqldump` dentro del
+contenedor Docker del servicio `db` (`--routines --triggers
+--single-transaction`, y `-T` en `docker compose exec` para evitar que
+el pseudo-TTY corrompa la salida redirigida a archivo), guarda el
+resultado en `database/hosting_deploy/` con nombre timestamped
+(`AAAA-MM-DD_HHMM_emdb_academica_hosting.sql`, hora America/Bogota), y
+corrige automáticamente con `sed` la colación `utf8mb4_0900_ai_ci`
+(exclusiva de MySQL 8, la usada en el entorno local) a
+`utf8mb4_unicode_ci`, validando con `grep` que no quede ninguna
+colación incompatible.
+
+**Contexto que motivó esta utilidad:** al intentar restaurar un backup
+local en el hosting de pruebas (`aurusmind.com`, confirmado
+2026-09-06) se identificaron dos problemas recurrentes:
+1. Error #1273 "Cotejo desconocido" al importar — el hosting corre
+   **MariaDB**, no MySQL 8, y no reconoce `utf8mb4_0900_ai_ci`. Este es
+   el problema que resuelve el script.
+2. Error #1044 (falta de permiso `SELECT` sobre `information_schema`)
+   con el usuario de BD del hosting — impide vaciar todas las tablas
+   vía una consulta SQL dinámica. El vaciado completo en ese hosting
+   debe hacerse manualmente desde phpMyAdmin (Estructura → seleccionar
+   todo → Eliminar, con `FOREIGN_KEY_CHECKS=0` primero). No es un
+   problema que el script resuelva — queda como procedimiento manual
+   documentado aquí para no tener que redescubrirlo la próxima vez.
+
+**Primera ejecución de prueba:** 2026-09-06, dump de 92 KB generado sin
+ninguna colación incompatible restante.
+
+**Decisión de diseño (ver también "Decisiones tomadas" más abajo):**
+separación estricta entre `database/emdb_academica.sql` (seed
+versionado en git, sin datos reales — el repo es público) y
+`database/hosting_deploy/` (snapshot con datos reales, en
+`.gitignore`, solo para uso local y subida manual). El script nunca
+toca `database/emdb_academica.sql`.
 
 ---
 

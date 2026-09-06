@@ -5,3 +5,5 @@ vendor/
 app/00_connect/recaptcha_config.php
 uploads/fotos_estudiantes/*
 !uploads/fotos_estudiantes/.gitkeep
+database/hosting_deploy/*
+!database/hosting_deploy/.gitkeep
