@@ -2,6 +2,93 @@
 session_start();
 require_once '../00_connect/pdo.php';
 
+// Fórmula oficial de Nota Final/Definitiva — extraída de 'guardar_nota'
+// (Fase 2.14.D) para que 'guardar_nota_n3' la reutilice sin duplicarla.
+// A diferencia del bloque inline original, aquí SIEMPRE se persiste
+// (incluyendo NULL si N1-N4 no están completas), evitando que un valor
+// quede desactualizado si una nota se limpia después de haber estado completa.
+function recalcularNotaFinalYDefinitiva(PDO $pdo, int $grmo_id, int $estu_id): void {
+    $check = $pdo->prepare("
+        SELECT cali_id, cali_n1, cali_n2, cali_n3, cali_n4,
+               cali_sup_n1, cali_sup_n2, cali_sup_n4,
+               cali_habilitacion
+        FROM calificaciones WHERE grmo_id = ? AND estu_id = ?
+    ");
+    $check->execute([$grmo_id, $estu_id]);
+    $fila = $check->fetch();
+    if (!$fila) {
+        return;
+    }
+
+    $n1 = $fila['cali_n1'];
+    $n2 = $fila['cali_n2'];
+    $n3 = $fila['cali_n3'];
+    $n4 = $fila['cali_n4'];
+    $s1 = $fila['cali_sup_n1'];
+    $s2 = $fila['cali_sup_n2'];
+    $s4 = $fila['cali_sup_n4'];
+    $habilitacion = $fila['cali_habilitacion'];
+
+    $notaFinal = null;
+    $definitivaOficial = null;
+    if ($n1 !== null && $n2 !== null && $n3 !== null && $n4 !== null) {
+        $ef1 = ($n1 == 0.0 && $s1 !== null) ? $s1 : $n1;
+        $ef2 = ($n2 == 0.0 && $s2 !== null) ? $s2 : $n2;
+        $ef4 = ($n4 == 0.0 && $s4 !== null) ? $s4 : $n4;
+        $notaFinal = round($ef1 * 0.2 + $ef2 * 0.2 + $n3 * 0.2 + $ef4 * 0.4, 1);
+
+        // Definitiva oficial: nota final si aprueba, habilitación si no
+        // aprueba y hay habilitación registrada, o NULL en otro caso.
+        if ($notaFinal >= 3.0) {
+            $definitivaOficial = $notaFinal;
+        } elseif ($habilitacion !== null) {
+            $definitivaOficial = round((float)$habilitacion, 1);
+        }
+    }
+
+    $upd = $pdo->prepare("
+        UPDATE calificaciones SET cali_nota_final = ?, cali_definitiva = ?
+        WHERE cali_id = ?
+    ");
+    $upd->execute([$notaFinal, $definitivaOficial, $fila['cali_id']]);
+}
+
+// N3 derivado del promedio de notasn3 — Fase 2.14.D. Retorna null si no hay
+// actividades configuradas o si al estudiante le falta alguna nota (N3
+// incompleto no se promedia parcialmente).
+function recalcularN3(PDO $pdo, int $grmo_id, int $estu_id): ?float {
+    $totalAct = $pdo->prepare("SELECT COUNT(*) AS total FROM actividadesn3 WHERE grmo_id = ?");
+    $totalAct->execute([$grmo_id]);
+    $totalActividades = (int)$totalAct->fetch()['total'];
+    if ($totalActividades === 0) {
+        return null;
+    }
+
+    $totalNotas = $pdo->prepare("
+        SELECT COUNT(*) AS total
+        FROM notasn3 n
+        INNER JOIN actividadesn3 a ON n.acn3_id = a.acn3_id
+        WHERE a.grmo_id = ? AND n.estu_id = ? AND n.non3_valor IS NOT NULL
+    ");
+    $totalNotas->execute([$grmo_id, $estu_id]);
+    $totalCompletas = (int)$totalNotas->fetch()['total'];
+
+    if ($totalCompletas !== $totalActividades) {
+        return null;
+    }
+
+    $promedio = $pdo->prepare("
+        SELECT AVG(n.non3_valor) AS promedio
+        FROM notasn3 n
+        INNER JOIN actividadesn3 a ON n.acn3_id = a.acn3_id
+        WHERE a.grmo_id = ? AND n.estu_id = ?
+    ");
+    $promedio->execute([$grmo_id, $estu_id]);
+    $valor = $promedio->fetch()['promedio'];
+
+    return $valor !== null ? round((float)$valor, 1) : null;
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {
@@ -323,40 +410,15 @@ switch ($accion) {
                 $existing = $r2->fetch();
             }
 
-            // Calcular definitiva en PHP (triggers eliminados por limitación MySQL)
-            $n1 = $existing['cali_n1'];
-            $n2 = $existing['cali_n2'];
-            $n3 = $existing['cali_n3'];
-            $n4 = $existing['cali_n4'];
-            $s1 = $existing['cali_sup_n1'];
-            $s2 = $existing['cali_sup_n2'];
-            $s4 = $existing['cali_sup_n4'];
+            // Calcular y persistir Nota Final/Definitiva (función reutilizada
+            // también por 'guardar_nota_n3' — ver recalcularNotaFinalYDefinitiva())
+            recalcularNotaFinalYDefinitiva($pdo, $grmo_id, $estu_id);
 
-            $habilitacion = $existing['cali_habilitacion'];
-
-            $notaFinal = null;
-            $definitivaOficial = null;
-            if ($n1 !== null && $n2 !== null && $n3 !== null && $n4 !== null) {
-                $ef1 = ($n1 == 0.0 && $s1 !== null) ? $s1 : $n1;
-                $ef2 = ($n2 == 0.0 && $s2 !== null) ? $s2 : $n2;
-                $ef4 = ($n4 == 0.0 && $s4 !== null) ? $s4 : $n4;
-                $notaFinal = round($ef1 * 0.2 + $ef2 * 0.2 + $n3 * 0.2 + $ef4 * 0.4, 1);
-
-                // Definitiva oficial: nota final si aprueba, habilitación si no
-                // aprueba y hay habilitación registrada, o NULL en otro caso.
-                if ($notaFinal >= 3.0) {
-                    $definitivaOficial = $notaFinal;
-                } elseif ($habilitacion !== null) {
-                    $definitivaOficial = round((float)$habilitacion, 1);
-                }
-
-                // Persistir nota final (siempre) y definitiva oficial
-                $upd = $pdo->prepare("
-                    UPDATE calificaciones SET cali_nota_final = ?, cali_definitiva = ?
-                    WHERE cali_id = ?
-                ");
-                $upd->execute([$notaFinal, $definitivaOficial, $cali_id]);
-            }
+            $finalStmt = $pdo->prepare("SELECT cali_nota_final, cali_definitiva FROM calificaciones WHERE cali_id = ?");
+            $finalStmt->execute([$cali_id]);
+            $filaFinal = $finalStmt->fetch();
+            $notaFinal = $filaFinal['cali_nota_final'];
+            $definitivaOficial = $filaFinal['cali_definitiva'];
 
             echo json_encode([
                 'status'            => 'ok',
@@ -762,13 +824,39 @@ switch ($accion) {
                 }
             }
 
-            // NO se toca calificaciones ni se recalcula cali_n3/cali_nota_final/
-            // cali_definitiva aquí — eso es exclusivamente la Fase 2.14.D.
+            // Recalcular cali_n3 (promedio de notasn3, solo si todas las
+            // actividades tienen nota) y propagar a Nota Final/Definitiva.
+            $n3 = recalcularN3($pdo, $grmo_id, $estu_id);
+
+            $existeCalif = $pdo->prepare("SELECT cali_id FROM calificaciones WHERE grmo_id = ? AND estu_id = ?");
+            $existeCalif->execute([$grmo_id, $estu_id]);
+            $filaCalif = $existeCalif->fetch();
+
+            if ($filaCalif) {
+                $updN3 = $pdo->prepare("UPDATE calificaciones SET cali_n3 = ? WHERE cali_id = ?");
+                $updN3->execute([$n3, $filaCalif['cali_id']]);
+            } else {
+                $insN3 = $pdo->prepare("INSERT INTO calificaciones (grmo_id, estu_id, cali_n3) VALUES (?, ?, ?)");
+                $insN3->execute([$grmo_id, $estu_id, $n3]);
+            }
+
+            recalcularNotaFinalYDefinitiva($pdo, $grmo_id, $estu_id);
+
+            $finalStmt = $pdo->prepare("
+                SELECT cali_n3, cali_nota_final, cali_definitiva
+                FROM calificaciones WHERE grmo_id = ? AND estu_id = ?
+            ");
+            $finalStmt->execute([$grmo_id, $estu_id]);
+            $filaFinal = $finalStmt->fetch();
+
             echo json_encode([
-                'status'     => 'ok',
-                'acn3_id'    => $acn3_id,
-                'estu_id'    => $estu_id,
-                'non3_valor' => $non3_valor,
+                'status'          => 'ok',
+                'acn3_id'         => $acn3_id,
+                'estu_id'         => $estu_id,
+                'non3_valor'      => $non3_valor,
+                'cali_n3'         => $filaFinal['cali_n3'],
+                'cali_nota_final' => $filaFinal['cali_nota_final'],
+                'cali_definitiva' => $filaFinal['cali_definitiva'],
             ]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
