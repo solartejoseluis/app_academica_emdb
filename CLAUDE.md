@@ -1581,7 +1581,7 @@ prueba en la base de datos de desarrollo.
 | 2.14.C | Backend — guardar/actualizar `notasn3` por estudiante y actividad (autosave, mismo patrón que `guardar_nota`) | ✅ 2026-09-05 (commit `953a50f`) |
 | 2.14.D | Backend — cálculo derivado de `cali_n3` (promedio de `notasn3`, solo si todas las actividades activas tienen nota) e integración con el cálculo existente de `cali_nota_final`/`cali_definitiva` | ✅ 2026-09-05 (commit `24a43c7`) |
 | 2.14.E | Frontend Docente — modal "Registro y cálculo de N3" en `calificaciones_view.php`/`_ctrl.js`: gestión de actividades + captura de notas por actividad | ✅ 2026-09-05 (commits `0cbb2cb`, `352a4f1`, `b827d14`, `5c9ee42` — sub-fases E1-E3.2) |
-| 2.14.F | Frontend — columna N3 de la planilla pasa de input directo a valor de solo lectura (resultado del promedio), con acceso al modal de la Fase E | ⬜ |
+| 2.14.F | Frontend — columna N3 de la planilla pasa de input directo a valor de solo lectura (resultado del promedio), con acceso al modal de la Fase E | ✅ 2026-09-05 (commit `84448da`) |
 | 2.14.G | Reglas de eliminación de actividades — bloqueo si tiene notas registradas o es la última actividad activa del `grmo_id` (ver decisión en Fase A) | ⬜ |
 | 2.14.H | Documentación de cierre del roadmap completo | ⬜ |
 

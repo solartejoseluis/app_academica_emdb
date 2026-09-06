@@ -4,6 +4,36 @@
 
 ---
 
+## [84448da] — 2026-09-05 — feat(calificaciones): columna N3 de solo lectura en tabla principal — Fase 2.14.F (commit 9 de la Fase 2.14 hasta ahora)
+
+### Archivos modificados
+- app/05_calificaciones/calificaciones_ctrl.js
+
+### Por qué
+Última pieza funcional del roadmap "N3 configurable por actividades"
+(Fase 2.14) — bloquea la edición directa de N3 en la tabla principal,
+ya que su valor pasa a derivarse exclusivamente del modal "Registro y
+cálculo de N3".
+
+### Cambios
+- El input de la celda N3 cambia de `class="input-nota"` a
+  `class="input-n3-solo-lectura"` (fuera del selector delegado del
+  handler de `blur` de N1/N2/N4), agrega `readonly` y `title`
+  explicativo.
+- Estilo visual preservado con CSS inline equivalente a `.input-nota`,
+  sin tocar `calificaciones_view.php`.
+- `actualizarCeldaN3EnTablaPrincipal()` no requirió cambios — su
+  selector ya usaba el atributo `data-campo`, no la clase CSS.
+
+### Pruebas realizadas
+Playwright: input readonly con la clase correcta, 0 llamadas AJAX a
+`guardar_nota` con `campo=cali_n3` (interceptando requests de red) al
+intentar editar directamente, N1/N2/N4 sin cambios de comportamiento,
+actualización correcta de la celda N3 (valor + semáforo) tras
+completar la nota vía el modal. Sin datos de prueba remanentes.
+
+---
+
 ## [5c9ee42] — 2026-09-05 — feat(calificaciones): autosave de la tabla de registro N3 — Fase 2.14.E3.2 (8/8 de la sub-división E)
 
 ### Archivos modificados
