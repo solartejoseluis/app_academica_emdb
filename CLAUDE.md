@@ -352,6 +352,19 @@ $definitiva = round(
 );
 ```
 
+**N3 configurable (Fase 2.14, en curso):** `cali_n3` ya **no** se
+escribe directamente desde ningún formulario. Es un valor derivado —
+promedio de `notasn3.non3_valor` para las actividades de
+`actividadesn3` correspondientes al `grmo_id`, solo cuando **todas**
+las actividades activas tienen nota para ese estudiante. Si algún
+`_mdl.php` de `05_calificaciones` necesita escribir `cali_n3`, debe
+ser el resultado de este cálculo derivado, nunca un valor recibido tal
+cual del cliente. No agregar un input directo de N3 en
+`calificaciones_view.php` — quedó reemplazado por el modal "Registro y
+cálculo de N3" (pendiente de implementar en fases B-G, ver "Estado del
+roadmap"). Esquema (`actividadesn3`/`notasn3`) creado en la Fase A,
+commit `f592885`.
+
 ---
 
 ## Roles de usuario
@@ -1528,6 +1541,29 @@ prueba en la base de datos de desarrollo.
 |---|---|---|
 | 2.13.A | Backend — nuevo `case 'gestionar_clave'` en `est_mdl.php`, con rama sin `usua_id` (crear acceso, replica `'matricular'`) y rama con `usua_id` (cambiar clave, replica `'guardar_completo'`); reutiliza `generarClaveAuto()` sin cambios; guards idénticos a `'matricular'`; verificado 10/10 casos vía `curl` contra Docker vivo, datos de prueba revertidos sin dejar rastro | ✅ 2026-09-04 (commit `183e9b1`) |
 | 2.13.B | Frontend — ítem nuevo "🔑 Gestionar claves" en el dropdown de Acciones de `tablaMatriculados` (`02_estudiantes`) + modal `#mdl_gestionar_claves`, siguiendo el mismo patrón ya usado para `#mdl_avanzar_semestre`/`#mdl_requisitos_matricula` | ✅ 2026-09-04 (commit `ef295f7`) |
+
+### Phase 2.14 — N3 configurable por actividades (8 sub-fases, en curso)
+
+> Objetivo: reemplazar la captura directa de `cali_n3` por un catálogo
+> de actividades definidas por el docente para su `grmo_id`
+> (`actividadesn3`) con nota individual por estudiante y actividad
+> (`notasn3`) — mismo patrón catálogo+instancia que
+> `requisitos_programa`/`requisitos_estudiante` (Fase 2.12), pero sin
+> borrado lógico: ver "Decisiones arquitectónicas activas" para la
+> justificación. `cali_n3` pasa a ser un valor derivado (promedio de
+> `notasn3`), nunca escrito directamente — ver la nota en "Reglas de
+> negocio de calificaciones".
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| 2.14.A | Esquema — tablas `actividadesn3` (catálogo por `grmo_id`) y `notasn3` (nota por estudiante+actividad, `UNIQUE(acn3_id, estu_id)`); resetea `cali_n3`/`cali_nota_final`/`cali_definitiva` a `NULL` en toda `calificaciones` | ✅ 2026-09-05 (commit `f592885`) |
+| 2.14.B | Backend — CRUD de actividades (`actividadesn3`) para el docente, restringido a su propio `grmo_id` | ⬜ |
+| 2.14.C | Backend — guardar/actualizar `notasn3` por estudiante y actividad (autosave, mismo patrón que `guardar_nota`) | ⬜ |
+| 2.14.D | Backend — cálculo derivado de `cali_n3` (promedio de `notasn3`, solo si todas las actividades activas tienen nota) e integración con el cálculo existente de `cali_nota_final`/`cali_definitiva` | ⬜ |
+| 2.14.E | Frontend Docente — modal "Registro y cálculo de N3" en `calificaciones_view.php`/`_ctrl.js`: gestión de actividades + captura de notas por actividad | ⬜ |
+| 2.14.F | Frontend — columna N3 de la planilla pasa de input directo a valor de solo lectura (resultado del promedio), con acceso al modal de la Fase E | ⬜ |
+| 2.14.G | Reglas de eliminación de actividades — bloqueo si tiene notas registradas o es la última actividad activa del `grmo_id` (ver decisión en Fase A) | ⬜ |
+| 2.14.H | Documentación de cierre del roadmap completo | ⬜ |
 
 ### Phase 3 — Validación TRL5
 

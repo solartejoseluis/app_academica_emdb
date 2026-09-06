@@ -89,7 +89,7 @@ app_academica_emdb/
     02_estudiantes/    — Registro, matrícula y ficha completa del estudiante (datos personales + Ficha Familiar AC-FO-02 en un solo modal) con foto y descarga en PDF ✅
     03_docentes/       — Gestión del cuerpo docente, incluye reseteo de contraseña y edición de correo de acceso ✅
     04_grupos/         — Programas (CRUD), cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
-    05_calificaciones/ — Registro de notas por docente (módulo central) ✅
+    05_calificaciones/ — Registro de notas por docente (módulo central) ✅ — la nota N3 está migrando a un sistema de actividades configurables por el docente (en desarrollo)
     06_reportes/       — Informe de calificaciones por programa/período/módulo, ya sea autoconsulta del estudiante o consulta del coordinador a cualquier estudiante (con buscador), con boletín PDF por período; reporte por grupo módulo con exportación Excel/PDF (contexto de curso y docente); PDF de Ficha Familiar; PDF de Hoja de Matrícula (AC-FO-09) ✅
     07_coordinador/    — Dashboard de seguimiento académico ✅
     08_admin/          — Gestión de usuarios del sistema ✅
@@ -159,6 +159,10 @@ gruposmodulos ──< calificaciones >── estudiantes
                   habilitación     ← manual, solo si nota_final < 3.0
                   definitiva       ← valor oficial (nota_final o habilitación)
 ```
+> La nota 3 está en transición hacia un sistema de actividades
+> configurables: en vez de un único valor digitado por el docente, N3
+> se calculará como el promedio de varias actividades que el propio
+> docente define para su grupo. Funcionalidad en desarrollo.
 
 ### Tablas principales
 
