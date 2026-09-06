@@ -209,9 +209,11 @@ $(document).ready(function () {
                            placeholder="0.0" style="${verS2}">
                 </td>
                 <td class="text-center ${colorSemaforo(n3)}" data-celda="cali_n3">
-                    <input class="input-nota" type="text"
+                    <input class="input-n3-solo-lectura" type="text"
                            data-campo="cali_n3" value="${n3}"
-                           placeholder="0.0">
+                           placeholder="0.0" readonly
+                           style="width:60px;text-align:center;padding:2px 4px;font-size:0.9em;border:1px solid #dee2e6;border-radius:4px;background:#fff;"
+                           title="Se calcula desde el modal &quot;Registro y cálculo de N3&quot;">
                 </td>
                 <td class="text-center ${colorSemaforo(n4)}" data-celda="cali_n4">
                     <input class="input-nota" type="text"
@@ -749,9 +751,10 @@ $(document).ready(function () {
 
     // ── Reflejar cali_n3/Nota Final/Definitiva en la tabla principal (fuera
     //    del modal) tras un autosave de N3 — reutiliza el mismo mecanismo de
-    //    actualización de celdas que .input-nota (N1/N2/N4). El input N3 de la
-    //    tabla principal sigue siendo editable directamente hasta la Fase
-    //    2.14.F (columna de solo lectura) — no se toca ese comportamiento aquí.
+    //    actualización de celdas que .input-nota (N1/N2/N4). El selector de
+    //    abajo usa el atributo data-campo (no la clase CSS del input), así que
+    //    sigue funcionando sin cambios tras la Fase 2.14.F (input de solo
+    //    lectura, clase .input-n3-solo-lectura en vez de .input-nota).
     function actualizarCeldaN3EnTablaPrincipal(estuId, cali_n3, notaFinal, definitiva) {
         const filaPrincipal = $(`#tbody_calificaciones tr[data-estu="${estuId}"]`);
         if (!filaPrincipal.length) return;
