@@ -500,6 +500,33 @@ INSERT INTO `matriculas` VALUES (2,79,2,5,1,'matriculado','Activo',1,NULL,NULL,N
 UNLOCK TABLES;
 
 --
+-- Table structure for table `metricasdesempeno`
+--
+
+DROP TABLE IF EXISTS `metricasdesempeno`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `metricasdesempeno` (
+  `metr_id` int NOT NULL AUTO_INCREMENT,
+  `metr_timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `metr_endpoint` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `metr_duracion_ms` int NOT NULL,
+  `metr_usua_id` int DEFAULT NULL,
+  `metr_http_status` smallint NOT NULL,
+  PRIMARY KEY (`metr_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `metricasdesempeno`
+--
+
+LOCK TABLES `metricasdesempeno` WRITE;
+/*!40000 ALTER TABLE `metricasdesempeno` DISABLE KEYS */;
+/*!40000 ALTER TABLE `metricasdesempeno` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `modulos`
 --
 
