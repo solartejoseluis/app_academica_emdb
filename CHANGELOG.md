@@ -4,7 +4,7 @@
 
 ---
 
-## Reemplazo del seed público con dataset anonimizado (`database/emdb_academica.sql`) — 2026-09-06
+## [300cfc1] — 2026-09-06 — chore: reemplaza el seed público con dataset anonimizado (`database/emdb_academica.sql`)
 
 ### Archivos modificados
 - `database/emdb_academica.sql` — contenido reemplazado por completo (879 líneas, antes 904)
