@@ -112,6 +112,118 @@ $(document).ready(function () {
         cargarCalificaciones(grmo_id_activo);
     });
 
+    // ── Exportación de reporte del grupo (Excel / PDF) — reutiliza grmo_id_activo ──
+    let tablaExportGrupo = null;
+
+    function nExp(v) {
+        return (v !== null && v !== undefined) ? v : '—';
+    }
+    function textoNotaFinalExp(notaFinal) {
+        return (notaFinal === null || notaFinal === undefined) ? '—' : notaFinal;
+    }
+    function textoDefinitivaExp(d) {
+        if (d.cali_definitiva !== null && d.cali_definitiva !== undefined) return d.cali_definitiva;
+        if (d.cali_nota_final !== null && d.cali_nota_final !== undefined) return d.cali_nota_final;
+        return '—';
+    }
+    function textoEstadoExp(d) {
+        if (d.cali_definitiva !== null && d.cali_definitiva !== undefined) {
+            return parseFloat(d.cali_definitiva) >= 3.0 ? 'Aprobado' : 'Reprobado';
+        }
+        if (d.cali_nota_final !== null && d.cali_nota_final !== undefined) {
+            return 'Reprobado — pendiente habilitación';
+        }
+        return 'En curso';
+    }
+    function construirContextoTextoExp(g) {
+        if (!g) return { linea1: '', linea2: '' };
+        return {
+            linea1: 'Módulo: ' + g.modu_nombre + ' (' + g.modu_sigla + ') — Grupo: ' + g.grse_codigo + ' — Docente: ' + g.doce_nombres + ' ' + g.doce_apellidos,
+            linea2: 'Programa: ' + g.prog_nombre + ' — Período: ' + g.peri_codigo + ' — Jornada: ' + (g.grse_jornada || '—')
+        };
+    }
+    function escaparXmlExp(texto) {
+        return String(texto).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function construirFilaExport(e, num) {
+        return '<tr>' +
+            '<td>' + num + '</td>' +
+            '<td>' + e.estu_apellidos + '</td>' +
+            '<td>' + e.estu_nombres + '</td>' +
+            '<td>' + e.estu_numerodoc + '</td>' +
+            '<td>' + nExp(e.cali_n1) + '</td>' +
+            '<td>' + nExp(e.cali_sup_n1) + '</td>' +
+            '<td>' + nExp(e.cali_n2) + '</td>' +
+            '<td>' + nExp(e.cali_sup_n2) + '</td>' +
+            '<td>' + nExp(e.cali_n3) + '</td>' +
+            '<td>' + nExp(e.cali_n4) + '</td>' +
+            '<td>' + nExp(e.cali_sup_n4) + '</td>' +
+            '<td>' + textoNotaFinalExp(e.cali_nota_final) + '</td>' +
+            '<td>' + textoDefinitivaExp(e) + '</td>' +
+            '<td>' + textoEstadoExp(e) + '</td>' +
+            '<td>' + nExp(e.cali_observacion) + '</td>' +
+        '</tr>';
+    }
+
+    $('#btn_pdf_grupo').on('click', function () {
+        if (!grmo_id_activo) { alert('Selecciona un grupo'); return; }
+        window.open('../06_reportes/pdf_grupo.php?grmo_id=' + grmo_id_activo, '_blank');
+    });
+
+    $('#btn_excel_grupo').on('click', function () {
+        if (!grmo_id_activo) { alert('Selecciona un grupo'); return; }
+        $.ajax({
+            type: 'POST',
+            url: '../06_reportes/reportes_mdl.php?accion=reporte_grupo',
+            data: { grmo_id: grmo_id_activo },
+            dataType: 'json',
+            success: function (r) {
+                if (r.status !== 'ok') { alert('Error: ' + r.message); return; }
+                const contexto = construirContextoTextoExp(r.grupo);
+                const tbody = $('#tbody_export_grupo');
+                tbody.empty();
+                if (!r.data.length) {
+                    tbody.html('<tr><td colspan="15" class="text-center text-muted">Sin estudiantes en este grupo</td></tr>');
+                } else {
+                    r.data.forEach(function (e, idx) {
+                        tbody.append(construirFilaExport(e, idx + 1));
+                    });
+                }
+                if (tablaExportGrupo !== null) {
+                    tablaExportGrupo.destroy();
+                    tablaExportGrupo = null;
+                }
+                tablaExportGrupo = $('#tbl_export_grupo').DataTable({
+                    destroy: true,
+                    dom: 'Bfrtip',
+                    buttons: [{
+                        extend: 'excel',
+                        customize: function (xlsx) {
+                            const sheet = xlsx.xl.worksheets['sheet1.xml'];
+                            const fila1 = '<row r="1"><c r="A1" t="inlineStr"><is><t>' + escaparXmlExp(contexto.linea1) + '</t></is></c></row>';
+                            const fila2 = '<row r="2"><c r="A2" t="inlineStr"><is><t>' + escaparXmlExp(contexto.linea2) + '</t></is></c></row>';
+                            $('row', sheet).eq(0).before(fila1 + fila2);
+                            $('row', sheet).each(function (i) {
+                                const nuevaFila = i + 1;
+                                $(this).attr('r', nuevaFila);
+                                $('c', this).each(function () {
+                                    const col = $(this).attr('r').replace(/[0-9]/g, '');
+                                    $(this).attr('r', col + nuevaFila);
+                                });
+                            });
+                            const filas = $('row', sheet);
+                            const ultimaCelda = $('c', filas.eq(filas.length - 1)).last().attr('r');
+                            if (ultimaCelda) {
+                                $('dimension', sheet).attr('ref', 'A1:' + ultimaCelda);
+                            }
+                        }
+                    }]
+                });
+                tablaExportGrupo.button(0).trigger();
+            }
+        });
+    });
+
     // ── Cargar planilla de calificaciones ───────────────────────────────────
     function cargarCalificaciones(grmo_id) {
         $.ajax({

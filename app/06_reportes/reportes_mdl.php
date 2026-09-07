@@ -67,12 +67,28 @@ switch ($accion) {
 
     case 'reporte_grupo':
         try {
-            if (!in_array((int)($_SESSION['role_id'] ?? 0), [1, 2])) {
+            $role_id = (int)($_SESSION['role_id'] ?? 0);
+            $usua_id = (int)($_SESSION['usua_id'] ?? 0);
+            $grmo_id = (int)($_POST['grmo_id'] ?? 0);
+            $pdo = getConexion();
+
+            if ($role_id === 3) {
+                // Docente: solo puede pedir el reporte de un grupo asignado a él
+                $own = $pdo->prepare("
+                    SELECT gm.grmo_id
+                    FROM gruposmodulos gm
+                    INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    WHERE gm.grmo_id = ? AND d.usua_id = ?
+                ");
+                $own->execute([$grmo_id, $usua_id]);
+                if (!$own->fetch()) {
+                    echo json_encode(['status' => 'error', 'message' => 'No autorizado para este grupo']);
+                    break;
+                }
+            } elseif (!in_array($role_id, [1, 2], true)) {
                 echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
                 break;
             }
-            $pdo = getConexion();
-            $grmo_id = (int)($_POST['grmo_id'] ?? 0);
 
             $stmtGrupo = $pdo->prepare("
                 SELECT gm.grmo_id,

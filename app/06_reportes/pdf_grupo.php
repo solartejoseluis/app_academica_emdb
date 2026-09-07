@@ -3,7 +3,8 @@ session_start();
 require_once '../01_login/check_session.php';
 
 $role_id = (int)($_SESSION['role_id'] ?? 0);
-if (!in_array($role_id, [1, 2])) {
+$usua_id = (int)($_SESSION['usua_id'] ?? 0);
+if (!in_array($role_id, [1, 2, 3], true)) {
     header('Location: ../01_login/login_view.php');
     exit;
 }
@@ -21,6 +22,20 @@ if ($grmo_id <= 0) {
 }
 
 $pdo = getConexion();
+
+if ($role_id === 3) {
+    $own = $pdo->prepare("
+        SELECT gm.grmo_id
+        FROM gruposmodulos gm
+        INNER JOIN docentes d ON gm.doce_id = d.doce_id
+        WHERE gm.grmo_id = ? AND d.usua_id = ?
+    ");
+    $own->execute([$grmo_id, $usua_id]);
+    if (!$own->fetch()) {
+        http_response_code(403);
+        die('No autorizado para este grupo');
+    }
+}
 
 // ── Datos de contexto del grupo módulo ───────────────────────────────────────
 $stmtGrupo = $pdo->prepare("

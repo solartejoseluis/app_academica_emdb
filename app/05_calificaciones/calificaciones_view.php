@@ -15,6 +15,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
     <title>Calificaciones — EMDB Académica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css" rel="stylesheet">
     <style>
         .tabla-notas td { vertical-align: middle; }
         .input-nota {
@@ -146,6 +147,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                         <small class="text-muted" id="subtitulo_modulo">—</small>
                     </div>
                     <div class="text-end">
+                        <div class="btn-group btn-group-sm me-2" role="group">
+                            <button type="button" class="btn btn-outline-success" id="btn_excel_grupo">Excel</button>
+                            <button type="button" class="btn btn-outline-danger" id="btn_pdf_grupo">📄 Descargar PDF</button>
+                        </div>
                         <span class="badge bg-secondary" id="badge_total_estudiantes">0 estudiantes</span>
                     </div>
                 </div>
@@ -186,6 +191,22 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                         Habilitación se habilita cuando Nota Final es menor a 3.0.
                         Definitiva es el valor oficial: copia de Nota Final si aprueba, o de Habilitación si esta fue registrada.
                     </small>
+                </div>
+
+                <!-- Tabla oculta usada solo para generar el Excel del reporte de grupo
+                     (botón #btn_excel_grupo) — nunca se muestra, ni su toolbar de Buttons. -->
+                <div id="wrap_export_grupo" style="display:none">
+                    <table id="tbl_export_grupo">
+                        <thead>
+                            <tr>
+                                <th>#</th><th>Apellidos</th><th>Nombres</th><th>Documento</th>
+                                <th>N1</th><th>Sup N1</th><th>N2</th><th>Sup N2</th><th>N3</th>
+                                <th>N4</th><th>Sup N4</th><th>Nota Final</th><th>Definitiva</th>
+                                <th>Estado</th><th>Observación</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_export_grupo"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -268,6 +289,12 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
 
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
 <script src="calificaciones_ctrl.js"></script>
 <script>const MODULO_ACTUAL = '05_calificaciones';</script>
 <script src="../00_files/ayuda_sidebar.js"></script>
