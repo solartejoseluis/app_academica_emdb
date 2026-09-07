@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-06
-> Versión: 117 — habilita para el Docente los botones "Excel" y "Descargar PDF" del reporte de su grupo directamente desde `05_calificaciones` (antes exclusivos de Coordinador/Admin vía `06_reportes`), agregando ownership por `docentes.usua_id` en `reporte_grupo`/`pdf_grupo.php` para que un docente solo pueda exportar sus propios grupos.
+> Versión: 118 — instrumenta las dos métricas técnicas exigidas por OE4 (Fase 2.16): tiempo de respuesta vía `metricasdesempeno`/`metrics_prepend.php` (`auto_prepend_file`) y disponibilidad vía `health.php` + UptimeRobot, ambas activas en producción desde el 2026-09-06 — un día antes del inicio de la operación real (2026-09-07).
 
 ---
 
@@ -754,6 +754,50 @@ rechazado en ambos endpoints (403 en `pdf_grupo.php`, error explícito en
 `reporte_grupo`), probado por Claude Code con una sesión PHP real de
 prueba simulando a un docente real contra el grupo de otro docente. Detalle
 completo de la prueba de seguridad en CHANGELOG.md (commit `0501479`).
+
+---
+
+## Instrumentación de métricas técnicas para validación TRL5 — Fase 2.16 (2026-09-06)
+
+**Contexto:** la aplicación entra en operación real el 2026-09-07. OE4
+exige medir, desde el primer día, tiempo de respuesta (<3s) y
+disponibilidad (>95%). Un diagnóstico previo de solo lectura confirmó
+que el proyecto no tiene ningún router/front controller — cada
+`_mdl.php`/`_view.php` es un script standalone — y que ni el access log
+de Apache ni el error log de PHP capturan tiempos de respuesta hoy, así
+que ambas métricas requerían instrumentación nueva, no aprovechar algo
+existente.
+
+**Disponibilidad:** `app/health.php` (commit `44d92fa`) — endpoint sin
+sesión con `SELECT 1` real contra la BD, `200`/`503` según el resultado
+— monitoreado externamente por UptimeRobot (plan free, chequeo cada 5
+min, alertas por email) apuntando a
+`https://app.escuelamdb.com/app_academica_emdb/app/health.php`, activo
+desde el 2026-09-06.
+
+**Tiempo de respuesta:** tabla `metricasdesempeno` +
+`app/00_connect/metrics_prepend.php` (commit `9d5110c`), activado en
+producción vía `auto_prepend_file` — mide cada request real (duración,
+endpoint, `usua_id` de sesión, `http_status`) sin modificar ningún
+`_mdl.php`/`_view.php` existente, con `try/catch` silencioso para que
+un fallo de la métrica nunca afecte la respuesta al usuario.
+
+**Activación en producción — nota operativa importante:** la línea
+`php_value auto_prepend_file "..."` se agregó a mano al `.htaccess` de
+producción y **no está versionada en git** — mismo criterio que
+`pdo_web.php` (depende de una ruta absoluta propia del hosting). El
+`.htaccess` del repositorio sigue con su contenido original
+(`RewriteEngine Off`); un deploy futuro que suba ese archivo sin
+cuidado sobreescribiría la línea en producción y desactivaría la
+instrumentación en silencio. **Pendiente:** agregar esta advertencia al
+checklist de deploy de CLAUDE.md (Tanda 2 de esta misma sesión de
+documentación).
+
+**Resultado:** instrumentación activa desde el 2026-09-06, un día antes
+del inicio de la operación real — las dos métricas técnicas de OE4
+quedan cubiertas desde el primer día de producción. Detalle completo
+(incluida la verificación en Docker local y en producción) en
+CHANGELOG.md, Fase 2.16.
 
 ---
 

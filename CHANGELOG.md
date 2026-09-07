@@ -4,6 +4,89 @@
 
 ---
 
+## Fase 2.16 — Instrumentación de métricas técnicas para validación TRL5 (OE4) — 2026-09-06
+
+### Contexto
+La aplicación entra en operación real el 2026-09-07. OE4 exige medir,
+desde el primer día, dos métricas técnicas: tiempo de respuesta (<3s) y
+disponibilidad (>95%). Precedido de un diagnóstico de solo lectura (sin
+commit) que confirmó que no existe ningún punto de entrada común
+(router/front controller) en el proyecto — cada `_mdl.php`/`_view.php`
+es un script standalone —, que ni el access log de Apache (sin `%D`/`%T`
+en el `LogFormat`) ni el error log de PHP (`log_errors` desactivado)
+capturan tiempos de respuesta, y que la única forma de instrumentar sin
+tocar cada `_mdl.php` es `auto_prepend_file` vía `.htaccess`.
+
+### 1. Endpoint de disponibilidad — `app/health.php` (commit `44d92fa`)
+Endpoint standalone sin sesión (no pasa por `check_session.php`): hace
+un `SELECT 1` real contra la BD vía `getConexion()`, responde `200 OK`
+con `{"status":"ok","timestamp":"..."}` si la conexión funciona, o
+`503` con `{"status":"error","message":"Servicio no disponible"}` sin
+exponer el detalle de la excepción si falla. Verificado en Docker local
+deteniendo y reiniciando el contenedor `db` — 503 con la BD caída,
+recuperación limpia a 200 al reiniciarla.
+
+### 2. Monitor externo — UptimeRobot (sin código, sin commit)
+Monitor HTTP(S) del plan free de UptimeRobot apuntando a
+`https://app.escuelamdb.com/app_academica_emdb/app/health.php`, chequeo
+cada 5 minutos, alertas por email activas desde el 2026-09-06 — cubre
+la métrica de disponibilidad de OE4 sin ningún desarrollo adicional.
+
+### 3. Instrumentación de tiempo de respuesta — `metricasdesempeno` + `metrics_prepend.php` (commit `9d5110c`)
+Tabla nueva `metricasdesempeno` (`metr_id`, `metr_timestamp`,
+`metr_endpoint`, `metr_duracion_ms`, `metr_usua_id`,
+`metr_http_status`), agregada también al seed versionado en
+`database/emdb_academica.sql` (sin datos, solo estructura) — creada con
+collation `utf8mb4_unicode_ci` explícita desde el inicio (no el default
+`utf8mb4_0900_ai_ci` de MySQL 8), mismo criterio de compatibilidad con
+MariaDB ya documentado para `scripts/export_para_hosting.sh`.
+
+`app/00_connect/metrics_prepend.php` mide `microtime(true)` al inicio y,
+dentro de un `register_shutdown_function()`, calcula la duración, lee
+`$_SESSION['usua_id']` (sin llamar `session_start()` — se reutiliza la
+sesión que el propio `_mdl.php`/`_view.php` ya inició) y
+`http_response_code()`, e inserta la fila vía `getConexion()`. Todo
+envuelto en `try/catch` silencioso: un fallo al registrar la métrica
+nunca afecta la respuesta real al usuario. Ningún `_mdl.php` ni
+`_view.php` existente se modificó.
+
+Verificado en Docker local: activación temporal del `auto_prepend_file`
+en el `.htaccess` local (revertida antes del commit — nunca llegó a
+versionarse), filas registradas correctamente para un endpoint OK (200,
+sin `usua_id`), uno con error forzado (404, con `usua_id` de una sesión
+de prueba) y uno con redirect (302), y confirmación byte a byte con un
+parser JSON externo de que el envelope de un endpoint real
+(`reporte_grupo`) no quedó contaminado por ningún output del prepend.
+
+### 4. Activación en producción (2026-09-06, sin commit de código)
+Cambio de configuración de servidor, no de repositorio: se agregó la
+línea `php_value auto_prepend_file "<ruta absoluta real del
+hosting>/app/00_connect/metrics_prepend.php"` directamente al
+`.htaccess` de producción — esa línea específica **no está versionada
+en git** (mismo criterio que `pdo_web.php`: vive solo en el servidor
+porque depende de una ruta absoluta propia del hosting). El `.htaccess`
+base sigue versionado con su contenido original (`RewriteEngine Off`);
+lo que diverge entre git y producción es únicamente esa línea añadida a
+mano. También se creó la tabla `metricasdesempeno` directamente en la
+BD de producción, con el DDL exacto del seed versionado.
+
+Verificado en producción: `health.php` responde 200; filas reales
+quedan registradas con `metr_usua_id` poblado correctamente desde
+sesiones reales de estudiantes, con duraciones de 1-5ms.
+
+**Advertencia operativa (pendiente de agregar al checklist de deploy en
+CLAUDE.md):** cualquier deploy futuro que suba `.htaccess` debe evitar
+sobreescribir esta línea en producción — mismo riesgo ya documentado
+para `pdo_web.php`.
+
+### Nota metodológica
+La instrumentación quedó activa el 2026-09-06, un día antes del inicio
+de la operación real (2026-09-07) — las dos métricas técnicas exigidas
+por OE4 (tiempo de respuesta <3s, disponibilidad >95%) están cubiertas
+desde el primer día de producción, no agregadas retroactivamente.
+
+---
+
 ## [0501479] — 2026-09-06 — Exportación Excel/PDF del reporte de grupo habilitada para el Docente
 
 ### Contexto
