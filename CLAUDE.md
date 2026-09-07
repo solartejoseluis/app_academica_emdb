@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-08-29 — último commit citado: 0e0a508
+> Última actualización: 2026-09-06 — último commit citado: 0501479
 
 ## Reglas de documentación
 
@@ -63,7 +63,7 @@ app_academica_emdb/
     02_estudiantes/    — CRUD estudiantes + matrícula a programas + gestión de requisitos documentales configurables (catálogo por programa, checklist por matrícula) — roadmap en Phase 2.12
     03_docentes/       — CRUD docentes
     04_grupos/         — Cohortes, grupos semestre, grupos módulo
-    05_calificaciones/ — Registro de notas por docente (módulo crítico)
+    05_calificaciones/ — Registro de notas por docente (módulo crítico) — el docente también exporta Excel/PDF del reporte de su grupo activo desde aquí, sin acceso a 06_reportes
     06_reportes/       — Informe de calificaciones por programa→período→módulo (autoconsulta del estudiante o consulta del coordinador a cualquier estudiante, vía buscador) + reporte por grupo módulo (todos los estudiantes) + exportación Excel/PDF
     07_coordinador/    — Dashboard de seguimiento académico
     08_admin/          — Gestión de usuarios del sistema
@@ -1215,6 +1215,7 @@ Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes`
 - **Nota:** La duplicación (una query SELECT simple, sin lógica de negocio) se prefiere sobre el acoplamiento entre módulos — una llamada cross-módulo dependería de la estructura relativa de carpetas, y rompería silenciosamente si algún módulo se reorganiza. Aplicado explícitamente en 03_docentes (commit 7eba870, 2026-08-15) y en 05_calificaciones (commit 6c496e4, 2026-08-16), ambos con la misma justificación.
 - **Ejemplo adicional (catálogo filtrado, no solo un listado plano):** `listar_cohortes_por_programa` — existía en `grupos_mdl.php` (commit `00a22fc`) y se duplicó tal cual en `est_mdl.php` (commit `cac382a`, 2026-08-20) para la cascada Programa→Cohorte del modal "Completar Matrícula" de `02_estudiantes`, en vez de que `est_ctrl.js` llamara a `grupos_mdl.php` directamente. Confirma que la convención aplica igual cuando el endpoint duplicado recibe un parámetro de filtro (`prog_id` por POST), no solo en los `listar_X` sin parámetros ya documentados arriba.
 - **Ejemplo adicional (catálogos de gruposemestres/modulos, no solo programas/períodos/docentes):** `listar_grupos_filtro` y `listar_modulos_filtro` en `est_mdl.php` (commit `b0e6660`, 2026-08-20) — implementados como endpoints propios de `02_estudiantes` para poblar los selects de Grupo/Módulo de la fila de filtros de Matriculados, en vez de que `est_ctrl.js` llamara a `grupos_mdl.php` (que ya tiene sus propios `listar_modulos`/`listar_grupos` con forma distinta). A diferencia del ejemplo anterior, aquí no se duplica una query idéntica ya existente en otro módulo — cada endpoint fue diseñado desde cero con la forma exacta que necesita su propio select (`grse_id`/`grse_codigo` y `modu_id`/`modu_sigla`/`modu_nombre`), reforzando que la convención aplica tanto a duplicar queries existentes como a crear un catálogo nuevo propio del módulo cuando el existente en otro módulo no calza igual.
+- **Excepción documentada (commit `0501479`, 2026-09-06):** `calificaciones_ctrl.js` (`05_calificaciones`) sí llama directamente a `06_reportes/reportes_mdl.php?accion=reporte_grupo` y a `06_reportes/pdf_grupo.php` — una llamada cross-módulo real, no una duplicación de query. La diferencia con los ejemplos de arriba es que aquí lo compartido no es un catálogo trivial (`listar_X` de un SELECT simple) sino lógica de negocio completa con verificación de ownership (`docentes.usua_id = sesión`), generación de XLSX vía `customize()` y generación de PDF vía Dompdf — duplicar todo eso en `05_calificaciones` habría significado mantener 2 copias de un chequeo de seguridad sincronizadas a mano, un riesgo mayor que el acoplamiento entre carpetas que esta convención busca evitar. La convención de "duplicar catálogos simples" sigue vigente sin cambios para selects de programas/períodos/docentes/etc. — esta excepción aplica solo cuando lo compartido es lógica de negocio con validación de seguridad no trivial, no un listado.
 - **Estado:** Activa. Si se detecta que 4+ módulos ya duplican el mismo catálogo con la misma query exacta, reevaluar si conviene extraer un endpoint central (ej. un módulo 00_catalogos) — no antes.
 
 ### Formularios duplicados en dos vistas (misma UI, backends distintos) deben mantener su disposición de campos sincronizada
@@ -1630,6 +1631,12 @@ eliminación (G) sin commit de código propio. El feature reemplaza la
 captura manual de N3 por un sistema de actividades configurables por
 docente con cálculo automático del promedio, sin ningún pendiente
 abierto de este roadmap específico.
+
+### Phase 2.15 — Exportación Excel/PDF de reporte de grupo para el Docente (cerrada)
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| — | Backend: ownership por `role_id=3` vía `docentes.usua_id` agregado a `reporte_grupo` (`reportes_mdl.php`) y `pdf_grupo.php`. Frontend: botones Excel/Descargar PDF en `calificaciones_view.php`, reutilizando `grmo_id_activo` y el stack DataTables/Buttons/JSZip agregado por primera vez a ese archivo | ✅ 2026-09-06 (commit `0501479`) |
 
 ### Phase 3 — Validación TRL5
 

@@ -112,7 +112,7 @@ app_academica_emdb/
 |---|---|---|
 | **Administrador** | Panel de administración | CRUD de usuarios, configuración global del sistema |
 | **Coordinador** | Dashboard de coordinación | Seguimiento de notas por docente, reportes generales, edición de planillas, generación de PDF |
-| **Docente** | Módulo de calificaciones | Solo sus grupos asignados — ingreso y edición de notas |
+| **Docente** | Módulo de calificaciones | Solo sus grupos asignados — ingreso y edición de notas, con descarga del reporte de su grupo en Excel/PDF directamente desde esta misma pantalla |
 | **Estudiante** | Módulo de consulta | Solo lectura de sus propias calificaciones en tiempo real |
 
 **Acceso de estudiantes:** al matricular a un estudiante, el sistema crea su acceso usando el correo electrónico real registrado en su ficha (no un correo interno generado) y una clave inicial autogenerada.
