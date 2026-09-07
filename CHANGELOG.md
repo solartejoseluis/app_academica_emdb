@@ -4,6 +4,54 @@
 
 ---
 
+## [0501479] — 2026-09-06 — Exportación Excel/PDF del reporte de grupo habilitada para el Docente
+
+### Contexto
+El docente ya podía calificar su grupo en `05_calificaciones`, pero para
+descargar un informe de notas en Excel o PDF tenía que existir en
+`06_reportes` — módulo al que Docente (`role_id=3`) no tiene acceso —, así
+que esos botones solo funcionaban para Coordinador/Admin.
+
+### Archivos modificados
+- `app/06_reportes/reportes_mdl.php`
+- `app/06_reportes/pdf_grupo.php`
+- `app/05_calificaciones/calificaciones_view.php`
+- `app/05_calificaciones/calificaciones_ctrl.js`
+
+### Backend
+`reporte_grupo` (`reportes_mdl.php`) y `pdf_grupo.php` ahora aceptan
+`role_id=3`, agregando una verificación de ownership vía
+`docentes.usua_id = sesión` (mismo patrón ya usado en
+`calificaciones_mdl.php`) — el docente solo puede pedir el reporte de un
+`grmo_id` que le pertenezca. Coordinador/Admin (roles 1/2) sin cambio de
+comportamiento.
+
+### Frontend
+En `calificaciones_view.php` se agregaron dos botones ("Excel" y "Descargar
+PDF") junto al badge de estudiantes, que reutilizan `grmo_id_activo` (la
+variable ya existente para los modales de N3) sin necesidad de un selector
+de grupo nuevo. Como `calificaciones_view.php` no tenía cargado el stack de
+DataTables/Buttons/JSZip, se agregó completo (mismas versiones/CDNs que
+`reportes_view.php`). El Excel se genera vía una tabla oculta
+`#tbl_export_grupo` (nunca visible, ni su toolbar), alimentada por el mismo
+endpoint `reporte_grupo` y replicando el `customize()` que inserta 2 filas
+de contexto en el XLSX — mismo patrón ya usado en `reportes_ctrl.js`. El PDF
+reutiliza directamente `pdf_grupo.php` sin cambios de formato.
+
+### Pruebas realizadas
+Probado en navegador por Jose Luis (docente descarga su propio grupo en
+Excel y PDF correctamente). Verificado por Claude Code vía `curl` con una
+sesión PHP real de prueba (creada directamente en el contenedor, sin login
+por HTTP) simulando a un docente real (FABIAN CARDONA RODRIGUEZ,
+`usua_id=5`) intentando acceder al `grmo_id` de otro docente (CAMILO ANDRES
+RODRIGUEZ AGUDELO, `usua_id=6`, `grmo_id=10`) — rechazado en ambos
+endpoints (403 en `pdf_grupo.php`, `"No autorizado para este grupo"` en
+`reporte_grupo`), con control positivo confirmando que el guard sí permite
+el acceso al grupo propio del docente. Coordinador/Admin verificado sin
+regresión en `06_reportes`.
+
+---
+
 ## [300cfc1] — 2026-09-06 — chore: reemplaza el seed público con dataset anonimizado (`database/emdb_academica.sql`)
 
 ### Archivos modificados

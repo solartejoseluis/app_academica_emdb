@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-06
-> Versión: 116 — reemplaza por completo el contenido de `database/emdb_academica.sql` (seed público en GitHub) con un dataset anonimizado, tras el despliegue exitoso de la aplicación en producción (`app.escuelamdb.com`) con los datos reales de 54 estudiantes/aspirantes y 5 docentes que hasta ahora vivían también en ese archivo versionado. El repo público ya no expone ningún dato personal real.
+> Versión: 117 — habilita para el Docente los botones "Excel" y "Descargar PDF" del reporte de su grupo directamente desde `05_calificaciones` (antes exclusivos de Coordinador/Admin vía `06_reportes`), agregando ownership por `docentes.usua_id` en `reporte_grupo`/`pdf_grupo.php` para que un docente solo pueda exportar sus propios grupos.
 
 ---
 
@@ -145,7 +145,7 @@ app_academica_emdb/
     02_estudiantes/    — CRUD estudiantes + matrícula (AC-FO-02, AC-FO-09)
     03_docentes/       — CRUD docentes
     04_grupos/         — Cohortes, grupos semestre, grupos módulo
-    05_calificaciones/ — Registro notas GA-FO-04 (módulo crítico) — incluye N3 configurable por actividades (Fase 2.14, A-H) ✅ COMPLETO
+    05_calificaciones/ — Registro notas GA-FO-04 (módulo crítico) — incluye N3 configurable por actividades (Fase 2.14, A-H) ✅ COMPLETO — el docente también exporta Excel/PDF del reporte de su grupo activo desde aquí, sin acceso a 06_reportes
     06_reportes/       — Consulta estudiante + PDF/Excel
     07_coordinador/    — Dashboard seguimiento
     08_admin/          — Gestión usuarios ✅ IMPLEMENTADO
@@ -723,6 +723,37 @@ anonimizado es ahora la carga inicial oficial del proyecto — lo que
 verá cualquier persona que clone el repositorio desde GitHub. No
 revertir a un seed con datos reales sin decisión explícita de Jose
 Luis (ver también "Decisiones tomadas" más abajo).
+
+---
+
+## Exportación Excel/PDF de reporte de grupo para el Docente (2026-09-06)
+
+**Contexto:** Jose Luis pidió que el docente pudiera descargar el informe
+de notas de su grupo (Excel y PDF) directamente desde `05_calificaciones`,
+la única pantalla a la que Docente (`role_id=3`) tiene acceso. Esos botones
+ya existían, pero solo en `06_reportes` (pestaña "Reporte por Grupo"),
+módulo restringido a Coordinador/Admin/Estudiante — Docente ni siquiera
+puede entrar ahí.
+
+**Decisión de diseño:** en vez de duplicar la lógica de generación de
+Excel/PDF dentro de `05_calificaciones`, se reutilizó el backend existente
+de `06_reportes` (`reporte_grupo` en `reportes_mdl.php` y `pdf_grupo.php`)
+agregándole `role_id=3` con una verificación de ownership nueva
+(`docentes.usua_id = sesión`) — mismo patrón ya usado en
+`calificaciones_mdl.php`. Esto respeta la separación de módulos ya
+documentada (cada dominio mantiene su propio backend) sin crear una tercera
+copia de la lógica de exportación: el frontend de `05_calificaciones` llama
+a los endpoints de `06_reportes` vía ruta relativa (`../06_reportes/...`),
+y el docente nunca necesita cargar `reportes_view.php` para obtener el
+mismo resultado.
+
+**Resultado verificado:** login de Coordinador/Admin sin regresión en
+`06_reportes`; docente descarga su propio grupo en Excel y PDF, verificado
+en navegador por Jose Luis. Intento de acceso a un `grmo_id` ajeno
+rechazado en ambos endpoints (403 en `pdf_grupo.php`, error explícito en
+`reporte_grupo`), probado por Claude Code con una sesión PHP real de
+prueba simulando a un docente real contra el grupo de otro docente. Detalle
+completo de la prueba de seguridad en CHANGELOG.md (commit `0501479`).
 
 ---
 
