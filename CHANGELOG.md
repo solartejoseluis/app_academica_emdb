@@ -4,6 +4,69 @@
 
 ---
 
+## Reemplazo del seed público con dataset anonimizado (`database/emdb_academica.sql`) — 2026-09-06
+
+### Archivos modificados
+- `database/emdb_academica.sql` — contenido reemplazado por completo (879 líneas, antes 904)
+
+### Por qué
+Los datos reales de 54 estudiantes/aspirantes y 5 docentes, cargados
+durante la Fase 2.14.A y el período 2026-2, ya estaban desplegados en
+producción (`app.escuelamdb.com`, desplegada exitosamente el mismo
+día) — pero seguían viviendo también en `database/emdb_academica.sql`,
+el seed versionado en el repositorio GitHub **público** del proyecto.
+Se generó un dataset de reemplazo completamente anonimizado para que
+la carga inicial que ve cualquier persona al clonar el repo nunca
+exponga datos personales reales bajo la Ley 1581 de 2012 (Habeas
+Data) — mismo principio ya documentado en CLAUDE.md para
+`database/hosting_deploy/` (ver "Decisiones arquitectónicas activas"),
+aplicado aquí en la dirección opuesta: no es un backup con datos
+reales que se excluye de git, sino el propio archivo versionado el que
+deja de tener datos reales.
+
+### Contenido del dataset anonimizado
+- 54 estudiantes con nombres, apellidos y número de documento
+  aleatorios — 49 con cédula de ciudadanía y edad adulta aleatoria, 5
+  específicamente con tarjeta de identidad y fecha de nacimiento que
+  los hace menores de 18 años a la fecha actual (para conservar el
+  caso de prueba de estudiantes menores de edad).
+- Los 35 campos de `fichas_inscripcion` completados con datos de
+  prueba aleatorios (padre/madre/acudiente, estudios anteriores) para
+  los 54 registros, conservando `prog_id` y `jornada` exactamente
+  iguales a los datos originales.
+- Distribución variada en `acud_es` (padre, madre, "otro" con
+  parentescos como primo/tío/esposo), cada uno con su propio
+  nombre/contacto de prueba — no un único patrón repetido.
+- 5 docentes con nombres, apellidos, cédula y sigla aleatorios.
+- `usuarios` con rol Administrador y Coordinador conservan su
+  `usua_passwordhash` original (mismo acceso real) — excepto el
+  usuario `usua_id=26` (rol Coordinador), que tenía el nombre real de
+  una persona de la institución y fue anonimizado también (nombre y
+  correo, hash de contraseña sin tocar).
+- `usuarios` con rol Docente y Estudiante actualizados con
+  correos/login consistentes con sus nuevas identidades anonimizadas.
+
+### Aplicación
+Backup de seguridad del contenido anterior generado primero en
+`database/hosting_deploy/backup_antes_de_seed_anonimizado.sql` (fuera
+de git). BD local (Docker) vaciada dinámicamente (`information_schema`
++ `DROP TABLE` con `FOREIGN_KEY_CHECKS=0` — en local sí es viable,
+a diferencia del hosting, ver deuda técnica en CLAUDE.md) y recargada
+con el dataset anonimizado. El mismo dataset se subió también al
+hosting de pruebas (`dev.escuelamdb.com`) vía
+`scripts/export_para_hosting.sh` (commit `40b28c8`).
+
+### Pruebas realizadas
+Conteos tras la recarga: 54 `estudiantes`, 5 `docentes`, 11
+`usuarios`, 3 `matriculas`, 23 tablas totales (coincide con los 23
+`CREATE TABLE` del dataset). Login de Administrador
+(`admin@emdb.edu.co`) verificado por `curl` — `302 Location:
+../08_admin/admin_view.php` — en local; Administrador y Coordinador
+verificados funcionando en ambos entornos (local y
+`dev.escuelamdb.com`).
+
+---
+
 ## [40b28c8] — 2026-09-06 — chore: script estandarizado de export de BD para hosting (`scripts/export_para_hosting.sh`)
 
 ### Archivos nuevos

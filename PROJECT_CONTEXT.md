@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-06
-> Versión: 115 — agrega `scripts/export_para_hosting.sh`, utilidad que estandariza la generación de un backup de la BD listo para subir al hosting de pruebas/producción (cPanel/phpMyAdmin), corrigiendo automáticamente la colación exclusiva de MySQL 8 que MariaDB (motor real del hosting) rechaza. Primera pieza de infraestructura operativa hacia la instalación en el servidor institucional EMDB (OE4 — VALIDAR TRL5, ítem 1).
+> Versión: 116 — reemplaza por completo el contenido de `database/emdb_academica.sql` (seed público en GitHub) con un dataset anonimizado, tras el despliegue exitoso de la aplicación en producción (`app.escuelamdb.com`) con los datos reales de 54 estudiantes/aspirantes y 5 docentes que hasta ahora vivían también en ese archivo versionado. El repo público ya no expone ningún dato personal real.
 
 ---
 
@@ -582,6 +582,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | El formulario público de inscripción nunca genera clave de acceso al sistema | Confirmado por diagnóstico (grep de `generarClaveAuto`/`clave_generada`/`usua_passwordhash` en `09_inscripcion_publica/`, sin resultados) antes y después del commit `0e098bb` — la generación de clave es y siempre fue tarea exclusiva del coordinador vía `matricular` en `est_mdl.php`. No confundir con `finc_codigotemporal` (un puente técnico para retomar el Paso 2, nunca una credencial), ya eliminado. |
 | N3 configurable (Fase 2.14.A, commit `f592885`) — 3 decisiones de esquema | (1) Histórico de N3 se descarta, no se migra — el reseteo de `cali_n3`/`cali_nota_final`/`cali_definitiva` a `NULL` asume que las notas existentes son datos de prueba sin valor de negocio real; no hay mecanismo de migración hacia `notasn3`. (2) Roles autorizados = Docente con verificación de ownership + Coordinador/Admin sin restricción, igual que el resto de `calificaciones_mdl.php` (`listar_calificaciones`/`guardar_nota`) — sin backend nuevo todavía, decisión que rige las fases siguientes. (3) Eliminación de una actividad de `actividadesn3` quedará bloqueada si tiene notas en `notasn3` o si es la última actividad activa del `grmo_id` — a diferencia de `requisitos_programa` (borrado lógico vía `reqp_activo`), aquí no hace falta un flag porque el borrado físico solo procede si la actividad está vacía. |
 | Seed público (`database/emdb_academica.sql`) y snapshot real (`database/hosting_deploy/`) son dos archivos deliberadamente separados, nunca sincronizados entre sí | El repositorio GitHub de este proyecto es **público**. `database/emdb_academica.sql` (versionado en git) contiene únicamente estructura y datos base/de ejemplo — **nunca** debe llevar datos reales de estudiantes (nombres, documentos, notas, contactos), porque eso expondría datos personales bajo la Ley 1581 de 2012 (Habeas Data) en un repo público. Los snapshots con datos reales, generados por `scripts/export_para_hosting.sh`, viven exclusivamente en `database/hosting_deploy/` — carpeta en `.gitignore` (excepto `.gitkeep`) que nunca se sube a GitHub, de uso puramente local para la subida manual al hosting. No reintroducir un mecanismo que sincronice o actualice el seed público a partir de datos reales sin decisión explícita de Jose Luis. |
+| `database/emdb_academica.sql` reemplazado por un dataset anonimizado (2026-09-06) — es ahora la carga inicial oficial del proyecto | Tras el despliegue exitoso en producción (`app.escuelamdb.com`, mismo día), los datos reales de 54 estudiantes/aspirantes y 5 docentes que habían quedado en el seed público (cargados durante la Fase 2.14.A / período 2026-2) se reemplazaron por nombres, documentos y datos de ficha familiar generados aleatoriamente — conservando `prog_id`/`jornada` originales y la distribución de casos de prueba (5 menores de edad con tarjeta de identidad, variedad de tipos de acudiente). Los usuarios Administrador y Coordinador conservan su `usua_passwordhash` real (mismo acceso), excepto `usua_id=26` (Coordinador), anonimizado también por tener el nombre real de una persona de la institución. Backup del contenido anterior en `database/hosting_deploy/backup_antes_de_seed_anonimizado.sql` (fuera de git). Cualquier persona que clone el repositorio desde ahora ve este dataset anonimizado, no los datos reales. No revertir a un seed con datos reales sin decisión explícita de Jose Luis. |
 
 ---
 
@@ -676,6 +677,52 @@ versionado en git, sin datos reales — el repo es público) y
 `database/hosting_deploy/` (snapshot con datos reales, en
 `.gitignore`, solo para uso local y subida manual). El script nunca
 toca `database/emdb_academica.sql`.
+
+---
+
+## Reemplazo del seed público con dataset anonimizado (2026-09-06)
+
+**Contexto:** la aplicación se desplegó exitosamente en producción
+(`app.escuelamdb.com`) el mismo día, con los datos reales de 54
+estudiantes/aspirantes y 5 docentes (cargados durante la Fase 2.14.A,
+período 2026-2). Esos mismos datos reales seguían viviendo en
+`database/emdb_academica.sql` — el seed versionado en el repositorio
+GitHub **público** del proyecto — desde la carga inicial. Con la
+aplicación ya operando en producción con datos reales, dejó de tener
+sentido que el repo público expusiera esos mismos datos personales.
+
+**Qué se generó:** un dataset de reemplazo completamente anonimizado
+para los 54 estudiantes/aspirantes (nombres, apellidos y documento
+aleatorios — 49 con cédula y edad adulta, 5 con tarjeta de identidad y
+fecha de nacimiento que los hace menores de edad, para conservar ese
+caso de prueba), los 35 campos de `fichas_inscripcion` de cada uno
+(padre/madre/acudiente, estudios anteriores, con variedad real en
+`acud_es`: padre, madre, "otro" con parentescos como primo/tío/esposo)
+conservando `prog_id`/`jornada` originales, y los 5 docentes (nombres,
+cédula, sigla aleatorios). Los usuarios Administrador y Coordinador
+conservaron su `usua_passwordhash` real — mismo acceso de siempre —
+excepto `usua_id=26` (Coordinador), anonimizado también porque tenía
+el nombre real de una persona de la institución. Los usuarios Docente
+y Estudiante se actualizaron con correos/login consistentes con sus
+nuevas identidades anonimizadas.
+
+**Aplicación:** backup del contenido anterior guardado primero en
+`database/hosting_deploy/backup_antes_de_seed_anonimizado.sql` (fuera
+de git, por si hace falta revertir). BD local (Docker) vaciada
+dinámicamente y recargada con el dataset anonimizado — en local sí es
+viable vaciar por `information_schema` (a diferencia del hosting, ver
+deuda técnica en CLAUDE.md sobre el error #1044). El mismo dataset se
+subió también al hosting de pruebas (`dev.escuelamdb.com`) vía
+`scripts/export_para_hosting.sh`. Verificado: login de Administrador y
+Coordinador funcionando en ambos entornos tras el cambio (login de
+Administrador confirmado además por `curl` en local — redirect 302 a
+`admin_view.php`).
+
+**Consecuencia:** `database/emdb_academica.sql` con este dataset
+anonimizado es ahora la carga inicial oficial del proyecto — lo que
+verá cualquier persona que clone el repositorio desde GitHub. No
+revertir a un seed con datos reales sin decisión explícita de Jose
+Luis (ver también "Decisiones tomadas" más abajo).
 
 ---
 
