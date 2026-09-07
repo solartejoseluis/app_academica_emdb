@@ -957,6 +957,12 @@ Cuando una funcionalidad nueva necesita mostrar un formulario ya existente en un
 
 Ejemplo: `#mdl_estudiante` en `02_estudiantes` (commit `70c45ba`, 2026-09-03) — reutilizado para el modo de revisión de una solicitud de actualización de datos (Fase 4 de 5 del feature "Link de actualización de datos de estudiantes"), en vez de crear un modal nuevo que duplicara las 5 secciones ya existentes.
 
+### En hosting compartido sin control del vhost, `auto_prepend_file` vía `.htaccess` es el único mecanismo viable para instrumentar todas las peticiones sin tocar cada script — y el access log combinado no debe asumirse como fuente de tiempos de respuesta sin verificarlo primero
+
+Cuando se necesita medir algo en **todas** las peticiones de la aplicación (ej. duración de respuesta para OE4/TRL5, Fase 2.16) pero el proyecto no tiene router/front controller — cada `_mdl.php`/`_view.php` es un script standalone, como en este proyecto — la opción de "modificar el punto de entrada común" no existe en código. En un hosting compartido (cPanel/LiteSpeed o similar) tampoco se tiene acceso al `vhost` de Apache para agregar módulos, `mod_status`, o directivas de `LogFormat` personalizadas. La única palanca real que queda disponible vía `.htaccess` (que sí es editable por el usuario cPanel, a diferencia del `vhost`) es `php_value auto_prepend_file` — corre un script antes de cada petición PHP de ese directorio, sin necesidad de tocar ningún archivo de la aplicación. Ver Fase 2.16 (`metrics_prepend.php`) para el caso real.
+
+Antes de asumir que el **access log combinado** de Apache (`LogFormat "combined"`, el más común en hosting compartido) ya captura tiempos de respuesta y solo hace falta empezar a parsearlo: verificarlo explícitamente. El formato `combined` estándar **no incluye `%D` (microsegundos) ni `%T` (segundos)** — solo IP, fecha, request, status y tamaño de respuesta. Sin acceso al `vhost` para agregar esas directivas (típico en hosting compartido), el access log no sirve como fuente de esta métrica sin importar cuánto se lo parsee. Confirmado en este proyecto tanto en el entorno Docker local (mismo `LogFormat "combined"` por defecto de la imagen `php:8.5-apache`) como asumido para producción (cPanel, sin acceso a `httpd.conf`).
+
 ---
 
 ## Antipatrones a evitar
@@ -1355,6 +1361,7 @@ manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
 | Git commit con mensaje descriptivo | ⬜ |
 | Solo archivos modificados identificados para subir | ⬜ |
 | `pdo_web.php` en producción intacto — nunca sobreescribir | ⬜ |
+| `.htaccess` en producción conserva la línea `php_value auto_prepend_file` — nunca sobreescribir sin preservarla | ⬜ |
 | Verificar que tablas en producción existen y tienen el esquema correcto | ⬜ |
 | Verificar en producción: `SHOW PROCEDURE STATUS WHERE Db = 'emdb_academica';` y `SHOW TRIGGERS FROM emdb_academica;` — ambas deben devolver vacío antes de operar con datos reales | ⬜ |
 
@@ -1362,6 +1369,7 @@ manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
 - Nunca subir la carpeta completa — solo los archivos modificados.
 - Nunca sobreescribir `pdo_web.php` en producción. Como este archivo no existe en git ni en el repo local, no hay ninguna protección técnica (`.gitignore`, plantilla, etc.) que lo resguarde — la única protección es un recordatorio operativo: al subir archivos modificados manualmente al hosting, verificar explícitamente que `app/00_connect/pdo.php` (el archivo ya renombrado en el servidor, con credenciales de producción) no esté entre los archivos que se suben o sobreescriben.
 - Recomendado: mantener una copia de respaldo de `pdo_web.php` fuera del repositorio (gestor de contraseñas, carpeta local no versionada) — si se pierde el acceso al servidor, no hay forma de reconstruirlo desde git, porque nunca estuvo ahí.
+- **Nunca sobreescribir la línea `php_value auto_prepend_file` del `.htaccess` en producción** (Fase 2.16, commit `9d5110c`, 2026-09-06). El `.htaccess` versionado en git solo tiene `RewriteEngine Off` — la línea `php_value auto_prepend_file "<ruta absoluta del hosting>/app/00_connect/metrics_prepend.php"` que activa la instrumentación de tiempo de respuesta (`metricasdesempeno`) se agregó a mano directamente en el servidor y **no está en git**, por la misma razón que `pdo_web.php`: depende de una ruta absoluta propia de esa cuenta de hosting, que no tiene sentido versionar. Si un deploy sube el `.htaccess` del repositorio y sobreescribe el de producción sin preservar esa línea manualmente, la instrumentación de tiempo de respuesta se desactiva **en silencio, sin ningún error visible** — la aplicación sigue funcionando normal, solo deja de registrar filas en `metricasdesempeno`. Antes de subir `.htaccess` a producción, copiar primero la línea `php_value auto_prepend_file` del archivo que ya está en el servidor y volver a agregarla al archivo nuevo.
 - Los nombres de tablas en producción van en **minúsculas** (Linux es case-sensitive).
 
 ---
@@ -1637,6 +1645,23 @@ abierto de este roadmap específico.
 | Ítem | Descripción | Estado |
 |---|---|---|
 | — | Backend: ownership por `role_id=3` vía `docentes.usua_id` agregado a `reporte_grupo` (`reportes_mdl.php`) y `pdf_grupo.php`. Frontend: botones Excel/Descargar PDF en `calificaciones_view.php`, reutilizando `grmo_id_activo` y el stack DataTables/Buttons/JSZip agregado por primera vez a ese archivo | ✅ 2026-09-06 (commit `0501479`) |
+
+### Phase 2.16 — Instrumentación de métricas técnicas para validación TRL5, OE4 (cerrada)
+
+> Objetivo: medir desde el primer día de operación real (2026-09-07)
+> las dos métricas técnicas exigidas por OE4 — tiempo de respuesta
+> <3s y disponibilidad >95%. Precedido de un diagnóstico de solo
+> lectura que confirmó que el proyecto no tiene router/front
+> controller (cada `_mdl.php`/`_view.php` es un script standalone) y
+> que ni el access log de Apache ni el error log de PHP capturan
+> tiempos de respuesta hoy. Detalle completo de ambos commits, la
+> activación manual en producción y las pruebas realizadas en
+> CHANGELOG.md, Fase 2.16.
+
+| Ítem | Descripción | Estado |
+|---|---|---|
+| — | Disponibilidad: `app/health.php` (sin sesión, `SELECT 1` real contra la BD, `200`/`503`) + monitor externo UptimeRobot (plan free, cada 5 min, alertas por email) apuntando a `health.php` | ✅ 2026-09-06 (commit `44d92fa`) |
+| — | Tiempo de respuesta: tabla `metricasdesempeno` + `app/00_connect/metrics_prepend.php`, activado en producción vía `php_value auto_prepend_file` en `.htaccess` (línea manual, no versionada — ver "Checklist de deploy a producción") — mide cada request real sin modificar ningún `_mdl.php`/`_view.php` existente | ✅ 2026-09-06 (commit `9d5110c`) |
 
 ### Phase 3 — Validación TRL5
 
