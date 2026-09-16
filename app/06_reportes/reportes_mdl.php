@@ -155,7 +155,33 @@ switch ($accion) {
                 ORDER BY m.matr_id ASC
             ");
             $stmt->execute([$estu_id]);
-            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+            $filas = $stmt->fetchAll();
+
+            // Un estudiante puede tener varias filas de matriculas del mismo
+            // prog_id a lo largo del tiempo (ej. avanzar_semestre deja la
+            // anterior en 'cursado' e inserta una nueva 'matriculado') — se
+            // agrupa por prog_id para que cada programa tenga una sola
+            // pestaña. Representativa: la fila 'matriculado' si existe; si
+            // no, la más reciente (matr_id mayor), mismo criterio ya usado
+            // en el proyecto para relaciones 1:N no anticipadas.
+            $porPrograma = [];
+            foreach ($filas as $fila) {
+                $prog_id = $fila['prog_id'];
+                if (!isset($porPrograma[$prog_id])) {
+                    $porPrograma[$prog_id] = $fila;
+                    continue;
+                }
+                $actual = $porPrograma[$prog_id];
+                $esMatriculada = $fila['matr_estado'] === 'matriculado';
+                $actualEsMatriculada = $actual['matr_estado'] === 'matriculado';
+                if ($esMatriculada && !$actualEsMatriculada) {
+                    $porPrograma[$prog_id] = $fila;
+                } elseif ($esMatriculada === $actualEsMatriculada && $fila['matr_id'] > $actual['matr_id']) {
+                    $porPrograma[$prog_id] = $fila;
+                }
+            }
+
+            echo json_encode(['status' => 'ok', 'data' => array_values($porPrograma)]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }

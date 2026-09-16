@@ -328,10 +328,10 @@ $(document).ready(function () {
 
                     $tabs.append(`<li class="nav-item">
                         <button class="nav-link${activo ? ' active' : ''}" data-bs-toggle="tab"
-                                data-bs-target="#tab_prog_${matr.matr_id}" type="button">${etiqueta}</button>
+                                data-bs-target="#tab_prog_${matr.prog_id}" type="button">${etiqueta}</button>
                     </li>`);
 
-                    const $pane = $(`<div class="tab-pane fade${activo ? ' show active' : ''}" id="tab_prog_${matr.matr_id}"></div>`);
+                    const $pane = $(`<div class="tab-pane fade${activo ? ' show active' : ''}" id="tab_prog_${matr.prog_id}"></div>`);
                     $pane.data('matrId', matr.matr_id);
                     $pane.html(`
                         <div class="row mb-3 g-2">
