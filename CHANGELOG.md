@@ -4,6 +4,95 @@
 
 ---
 
+## Restauración de 11 CHECK constraints eliminadas por el commit `300cfc1` — 2026-09-08
+
+### Contexto
+Un diagnóstico de solo lectura del esquema (para actualizar
+"02_Informe_Base_de_Datos_EMDB.docx") encontró solo 1 CHECK real en el
+esquema vivo (`notasn3_chk_1`), frente a las 11 que documentaba el
+informe técnico del 23-ago-2026. Una investigación posterior del
+historial de Git (`git log -p --all -S"CHECK (cali_n1" -- database/`)
+confirmó que las 11 sí existieron desde el primer commit del proyecto
+(`fa4b330`, 2026-04-30) y hasta el commit `ff1eec5` (justo antes de
+`300cfc1`), y que se perdieron todas juntas en un solo salto dentro del
+commit `300cfc1` (2026-09-06, "Reemplaza seed público con dataset
+anonimizado") — un efecto colateral no documentado de cambiar el
+método de generación de `database/emdb_academica.sql`, de un DDL
+escrito a mano (con `CHECK` inline) a un `mysqldump` exportado desde
+una base ya recargada, y no una decisión de diseño explícita: el
+mensaje de ese commit no menciona las CHECK en ningún momento.
+
+Las 11 constraints restauradas:
+
+| Constraint | Tabla | Condición |
+|---|---|---|
+| `chk_cali_n1` | calificaciones | `cali_n1 BETWEEN 0.0 AND 5.0` |
+| `chk_cali_n2` | calificaciones | `cali_n2 BETWEEN 0.0 AND 5.0` |
+| `chk_cali_n3` | calificaciones | `cali_n3 BETWEEN 0.0 AND 5.0` |
+| `chk_cali_n4` | calificaciones | `cali_n4 BETWEEN 0.0 AND 5.0` |
+| `chk_cali_sup_n1` | calificaciones | `cali_sup_n1 BETWEEN 0.0 AND 5.0` |
+| `chk_cali_sup_n2` | calificaciones | `cali_sup_n2 BETWEEN 0.0 AND 5.0` |
+| `chk_cali_sup_n4` | calificaciones | `cali_sup_n4 BETWEEN 0.0 AND 5.0` |
+| `chk_cali_habilitacion` | calificaciones | `cali_habilitacion BETWEEN 0.0 AND 5.0` |
+| `chk_peri_semestre` | periodos | `peri_semestre IN (1, 2)` |
+| `chk_hora_diasemana` | horariosgrupo | `hora_diasemana BETWEEN 1 AND 7` |
+| `chk_configuracion_fila_unica` | configuracion | `config_id = 1` |
+
+Un doceavo CHECK (`non3_valor BETWEEN 0.0 AND 5.0`, tabla `notasn3`) no
+se vio afectado — sobrevivió al mismo commit como
+`notasn3_chk_1`, solo con sintaxis distinta.
+
+### Docker local — restaurado y verificado (2026-09-08)
+1. Backup previo: `database/hosting_deploy/2026-09-08_2129_backup_antes_de_restaurar_check.sql`
+   (`mysqldump` completo, fuera de git).
+2. Verificación previa: las 11 columnas/condiciones se contaron contra
+   los datos reales de Docker antes de tocar nada — las 11 dieron
+   `violaciones = 0`. Los 11 `ALTER TABLE ... ADD CONSTRAINT ... CHECK`
+   se aplicaron uno por uno sin error, confirmados con
+   `information_schema.CHECK_CONSTRAINTS` y `SHOW CREATE TABLE` sobre
+   las 4 tablas afectadas.
+3. `database/emdb_academica.sql` actualizado con edición quirúrgica
+   (solo las 11 líneas `CONSTRAINT ... CHECK` agregadas a los 4
+   bloques `CREATE TABLE` correspondientes — sin resincronizar el
+   resto del archivo contra un dump nuevo, para no arrastrar deriva de
+   datos incidental ajena a esta tarea, ej. timestamps de último
+   acceso). Validado importando el archivo completo en una BD
+   descartable dentro del mismo contenedor (`_test_ddl_validation`,
+   creada y eliminada en la misma sesión) — 12 CHECK resultantes,
+   confirmando que el DDL quedó sintácticamente correcto y que una
+   instalación nueva desde este archivo ya las incluiría.
+4. Prueba funcional vía la aplicación real (no SQL directo): login
+   como Administrador por `curl`, `POST` a
+   `calificaciones_mdl.php?accion=guardar_nota` con `cali_n1=7.5` y
+   `cali_n1=-1` — ambas rechazadas con el mismo mensaje de siempre
+   (`"Nota fuera de rango (0.0 - 5.0)"`, validación en PHP, sin llegar
+   a la BD). Un guardado válido (`cali_n1=3.5`) se persistió
+   correctamente. Fila de prueba eliminada al terminar — sin datos de
+   prueba residuales en Docker. Comportamiento visible para el usuario
+   sin cambios: la CHECK de motor queda como capa de protección
+   adicional por debajo de la validación de PHP, no la reemplaza.
+
+### Staging y producción — aplicado manualmente (2026-09-08)
+
+Sin acceso directo a dev.escuelamdb.com/aurusmind.com (staging) ni
+a app.escuelamdb.com (producción) desde este entorno — ambos se
+gestionan manualmente vía phpMyAdmin, mismo criterio ya documentado en
+CLAUDE.md para cualquier cambio de esquema entre entornos. Jose Luis
+ejecutó manualmente, el mismo día, los dos scripts preparados:
+
+scripts/restaurar_check_staging.sql
+scripts/restaurar_check_produccion.sql
+
+Cada uno corrió primero su propio bloque de verificación (los mismos 11
+SELECT COUNT) para confirmar que ese entorno específico no tenía datos
+que violaran las condiciones — resultado: 0 violaciones en ambos
+entornos, igual que en Docker. Los 11 ALTER TABLE ... ADD CONSTRAINT ... CHECK se aplicaron sin error en los dos, precedidos de mysqldump
+de respaldo en cada uno. Los tres entornos (Docker, staging, producción)
+quedan con las 12 CHECK constraints (11 restauradas + notasn3_chk_1
+preexistente).
+
+---
+
 ## Fase 2.16 — Instrumentación de métricas técnicas para validación TRL5 (OE4) — 2026-09-06
 
 ### Contexto

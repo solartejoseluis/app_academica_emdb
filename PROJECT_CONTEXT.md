@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-09-06
-> Versión: 118 — instrumenta las dos métricas técnicas exigidas por OE4 (Fase 2.16): tiempo de respuesta vía `metricasdesempeno`/`metrics_prepend.php` (`auto_prepend_file`) y disponibilidad vía `health.php` + UptimeRobot, ambas activas en producción desde el 2026-09-06 — un día antes del inicio de la operación real (2026-09-07).
+> Última actualización: 2026-09-08
+> Versión: 119 — restaura 11 CHECK constraints eliminadas sin querer por el commit `300cfc1` (regresión detectada por diagnóstico de esquema + investigación de historial Git); aplicadas y verificadas en Docker local, staging y producción (2026-09-08).
 
 ---
 
@@ -798,6 +798,52 @@ del inicio de la operación real — las dos métricas técnicas de OE4
 quedan cubiertas desde el primer día de producción. Detalle completo
 (incluida la verificación en Docker local y en producción) en
 CHANGELOG.md, Fase 2.16.
+
+---
+
+## Restauración de 11 CHECK constraints eliminadas por el commit `300cfc1` (2026-09-08)
+
+**Contexto:** un diagnóstico de solo lectura del esquema (para
+actualizar "02_Informe_Base_de_Datos_EMDB.docx") encontró solo 1 CHECK
+real en el esquema vivo, frente a las 11 que documentaba el informe
+del 23-ago-2026. Una investigación del historial de Git confirmó que
+las 11 sí existieron desde el primer commit del proyecto (`fa4b330`,
+2026-04-30) y se perdieron todas juntas en el commit `300cfc1`
+(2026-09-06) — efecto colateral no documentado de reemplazar el DDL
+escrito a mano por un `mysqldump` exportado desde una BD ya recargada,
+no una decisión de diseño. El mensaje de ese commit nunca menciona las
+CHECK.
+
+**Restauradas (Docker local, 2026-09-08):** 11 `ALTER TABLE ... ADD
+CONSTRAINT ... CHECK` sobre `calificaciones` (8: `cali_n1`-`cali_n4`,
+`cali_sup_n1`/`n2`/`n4`, `cali_habilitacion`, rango 0.0-5.0),
+`periodos` (`chk_peri_semestre`, `IN (1,2)`), `horariosgrupo`
+(`chk_hora_diasemana`, `BETWEEN 1 AND 7`) y `configuracion`
+(`chk_configuracion_fila_unica`, `config_id = 1`) — mismos nombres y
+condiciones que tenían antes de `300cfc1`. Verificación previa de las
+11 condiciones contra los datos reales de Docker: 0 violaciones en las
+11 antes de aplicar cualquier `ALTER TABLE`. `database/emdb_academica.sql`
+actualizado con edición quirúrgica (solo las 11 líneas `CONSTRAINT`
+agregadas a los 4 `CREATE TABLE` correspondientes, sin resincronizar
+el resto del archivo contra un dump nuevo — evita arrastrar deriva de
+datos incidental ajena a esta tarea). Prueba funcional vía la propia
+aplicación (`curl` + login real + `guardar_nota`): una nota fuera de
+rango sigue rechazándose con el mismo mensaje de siempre, validado en
+PHP antes de llegar a la BD — la CHECK de motor queda como capa de
+protección adicional, sin cambiar el comportamiento visible.
+
+**Staging y producción — ejecutados (2026-09-08):** sin acceso directo
+a esos entornos (gestión manual vía phpMyAdmin). Jose Luis ejecutó
+manualmente `scripts/restaurar_check_staging.sql` y
+`scripts/restaurar_check_produccion.sql` ese mismo día, las 11
+verificaciones (`SELECT COUNT`) dieron 0 violaciones en ambos entornos
+antes de aplicar cualquier cambio, y los 11 `ALTER TABLE` se aplicaron
+sin error, precedidos de `mysqldump` de respaldo en cada uno.
+
+**Resultado:** los tres entornos (Docker local, staging y producción)
+quedan con las 12 CHECK completas (11 restauradas + `notasn3_chk_1`,
+que nunca se perdió), alineados entre sí y con el esquema versionado.
+Detalle completo en CHANGELOG.md.
 
 ---
 
