@@ -7,3 +7,5 @@ uploads/fotos_estudiantes/*
 !uploads/fotos_estudiantes/.gitkeep
 database/hosting_deploy/*
 !database/hosting_deploy/.gitkeep
+carga_simulada_5docentes.sh
+resultados_carga_*/
