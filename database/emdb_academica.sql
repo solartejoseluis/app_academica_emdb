@@ -103,7 +103,15 @@ CREATE TABLE `calificaciones` (
   UNIQUE KEY `uq_cali_grmo_estu` (`grmo_id`,`estu_id`),
   KEY `fk_cali_estu` (`estu_id`),
   CONSTRAINT `fk_cali_estu` FOREIGN KEY (`estu_id`) REFERENCES `estudiantes` (`estu_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `fk_cali_grmo` FOREIGN KEY (`grmo_id`) REFERENCES `gruposmodulos` (`grmo_id`) ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT `fk_cali_grmo` FOREIGN KEY (`grmo_id`) REFERENCES `gruposmodulos` (`grmo_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `chk_cali_habilitacion` CHECK ((`cali_habilitacion` between 0.0 and 5.0)),
+  CONSTRAINT `chk_cali_n1` CHECK ((`cali_n1` between 0.0 and 5.0)),
+  CONSTRAINT `chk_cali_n2` CHECK ((`cali_n2` between 0.0 and 5.0)),
+  CONSTRAINT `chk_cali_n3` CHECK ((`cali_n3` between 0.0 and 5.0)),
+  CONSTRAINT `chk_cali_n4` CHECK ((`cali_n4` between 0.0 and 5.0)),
+  CONSTRAINT `chk_cali_sup_n1` CHECK ((`cali_sup_n1` between 0.0 and 5.0)),
+  CONSTRAINT `chk_cali_sup_n2` CHECK ((`cali_sup_n2` between 0.0 and 5.0)),
+  CONSTRAINT `chk_cali_sup_n4` CHECK ((`cali_sup_n4` between 0.0 and 5.0))
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -160,7 +168,8 @@ CREATE TABLE `configuracion` (
   `matr_numero_inicial` int NOT NULL DEFAULT '1',
   `director_nombre` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `secretario_nombre` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
-  PRIMARY KEY (`config_id`)
+  PRIMARY KEY (`config_id`),
+  CONSTRAINT `chk_configuracion_fila_unica` CHECK ((`config_id` = 1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -441,7 +450,8 @@ CREATE TABLE `horariosgrupo` (
   `hora_aula` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`hora_id`),
   KEY `fk_hora_grse` (`grse_id`),
-  CONSTRAINT `fk_hora_grse` FOREIGN KEY (`grse_id`) REFERENCES `gruposemestres` (`grse_id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `fk_hora_grse` FOREIGN KEY (`grse_id`) REFERENCES `gruposemestres` (`grse_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `chk_hora_diasemana` CHECK ((`hora_diasemana` between 1 and 7))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -604,7 +614,8 @@ CREATE TABLE `periodos` (
   `fechafin` date DEFAULT NULL,
   `peri_activo` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`peri_id`),
-  UNIQUE KEY `uq_peri_codigo` (`peri_codigo`)
+  UNIQUE KEY `uq_peri_codigo` (`peri_codigo`),
+  CONSTRAINT `chk_peri_semestre` CHECK ((`peri_semestre` in (1,2)))
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
