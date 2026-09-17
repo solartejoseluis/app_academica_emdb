@@ -116,6 +116,7 @@ switch ($accion) {
             $peri_id_filtro = trim($_POST['peri_id'] ?? '');
             $grse_id_filtro = trim($_POST['grse_id'] ?? '');
             $modu_id_filtro = trim($_POST['modu_id'] ?? '');
+            $contexto       = trim($_POST['contexto'] ?? 'actual');
 
             $params = [];
 
@@ -125,7 +126,17 @@ switch ($accion) {
                 $params[] = (int)$peri_id_filtro;
             }
 
-            $where = "WHERE e.estu_activo = 1 AND m.matr_estado = 'matriculado'";
+            // Pestaña "Actual" (tablaMatriculadosActual): solo matrícula vigente.
+            // Pestaña "Anteriores" (tablaMatriculadosAnteriores): matrícula ya
+            // resuelta de un período pasado — 'cursado' (avanzó de semestre),
+            // 'retirado' o 'graduado'. El contexto lo declara explícitamente el
+            // frontend (est_ctrl.js) en vez de inferirse comparando peri_id_filtro
+            // contra el período activo — frágil si el select quedara desalineado.
+            if ($contexto === 'anteriores') {
+                $where = "WHERE e.estu_activo = 1 AND m.matr_estado IN ('cursado', 'retirado', 'graduado')";
+            } else {
+                $where = "WHERE e.estu_activo = 1 AND m.matr_estado = 'matriculado'";
+            }
 
             if ($prog_id_filtro !== '') {
                 $where .= " AND m.prog_id = ?";
@@ -204,6 +215,26 @@ switch ($accion) {
                             LEFT JOIN calificaciones c6 ON c6.grmo_id = ge6.grmo_id AND c6.estu_id = ge6.estu_id
                             WHERE ge6.estu_id = e.estu_id AND gs6.prog_id = m.prog_id AND gs6.peri_id = m.peri_id
                            ) AS aprobado_periodo_actual,
+                           -- Hermana de aprobado_periodo_actual (misma correlación por
+                           -- prog_id/peri_id de ESTA fila de matrícula) pero con las 3
+                           -- categorías textuales de detalle_periodo (reportes_mdl.php),
+                           -- en vez de un booleano — usada por la pestaña 'Anteriores'
+                           -- para mostrar el resultado académico real en lugar del texto
+                           -- literal 'cursado'. No reemplaza a aprobado_periodo_actual:
+                           -- ese campo sigue siendo consumido tal cual por
+                           -- itemAvanzarSemestre en est_ctrl.js.
+                           (SELECT CASE
+                                WHEN COUNT(*) = 0 THEN 'En Curso'
+                                WHEN SUM(CASE WHEN c7.cali_definitiva IS NULL THEN 1 ELSE 0 END) > 0 THEN 'En Curso'
+                                WHEN AVG(c7.cali_definitiva) >= 3.0 THEN 'Aprobado'
+                                ELSE 'Reprobado'
+                            END
+                            FROM grmoestudiantes ge7
+                            JOIN gruposmodulos gm7 ON ge7.grmo_id = gm7.grmo_id
+                            JOIN gruposemestres gs7 ON gm7.grse_id = gs7.grse_id
+                            LEFT JOIN calificaciones c7 ON c7.grmo_id = ge7.grmo_id AND c7.estu_id = ge7.estu_id
+                            WHERE ge7.estu_id = e.estu_id AND gs7.prog_id = m.prog_id AND gs7.peri_id = m.peri_id
+                           ) AS estado_academico_periodo,
                            -- Solicitud de actualización de datos MÁS RECIENTE de este
                            -- estudiante, solo si sigue activa ('generado'/'recibido') —
                            -- NULL si nunca tuvo una o si la última ya fue resuelta

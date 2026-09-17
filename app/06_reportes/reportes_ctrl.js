@@ -189,7 +189,7 @@ $(document).ready(function () {
         });
     }
 
-    function cargarPeriodos(matr_id, $pane) {
+    function cargarPeriodos(matr_id, $pane, periIdObjetivo) {
         const data = { matr_id: matr_id };
         if (ES_COORDINADOR) data.estu_id = estudianteActualId;
 
@@ -212,11 +212,18 @@ $(document).ready(function () {
                 $pane.find('.periodos-realizados').text(calcularPeriodosRealizados(r.data));
 
                 if (r.data.length) {
-                    // El más reciente es el primero (mis_periodos ya lo
-                    // entrega ordenado DESC) — se preselecciona por defecto.
-                    const masReciente = r.data[0];
-                    $sel.val(masReciente.peri_id);
-                    cargarDetallePeriodo(matr_id, masReciente.peri_id, $pane);
+                    // Si se pidió un período objetivo (ver "Ir al Reporte" en
+                    // cargarProgramas/resolverEstudiante) y existe entre los
+                    // períodos de esta matrícula, se usa ese en vez del más
+                    // reciente — comportamiento por defecto sin cambios
+                    // cuando no se pide ninguno (mis_periodos ya entrega el
+                    // más reciente primero, DESC).
+                    const periodoObjetivo = periIdObjetivo
+                        ? r.data.find(function (p) { return p.peri_id == periIdObjetivo; })
+                        : null;
+                    const periodoSeleccionado = periodoObjetivo || r.data[0];
+                    $sel.val(periodoSeleccionado.peri_id);
+                    cargarDetallePeriodo(matr_id, periodoSeleccionado.peri_id, $pane);
                 } else {
                     $pane.find('.contenido-periodo').html('<div class="text-muted">Sin períodos cursados todavía.</div>');
                 }
@@ -302,7 +309,7 @@ $(document).ready(function () {
         });
     }
 
-    function cargarProgramas() {
+    function cargarProgramas(matrIdObjetivo, periIdObjetivo) {
         const data = ES_COORDINADOR ? { estu_id: estudianteActualId } : {};
 
         $.ajax({
@@ -322,8 +329,16 @@ $(document).ready(function () {
                 }
                 $('#bloque_sin_programas').addClass('d-none');
 
+                // Índice de la matrícula objetivo (ver "Ir al Reporte" arriba) —
+                // si no se pidió ninguna o no se encuentra, se conserva el
+                // comportamiento por defecto: activar la primera (idx===0).
+                let idxObjetivo = -1;
+                if (matrIdObjetivo) {
+                    idxObjetivo = r.data.findIndex(function (m) { return m.matr_id == matrIdObjetivo; });
+                }
+
                 r.data.forEach(function (matr, idx) {
-                    const activo = idx === 0;
+                    const activo = idxObjetivo >= 0 ? (idx === idxObjetivo) : (idx === 0);
                     const etiqueta = matr.prog_sigla || matr.prog_nombre;
 
                     $tabs.append(`<li class="nav-item">
@@ -357,12 +372,14 @@ $(document).ready(function () {
                     $content.append($pane);
                 });
 
-                // La primera pestaña ya queda activa por CSS (show active) —
-                // se carga de una vez, sin esperar shown.bs.tab (que solo
-                // dispara al CAMBIAR de pestaña, nunca en el estado inicial).
-                const primerMatrId = r.data[0].matr_id;
-                const $primerPane = $content.find('.tab-pane').first();
-                cargarPeriodos(primerMatrId, $primerPane);
+                // La pestaña activa (idxObjetivo si se pidió una matrícula
+                // objetivo, o la primera por defecto) ya queda "show active"
+                // por CSS — se carga de una vez, sin esperar shown.bs.tab (que
+                // solo dispara al CAMBIAR de pestaña, nunca en el estado inicial).
+                const matrSeleccionada = r.data[idxObjetivo >= 0 ? idxObjetivo : 0];
+                const primerMatrId = matrSeleccionada.matr_id;
+                const $primerPane = $content.find('#tab_prog_' + matrSeleccionada.prog_id);
+                cargarPeriodos(primerMatrId, $primerPane, periIdObjetivo);
                 cargarDetalleRequisitosPestana(primerMatrId, $primerPane.find('.requisitos-programa-container'));
             }
         });
@@ -404,14 +421,19 @@ $(document).ready(function () {
         });
     }
 
-    function resolverEstudiante(estu_id, nombreCompleto) {
+    // matrIdObjetivo/periIdObjetivo: opcionales, usados por el link "Ir al
+    // Reporte" de 02_estudiantes (query params estu_id/matr_id/peri_id/nombre
+    // en la URL) para aterrizar directo en la matrícula y el período de
+    // origen, en vez de la primera pestaña de programa + período más
+    // reciente que usa el flujo normal por buscador.
+    function resolverEstudiante(estu_id, nombreCompleto, matrIdObjetivo, periIdObjetivo) {
         estudianteActualId = estu_id;
         $('#spn_nombre_estudiante_titulo').text(nombreCompleto);
         $('#spn_estudiante_elegido_nombre').text(nombreCompleto);
         $('#bloque_estudiante_elegido').removeClass('d-none').addClass('d-flex');
         $('#bloque_buscador_estudiante').addClass('d-none');
         $('#bloque_reporte').removeClass('d-none');
-        cargarProgramas();
+        cargarProgramas(matrIdObjetivo, periIdObjetivo);
     }
 
     // ── Reporte por Grupo — recuperado tal cual del commit ef429bd (Fase 2),
@@ -668,6 +690,29 @@ $(document).ready(function () {
             $('#spn_nombre_estudiante_titulo').text('—');
             $('#npt_buscar_estudiante').val('').focus();
         });
+
+        // ── Llegada desde "Ir al Reporte" (dropdown de Acciones de
+        //    tablaMatriculados, 02_estudiantes) — query params en la URL en
+        //    vez del flujo normal por buscador. Si no hay estu_id, el
+        //    comportamiento de arranque queda idéntico al de siempre (el
+        //    buscador vacío, esperando que el coordinador escriba). ─────────
+        const paramsUrlReporte = new URLSearchParams(window.location.search);
+        const estuIdUrl = paramsUrlReporte.get('estu_id');
+        if (estuIdUrl) {
+            const matrIdUrl   = paramsUrlReporte.get('matr_id');
+            const periIdUrl   = paramsUrlReporte.get('peri_id');
+            const nombreUrl   = paramsUrlReporte.get('nombre') || '—';
+
+            // Fuerza la pestaña superior "Reporte por Estudiante" (por
+            // defecto carga con "Reporte por Grupo" activa) vía la API de
+            // Bootstrap Tabs — mismo mecanismo que data-bs-toggle="tab".
+            const tabEstudianteEl = document.querySelector('button[data-bs-target="#tab_reporte_estudiante"]');
+            if (tabEstudianteEl) {
+                bootstrap.Tab.getOrCreateInstance(tabEstudianteEl).show();
+            }
+
+            resolverEstudiante(estuIdUrl, nombreUrl, matrIdUrl, periIdUrl);
+        }
 
     } else {
         // Estudiante (role 4): el estu_id ya se resolvió en sesión — pasa

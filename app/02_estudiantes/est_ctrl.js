@@ -868,6 +868,7 @@ $(document).ready(function () {
                     d.peri_id = periodoActivoId;
                     d.grse_id = $('#slct_filtro_matr_grse_id_actual').val();
                     d.modu_id = $('#slct_filtro_matr_modu_id_actual').val();
+                    d.contexto = 'actual';
                 }
             },
             destroy: true,
@@ -885,6 +886,7 @@ $(document).ready(function () {
                     d.peri_id = $('#slct_filtro_matr_peri_id_anteriores').val();
                     d.grse_id = $('#slct_filtro_matr_grse_id_anteriores').val();
                     d.modu_id = $('#slct_filtro_matr_modu_id_anteriores').val();
+                    d.contexto = 'anteriores';
                 }
             },
             destroy: true,
@@ -1317,7 +1319,23 @@ function crearColumnasMatriculados(esPeriodoActual) {
         {
             data: 'matr_estado',
             width: '100px',
-            render: function (data) {
+            render: function (data, type, row) {
+                // Pestaña "Anteriores" + estado de flujo 'cursado': se muestra el
+                // resultado académico real (Aprobado/Reprobado/En Curso, calculado
+                // en estado_academico_periodo) en vez del texto de flujo literal —
+                // mismo criterio que "Estado del Período" en 06_reportes.
+                // 'retirado'/'graduado' y la pestaña "Actual" no cambian.
+                if (!esPeriodoActual && data === 'cursado') {
+                    const textoAcademico = row.estado_academico_periodo || 'En Curso';
+                    const mapAcademico = {
+                        'Aprobado':  'bg-success',
+                        'Reprobado': 'bg-danger',
+                        'En Curso':  'bg-secondary'
+                    };
+                    const clsAcademico = mapAcademico[textoAcademico] || 'bg-secondary';
+                    return `<span class="badge ${clsAcademico}">${textoAcademico}</span>`;
+                }
+
                 let map = {
                     'matriculado': 'bg-success',
                     'aspirante':   'bg-warning text-dark',
@@ -1376,6 +1394,15 @@ function crearColumnasMatriculados(esPeriodoActual) {
                            </li>`;
                 }
 
+                // Abre 06_reportes/reportes_view.php en pestaña nueva, ya
+                // posicionado en "Reporte por Estudiante" con el estudiante,
+                // programa (matr_id) y período (peri_id) de ESTA fila —
+                // mismo patrón window.open(...,'_blank') que "Hoja de
+                // Matrícula". El nombre viaja por query string (encodeURIComponent)
+                // en vez de un lookup nuevo al servidor — decisión explícita,
+                // ver diagnóstico de este ajuste.
+                const nombreParaReporte = (row.estu_apellidos + ', ' + row.estu_nombres).replace(/'/g, "\\'");
+
                 // Igual que "Matricular al sgte. sem." — solo tiene sentido
                 // generar un link para el período EN CURSO. matr_estado ya
                 // viene garantizado 'matriculado' por el WHERE de
@@ -1416,6 +1443,9 @@ function crearColumnasMatriculados(esPeriodoActual) {
                                 ${itemAvanzarSemestre}
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/reportes_view.php?estu_id=' + ${row.estu_id} + '&matr_id=' + ${row.matr_id} + '&peri_id=' + ${row.peri_id} + '&nombre=' + encodeURIComponent('${nombreParaReporte}'), '_blank')" title="Ver el informe de calificaciones de este período">📊 Ir al Reporte</button>
                                 </li>
                                 ${itemMatricularOtroPrograma}
                             </ul>
