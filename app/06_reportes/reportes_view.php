@@ -45,6 +45,15 @@ if (!$es_coordinador) {
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.bootstrap5.min.css" rel="stylesheet">
     <?php endif; ?>
+    <style>
+        /* Encabezado de la tabla de notas de "Reporte por Estudiante" — clase
+           propia con ámbito exclusivo a este archivo, para no afectar
+           .table-dark (compartida con el resto de la aplicación). */
+        .thead-reporte-notas th {
+            background-color: #e9ecef;
+            color: #000;
+        }
+    </style>
 </head>
 <body>
 

@@ -115,13 +115,13 @@ $(document).ready(function () {
 
     function construirBloqueModulo(m) {
         return `<div class="card mb-3">
-            <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+            <div class="card-header d-flex flex-wrap justify-content-between gap-2 bg-dark text-white">
                 <div><strong>Módulo:</strong> ${m.modu_sigla} — ${m.modu_nombre} &nbsp; <strong>Grupo:</strong> ${m.grse_codigo}</div>
                 <div><strong>Docente:</strong> ${m.doce_apellidos}, ${m.doce_nombres}</div>
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm text-center mb-0">
-                    <thead class="table-dark">
+                    <thead class="thead-reporte-notas">
                         <tr>
                             <th>N1<br><small class="fw-normal">20%</small></th>
                             <th>Sup N1</th>

@@ -220,12 +220,12 @@ $html = '
     .formula { text-align: center; font-size: 11px; font-weight: bold; margin: 10px 0; padding: 6px; background-color: #f1f3f5; }
     table.estado { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
     table.estado td { border: 1px solid #adb5bd; padding: 8px; font-size: 12px; font-weight: bold; text-align: center; }
-    table.contexto-modulo { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    table.contexto-modulo { width: 100%; border-collapse: collapse; margin-top: 14px; background-color: #000; color: #fff; }
     table.contexto-modulo td { padding: 3px 6px; font-size: 10px; }
     table.contexto-modulo td.etiqueta { font-weight: bold; width: 90px; }
     table.ficha { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 4px; margin-bottom: 6px; }
     table.ficha th, table.ficha td { border: 1px solid #adb5bd; padding: 4px 3px; font-size: 8.5px; word-wrap: break-word; }
-    table.ficha th { background-color: #343a40; color: #fff; text-align: center; width: 9.09%; }
+    table.ficha th { background-color: #e9ecef; color: #000; text-align: center; width: 9.09%; }
     table.ficha td.centro { text-align: center; }
     .sin-modulos { text-align: center; color: #6c757d; margin: 20px 0; }
     .leyenda { margin-top: 14px; font-size: 9px; text-align: center; color: #495057; }
