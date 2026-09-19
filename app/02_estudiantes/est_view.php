@@ -227,7 +227,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- Modal Nuevo Aspirante / Editar Estudiante -->
-<div class="modal fade" id="mdl_estudiante" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_estudiante" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
@@ -645,7 +645,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- Modal Actualización de Datos (link público, Fase 4 de 5) -->
-<div class="modal fade" id="mdl_actualizacion_datos" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_actualizacion_datos" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -702,7 +702,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- Modal Completar Matrícula -->
-<div class="modal fade" id="mdl_matricular" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_matricular" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -837,7 +837,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- Modal Editar Matrícula (Programa/Cohorte/Período) -->
-<div class="modal fade" id="mdl_editar_matricula" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_editar_matricula" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -901,7 +901,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </div>
 
-<div class="modal fade" id="mdl_avanzar_semestre" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_avanzar_semestre" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -930,7 +930,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- Modal Agregar/Editar Requisito del Catálogo (Configurar Requisitos) -->
-<div class="modal fade" id="mdl_requisito_programa" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_requisito_programa" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -958,7 +958,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- Modal Requisitos de una matrícula (dropdown Acciones, Matriculados) -->
-<div class="modal fade" id="mdl_requisitos_matricula" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_requisitos_matricula" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -992,7 +992,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- Modal Gestionar Claves (crear acceso o cambiar clave, dropdown Acciones) -->
-<div class="modal fade" id="mdl_gestionar_claves" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_gestionar_claves" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">

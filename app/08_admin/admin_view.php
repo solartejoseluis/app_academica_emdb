@@ -81,7 +81,7 @@ if ($_SESSION['role_id'] !== 1) {
 </div>
 
 <!-- ===== Modal Nuevo Usuario ===== -->
-<div class="modal fade" id="mdl_nuevo_usuario" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_nuevo_usuario" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -118,7 +118,7 @@ if ($_SESSION['role_id'] !== 1) {
 </div>
 
 <!-- ===== Modal Editar Usuario ===== -->
-<div class="modal fade" id="mdl_editar_usuario" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_editar_usuario" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">

@@ -67,7 +67,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- Modal Nuevo / Editar Docente -->
-<div class="modal fade" id="mdl_docente" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_docente" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">

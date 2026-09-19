@@ -304,7 +304,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div><!-- /container -->
 
 <!-- MODAL COHORTE -->
-<div class="modal fade" id="mdl_cohorte" tabindex="-1">
+<div class="modal fade" id="mdl_cohorte" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
@@ -349,7 +349,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- MODAL PERÍODO -->
-<div class="modal fade" id="mdl_periodo" tabindex="-1">
+<div class="modal fade" id="mdl_periodo" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
@@ -401,7 +401,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- MODAL GRUPO SEMESTRE -->
-<div class="modal fade" id="mdl_grupo" tabindex="-1">
+<div class="modal fade" id="mdl_grupo" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
@@ -509,7 +509,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- MODAL MÓDULO DEL GRUPO -->
-<div class="modal fade" id="mdl_modulo_grupo" tabindex="-1">
+<div class="modal fade" id="mdl_modulo_grupo" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-secondary text-white">
@@ -580,7 +580,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- MODAL MÓDULO -->
-<div class="modal fade" id="mdl_modulo" tabindex="-1">
+<div class="modal fade" id="mdl_modulo" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
@@ -660,7 +660,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 </div>
 
 <!-- MODAL CREAR/EDITAR PROGRAMA -->
-<div class="modal fade" id="mdl_programa" tabindex="-1">
+<div class="modal fade" id="mdl_programa" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">

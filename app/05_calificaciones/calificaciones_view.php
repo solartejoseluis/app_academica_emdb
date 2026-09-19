@@ -215,7 +215,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
 </div>
 
 <!-- Modal Registro y cálculo de N3 (Fase 2.14.E1 — estructura; JS en E2/E3) -->
-<div class="modal fade" id="mdl_registro_n3" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_registro_n3" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
@@ -257,7 +257,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
 </div>
 
 <!-- Modal Configurar actividades de N3 (Fase 2.14.E1 — estructura; JS en E2) -->
-<div class="modal fade" id="mdl_configurar_actividades_n3" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_configurar_actividades_n3" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">

@@ -50,7 +50,7 @@ if ($_SESSION['role_id'] !== 1) {
 </div>
 
 <!-- ===== Modal Nueva/Editar Ayuda ===== -->
-<div class="modal fade" id="mdl_ayuda" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="mdl_ayuda" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-dark text-white">
