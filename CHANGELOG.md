@@ -17,7 +17,7 @@ Importación en staging: 24 tablas, 7.202 filas. Producción tras restaurar: 24 
 
 La aplicación funcionaba normal — solo dejó de registrar métricas, sin ningún error visible. Detectado porque `metricasdesempeno` no recibía filas nuevas; diagnosticado con un archivo temporal (ya borrado) que confirmó "prepend cargado: NO" con conexión e INSERT correctos. Corregido renombrando a `.htaccess` y cambiando la ruta. Verificado: 39 filas nuevas en producción tras navegar (`metr_id` 5622–5662, `metr_usua_id` lleno).
 
-**Staging:** el `.htaccess` tenía el mismo problema del punto; se renombró y se dejó con su ruta `dev.escuelamdb.com`. La instrumentación de staging no se verificó todavía con una consulta.
+**Staging:** el `.htaccess` tenía el mismo problema del punto; se renombró y se dejó con su ruta `dev.escuelamdb.com`. Verificada el 2026-09-18 23:23: tras navegar la app, `SELECT ... FROM metricasdesempeno WHERE metr_id > 5621` devolvió 41 filas nuevas (`metr_id` 5622–5662, `metr_usua_id = 3`, `http_status 200`) de las pantallas Estudiantes, Docentes, Grupos y Reportes.
 
 ### Disponibilidad
 UptimeRobot (`health.php` de producción) muestra 100% en 24 h, 7 y 30 días, 0 incidentes; el monitor no cayó durante el período sin uso, así que ese período no cuenta contra el >95% del OE4.

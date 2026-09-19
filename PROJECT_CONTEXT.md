@@ -964,9 +964,10 @@ métricas dejó de aplicarse) y con la ruta de staging en vez de la de
 producción. Sin ningún error visible; detectado porque
 `metricasdesempeno` no recibía filas nuevas. Corregido (renombrado +
 ruta), verificado con 39 filas nuevas tras navegar. Staging tenía el
-mismo problema de punto, corregido igual (su instrumentación aún no se
-verificó con una consulta). CLAUDE.md (Checklist de deploy) gana 3
-filas y 3 viñetas nuevas para prevenir esto en el próximo deploy.
+mismo problema de punto, corregido igual (su instrumentación se
+verificó después: 41 filas nuevas en `metricasdesempeno` tras navegar,
+2026-09-18 23:23). CLAUDE.md (Checklist de deploy) gana 3 filas y 3
+viñetas nuevas para prevenir esto en el próximo deploy.
 
 **Disponibilidad:** UptimeRobot muestra 100% en 24h/7d/30d, 0
 incidentes — el período sin uso no cuenta contra el >95% de OE4, ya
