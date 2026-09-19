@@ -76,6 +76,57 @@ switch ($accion) {
         }
         break;
 
+    // ── MODAL DE DETALLE: GRUPOS ASIGNADOS A UN DOCENTE ──────────────────────
+
+    case 'listar_grupos_docente':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        $doce_id = (int)($_POST['doce_id'] ?? 0);
+        if ($doce_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de docente inválido', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+
+            $peri_id = (int)($_POST['peri_id'] ?? 0);
+            if ($peri_id === 0) {
+                $stmtPeri = $pdo->prepare("SELECT peri_id FROM periodos WHERE peri_activo = 1 LIMIT 1");
+                $stmtPeri->execute();
+                $peri_id = (int)($stmtPeri->fetchColumn() ?: 0);
+            }
+
+            // Mismas condiciones (JOINs, grmo_activo=1, filtro de período) que
+            // la subconsulta de total_grupos en 'listar' — el número de filas
+            // devueltas aquí siempre debe coincidir con ese conteo.
+            $stmt = $pdo->prepare("
+                SELECT gs.grse_codigo, m.modu_sigla, m.modu_nombre
+                FROM gruposmodulos gm
+                INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                INNER JOIN modulos m ON gm.modu_id = m.modu_id
+                WHERE gm.doce_id = ? AND gs.peri_id = ? AND gm.grmo_activo = 1
+                ORDER BY gs.grse_codigo, m.modu_nombre
+            ");
+            $stmt->execute([$doce_id, $peri_id]);
+            $rows = $stmt->fetchAll();
+
+            $stmtCod = $pdo->prepare("SELECT peri_codigo FROM periodos WHERE peri_id = ?");
+            $stmtCod->execute([$peri_id]);
+            $peri_codigo = $stmtCod->fetchColumn() ?: null;
+
+            echo json_encode(['status' => 'ok', 'data' => $rows, 'peri_codigo' => $peri_codigo]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);
+        }
+        break;
+
     case 'eliminar_docente':
         if (!isset($_SESSION['usua_id'])) {
             echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);

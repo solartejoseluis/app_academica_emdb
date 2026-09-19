@@ -140,6 +140,32 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </div>
 
+<!-- Modal Grupos Asignados (detalle de conteo en Grupos (período)) -->
+<div class="modal fade" id="mdl_grupos_docente" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mdl_grupos_docente_titulo">Grupos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Grupo</th>
+                            <th>Módulo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_grupos_docente"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>

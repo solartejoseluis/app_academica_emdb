@@ -151,6 +151,15 @@ $(document).ready(function () {
                     data: 'total_grupos',
                     width: '110px',
                     render: function (data, type, row) {
+                        if (type !== 'display') {
+                            return data;
+                        }
+                        if (data > 0) {
+                            const nombreCompleto = (row.doce_nombres + ' ' + row.doce_apellidos).replace(/'/g, "\\'");
+                            const periIdActual = $('#slct_peri_docentes').val();
+                            return `<button type="button" class="btn btn-sm btn-outline-primary" title="Período: ${row.peri_codigo}"
+                                onclick="verGruposDocente(${row.doce_id}, '${nombreCompleto}', ${periIdActual})">${data}</button>`;
+                        }
                         return `<span class="badge bg-info text-dark" title="Período: ${row.peri_codigo}">${data} grupos</span>`;
                     }
                 },
@@ -279,6 +288,34 @@ function toggleEstadoDocente(doce_id, nuevoEstado) {
             } else {
                 alert('Error: ' + r.message);
             }
+        }
+    });
+}
+
+function verGruposDocente(doce_id, nombreCompleto, peri_id) {
+    $.ajax({
+        type: 'POST',
+        url: 'doc_mdl.php?accion=listar_grupos_docente',
+        data: { doce_id: doce_id, peri_id: peri_id },
+        dataType: 'json',
+        success: function (response) {
+            const tbody = $('#tbody_grupos_docente');
+            tbody.empty();
+            const periCodigo = (response.status === 'ok' && response.peri_codigo) ? response.peri_codigo : '—';
+            $('#mdl_grupos_docente_titulo').text('Grupos de ' + nombreCompleto + ' — ' + periCodigo);
+            if (response.status === 'ok' && response.data.length > 0) {
+                response.data.forEach(function (g) {
+                    tbody.append(`
+                        <tr>
+                            <td>${$('<div>').text(g.grse_codigo).html()}</td>
+                            <td>${$('<div>').text(g.modu_sigla + ' — ' + g.modu_nombre).html()}</td>
+                        </tr>
+                    `);
+                });
+            } else {
+                tbody.append('<tr><td colspan="2" class="text-muted text-center">Sin grupos asignados en el período activo</td></tr>');
+            }
+            new bootstrap.Modal(document.getElementById('mdl_grupos_docente')).show();
         }
     });
 }
