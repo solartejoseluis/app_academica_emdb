@@ -4,6 +4,43 @@
 
 ---
 
+## Corrección de datos — 6 matrículas sucesoras de MD en 2026-2 (sin commit de código) — 2026-09-19
+
+### Contexto
+La migración histórica de 2026-1 (2026-09-05) dejó 15 matrículas en `matr_estado='cursado'` sin su fila sucesora en el período 2026-2 (`matr_matriculadopor = 'Migración histórica 2026-1'`). No fue un bug de `avanzar_semestre` — ese `case` es el único escritor de `'cursado'` desde el commit `0aef564` y siempre crea la sucesora dentro de la misma transacción; las 15 filas vienen de la carga histórica, que nunca pasó por ese flujo.
+
+### Reparación
+6 de las 15 correspondían a estudiantes del programa MD que aprobaron 2026-1 — se les insertó la fila sucesora faltante (semestre 2, misma cohorte, `matr_estado='matriculado'`, `matr_estado_academico='Activo'`), replicando exactamente el `INSERT` que hace `avanzar_semestre`. Aplicado en local, staging y producción con un script SQL idempotente que localiza las filas por criterios de negocio (programa, período, estado, promedio), sin IDs ni datos personales hardcodeados — el script no está en el repositorio. Respaldo previo de la BD de producción tomado antes de aplicar el script ahí.
+
+### Pendiente
+Las otras 9 matrículas quedan sin tocar — ver "Grupo B" en la nueva sección de deuda técnica de CLAUDE.md (3 son de este mismo hallazgo, con notas incompletas o promedio bajo; las 6 restantes corresponden al hallazgo de datos de prueba, Grupo C, también documentado ahí).
+
+### Método en producción
+No se hizo un restore completo desde la BD local — habría sobrescrito datos reales de la validación TRL5 que producción ya tiene acumulados desde el despliegue del 2026-09-18. Se aplicó el mismo script puntual usado en local/staging, directamente contra la BD de producción.
+
+---
+
+## fix(calificaciones): el docente solo accede a grupos del período activo — commit `cef939b` — 2026-09-19
+
+### Contexto
+Desde la migración histórica de 2026-1 (2026-09-05), la BD tiene módulos con notas de períodos ya cerrados. `listar_grupos` (`calificaciones_mdl.php`, rama `role_id=3`) no filtraba por período, y ninguna de las 10 consultas de verificación de ownership repartidas entre `calificaciones_mdl.php`, `reportes_mdl.php` (`reporte_grupo`) y `pdf_grupo.php` exigía período activo — solo pertenencia del `grmo_id` al docente en sesión. El docente veía y podía editar módulos de períodos cerrados (45 módulos de períodos no activos con notas registradas).
+
+### Cambio
+`pe.peri_activo = 1` agregado a `listar_grupos` (rama docente) y a las 10 consultas de ownership, repartidas en 11 ubicaciones entre `calificaciones_mdl.php`, `reportes_mdl.php` y `pdf_grupo.php`. Mismo mensaje genérico de rechazo que ya usaba cada endpoint ante un `grmo_id` ajeno o inexistente — sin distinguir "es de otro docente" de "es de un período cerrado". En `calificaciones_ctrl.js`, mensaje nuevo específico para el docente sin módulos en el período activo: "No tienes módulos asignados en el período activo."
+
+Coordinador y administrador sin cambios — sus ramas de código son independientes y siguen viendo/editando todos los períodos, como corresponde a su rol.
+
+### Decisión
+La consulta de verificación de período activo se duplicó inline 11 veces en vez de extraerse a un helper, porque ninguno de los 3 archivos (`calificaciones_mdl.php`, `reportes_mdl.php`, `pdf_grupo.php`) incluye `00_files/helpers.php` hoy. Deuda técnica menor — ver CLAUDE.md.
+
+### Pruebas
+7 pruebas con harness PHP + `ROLLBACK` (sin dejar datos de prueba), verificado además en navegador con sesión real de docente en local, staging y producción.
+
+### Hallazgo (sin resolver)
+El proyecto no tiene ningún mecanismo de "cierre de período" para calificaciones — `grmo_activo` no distingue entre un grupo módulo de un período cerrado y uno activo (ambos pueden estar `activo=1`), la única señal de "cerrado" es `periodos.peri_activo`. Ver deuda técnica en CLAUDE.md.
+
+---
+
 ## Despliegue a staging y producción de los Ajustes 1–5 — 2026-09-18 (sin commit de código)
 
 ### Contexto

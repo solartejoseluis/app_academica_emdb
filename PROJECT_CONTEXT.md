@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-09-18
-> Versión: 124 — Despliegue de los Ajustes 1-5 a staging y producción (2026-09-18); hallazgo y corrección de `.htaccess` de producción sin punto inicial y con ruta de staging, instrumentación de métricas restaurada y verificada (39 filas nuevas).
+> Última actualización: 2026-09-19
+> Versión: 125 — El docente ya no accede a grupos de períodos cerrados (commit `cef939b`, 11 ubicaciones); corrección de datos de 6 matrículas sucesoras de MD en 2026-2 faltantes desde la migración histórica.
 
 ---
 
@@ -559,6 +559,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `d5c4794` | Ajuste 4: columna "Grupos (período)" de `tablaDocentes` (03_docentes) pasa de número plano a botón clicable (solo si `total_grupos > 0`, con 0 conserva el badge sin clic) que abre el modal de solo lectura `#mdl_grupos_docente` con "Grupo \| SIGLA — Módulo" del docente en el período seleccionado; nuevo `case 'listar_grupos_docente'` en `doc_mdl.php` (roles 1/2, `peri_id` opcional con fallback a `peri_activo=1`, mismas condiciones que la subconsulta `total_grupos` de `'listar'`: `doce_id`+`peri_id`+`grmo_activo=1`), devuelve también `peri_codigo` para el título del modal; `doc_ctrl.js` renderiza por `type` (ordenamiento numérico intacto) y agrega la función global `verGruposDocente()`, con el `peri_id` del botón leído de `#slct_peri_docentes`; verificado `doce_id=3`, período `2026-2`: 8 filas == `total_grupos = 8`, por SQL y por `curl` con sesión real | 2026-09-18 |
 | `42427ff` | Ajuste 5: columna "Módulos" de `tablaGrupos` (04_grupos, pestaña Grupos Semestre) pasa de badge a botón clicable (solo si `total_modulos > 0`) que abre `#mdl_modulos_grupo` con "SIGLA — Módulo \| Docente"; nuevo `case 'listar_modulos_grupo_resumen'` en `grupos_mdl.php` (roles 1/2, `grse_id`+`grmo_activo=1`, `LEFT JOIN docentes`) — nombrado así (no `listar_modulos_grupo`) porque ese nombre ya existía para `cargarModulosGrupo()` del modal "Editar Grupo" con otras columnas; un segundo `case` con el mismo nombre habría quedado como código muerto sin error visible (ver nuevo antipatrón en CLAUDE.md); `grupos_ctrl.js` mismo patrón de render por `type` que el Ajuste 4, nueva función global `verModulosGrupo()`; verificado `grse_id=17` (`MD_2026-1_S1_SEM`): 9 filas == `total_modulos = 9` | 2026-09-18 |
 | `fb33d3e` | Ajuste 2: `docentes` gana `doce_fechanacimiento DATE NULL` y `doce_telefono VARCHAR(20) NULL` (entre `doce_cedula` y `doce_sigla`), ambos opcionales — `ALTER TABLE` en Docker local + edición quirúrgica de `database/emdb_academica.sql` (2 líneas), sin scripts de staging/producción (viaja con la BD completa); `doc_mdl.php` (`'listar'`/`'obtener'`/`'guardar'` ×2 ramas) valida fecha con `DateTime::createFromFormat('Y-m-d', ...)` + comparación del string reformateado (rechaza `2026-02-30`) + no futura, teléfono con `mb_strlen <= 20`, vacío → `NULL` en ambos (nunca `''`); `doc_view.php` agrega 2 campos al modal (`type="date"` nativo, `maxlength=20`) y 2 `<th>` entre "Correo" y "Estado"; `doc_ctrl.js` columna "F. cumpl" parsea `YYYY-MM-DD` con `split('-')` (sin `new Date()`, evita el desfase de zona horaria de Bogotá), ordena por `MMDD` con sin-fecha al final, columna "Teléfono" escapada con `.text()`; verificado por `curl` con sesión real: `NULL`/`NULL` en los 13 docentes existentes, guardado/lectura correctos, vacío → `NULL` real (confirmado por `SELECT` directo), rechazo de fecha futura/inexistente/teléfono largo, docente de prueba revertido | 2026-09-18 |
+| `cef939b` | fix(calificaciones): el docente solo accede a grupos del período activo — `listar_grupos` (rama `role_id=3`, `calificaciones_mdl.php`) y las 10 consultas de ownership repartidas en `calificaciones_mdl.php`/`reporte_grupo` (`reportes_mdl.php`)/`pdf_grupo.php` (11 ubicaciones en total) agregan `pe.peri_activo = 1`; antes de este commit el docente veía y podía editar 45 módulos de períodos cerrados desde la migración histórica de 2026-1; mismo mensaje genérico de rechazo ante `grmo_id` ajeno o de período cerrado; mensaje específico "No tienes módulos asignados en el período activo." solo para el docente en `calificaciones_ctrl.js`; coordinador/administrador sin cambios (ramas de código separadas); consulta duplicada inline 11 veces porque ninguno de los 3 archivos incluye `helpers.php` (deuda técnica menor); hallazgo sin resolver: no existe mecanismo de "cierre de período" para calificaciones, `grmo_activo` no distingue período cerrado/abierto; 7 pruebas con harness PHP + `ROLLBACK`, verificado en navegador en local, staging y producción | 2026-09-19 |
 
 ---
 
@@ -981,6 +982,21 @@ local hasta el 14-sep) sobrescribió las filas que producción hubiera
 acumulado después, entre ellas los pings de UptimeRobot cada 5 min;
 sin uso real de usuarios en ese período, según Jose Luis.
 Detalle completo en CHANGELOG.md.
+
+---
+
+## Corrección de matrículas 2026-2 y período activo del docente — 2026-09-19
+
+**Corrección de datos (sin commit de código):** de las 15 matrículas `'cursado'` que la migración histórica de 2026-1 dejó sin fila sucesora en 2026-2, 6 correspondían a estudiantes de MD que aprobaron ese período — se les insertó la sucesora faltante (semestre 2, misma cohorte, `'matriculado'`, `'Activo'`), replicando el `INSERT` de `avanzar_semestre`, con un script SQL idempotente (vista previa/aplicación/verificación) que localiza las filas por criterios de negocio, sin IDs ni datos personales, y que no vive en el repositorio. Aplicado en local, staging y producción, con respaldo previo de la BD de producción; en producción no se hizo un restore completo (habría sobrescrito datos reales de la validación TRL5 ya acumulados), sino el mismo script puntual. Las otras 9 quedan pendientes — ver el detalle por grupo (B y C) en la nueva sección de deuda técnica de CLAUDE.md.
+
+**Commit `cef939b`:** el docente ya no puede ver ni editar módulos de períodos cerrados — `listar_grupos` (rama docente) y las 10 consultas de ownership de `calificaciones_mdl.php`/`reportes_mdl.php`/`pdf_grupo.php` (11 ubicaciones) exigen ahora `peri_activo = 1` además de pertenencia al docente. Coordinador/administrador sin cambios. 7 pruebas con harness PHP + `ROLLBACK`, verificado en navegador en local, staging y producción. Detalle completo en CHANGELOG.md.
+
+**Pendientes que quedan abiertos tras esta corrección:**
+- Grupo B — 3 matrículas `'cursado'` de 2026-1 sin sucesora, con notas incompletas o promedio bajo, pendientes de averiguar con los docentes; desde `cef939b` el docente ya no puede cargarlas, corresponde a coordinadora/administrador.
+- Grupo C — 6 estudiantes con indicios de ser datos de prueba de la propia migración (documentos ficticios/`NULL`, creados 2026-09-16 a 2026-09-18), pendientes de decidir si se eliminan o se corrigen.
+- `avanzar_semestre` no crea filas en `requisitos_estudiante` para la sucesora (21/32 sucesoras existentes sin requisitos) — pendiente de decisión sobre si los requisitos aplican por semestre.
+- No existe una vista de "estudiantes sin matrícula en el período activo" — el ítem "Matricular al sgte. sem." solo aparece en Per. Actual, sobre una matrícula ya existente.
+- Hallazgo sin resolver: "Matricular en otro programa" sí bloquea la matrícula duplicada (`matr_estado='matriculado'` en otro período), pero si la única fila del estudiante para ese programa está en `'cursado'` (ej. una migrada sin sucesora), `case 'matricular'` la acepta y crea una matrícula nueva desde cero para un programa ya cursado — uso no previsto por el nombre del ítem, sin heredar semestre/cohorte ni requisitos de la matrícula anterior.
 
 ---
 
