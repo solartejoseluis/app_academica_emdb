@@ -4,6 +4,46 @@
 
 ---
 
+## Ajuste 5 — columna "Módulos" clicable en Grupos Semestre — commit `42427ff` — 2026-09-18
+
+### Contexto
+En la pestaña "Grupos Semestre" (`04_grupos`), la columna "Módulos" mostraba solo un badge con el número — sin forma de ver, sin abrir el modal completo de edición del grupo, cuáles módulos eran ni quién los dictaba.
+
+### Cambio
+La columna pasa a botón clicable (solo si `total_modulos > 0`; con 0 conserva el badge original, sin clic) que abre el modal de solo lectura `#mdl_modulos_grupo` con "SIGLA — Módulo | Docente" (o "Sin docente" si viene `NULL`).
+
+**Backend (`grupos_mdl.php`):** nuevo `case 'listar_modulos_grupo_resumen'` (roles 1/2), reutiliza exactamente la condición `grse_id + grmo_activo=1` de la subconsulta `total_modulos` de `'listar_grupos'`, `LEFT JOIN docentes`.
+
+**Decisión — nombre del case:** NO se llamó `listar_modulos_grupo` porque ese nombre ya existe (`grupos_mdl.php` ~línea 351) y lo usa `cargarModulosGrupo()` del modal "Editar Grupo", con otras columnas (`grmo_horario`, fechas, `total_estudiantes`, sin filtrar `grmo_activo`). Un segundo `case` con el mismo nombre en el mismo `switch` habría quedado como código muerto, sin ningún error visible — PHP simplemente ejecuta el primer `case` que coincide. Ver también la nueva entrada en "Antipatrones a evitar" (CLAUDE.md).
+
+**Frontend (`grupos_ctrl.js`):** el render de `total_modulos` distingue `type` — no-`'display'` devuelve el número crudo (ordenamiento numérico intacto), `'display'` arma el botón `btn-outline-secondary` (mismo estilo que "# Estud") o el badge sin clic. Nueva función global `verModulosGrupo()`.
+
+**Vista (`grupos_view.php`):** nuevo modal `#mdl_modulos_grupo`, solo lectura, copiado de `mdl_estudiantes_grupo` — sin `data-bs-backdrop`/`data-bs-keyboard`.
+
+### Verificación
+`grse_id=17` (`MD_2026-1_S1_SEM`): 9 filas devueltas == `total_modulos = 9`, confirmado por SELECT directo y por `curl` con sesión real. `php -l` limpio.
+
+---
+
+## Ajuste 4 — columna "Grupos (período)" clicable en Docentes — commit `d5c4794` — 2026-09-18
+
+### Contexto
+En `03_docentes`, la columna "Grupos (período)" de `tablaDocentes` mostraba solo un badge con el número de grupos asignados al docente en el período consultado — sin forma de ver cuáles eran sin salir del listado.
+
+### Cambio
+La columna pasa a botón clicable (solo si `total_grupos > 0`; con 0 conserva el badge original) que abre el modal de solo lectura `#mdl_grupos_docente` con "Grupo | SIGLA — Módulo" del docente en el período seleccionado.
+
+**Backend (`doc_mdl.php`):** nuevo `case 'listar_grupos_docente'` (roles 1/2), `peri_id` opcional con el mismo fallback a `peri_activo=1` que `'listar'`, reutiliza exactamente las condiciones (`doce_id` + `peri_id` + `grmo_activo=1`) de la subconsulta `total_grupos` de ese mismo `case`. Devuelve también `peri_codigo` (campo extra en el envelope, junto a `status`/`data`) para el título del modal, necesario incluso con 0 filas.
+
+**Frontend (`doc_ctrl.js`):** mismo patrón de render por `type` que el Ajuste 5 (el ordenamiento numérico de la columna se conserva). Nueva función global `verGruposDocente()`; el `peri_id` que viaja en el `onclick` del botón sale de `#slct_peri_docentes` (el filtro de período ya visible en la página), no de una columna nueva en el `SELECT` de `'listar'`.
+
+**Vista (`doc_view.php`):** nuevo modal `#mdl_grupos_docente`, solo lectura, copiado de `mdl_modulos_estudiante` (`02_estudiantes`) — sin `data-bs-backdrop`/`data-bs-keyboard`.
+
+### Verificación
+`doce_id=3`, período `2026-2`: 8 filas devueltas == `total_grupos = 8`, confirmado por SELECT directo y por `curl` con sesión real de administrador. `php -l` limpio.
+
+---
+
 ## Ajuste 3 — cohorte y semestre en las listas de asignación de módulo — commit `b6b4c10` — 2026-09-18
 
 ### Contexto

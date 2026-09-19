@@ -603,6 +603,30 @@ Con esto, el modal solo se cierra por una acción explícita: el botón X del he
 
 Primer uso: 20 modales con formulario en 6 `_view.php` (`est_view.php`, `doc_view.php`, `grupos_view.php`, `calificaciones_view.php`, `admin_view.php`, `ayud_view.php`), commit `5bf9c68` (2026-09-18) — ver CHANGELOG.md para el detalle completo y la lista de los 20 modales. Se aplicó modal por modal, no como regla global, porque no existe ningún CSS/JS compartido cargado a la vez en las 10 vistas que los contienen.
 
+### Conteo clicable con mini-modal de detalle
+
+Cuando una columna de listado muestra un conteo agregado (ej. `total_modulos`, `total_grupos`) y ya existe una subconsulta que lo calcula, ese número puede convertirse en un botón — solo cuando el conteo es mayor que 0; en 0 se conserva el badge original, sin clic — que abre un modal de solo lectura con el detalle de las filas que componen ese conteo.
+
+Dos reglas no negociables del patrón:
+1. **El `case` del detalle debe reutilizar exactamente las mismas condiciones (`JOIN`s y filtros del `WHERE`) que la subconsulta del conteo**, para que el número de filas devueltas por el detalle sea siempre igual al número mostrado en la columna. Copiar la subconsulta y quitarle el `COUNT(*)` es más seguro que reescribir la condición desde cero.
+2. **El `render` de la columna distingue `type`** — en `type !== 'display'` devuelve el número crudo (preserva el ordenamiento numérico de la columna); solo en `type === 'display'` arma el botón o el badge. Solo aplica si la columna es ordenable; con `orderable: false` el render puede devolver el botón directamente.
+
+```js
+render: function (data, type, row) {
+    if (type !== 'display') {
+        return data;
+    }
+    if (data > 0) {
+        return `<button class="btn btn-sm btn-outline-secondary" onclick="verDetalle(${row.id})">${data}</button>`;
+    }
+    return `<span class="badge bg-info text-dark">${data} items</span>`;
+}
+```
+
+El modal de detalle es siempre de solo lectura (sin `data-bs-backdrop`/`data-bs-keyboard`, ver la sección anterior) y su función global (fuera de `$(document).ready`, mismo motivo que cualquier `onclick` inline de DataTables) abre el modal antes de que responda el AJAX, llena la tabla y muestra un mensaje ("Sin X asignados") cuando no hay filas.
+
+Usos conocidos: `"# Estud"` (`tablaGrupos`, `04_grupos`, primer uso del patrón) y `"Módulos"` (`tablaGrupos`, `04_grupos`, commit `42427ff`); `"total_modulos"` en `tablaMatriculadosActual`/`tablaMatriculadosAnteriores` (`02_estudiantes`, patrón original de `verModulosEstudiante()`, est_ctrl.js línea ~1312); `"Grupos (período)"` (`tablaDocentes`, `03_docentes`, commit `d5c4794`). Los usos de `42427ff` (Módulos) y `d5c4794` (Grupos (período)) son los primeros con columna ordenable y, por eso, los primeros en aplicar la regla 2 (render por `type`); los usos anteriores (`# Estud` y `total_modulos` en `02_estudiantes`) tienen `orderable: false` y no la necesitaban — ver CHANGELOG.md para el detalle de cada uno.
+
 ---
 
 ## Patrones de ingeniería
@@ -1154,6 +1178,24 @@ Lección: antes de usar un campo como filtro de pertenencia, verificar si existe
 Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes` (commit `ef79791`, 2026-08-22) — precarga `#slct_prog_id` desde `fichas_inscripcion.prog_id` en el modal Completar Matrícula, pero el select queda editable (el coordinador puede corregirlo si el aspirante cambió de programa) y `jornada` se muestra solo como referencia (`#slct_jornada_declarada`, disabled) — ninguno de los dos se persiste o asume como correcto sin que el coordinador lo confirme al guardar. Queda como ítem de análisis pendiente (ver PROJECT_CONTEXT.md) si conviene además advertir cuando el valor guardado en `matriculas` termina divergiendo del declarado — no implementado todavía, no confundir con la mitigación ya aplicada.
 
 **Nota (commit `b6b4c10`, 2026-09-18):** un diagnóstico posterior sobre este mismo `listar_estudiantes_disponibles` (Ajuste 3, agregar cohorte/semestre a las listas de asignación) confirmó que `coho_id` sigue viajando desde `grupos_ctrl.js` en cada petición a ese endpoint, pero el `case` nunca lo lee — sigue siendo el `matr_estado`/`prog_id`/`peri_id` de `matriculas` el único filtro real, tal como quedó desde `7340d6e`. El parámetro es dato muerto en el payload, no un antipatrón activo (no se usa como filtro en ningún punto) — no se tocó, fuera del alcance de ese commit. Ver CHANGELOG.md para el detalle completo.
+
+### ❌ Reutilizar el nombre de un `case` ya existente en un `_mdl.php`
+
+```php
+// PROHIBIDO — 'listar_modulos_grupo' ya existe más arriba en el mismo switch,
+// con otras columnas (grmo_horario, fechas, total_estudiantes, sin filtrar
+// grmo_activo). Un segundo case con el mismo nombre no genera ningún error
+// de PHP — el switch simplemente ejecuta el primero que coincide y el
+// segundo queda como código muerto, invocado desde el frontend sin que
+// nada avise que nunca se ejecuta.
+case 'listar_modulos_grupo':
+    // ... nueva lógica, nunca alcanzada ...
+    break;
+```
+
+Un `switch` de PHP no valida que sus `case` sean únicos — dos `case` con el mismo valor compilan sin error, y solo el primero en el orden del archivo se ejecuta. Antes de agregar un `case` nuevo a cualquier `_mdl.php`, `grep` el nombre elegido en ese mismo archivo — si ya existe, usar un nombre distinto y suficientemente descriptivo de la diferencia (ej. sufijo `_resumen`, `_detalle`), no una variación cosmética que invite a confundirlos.
+
+Ejemplo real: al implementar el patrón "Conteo clicable con mini-modal de detalle" (ver Convenciones HTML/JS) para la columna "Módulos" de `04_grupos`, el nombre obvio `listar_modulos_grupo` ya estaba en uso por `cargarModulosGrupo()` (modal "Editar Grupo"). Se detectó por `grep` antes de escribir el `case`, y se usó `listar_modulos_grupo_resumen` en su lugar (commit `42427ff`, 2026-09-18).
 
 ---
 
