@@ -54,6 +54,8 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         <th>Apellidos</th>
                         <th>Sigla</th>
                         <th>Correo</th>
+                        <th>F. cumpl</th>
+                        <th>Teléfono</th>
                         <th>Estado</th>
                         <th>Grupos (período)</th>
                         <th>Último acceso</th>
@@ -88,6 +90,14 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 <div class="mb-3">
                     <label class="form-label">Cédula</label>
                     <input type="text" class="form-control" id="npt_doce_cedula" autocomplete="off">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fecha de nacimiento</label>
+                    <input type="date" class="form-control" id="npt_doce_fechanacimiento">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" class="form-control" id="npt_doce_telefono" maxlength="20" autocomplete="off">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Sigla <span class="text-muted small">(máx. 6 caracteres)</span></label>

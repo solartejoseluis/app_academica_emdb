@@ -196,6 +196,8 @@ CREATE TABLE `docentes` (
   `doce_nombres` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `doce_apellidos` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `doce_cedula` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `doce_fechanacimiento` date DEFAULT NULL,
+  `doce_telefono` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `doce_sigla` varchar(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `doce_activo` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`doce_id`),

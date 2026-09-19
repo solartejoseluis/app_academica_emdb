@@ -52,25 +52,29 @@ $(document).ready(function () {
     });
 
     $('#btn_guardar_docente').click(function () {
-        let doce_id        = $('#npt_doce_id').val().trim();
-        let doce_nombres   = $('#npt_doce_nombres').val().trim();
-        let doce_apellidos = $('#npt_doce_apellidos').val().trim();
-        let doce_cedula    = $('#npt_doce_cedula').val().replace(/\./g, '');
-        let doce_sigla     = $('#npt_doce_sigla').val().trim();
-        let usua_email     = $('#npt_usua_email').val().trim();
+        let doce_id              = $('#npt_doce_id').val().trim();
+        let doce_nombres         = $('#npt_doce_nombres').val().trim();
+        let doce_apellidos       = $('#npt_doce_apellidos').val().trim();
+        let doce_cedula          = $('#npt_doce_cedula').val().replace(/\./g, '');
+        let doce_fechanacimiento = $('#npt_doce_fechanacimiento').val().trim();
+        let doce_telefono        = $('#npt_doce_telefono').val().trim();
+        let doce_sigla           = $('#npt_doce_sigla').val().trim();
+        let usua_email           = $('#npt_usua_email').val().trim();
 
         if (!validarFormulario(doce_id, doce_nombres, doce_apellidos, doce_sigla, usua_email)) {
             return false;
         }
 
         let data = {
-            doce_id:        doce_id,
-            doce_nombres:   doce_nombres,
-            doce_apellidos: doce_apellidos,
-            doce_cedula:    doce_cedula,
-            doce_sigla:     doce_sigla,
-            usua_email:     usua_email,
-            usua_password:  $('#npt_usua_password').val()
+            doce_id:              doce_id,
+            doce_nombres:         doce_nombres,
+            doce_apellidos:       doce_apellidos,
+            doce_cedula:          doce_cedula,
+            doce_fechanacimiento: doce_fechanacimiento,
+            doce_telefono:        doce_telefono,
+            doce_sigla:           doce_sigla,
+            usua_email:           usua_email,
+            usua_password:        $('#npt_usua_password').val()
         };
 
         if (doce_id !== '') {
@@ -139,6 +143,32 @@ $(document).ready(function () {
                 { data: 'doce_sigla', width: '70px' },
                 { data: 'usua_email' },
                 {
+                    data: 'doce_fechanacimiento',
+                    width: '85px',
+                    render: function (data, type) {
+                        if (!data) {
+                            return (type === 'display' || type === 'filter') ? '—' : 9999;
+                        }
+                        const mesesAbrev = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                        const [, mes, dia] = data.split('-').map(Number);
+                        if (type === 'display' || type === 'filter') {
+                            return dia + ' ' + mesesAbrev[mes - 1];
+                        }
+                        // 'sort' / 'type': número MMDD para ordenar por mes y día, sin importar el año
+                        return (mes * 100) + dia;
+                    }
+                },
+                {
+                    data: 'doce_telefono',
+                    width: '100px',
+                    render: function (data, type) {
+                        if (type !== 'display') {
+                            return data || '';
+                        }
+                        return data ? $('<div>').text(data).html() : '—';
+                    }
+                },
+                {
                     data: 'usua_activo',
                     width: '80px',
                     render: function (data) {
@@ -204,6 +234,8 @@ $(document).ready(function () {
         $('#npt_doce_nombres').val('');
         $('#npt_doce_apellidos').val('');
         $('#npt_doce_cedula').val('');
+        $('#npt_doce_fechanacimiento').val('');
+        $('#npt_doce_telefono').val('');
         $('#npt_doce_sigla').val('');
         $('#npt_usua_email').val('');
         $('#npt_usua_password').val('');
@@ -250,6 +282,8 @@ function abrirEditar(doce_id) {
                 $('#npt_doce_nombres').val(d.doce_nombres);
                 $('#npt_doce_apellidos').val(d.doce_apellidos);
                 $('#npt_doce_cedula').val(d.doce_cedula || '');
+                $('#npt_doce_fechanacimiento').val(d.doce_fechanacimiento || '');
+                $('#npt_doce_telefono').val(d.doce_telefono || '');
                 $('#npt_doce_sigla').val(d.doce_sigla);
                 $('#npt_usua_email').val(d.usua_email);
                 $('#slct_usua_activo').val(d.usua_activo);

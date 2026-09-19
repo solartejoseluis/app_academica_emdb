@@ -28,7 +28,7 @@ switch ($accion) {
             }
 
             $sql = "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_sigla,
-                           d.doce_activo,
+                           d.doce_activo, d.doce_fechanacimiento, d.doce_telefono,
                            u.usua_email, u.usua_activo, u.usua_ultimo_acceso, u.fechacreacion,
                            (SELECT COUNT(*) FROM gruposmodulos gm
                             INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
@@ -228,16 +228,43 @@ switch ($accion) {
             echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
             break;
         }
-        $doce_id        = trim($_POST['doce_id'] ?? '');
-        $doce_nombres   = strtoupper(trim($_POST['doce_nombres'] ?? ''));
-        $doce_apellidos = strtoupper(trim($_POST['doce_apellidos'] ?? ''));
-        $doce_cedula    = trim($_POST['doce_cedula'] ?? '');
-        $doce_sigla     = strtoupper(trim($_POST['doce_sigla'] ?? ''));
-        $usua_email     = trim($_POST['usua_email'] ?? '');
+        $doce_id              = trim($_POST['doce_id'] ?? '');
+        $doce_nombres         = strtoupper(trim($_POST['doce_nombres'] ?? ''));
+        $doce_apellidos       = strtoupper(trim($_POST['doce_apellidos'] ?? ''));
+        $doce_cedula          = trim($_POST['doce_cedula'] ?? '');
+        $doce_fechanacimiento = trim($_POST['doce_fechanacimiento'] ?? '');
+        $doce_telefono        = trim($_POST['doce_telefono'] ?? '');
+        $doce_sigla           = strtoupper(trim($_POST['doce_sigla'] ?? ''));
+        $usua_email           = trim($_POST['usua_email'] ?? '');
 
         if ($doce_nombres === '' || $doce_apellidos === '' || $doce_sigla === '' || $usua_email === '') {
             echo json_encode(['status' => 'error', 'message' => 'Todos los campos son requeridos']);
             break;
+        }
+
+        // doce_fechanacimiento y doce_telefono son opcionales — vacío se
+        // guarda como NULL, nunca como cadena vacía (DATE no acepta '').
+        if ($doce_fechanacimiento !== '') {
+            $fechaValidada = DateTime::createFromFormat('Y-m-d', $doce_fechanacimiento);
+            if (!$fechaValidada || $fechaValidada->format('Y-m-d') !== $doce_fechanacimiento) {
+                echo json_encode(['status' => 'error', 'message' => 'Fecha de nacimiento inválida']);
+                break;
+            }
+            if ($fechaValidada > new DateTime('today')) {
+                echo json_encode(['status' => 'error', 'message' => 'La fecha de nacimiento no puede ser futura']);
+                break;
+            }
+        } else {
+            $doce_fechanacimiento = null;
+        }
+
+        if ($doce_telefono !== '') {
+            if (mb_strlen($doce_telefono) > 20) {
+                echo json_encode(['status' => 'error', 'message' => 'El teléfono no puede superar 20 caracteres']);
+                break;
+            }
+        } else {
+            $doce_telefono = null;
         }
 
         try {
@@ -283,10 +310,10 @@ switch ($accion) {
                 $usua_id = $pdo->lastInsertId();
 
                 $stmtD = $pdo->prepare(
-                    "INSERT INTO docentes (usua_id, doce_nombres, doce_apellidos, doce_cedula, doce_sigla)
-                     VALUES (?, ?, ?, ?, ?)"
+                    "INSERT INTO docentes (usua_id, doce_nombres, doce_apellidos, doce_cedula, doce_fechanacimiento, doce_telefono, doce_sigla)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)"
                 );
-                $stmtD->execute([$usua_id, $doce_nombres, $doce_apellidos, $doce_cedula !== '' ? $doce_cedula : null, $doce_sigla]);
+                $stmtD->execute([$usua_id, $doce_nombres, $doce_apellidos, $doce_cedula !== '' ? $doce_cedula : null, $doce_fechanacimiento, $doce_telefono, $doce_sigla]);
                 $pdo->commit();
 
                 echo json_encode(['status' => 'ok', 'rows' => 1]);
@@ -331,10 +358,10 @@ switch ($accion) {
                 $pdo->beginTransaction();
                 $stmtD = $pdo->prepare(
                     "UPDATE docentes
-                     SET doce_nombres = ?, doce_apellidos = ?, doce_cedula = ?, doce_sigla = ?
+                     SET doce_nombres = ?, doce_apellidos = ?, doce_cedula = ?, doce_fechanacimiento = ?, doce_telefono = ?, doce_sigla = ?
                      WHERE doce_id = ?"
                 );
-                $stmtD->execute([$doce_nombres, $doce_apellidos, $doce_cedula !== '' ? $doce_cedula : null, $doce_sigla, $doce_id_int]);
+                $stmtD->execute([$doce_nombres, $doce_apellidos, $doce_cedula !== '' ? $doce_cedula : null, $doce_fechanacimiento, $doce_telefono, $doce_sigla, $doce_id_int]);
 
                 if ($rowDoc['usua_id'] !== null && $usua_password !== '') {
                     $hash = password_hash($usua_password, PASSWORD_BCRYPT);
@@ -381,7 +408,8 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $stmt = $pdo->prepare(
-                "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_cedula, d.doce_sigla, d.usua_id,
+                "SELECT d.doce_id, d.doce_nombres, d.doce_apellidos, d.doce_cedula,
+                        d.doce_fechanacimiento, d.doce_telefono, d.doce_sigla, d.usua_id,
                         u.usua_email, u.usua_activo
                  FROM docentes d
                  JOIN usuarios u ON d.usua_id = u.usua_id
