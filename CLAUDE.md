@@ -1153,6 +1153,8 @@ Lección: antes de usar un campo como filtro de pertenencia, verificar si existe
 
 Ejemplo aplicado correctamente: `obtener_defaults_matricula` en `02_estudiantes` (commit `ef79791`, 2026-08-22) — precarga `#slct_prog_id` desde `fichas_inscripcion.prog_id` en el modal Completar Matrícula, pero el select queda editable (el coordinador puede corregirlo si el aspirante cambió de programa) y `jornada` se muestra solo como referencia (`#slct_jornada_declarada`, disabled) — ninguno de los dos se persiste o asume como correcto sin que el coordinador lo confirme al guardar. Queda como ítem de análisis pendiente (ver PROJECT_CONTEXT.md) si conviene además advertir cuando el valor guardado en `matriculas` termina divergiendo del declarado — no implementado todavía, no confundir con la mitigación ya aplicada.
 
+**Nota (commit `b6b4c10`, 2026-09-18):** un diagnóstico posterior sobre este mismo `listar_estudiantes_disponibles` (Ajuste 3, agregar cohorte/semestre a las listas de asignación) confirmó que `coho_id` sigue viajando desde `grupos_ctrl.js` en cada petición a ese endpoint, pero el `case` nunca lo lee — sigue siendo el `matr_estado`/`prog_id`/`peri_id` de `matriculas` el único filtro real, tal como quedó desde `7340d6e`. El parámetro es dato muerto en el payload, no un antipatrón activo (no se usa como filtro en ningún punto) — no se tocó, fuera del alcance de ese commit. Ver CHANGELOG.md para el detalle completo.
+
 ---
 
 ## Decisiones arquitectónicas activas

@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-18
-> Versión: 120 — Ajuste 1 (commit `5bf9c68`): 20 modales con formulario dejan de cerrarse con clic afuera/Esc; más corrección de datos N3 en Docker local (sin commit de código, ver CHANGELOG.md).
+> Versión: 121 — Ajuste 3 (commit `b6b4c10`): cohorte y semestre agregados a las listas Disponibles/Asignados del panel de asignación de módulo (04_grupos).
 
 ---
 
@@ -555,6 +555,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `183e9b1` | feat(estudiantes): agrega backend de gestión de claves fuera del flujo de matrícula (02_estudiantes) — Fase 2.13.A de 2 (2.13.A backend, 2.13.B frontend pendiente); nuevo case 'gestionar_clave' en est_mdl.php que cubre el vacío entre 'matricular' (crea acceso solo al matricular) y 'guardar_completo' (cambia clave solo si el estudiante ya tiene usua_id), permitiendo crear acceso por primera vez a un estudiante ya matriculado sin clave o cambiar la clave de uno que ya tiene acceso, en una acción aislada; rama sin usua_id replica 'matricular' (verificación usua_login duplicado por numerodoc, validación email, INSERT usuarios + UPDATE estudiantes.usua_id en transacción PDO) pero reporta el numerodoc duplicado como error explícito en vez de ignorarlo en silencio; rama con usua_id replica el cambio de clave de 'guardar_completo' pero reporta tipo_clave vacío/'no' como error explícito en vez de ignorar la intención; reutiliza generarClaveAuto() sin cambios; guards de sesión/rol idénticos a 'matricular'; verificado 10/10 casos con curl contra Docker vivo (crear automática/manual/no-op, numerodoc duplicado, sin correo, cambiar clave automática/manual/vacío, sin sesión, estudiante inexistente), incluida verificación de hashes con password_verify() y confirmación de que no quedan filas huérfanas — conteo de usuarios role_id=4 confirmado igual antes/después (11); solo backend, est_view.php/est_ctrl.js sin tocar — falta Fase 2.13.B (ítem "🔑 Gestionar claves" en dropdown de Acciones de tablaMatriculados + modal #mdl_gestionar_claves) | 2026-09-04 |
 | `ef295f7` | feat(estudiantes): agrega frontend de gestión de claves (02_estudiantes) — Fase 2.13.B de 2, CIERRA Phase 2.13 completa (backend 183e9b1 + frontend este commit); nuevo ítem "🔑 Gestionar claves" en el dropdown de Acciones de tablaMatriculados (crearColumnasMatriculados()), siempre habilitado en ambas pestañas Per. Actual/Per. Anteriores (a diferencia de itemAvanzarSemestre/itemActualizacionDatos, condicionados a esPeriodoActual); nuevo modal #mdl_gestionar_claves en est_view.php con 3 radios (automática/manual/no crear) para la rama sin usua_id y 2 radios (automática/manual) para la rama con usua_id, compartiendo el mismo name="tipo_gestionar_clave" porque nunca están visibles a la vez; nueva función global abrirGestionarClaves(estu_id, nombreCompleto) que abre el modal de inmediato (antes del AJAX, mismo criterio que abrirRequisitosMatricula()) y decide qué bloque mostrar según d.usua_id de accion=obtener_completo; btn_confirmar_gestionar_claves hace POST a accion=gestionar_clave y, si viene clave_generada, muestra el mismo bloque de éxito persistente que #mdl_matricular sin cerrar el modal, o lo cierra directamente sin recargar tablas si es el no-op de "no crear acceso"; btn_cerrar_gestionar_claves recarga tablaMatriculadosActual/Anteriores con el mismo patrón inline exacto que btn_cerrar_matricula (confirmado que no existe función compartida de recarga antes de replicarlo); reset del modal ocurre al abrir, no vía hidden.bs.modal, mismo criterio que abrirAvanzarSemestre()/abrirRequisitosMatricula(); sin cambios en est_mdl.php (backend ya completo desde 183e9b1); verificado en navegador por Jose Luis 13/13 pasos | 2026-09-04 |
 | `5bf9c68` | Ajuste 1: agrega `data-bs-backdrop="static" data-bs-keyboard="false"` a los 20 modales con formulario del proyecto (6 `_view.php`: est, doc, grupos, calificaciones, admin, ayud) — ya no se cierran con clic afuera ni con Esc, evitando perder lo escrito por accidente; excluidos a propósito los 8 `mdl_confirmar_eliminar_*`, `mdl_estudiantes_grupo` y `mdl_modulos_estudiante`; solo atributos HTML, sin CSS/JS nuevo ni cambios en `_ctrl.js`/`_mdl.php`; verificado que los 20 conservaban botón X + botón Cancelar/Cerrar con `data-bs-dismiss="modal"` antes de aplicar el cambio | 2026-09-18 |
+| `b6b4c10` | Ajuste 3 (parte 2): agrega cohorte y semestre a las listas Disponibles/Asignados del panel de asignación de módulo (04_grupos) — `listar_estudiantes_disponibles`/`listar_estudiantes_modulo` (`grupos_mdl.php`) agregan `coho_codigo`/`matr_semestre`/`prog_duracion_semestres` al `SELECT` (semestre desde `matriculas`, no desde `grse_semestre`; en Asignados el `JOIN` a `matriculas` es `LEFT JOIN` con la condición en el `ON` para no hacer desaparecer a un asignado sin matrícula coincidente); `grupos_ctrl.js` agrega `formatearDetalleEstudiante()` para el formato `(documento, cohorte, sem N/M)` con `'—'` de fallback, usado en ambas listas; conteos idénticos antes/después verificados contra `grmo_id=3` (Disponibles 4/4, Asignados 10/10), sin duplicados; hallazgo sin acción: `coho_id` sigue llegando al backend desde el frontend pero `listar_estudiantes_disponibles` nunca lo usa (el filtro real ya es `matr_estado`/`prog_id`/`peri_id` desde `7340d6e`) | 2026-09-18 |
 
 ---
 
@@ -867,6 +868,26 @@ que bloqueaban el borrado de 3 actividades de prueba en
 producción. Deja abierto en CLAUDE.md (Deuda técnica) el caso general:
 retirar a un estudiante del roster no limpia sus `notasn3`/su fila en
 `calificaciones`. Detalle completo en CHANGELOG.md.
+
+---
+
+## Ajuste 3 — cohorte y semestre en las listas de asignación de módulo — 2026-09-18
+
+**Commit `b6b4c10`:** las listas "Disponibles" y "Asignados" del panel
+de asignación de estudiantes a un módulo (`04_grupos`) ahora muestran
+`(documento, cohorte, sem N/M)` en vez de solo `(documento)` —
+`coho_codigo`, `matr_semestre` y `prog_duracion_semestres` agregados al
+`SELECT` de ambos `case` en `grupos_mdl.php`, formateados por la nueva
+función local `formatearDetalleEstudiante()` en `grupos_ctrl.js`, con
+`'—'` de fallback. El semestre sale de `matriculas.matr_semestre`, no
+de `grse_semestre` (mismo principio ya documentado para
+`matriculas.matr_semestre` en CLAUDE.md); en Asignados el `JOIN` a
+`matriculas` es `LEFT JOIN` para no ocultar a un estudiante asignado
+sin matrícula coincidente. Verificado sin duplicados (conteos
+idénticos antes/después contra `grmo_id=3`). Diagnóstico confirmó que
+`coho_id` sigue llegando al backend sin usarse en
+`listar_estudiantes_disponibles` — dato muerto, sin acción tomada, ver
+nota en CLAUDE.md. Detalle completo en CHANGELOG.md.
 
 ---
 

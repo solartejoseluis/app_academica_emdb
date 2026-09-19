@@ -4,6 +4,27 @@
 
 ---
 
+## Ajuste 3 — cohorte y semestre en las listas de asignación de módulo — commit `b6b4c10` — 2026-09-18
+
+### Contexto
+Las listas "Disponibles" y "Asignados" del panel de asignación de estudiantes a un módulo (`04_grupos`) solo mostraban `APELLIDOS, NOMBRES (documento)` — sin ninguna forma de distinguir a simple vista, dentro de la misma lista, a qué cohorte pertenecía cada estudiante ni en qué semestre de su programa iba.
+
+### Cambio
+`grupos_mdl.php`: los `case` `listar_estudiantes_disponibles` y `listar_estudiantes_modulo` agregan `coho_codigo`, `matr_semestre` y `prog_duracion_semestres` al `SELECT`. `grupos_ctrl.js`: nueva función local `formatearDetalleEstudiante()` construye `(documento, cohorte, sem N/M)` con `'—'` como fallback en cualquier posición faltante, usada en `renderLista()` para ambas listas.
+
+### Decisiones
+- **(a)** El semestre mostrado sale de `matriculas.matr_semestre` / `programas.prog_duracion_semestres` de la matrícula `'matriculado'` que coincide con `prog_id`/`peri_id` del grupo — nunca de `gruposemestres.grse_semestre` (mismo principio ya documentado en CLAUDE.md, "`matriculas.matr_semestre`: posición del estudiante en su propio plan de estudios, no atributo de grupo semestre").
+- **(b)** En `listar_estudiantes_modulo` (Asignados) el `JOIN` a `matriculas` es `LEFT JOIN` con la condición completa en el `ON` (no en el `WHERE`) — así un estudiante ya asignado que no tenga una matrícula `'matriculado'` coincidente con `prog_id`/`peri_id` del grupo no desaparece de la lista, solo muestra `'—'` en cohorte/semestre.
+- **(c)** El mismo formato aplica a ambas listas (Disponibles y Asignados), sin distinción visual entre ellas más allá del contenido de los datos.
+
+### Verificación
+Conteos de filas idénticos antes/después de agregar los nuevos `JOIN` (Disponibles 4/4, Asignados 10/10 contra `grmo_id=3`) — sin fan-out ni duplicados. `php -l` limpio.
+
+### Hallazgo del diagnóstico (sin acción tomada)
+`coho_id` viaja desde `grupos_ctrl.js` (`cargarListasAsignacion()`) hasta `grupos_mdl.php?accion=listar_estudiantes_disponibles` en cada petición, pero ese `case` nunca lo usa — el filtro real de esa lista es `matr_estado='matriculado'` + `prog_id`/`peri_id` coincidentes con el grupo semestre del `grmo_id` (fix ya aplicado desde el commit `7340d6e`, ver "Filtrar por un campo 'proxy' en vez del dato de negocio real" en CLAUDE.md). El parámetro queda como dato muerto en el payload AJAX — no se tocó en este commit, fuera del alcance del Ajuste 3.
+
+---
+
 ## Ajuste 1 — modales con formulario no se cierran con clic afuera ni con Esc — 2026-09-18
 
 ### Contexto
