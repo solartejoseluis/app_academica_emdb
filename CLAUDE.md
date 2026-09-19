@@ -1452,6 +1452,9 @@ manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
 | `.htaccess` en producción conserva la línea `php_value auto_prepend_file` — nunca sobreescribir sin preservarla | ⬜ |
 | Verificar que tablas en producción existen y tienen el esquema correcto | ⬜ |
 | Verificar en producción: `SHOW PROCEDURE STATUS WHERE Db = 'emdb_academica';` y `SHOW TRIGGERS FROM emdb_academica;` — ambas deben devolver vacío antes de operar con datos reales | ⬜ |
+| Verificar que el archivo se llama `.htaccess` (con punto inicial) en el servidor después de subir | ⬜ |
+| Verificar que la ruta de `php_value auto_prepend_file` apunta a la carpeta del entorno correcto (staging vs producción) | ⬜ |
+| Después de subir, generar tráfico y confirmar filas nuevas en `metricasdesempeno` del entorno | ⬜ |
 
 - Para generar un backup de la BD listo para importar en phpMyAdmin del hosting (pruebas o producción), usar `scripts/export_para_hosting.sh` (commit `40b28c8`, 2026-09-06) — ejecuta `mysqldump` dentro del contenedor Docker del servicio `db` y corrige automáticamente la colación `utf8mb4_0900_ai_ci` (exclusiva de MySQL 8, entorno local) a `utf8mb4_unicode_ci` (compatible con MariaDB, el motor real del hosting de pruebas en `aurusmind.com`, confirmado 2026-09-06). El archivo generado queda en `database/hosting_deploy/`, fuera de git — nunca reemplaza ni sincroniza `database/emdb_academica.sql` (ver "Decisiones arquitectónicas activas").
 - Nunca subir la carpeta completa — solo los archivos modificados.
@@ -1459,6 +1462,9 @@ manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
 - Recomendado: mantener una copia de respaldo de `pdo_web.php` fuera del repositorio (gestor de contraseñas, carpeta local no versionada) — si se pierde el acceso al servidor, no hay forma de reconstruirlo desde git, porque nunca estuvo ahí.
 - **Nunca sobreescribir la línea `php_value auto_prepend_file` del `.htaccess` en producción** (Fase 2.16, commit `9d5110c`, 2026-09-06). El `.htaccess` versionado en git solo tiene `RewriteEngine Off` — la línea `php_value auto_prepend_file "<ruta absoluta del hosting>/app/00_connect/metrics_prepend.php"` que activa la instrumentación de tiempo de respuesta (`metricasdesempeno`) se agregó a mano directamente en el servidor y **no está en git**, por la misma razón que `pdo_web.php`: depende de una ruta absoluta propia de esa cuenta de hosting, que no tiene sentido versionar. Si un deploy sube el `.htaccess` del repositorio y sobreescribe el de producción sin preservar esa línea manualmente, la instrumentación de tiempo de respuesta se desactiva **en silencio, sin ningún error visible** — la aplicación sigue funcionando normal, solo deja de registrar filas en `metricasdesempeno`. Antes de subir `.htaccess` a producción, copiar primero la línea `php_value auto_prepend_file` del archivo que ya está en el servidor y volver a agregarla al archivo nuevo.
 - Los nombres de tablas en producción van en **minúsculas** (Linux es case-sensitive).
+- Antes de restaurar la BD en producción, exportar un respaldo de la BD que está allí (phpMyAdmin > Exportar): restaurar sobrescribe las tablas, incluida `metricasdesempeno`, y sin respaldo no hay forma de recuperar lo que hubiera.
+- Al subir el proyecto completo, el `.htaccess` y `pdo.php` del repositorio sobrescriben los del servidor: reponer la línea de métricas (con la ruta del entorno) y las credenciales propias de cada entorno. Evidencia: 2026-09-18, ver CHANGELOG.md. La regla de subir solo los archivos modificados evita este riesgo.
+- Los archivos que empiezan con punto quedan ocultos en el Administrador de archivos de cPanel; activar "Mostrar archivos ocultos" en Configuración para verificar.
 
 ---
 

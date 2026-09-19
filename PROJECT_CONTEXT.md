@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-18
-> Versión: 123 — Ajuste 2 (commit `fb33d3e`): docentes gana fecha de nacimiento y teléfono (opcionales), columnas "F. cumpl"/"Teléfono" en tablaDocentes.
+> Versión: 124 — Despliegue de los Ajustes 1-5 a staging y producción (2026-09-18); hallazgo y corrección de `.htaccess` de producción sin punto inicial y con ruta de staging, instrumentación de métricas restaurada y verificada (39 filas nuevas).
 
 ---
 
@@ -944,6 +944,42 @@ escapado con `.text()`. Verificado por `curl` con sesión real:
 lectura/guardado correctos, los 3 casos de error rechazados sin tocar
 la BD, docente de prueba revertido a `NULL`/`NULL`. Detalle completo en
 CHANGELOG.md.
+
+---
+
+## Despliegue a staging y producción de los Ajustes 1-5 — 2026-09-18
+
+Los 5 commits del día (`5bf9c68`, `b6b4c10`, `d5c4794`, `42427ff`,
+`fb33d3e`) se subieron completos a staging (`dev.escuelamdb.com`) y
+producción (`app.escuelamdb.com`), con la BD restaurada vía
+`scripts/export_para_hosting.sh` en ambos entornos (staging: 24
+tablas/7.202 filas; producción: 24 tablas/7.244 filas). Producción
+estuvo sin uso real entre el 14-sep y el 18-sep (desactivada para
+usuarios durante los ajustes).
+
+**Hallazgo:** al subir el proyecto completo (no solo los archivos
+modificados), el `.htaccess` de producción quedó con dos defectos —
+sin el punto inicial (Apache lo ignoraba, la instrumentación de
+métricas dejó de aplicarse) y con la ruta de staging en vez de la de
+producción. Sin ningún error visible; detectado porque
+`metricasdesempeno` no recibía filas nuevas. Corregido (renombrado +
+ruta), verificado con 39 filas nuevas tras navegar. Staging tenía el
+mismo problema de punto, corregido igual (su instrumentación aún no se
+verificó con una consulta). CLAUDE.md (Checklist de deploy) gana 3
+filas y 3 viñetas nuevas para prevenir esto en el próximo deploy.
+
+**Disponibilidad:** UptimeRobot muestra 100% en 24h/7d/30d, 0
+incidentes — el período sin uso no cuenta contra el >95% de OE4, ya
+que el monitor no cayó en ningún momento.
+
+**Pendiente sin resolver:** no se tomó respaldo de la BD de producción
+antes de restaurarla (advertencia agregada al checklist hacia
+adelante); hueco de filas en `metricasdesempeno` entre el 14-sep 11:09
+y el 18-sep; causa no confirmada — hipótesis: la BD restaurada (copia
+local hasta el 14-sep) sobrescribió las filas que producción hubiera
+acumulado después, entre ellas los pings de UptimeRobot cada 5 min;
+sin uso real de usuarios en ese período, según Jose Luis.
+Detalle completo en CHANGELOG.md.
 
 ---
 

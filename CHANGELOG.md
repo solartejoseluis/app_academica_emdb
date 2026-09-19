@@ -4,6 +4,29 @@
 
 ---
 
+## Despliegue a staging y producción de los Ajustes 1–5 — 2026-09-18 (sin commit de código)
+
+### Contexto
+Despliegue de los 5 commits del día (`5bf9c68`, `b6b4c10`, `d5c4794`, `42427ff`, `fb33d3e`) a staging (`dev.escuelamdb.com`, BD `escuelamdb_app_test`) y producción (`app.escuelamdb.com`, BD `escuelamdb_emdb_academica`). Se subió el proyecto **completo** (no solo los 10 archivos modificados) a ambos entornos, y se restauró la BD generada con `scripts/export_para_hosting.sh` (736 KB; verificado antes de importar: 0 rastros de `utf8mb4_0900_ai_ci`, columnas `doce_fechanacimiento`/`doce_telefono` presentes, 0 triggers/procedimientos).
+
+Importación en staging: 24 tablas, 7.202 filas. Producción tras restaurar: 24 tablas, 7.244 filas (la diferencia son las filas nuevas de `metricasdesempeno`). Producción estuvo desactivada para los usuarios durante los ajustes: no hubo uso real entre el 14-sep y el 18-sep.
+
+### Hallazgo — `.htaccess` de producción con dos defectos tras subir el proyecto completo
+1. El archivo se llamaba `htaccess` sin el punto inicial, así que Apache lo ignoraba por completo y el `auto_prepend_file` de métricas no se aplicaba.
+2. Su única línea apuntaba a la ruta de staging (`dev.escuelamdb.com`) en vez de a `app.escuelamdb.com`.
+
+La aplicación funcionaba normal — solo dejó de registrar métricas, sin ningún error visible. Detectado porque `metricasdesempeno` no recibía filas nuevas; diagnosticado con un archivo temporal (ya borrado) que confirmó "prepend cargado: NO" con conexión e INSERT correctos. Corregido renombrando a `.htaccess` y cambiando la ruta. Verificado: 39 filas nuevas en producción tras navegar (`metr_id` 5622–5662, `metr_usua_id` lleno).
+
+**Staging:** el `.htaccess` tenía el mismo problema del punto; se renombró y se dejó con su ruta `dev.escuelamdb.com`. La instrumentación de staging no se verificó todavía con una consulta.
+
+### Disponibilidad
+UptimeRobot (`health.php` de producción) muestra 100% en 24 h, 7 y 30 días, 0 incidentes; el monitor no cayó durante el período sin uso, así que ese período no cuenta contra el >95% del OE4.
+
+### Hueco en `metricasdesempeno`
+La última fila presente tras restaurar es del 14-sep 11:09 (un ping de `health.php`) y las siguientes son del 18-sep; no hubo uso real de usuarios en ese período. La causa del hueco **no está confirmada** — hipótesis: la restauración de la BD local (copia hasta el 14-sep) sobrescribió las filas posteriores de producción, incluidos los pings de UptimeRobot; no hay respaldo previo para comprobarlo. El impacto en la disponibilidad es nulo porque UptimeRobot conserva su propio historial (100%). **No se tomó respaldo de la BD de producción antes de restaurarla** — ver el checklist de deploy actualizado en CLAUDE.md, que agrega esta advertencia hacia adelante.
+
+---
+
 ## Ajuste 2 — fecha de nacimiento y teléfono en docentes — commit `fb33d3e` — 2026-09-18
 
 ### Contexto
