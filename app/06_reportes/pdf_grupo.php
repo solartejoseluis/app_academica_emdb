@@ -24,10 +24,14 @@ if ($grmo_id <= 0) {
 $pdo = getConexion();
 
 if ($role_id === 3) {
+    // Docente: solo su grupo asignado Y del período activo (mismo criterio
+    // que 05_calificaciones/06_reportes reporte_grupo).
     $own = $pdo->prepare("
         SELECT gm.grmo_id
         FROM gruposmodulos gm
         INNER JOIN docentes d ON gm.doce_id = d.doce_id
+        INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+        INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
         WHERE gm.grmo_id = ? AND d.usua_id = ?
     ");
     $own->execute([$grmo_id, $usua_id]);

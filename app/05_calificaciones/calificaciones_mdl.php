@@ -107,7 +107,11 @@ switch ($accion) {
             $usua_id = (int)($_SESSION['usua_id'] ?? 0);
 
             if ($role_id === 3) {
-                // Docente: solo sus grupos asignados
+                // Docente: solo sus grupos asignados del período activo —
+                // ver "Verificación anticipada para UI, recálculo confiable
+                // para escritura" en CLAUDE.md: aquí la restricción de
+                // período es la condición real (no solo de UI), porque
+                // gm.grmo_activo=1 no distingue período cerrado/abierto.
                 $stmt = $pdo->prepare("
                     SELECT gm.grmo_id, gm.grmo_horario, gm.fechainicio, gm.fechafin,
                            m.modu_nombre, m.modu_sigla,
@@ -120,7 +124,7 @@ switch ($accion) {
                     INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
                     INNER JOIN cohortes c ON gs.coho_id = c.coho_id
                     INNER JOIN programas p ON c.prog_id = p.prog_id
-                    INNER JOIN periodos pe ON gs.peri_id = pe.peri_id
+                    INNER JOIN periodos pe ON gs.peri_id = pe.peri_id AND pe.peri_activo = 1
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
                     WHERE d.usua_id = ? AND gm.grmo_activo = 1
                     ORDER BY gs.grse_semestre ASC, m.modu_nombre ASC
@@ -267,6 +271,8 @@ switch ($accion) {
                     SELECT gm.grmo_id
                     FROM gruposmodulos gm
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+                    INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
                     WHERE gm.grmo_id = ? AND d.usua_id = ?
                 ");
                 $own->execute([$grmo_id, $usua_id]);
@@ -325,6 +331,8 @@ switch ($accion) {
                     SELECT gm.grmo_id
                     FROM gruposmodulos gm
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+                    INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
                     WHERE gm.grmo_id = ? AND d.usua_id = ?
                 ");
                 $own->execute([$grmo_id, $usua_id]);
@@ -460,6 +468,8 @@ switch ($accion) {
                     SELECT gm.grmo_id
                     FROM gruposmodulos gm
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+                    INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
                     WHERE gm.grmo_id = ? AND d.usua_id = ?
                 ");
                 $own->execute([$grmo_id, $usua_id]);
@@ -506,6 +516,8 @@ switch ($accion) {
                     SELECT gm.grmo_id
                     FROM gruposmodulos gm
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+                    INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
                     WHERE gm.grmo_id = ? AND d.usua_id = ?
                 ");
                 $own->execute([$grmo_id, $usua_id]);
@@ -591,6 +603,8 @@ switch ($accion) {
                     SELECT gm.grmo_id
                     FROM gruposmodulos gm
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+                    INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
                     WHERE gm.grmo_id = ? AND d.usua_id = ?
                 ");
                 $own->execute([$grmo_id, $usua_id]);
@@ -650,6 +664,8 @@ switch ($accion) {
                     SELECT gm.grmo_id
                     FROM gruposmodulos gm
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+                    INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
                     WHERE gm.grmo_id = ? AND d.usua_id = ?
                 ");
                 $own->execute([$grmo_id, $usua_id]);
@@ -707,6 +723,8 @@ switch ($accion) {
                     SELECT gm.grmo_id
                     FROM gruposmodulos gm
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+                    INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
                     WHERE gm.grmo_id = ? AND d.usua_id = ?
                 ");
                 $own->execute([$grmo_id, $usua_id]);
@@ -763,6 +781,8 @@ switch ($accion) {
                     SELECT gm.grmo_id
                     FROM gruposmodulos gm
                     INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                    INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+                    INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
                     WHERE gm.grmo_id = ? AND d.usua_id = ?
                 ");
                 $own->execute([$grmo_id, $usua_id]);

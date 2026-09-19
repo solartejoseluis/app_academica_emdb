@@ -70,7 +70,15 @@ $(document).ready(function () {
                 const contenedor = $('#lista_grupos');
                 contenedor.empty();
                 if (!r.data || !r.data.length) {
-                    contenedor.html('<p class="text-muted small">Sin módulos asignados</p>');
+                    // bloqueFiltros.length === 0 identifica al docente (mismo
+                    // criterio ya usado arriba para omitir los filtros) —
+                    // listar_grupos ahora solo devuelve sus módulos del
+                    // período activo, así que una lista vacía para él
+                    // significa específicamente eso, no "sin módulos" en general.
+                    const mensaje = bloqueFiltros.length
+                        ? 'Sin módulos asignados'
+                        : 'No tienes módulos asignados en el período activo.';
+                    contenedor.html(`<p class="text-muted small">${mensaje}</p>`);
                     return;
                 }
                 r.data.forEach(g => {
