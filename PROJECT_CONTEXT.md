@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-09-08
-> Versión: 119 — restaura 11 CHECK constraints eliminadas sin querer por el commit `300cfc1` (regresión detectada por diagnóstico de esquema + investigación de historial Git); aplicadas y verificadas en Docker local, staging y producción (2026-09-08).
+> Última actualización: 2026-09-18
+> Versión: 120 — Ajuste 1 (commit `5bf9c68`): 20 modales con formulario dejan de cerrarse con clic afuera/Esc; más corrección de datos N3 en Docker local (sin commit de código, ver CHANGELOG.md).
 
 ---
 
@@ -554,6 +554,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `7052723` | fix(estudiantes): elimina duplicación de filas en tablaMatriculados por condición de carrera (02_estudiantes) — separa tablaMatriculadosActual/tablaMatriculadosAnteriores de cargarTablas() a nueva función cargarTablasMatriculados(), invocada una sola vez desde el success de cargarPeriodos() cuando periodoActivoId y el select de Anteriores ya tienen su valor definitivo; elimina el auto-load prematuro de ambas tablas con peri_id sin resolver que competía con el .ajax.reload(null, false) posterior y producía filas duplicadas al mostrar 50+ registros; cargarTablas() ahora solo construye tablaAspirantes; sin cambios en est_mdl.php (SQL ya estaba correcto, confirmado por diagnóstico); reportado por Jose Luis con fila #1 = fila #17 al mostrar 50 registros; verificado en navegador: 2 peticiones a listar_matriculados en vez de 4, sin filas repetidas en ninguna pestaña, filtros y badges de Información funcionando correctamente | 2026-09-03 |
 | `183e9b1` | feat(estudiantes): agrega backend de gestión de claves fuera del flujo de matrícula (02_estudiantes) — Fase 2.13.A de 2 (2.13.A backend, 2.13.B frontend pendiente); nuevo case 'gestionar_clave' en est_mdl.php que cubre el vacío entre 'matricular' (crea acceso solo al matricular) y 'guardar_completo' (cambia clave solo si el estudiante ya tiene usua_id), permitiendo crear acceso por primera vez a un estudiante ya matriculado sin clave o cambiar la clave de uno que ya tiene acceso, en una acción aislada; rama sin usua_id replica 'matricular' (verificación usua_login duplicado por numerodoc, validación email, INSERT usuarios + UPDATE estudiantes.usua_id en transacción PDO) pero reporta el numerodoc duplicado como error explícito en vez de ignorarlo en silencio; rama con usua_id replica el cambio de clave de 'guardar_completo' pero reporta tipo_clave vacío/'no' como error explícito en vez de ignorar la intención; reutiliza generarClaveAuto() sin cambios; guards de sesión/rol idénticos a 'matricular'; verificado 10/10 casos con curl contra Docker vivo (crear automática/manual/no-op, numerodoc duplicado, sin correo, cambiar clave automática/manual/vacío, sin sesión, estudiante inexistente), incluida verificación de hashes con password_verify() y confirmación de que no quedan filas huérfanas — conteo de usuarios role_id=4 confirmado igual antes/después (11); solo backend, est_view.php/est_ctrl.js sin tocar — falta Fase 2.13.B (ítem "🔑 Gestionar claves" en dropdown de Acciones de tablaMatriculados + modal #mdl_gestionar_claves) | 2026-09-04 |
 | `ef295f7` | feat(estudiantes): agrega frontend de gestión de claves (02_estudiantes) — Fase 2.13.B de 2, CIERRA Phase 2.13 completa (backend 183e9b1 + frontend este commit); nuevo ítem "🔑 Gestionar claves" en el dropdown de Acciones de tablaMatriculados (crearColumnasMatriculados()), siempre habilitado en ambas pestañas Per. Actual/Per. Anteriores (a diferencia de itemAvanzarSemestre/itemActualizacionDatos, condicionados a esPeriodoActual); nuevo modal #mdl_gestionar_claves en est_view.php con 3 radios (automática/manual/no crear) para la rama sin usua_id y 2 radios (automática/manual) para la rama con usua_id, compartiendo el mismo name="tipo_gestionar_clave" porque nunca están visibles a la vez; nueva función global abrirGestionarClaves(estu_id, nombreCompleto) que abre el modal de inmediato (antes del AJAX, mismo criterio que abrirRequisitosMatricula()) y decide qué bloque mostrar según d.usua_id de accion=obtener_completo; btn_confirmar_gestionar_claves hace POST a accion=gestionar_clave y, si viene clave_generada, muestra el mismo bloque de éxito persistente que #mdl_matricular sin cerrar el modal, o lo cierra directamente sin recargar tablas si es el no-op de "no crear acceso"; btn_cerrar_gestionar_claves recarga tablaMatriculadosActual/Anteriores con el mismo patrón inline exacto que btn_cerrar_matricula (confirmado que no existe función compartida de recarga antes de replicarlo); reset del modal ocurre al abrir, no vía hidden.bs.modal, mismo criterio que abrirAvanzarSemestre()/abrirRequisitosMatricula(); sin cambios en est_mdl.php (backend ya completo desde 183e9b1); verificado en navegador por Jose Luis 13/13 pasos | 2026-09-04 |
+| `5bf9c68` | Ajuste 1: agrega `data-bs-backdrop="static" data-bs-keyboard="false"` a los 20 modales con formulario del proyecto (6 `_view.php`: est, doc, grupos, calificaciones, admin, ayud) — ya no se cierran con clic afuera ni con Esc, evitando perder lo escrito por accidente; excluidos a propósito los 8 `mdl_confirmar_eliminar_*`, `mdl_estudiantes_grupo` y `mdl_modulos_estudiante`; solo atributos HTML, sin CSS/JS nuevo ni cambios en `_ctrl.js`/`_mdl.php`; verificado que los 20 conservaban botón X + botón Cancelar/Cerrar con `data-bs-dismiss="modal"` antes de aplicar el cambio | 2026-09-18 |
 
 ---
 
@@ -844,6 +845,28 @@ sin error, precedidos de `mysqldump` de respaldo en cada uno.
 quedan con las 12 CHECK completas (11 restauradas + `notasn3_chk_1`,
 que nunca se perdió), alineados entre sí y con el esquema versionado.
 Detalle completo en CHANGELOG.md.
+
+---
+
+## Ajuste 1 (modales sin cierre accidental) + corrección de datos N3 — 2026-09-18
+
+**Ajuste 1 (commit `5bf9c68`):** los 20 modales con formulario del
+proyecto ya no se cierran con un clic afuera ni con Esc — solo con el
+botón X o Cancelar/Cerrar, ambos verificados presentes antes del
+cambio. Cambio puramente de atributos HTML (`data-bs-backdrop="static"
+data-bs-keyboard="false"`), sin tocar `_ctrl.js`/`_mdl.php`. Los 8
+`mdl_confirmar_eliminar_*`, `mdl_estudiantes_grupo` y
+`mdl_modulos_estudiante` quedan sin cambios a propósito. Detalle
+completo en CHANGELOG.md.
+
+**Corrección de datos N3 (sin commit de código):** limpieza puntual en
+Docker local de 6 filas huérfanas en `notasn3` y 2 en `calificaciones`
+(estudiantes de prueba 77/79, ya retirados del roster de `grmo_id=3`)
+que bloqueaban el borrado de 3 actividades de prueba en
+`eliminar_actividad_n3`. Con respaldo previo, solo en local — no afecta
+producción. Deja abierto en CLAUDE.md (Deuda técnica) el caso general:
+retirar a un estudiante del roster no limpia sus `notasn3`/su fila en
+`calificaciones`. Detalle completo en CHANGELOG.md.
 
 ---
 

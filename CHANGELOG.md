@@ -4,6 +4,74 @@
 
 ---
 
+## Ajuste 1 — modales con formulario no se cierran con clic afuera ni con Esc — 2026-09-18
+
+### Contexto
+Se perdía lo escrito en un formulario abierto en modal si el usuario
+hacía clic fuera de él (o presionaba Esc) por accidente — comportamiento
+por defecto de Bootstrap 5.3 para cualquier `.modal`, sin ningún aviso
+antes de descartar el contenido no guardado.
+
+### Decisión y alcance
+Commit `5bf9c68` agrega `data-bs-backdrop="static" data-bs-keyboard="false"`
+al `<div class="modal ...">` de 20 modales con formulario, repartidos en 6
+`_view.php`: `est_view.php` (`02_estudiantes`), `doc_view.php`
+(`03_docentes`), `grupos_view.php` (`04_grupos`), `calificaciones_view.php`
+(`05_calificaciones`), `admin_view.php` (`08_admin`) y `ayud_view.php`
+(`10_ayudas`). Solo atributos HTML — sin CSS/JS nuevo, sin tocar ningún
+`_ctrl.js` ni `_mdl.php`.
+
+**Excluidos a propósito** (se siguen cerrando con clic afuera/Esc): los 8
+`mdl_confirmar_eliminar_*`, `mdl_estudiantes_grupo` y
+`mdl_modulos_estudiante` — ninguno es un formulario con datos que se
+puedan perder por un clic accidental.
+
+**Por qué el atributo se agregó modal por modal, no como regla global:**
+no existe ningún CSS/JS compartido (`00_files/`) cargado a la vez en las
+10 vistas que contienen estos 20 modales — no hay un punto único desde el
+cual aplicar el comportamiento a todos de una vez sin tocar cada
+`_view.php` igual. Verificado antes de editar: los 20 modales ya tenían
+un botón X (header) y un botón Cancelar/Cerrar, ambos con
+`data-bs-dismiss="modal"` — ningún modal quedó sin forma de cerrarse tras
+el cambio.
+
+### Verificación
+`grep` posterior confirmó los 20 modales objetivo con ambos atributos y 0
+coincidencias en los 10 excluidos.
+
+---
+
+## Corrección de datos — actividades N3 de prueba bloqueadas por notas huérfanas (sin commit de código) — 2026-09-18
+
+### Contexto
+En `grmo_id=3` (MD-IMD, `MD_2026-2_S1_SAB`) no se podían eliminar 3
+actividades de prueba de `actividadesn3` — `eliminar_actividad_n3`
+(`05_calificaciones`) las rechazaba por "ya tiene notas registradas".
+
+### Causa
+6 filas huérfanas en `notasn3`, de los estudiantes 77 y 79 (estudiantes
+de prueba, ya retirados del roster `grmoestudiantes` de ese grupo
+módulo). `eliminar_actividad_n3` cuenta `notasn3` con valor sin filtrar
+por roster vigente, así que esas notas seguían bloqueando el borrado
+aunque ya no fueran visibles en el modal N3 de la planilla.
+
+### Acción
+Respaldo previo (`mysqldump`) y script transaccional ejecutado
+directamente contra la BD Docker local: borradas las 6 filas de
+`notasn3` y 2 filas de `calificaciones` (`cali_id` 4 y 6)
+correspondientes a esos mismos estudiantes en ese `grmo_id`. Sin commit
+de código — cambio de datos únicamente, solo en el entorno local.
+Producción no se ve afectada por este cambio y se actualizará cuando
+corresponda subir una BD nueva al hosting.
+
+### Nota
+Ver "Deuda técnica / pendiente antes de producción" en CLAUDE.md — el
+caso general (retirar a un estudiante del roster no limpia sus
+`notasn3`/`calificaciones`) queda documentado ahí como pendiente de
+decisión, no resuelto por esta limpieza puntual.
+
+---
+
 ## Restauración de 11 CHECK constraints eliminadas por el commit `300cfc1` — 2026-09-08
 
 ### Contexto
