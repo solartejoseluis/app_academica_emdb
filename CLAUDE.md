@@ -275,6 +275,23 @@ FOREIGN KEY (modu_id) REFERENCES modulos(modu_id) ON DELETE RESTRICT
 FOREIGN KEY (grmo_id) REFERENCES gruposmodulos(grmo_id) ON DELETE RESTRICT
 ```
 
+### Columna `DATE` opcional: `NULL` cuando el campo llega vacío, nunca cadena vacía
+
+Igual que un campo opcional con `UNIQUE KEY` (ver "Campo opcional con UNIQUE KEY" en Patrones de ingeniería), una columna `DATE` opcional debe recibir `NULL` cuando el formulario la deja vacía — nunca una cadena vacía (`''`). MySQL rechaza `''` como valor de una columna `DATE` (o, según el modo SQL configurado, la convierte silenciosamente en `'0000-00-00'`, una fecha inválida que luego rompe cualquier cálculo de edad/formato). El servidor debe además validar, antes del `INSERT`/`UPDATE`, que el valor no vacío sea una fecha real en el formato esperado (`Y-m-d`) — no basta con `strtotime()` u otro parseo laxo, que acepta entradas ambiguas o corrige fechas inexistentes silenciosamente.
+
+```php
+if ($fecha !== '') {
+    $fechaValidada = DateTime::createFromFormat('Y-m-d', $fecha);
+    if (!$fechaValidada || $fechaValidada->format('Y-m-d') !== $fecha) {
+        // rechazar — no es una fecha real en formato Y-m-d
+    }
+} else {
+    $fecha = null;
+}
+```
+
+Ejemplo: `doce_fechanacimiento` en `doc_mdl.php` (`03_docentes`, commit `fb33d3e`, 2026-09-18) — `DateTime::createFromFormat('Y-m-d', ...)` seguido de comparar el resultado reformateado contra el string de entrada, lo que rechaza fechas inexistentes como `2026-02-30` (PHP las "corrige" a un mes siguiente en vez de fallar, si no se hace esta comparación explícita).
+
 ---
 
 ## Tablas del sistema
@@ -803,6 +820,18 @@ Ejemplo: commit `38e1809` (2026-08-23) — el botón "Editar" (renombrado a "�
 El proyecto no tiene la extensión `intl` de PHP instalada (confirmado en el contenedor `app`, PHP 8.5.9) ni ninguna librería de fechas cargada en el frontend (`moment`/`dayjs`). Todo el formato de fecha existente antes de este cambio era numérico (`date('d/m/Y')` en PHP, valores crudos de MySQL sin formatear en JS) — no había ningún precedente de nombre/abreviatura de mes en español en el proyecto. Cuando se necesite mostrar un mes en español (nombre completo o abreviado), la solución del proyecto es un array local de 12 posiciones (`['ene', 'feb', ..., 'dic']`, indexado por `Date.getMonth()` en JS o `(int)date('n', $ts) - 1` en PHP) declarado en el punto de uso — no asumir que `Intl.DateTimeFormat('es-CO', ...)` o `IntlDateFormatter` están disponibles sin verificarlo primero.
 
 Ejemplo: commit `7cef01a` (2026-08-23) — columna Edad de `tablaMatriculados` (`est_ctrl.js`), formato `"17 (23 sep)"`, con el array de abreviaturas declarado dentro del propio `render()` de la columna. Relevante para la Fase 2.8.F2 (PDF Hoja de Matrícula, AC-FO-09) si esa exportación necesita mostrar una fecha en español — mismo array reutilizable, sin agregar la extensión `intl` al Dockerfile.
+
+**Segunda declaración del mismo array (commit `fb33d3e`, 2026-09-18):** la columna "F. cumpl" de `tablaDocentes` (`doc_ctrl.js`, `03_docentes`) necesitó el mismo array `mesesAbrev` — declarado de nuevo, localmente, en su propio `render()`, sin extraerlo a un helper compartido. Dos declaraciones no ameritan todavía una abstracción compartida: si se necesita este mismo array en un tercer punto del proyecto, ahí sí extraerlo a un archivo JS compartido (candidato natural: `00_files/`, aunque hoy esa carpeta solo tiene `ayuda_sidebar.js` como script JS reutilizable).
+
+**Parsear una fecha `YYYY-MM-DD` de MySQL en JS: `split('-')`, nunca `new Date('YYYY-MM-DD')`.** `new Date('YYYY-MM-DD')` (sin componente de hora) se interpreta como medianoche **UTC**, no como medianoche en la zona horaria del navegador — en Bogotá (UTC-5) esto puede mostrar el día anterior al real (ej. `new Date('2026-01-01')` renderiza `31 de diciembre de 2025` en la consola del navegador, pese a que el string dice `01`). Lo que hay que evitar es pasarle a `Date` el string sin componente de hora. La forma ya usada en el proyecto (`est_ctrl.js`, columna Edad) es `new Date(data + 'T00:00:00')` — al agregar la hora explícita, JS lo interpreta en la zona horaria local del navegador, no en UTC, así que ese render nunca tuvo el desfase. El patrón de `doc_ctrl.js` (columna "F. cumpl", commit `fb33d3e`) es más simple todavía cuando solo hace falta extraer día y mes: no construir ningún objeto `Date` en absoluto, separando el string con `data.split('-')` y operando directamente sobre los 3 números.
+
+```js
+// PROHIBIDO en Bogotá (UTC-5) — puede mostrar el día anterior
+const fecha = new Date('2026-01-01'); // interpretado como 2026-01-01T00:00:00 UTC
+
+// CORRECTO — sin construir ningún objeto Date
+const [anio, mes, dia] = '2026-01-01'.split('-').map(Number);
+```
 
 ### Dos transacciones PDO individualmente correctas no garantizan atomicidad entre sí
 

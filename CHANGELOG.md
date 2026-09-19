@@ -4,6 +4,30 @@
 
 ---
 
+## Ajuste 2 — fecha de nacimiento y teléfono en docentes — commit `fb33d3e` — 2026-09-18
+
+### Contexto
+`03_docentes` no tenía forma de registrar la fecha de nacimiento ni el teléfono de un docente — ambos datos de contacto/personales básicos que sí existían para el estudiante desde la Ficha de Inscripción.
+
+### Esquema
+`docentes` gana `doce_fechanacimiento DATE NULL` y `doce_telefono VARCHAR(20) NULL`, entre `doce_cedula` y `doce_sigla`. `ALTER TABLE` aplicado únicamente en Docker local; `database/emdb_academica.sql` actualizado con edición quirúrgica (solo las 2 líneas nuevas dentro de `CREATE TABLE docentes`, mismo orden, sin tocar `AUTO_INCREMENT` ni el resto del archivo). **No se crearon scripts para staging/producción** — a diferencia de cambios de datos (que si requieren `scripts/restaurar_*`), un cambio de esquema viaja con la BD local completa en el flujo local → staging → producción ya establecido del proyecto; las columnas nuevas llegan solas cuando se suba esa BD. Respaldo previo (`mysqldump --routines --triggers --single-transaction`) en `database/hosting_deploy/2026-09-18_2123_backup_antes_de_ajuste2_docentes.sql` (fuera de git).
+
+### Backend (`doc_mdl.php`)
+`'listar'` y `'obtener'` agregan ambas columnas al `SELECT`, sin tocar los `JOIN`/subconsultas existentes. `'guardar'` (creación y edición) valida y persiste ambas: fecha vacía → `NULL` (nunca `''`, MySQL la rechazaría o la convertiría en `0000-00-00`); no vacía → validada con `DateTime::createFromFormat('Y-m-d', ...)` + comparación del string reformateado contra el original (rechaza fechas inexistentes como `2026-02-30`) + rechazo si es futura. Teléfono vacío → `NULL`; máximo 20 caracteres (coincide exactamente con el `VARCHAR(20)` de la columna).
+
+### Frontend
+`doc_view.php`: 2 campos nuevos en el modal — `<input type="date">` nativo (mismo patrón que la Ficha de Inscripción del aspirante, sin selects día/mes/año) y `<input type="text" maxlength="20">`, ambos sin `required`. 2 `<th>` nuevos entre "Correo" y "Estado".
+
+`doc_ctrl.js`: columna "F. cumpl" muestra "D mes" (ej. "28 oct") — el `render` parsea el string `YYYY-MM-DD` con `split('-')`, **sin `new Date()`**, para evitar el desfase de zona horaria de Bogotá (`new Date('YYYY-MM-DD')` se interpreta en UTC y puede mostrar el día anterior); ordena por `MMDD` (mes y día, sin importar el año), docentes sin fecha van al final. Columna "Teléfono" escapada con `.text()`, `'—'` si no hay valor.
+
+### Decisión
+Ambos campos opcionales — los 13 docentes existentes en la BD no tienen el dato, y no hay ninguna razón de negocio para exigirlo retroactivamente.
+
+### Verificación
+Por `curl` con sesión real de administrador: `listar`/`obtener` devuelven `NULL`/`NULL` en los docentes existentes; guardado y lectura correctos con valores válidos; vacío → `NULL` real confirmado también por `SELECT` directo; rechazo de fecha futura, fecha inexistente (`2026-02-30`) y teléfono de 21 caracteres, los 3 sin tocar la BD. El docente de prueba (`doce_id=3`) quedó revertido a `NULL`/`NULL` — verificado que los 13 docentes de la tabla están en ese estado. `php -l` limpio.
+
+---
+
 ## Ajuste 5 — columna "Módulos" clicable en Grupos Semestre — commit `42427ff` — 2026-09-18
 
 ### Contexto

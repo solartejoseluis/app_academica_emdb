@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-18
-> Versión: 122 — Ajuste 4 (commit `d5c4794`) y Ajuste 5 (commit `42427ff`): columnas "Grupos (período)" (03_docentes) y "Módulos" (04_grupos) pasan a botón clicable con mini-modal de detalle de solo lectura.
+> Versión: 123 — Ajuste 2 (commit `fb33d3e`): docentes gana fecha de nacimiento y teléfono (opcionales), columnas "F. cumpl"/"Teléfono" en tablaDocentes.
 
 ---
 
@@ -166,7 +166,7 @@ app_academica_emdb/
 3.  periodos           — peri_id, peri_codigo, peri_anio, peri_semestre
 4.  usuarios           — usua_id, role_id(FK), usua_email, usua_passwordhash, usua_activo
 5.  cohortes           — coho_id, prog_id(FK), coho_codigo, fechainicio
-6.  docentes           — doce_id, usua_id(FK), doce_nombres, doce_apellidos, doce_sigla
+6.  docentes           — doce_id, usua_id(FK), doce_nombres, doce_apellidos, doce_fechanacimiento, doce_telefono, doce_sigla
 7.  estudiantes        — estu_id, usua_id(FK), coho_id(FK), estu_nombres, estu_apellidos, estu_foto, estu_expedidoen, estu_ciudadnac, estu_ocupacion, estu_estadocivil, estu_discapacidad, estu_multiculturalidad
 8.  modulos            — modu_id, prog_id(FK), modu_nombre, modu_sigla, modu_orden
 9.  matriculas         — matr_id, estu_id(FK), prog_id(FK), peri_id(FK), coho_id(FK), matr_estado, matr_estado_academico, matr_semestre
@@ -558,6 +558,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `b6b4c10` | Ajuste 3 (parte 2): agrega cohorte y semestre a las listas Disponibles/Asignados del panel de asignación de módulo (04_grupos) — `listar_estudiantes_disponibles`/`listar_estudiantes_modulo` (`grupos_mdl.php`) agregan `coho_codigo`/`matr_semestre`/`prog_duracion_semestres` al `SELECT` (semestre desde `matriculas`, no desde `grse_semestre`; en Asignados el `JOIN` a `matriculas` es `LEFT JOIN` con la condición en el `ON` para no hacer desaparecer a un asignado sin matrícula coincidente); `grupos_ctrl.js` agrega `formatearDetalleEstudiante()` para el formato `(documento, cohorte, sem N/M)` con `'—'` de fallback, usado en ambas listas; conteos idénticos antes/después verificados contra `grmo_id=3` (Disponibles 4/4, Asignados 10/10), sin duplicados; hallazgo sin acción: `coho_id` sigue llegando al backend desde el frontend pero `listar_estudiantes_disponibles` nunca lo usa (el filtro real ya es `matr_estado`/`prog_id`/`peri_id` desde `7340d6e`) | 2026-09-18 |
 | `d5c4794` | Ajuste 4: columna "Grupos (período)" de `tablaDocentes` (03_docentes) pasa de número plano a botón clicable (solo si `total_grupos > 0`, con 0 conserva el badge sin clic) que abre el modal de solo lectura `#mdl_grupos_docente` con "Grupo \| SIGLA — Módulo" del docente en el período seleccionado; nuevo `case 'listar_grupos_docente'` en `doc_mdl.php` (roles 1/2, `peri_id` opcional con fallback a `peri_activo=1`, mismas condiciones que la subconsulta `total_grupos` de `'listar'`: `doce_id`+`peri_id`+`grmo_activo=1`), devuelve también `peri_codigo` para el título del modal; `doc_ctrl.js` renderiza por `type` (ordenamiento numérico intacto) y agrega la función global `verGruposDocente()`, con el `peri_id` del botón leído de `#slct_peri_docentes`; verificado `doce_id=3`, período `2026-2`: 8 filas == `total_grupos = 8`, por SQL y por `curl` con sesión real | 2026-09-18 |
 | `42427ff` | Ajuste 5: columna "Módulos" de `tablaGrupos` (04_grupos, pestaña Grupos Semestre) pasa de badge a botón clicable (solo si `total_modulos > 0`) que abre `#mdl_modulos_grupo` con "SIGLA — Módulo \| Docente"; nuevo `case 'listar_modulos_grupo_resumen'` en `grupos_mdl.php` (roles 1/2, `grse_id`+`grmo_activo=1`, `LEFT JOIN docentes`) — nombrado así (no `listar_modulos_grupo`) porque ese nombre ya existía para `cargarModulosGrupo()` del modal "Editar Grupo" con otras columnas; un segundo `case` con el mismo nombre habría quedado como código muerto sin error visible (ver nuevo antipatrón en CLAUDE.md); `grupos_ctrl.js` mismo patrón de render por `type` que el Ajuste 4, nueva función global `verModulosGrupo()`; verificado `grse_id=17` (`MD_2026-1_S1_SEM`): 9 filas == `total_modulos = 9` | 2026-09-18 |
+| `fb33d3e` | Ajuste 2: `docentes` gana `doce_fechanacimiento DATE NULL` y `doce_telefono VARCHAR(20) NULL` (entre `doce_cedula` y `doce_sigla`), ambos opcionales — `ALTER TABLE` en Docker local + edición quirúrgica de `database/emdb_academica.sql` (2 líneas), sin scripts de staging/producción (viaja con la BD completa); `doc_mdl.php` (`'listar'`/`'obtener'`/`'guardar'` ×2 ramas) valida fecha con `DateTime::createFromFormat('Y-m-d', ...)` + comparación del string reformateado (rechaza `2026-02-30`) + no futura, teléfono con `mb_strlen <= 20`, vacío → `NULL` en ambos (nunca `''`); `doc_view.php` agrega 2 campos al modal (`type="date"` nativo, `maxlength=20`) y 2 `<th>` entre "Correo" y "Estado"; `doc_ctrl.js` columna "F. cumpl" parsea `YYYY-MM-DD` con `split('-')` (sin `new Date()`, evita el desfase de zona horaria de Bogotá), ordena por `MMDD` con sin-fecha al final, columna "Teléfono" escapada con `.text()`; verificado por `curl` con sesión real: `NULL`/`NULL` en los 13 docentes existentes, guardado/lectura correctos, vacío → `NULL` real (confirmado por `SELECT` directo), rechazo de fecha futura/inexistente/teléfono largo, docente de prueba revertido | 2026-09-18 |
 
 ---
 
@@ -919,6 +920,30 @@ del conteo, y el `render` de la columna distingue `type` para no
 romper el ordenamiento numérico. Ambos modales nuevos son de solo
 lectura, sin `data-bs-backdrop`/`data-bs-keyboard`. Detalle completo de
 ambos en CHANGELOG.md.
+
+---
+
+## Ajuste 2 — fecha de nacimiento y teléfono en docentes — 2026-09-18
+
+**Commit `fb33d3e`:** `docentes` gana `doce_fechanacimiento`/`doce_telefono`,
+ambos opcionales — precedido de un diagnóstico de solo lectura que
+confirmó el esquema actual, los 3 `case` de `doc_mdl.php` a tocar, que
+ningún otro módulo del proyecto selecciona columnas de `docentes` más
+allá del nombre/sigla (sin impacto en PDFs/reportes/dashboard), y que
+no existía todavía ningún helper compartido para el array
+`mesesAbrev`. `ALTER TABLE` aplicado solo en Docker local (con
+`mysqldump` de respaldo previo) + edición quirúrgica de
+`database/emdb_academica.sql` — sin scripts de staging/producción,
+porque un cambio de esquema (a diferencia de un cambio de datos) viaja
+con la BD completa en el flujo local → staging → producción ya
+establecido. Backend valida fecha real (rechaza `2026-02-30`) y no
+futura, teléfono ≤ 20 caracteres; ambos `NULL` si llegan vacíos, nunca
+`''`. Frontend: "F. cumpl" parsea la fecha con `split('-')` (nunca
+`new Date()`, por el desfase de zona horaria de Bogotá) y "Teléfono"
+escapado con `.text()`. Verificado por `curl` con sesión real:
+lectura/guardado correctos, los 3 casos de error rechazados sin tocar
+la BD, docente de prueba revertido a `NULL`/`NULL`. Detalle completo en
+CHANGELOG.md.
 
 ---
 
