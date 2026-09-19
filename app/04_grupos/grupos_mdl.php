@@ -261,6 +261,46 @@ switch ($accion) {
         }
         break;
 
+    // ── MODAL DE DETALLE: MÓDULOS ASIGNADOS A UN GRUPO SEMESTRE ──────────────
+    // Nombre distinto de 'listar_modulos_grupo' (ya existente más abajo, usada
+    // por cargarModulosGrupo() en el modal "Editar Grupo" con otras columnas
+    // — horario/fechas/total_estudiantes, sin filtrar grmo_activo) para no
+    // colisionar con ese case ni reutilizar su forma de respuesta.
+    case 'listar_modulos_grupo_resumen':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida', 'data' => []]);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización', 'data' => []]);
+            break;
+        }
+        $grse_id = (int)($_POST['grse_id'] ?? 0);
+        if ($grse_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de grupo semestre inválido', 'data' => []]);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            // Misma condición (grse_id + grmo_activo=1) que la subconsulta de
+            // total_modulos en 'listar_grupos' — el número de filas devueltas
+            // aquí siempre debe coincidir con ese conteo.
+            $stmt = $pdo->prepare("
+                SELECT m.modu_sigla, m.modu_nombre, d.doce_nombres, d.doce_apellidos
+                FROM gruposmodulos gm
+                INNER JOIN modulos m ON gm.modu_id = m.modu_id
+                LEFT JOIN docentes d ON gm.doce_id = d.doce_id
+                WHERE gm.grse_id = ? AND gm.grmo_activo = 1
+                ORDER BY m.modu_nombre
+            ");
+            $stmt->execute([$grse_id]);
+            echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage(), 'data' => []]);
+        }
+        break;
+
     case 'guardar_grupo':
         if (!isset($_SESSION['usua_id'])) {
             echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);

@@ -95,8 +95,17 @@ $(document).ready(function () {
                 { data: 'prog_sigla' },
                 { data: 'peri_codigo' },
                 { data: 'grse_semestre', render: v => `Semestre ${v}` },
-                { data: 'total_modulos', render: v =>
-                    `<span class="badge bg-info text-dark">${v} módulos</span>`
+                {
+                    data: 'total_modulos',
+                    render: function (data, type, row) {
+                        if (type !== 'display') {
+                            return data;
+                        }
+                        if (data > 0) {
+                            return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosGrupo(${row.grse_id}, '${row.grse_codigo.replace(/'/g, "\\'")}')">${data}</button>`;
+                        }
+                        return `<span class="badge bg-info text-dark">${data} módulos</span>`;
+                    }
                 },
                 {
                     data: 'total_estudiantes',
@@ -941,6 +950,36 @@ function verEstudiantesGrupo(grse_id, grse_codigo) {
                 });
             }
             $('#mdl_estudiantes_grupo').modal('show');
+        }
+    });
+}
+
+function verModulosGrupo(grse_id, grse_codigo) {
+    $('#mdl_modulos_grupo_titulo').text(grse_codigo);
+    $.ajax({
+        type: 'POST',
+        url: 'grupos_mdl.php?accion=listar_modulos_grupo_resumen',
+        data: { grse_id: grse_id },
+        dataType: 'json',
+        success: function (r) {
+            const tbody = $('#tbody_modulos_grupo_resumen');
+            tbody.empty();
+            if (!r.data || !r.data.length) {
+                tbody.html('<tr><td colspan="2" class="text-center text-muted">Sin módulos asignados</td></tr>');
+            } else {
+                r.data.forEach(m => {
+                    const docente = m.doce_apellidos
+                        ? $('<div>').text(m.doce_apellidos + ', ' + m.doce_nombres).html()
+                        : 'Sin docente';
+                    tbody.append(`
+                        <tr>
+                            <td>${$('<div>').text(m.modu_sigla + ' — ' + m.modu_nombre).html()}</td>
+                            <td>${docente}</td>
+                        </tr>
+                    `);
+                });
+            }
+            $('#mdl_modulos_grupo').modal('show');
         }
     });
 }
