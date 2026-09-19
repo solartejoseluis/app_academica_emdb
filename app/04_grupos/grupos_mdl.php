@@ -487,11 +487,14 @@ switch ($accion) {
             // programa+período del grupo semestre de este grmo_id, que NO
             // están ya asignados a ese módulo.
             $stmt = $pdo->prepare("
-                SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc
+                SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
+                       c.coho_codigo, mt.matr_semestre, p.prog_duracion_semestres
                 FROM estudiantes e
                 INNER JOIN matriculas mt ON mt.estu_id = e.estu_id AND mt.matr_estado = 'matriculado'
                 INNER JOIN gruposmodulos gm ON gm.grmo_id = ?
                 INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                LEFT JOIN cohortes c ON c.coho_id = mt.coho_id
+                LEFT JOIN programas p ON p.prog_id = mt.prog_id
                 WHERE mt.prog_id = gs.prog_id AND mt.peri_id = gs.peri_id
                   AND e.estu_id NOT IN (SELECT ge.estu_id FROM grmoestudiantes ge WHERE ge.grmo_id = ?)
                 ORDER BY e.estu_apellidos ASC
@@ -517,9 +520,16 @@ switch ($accion) {
             $pdo = getConexion();
             $grmo_id = (int)($_POST['grmo_id'] ?? 0);
             $stmt = $pdo->prepare("
-                SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc
+                SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
+                       c.coho_codigo, mt.matr_semestre, p.prog_duracion_semestres
                 FROM grmoestudiantes ge
                 INNER JOIN estudiantes e ON ge.estu_id = e.estu_id
+                INNER JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
+                INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                LEFT JOIN matriculas mt ON mt.estu_id = ge.estu_id AND mt.matr_estado = 'matriculado'
+                    AND mt.prog_id = gs.prog_id AND mt.peri_id = gs.peri_id
+                LEFT JOIN cohortes c ON c.coho_id = mt.coho_id
+                LEFT JOIN programas p ON p.prog_id = mt.prog_id
                 WHERE ge.grmo_id = ?
                 ORDER BY e.estu_apellidos ASC
             ");

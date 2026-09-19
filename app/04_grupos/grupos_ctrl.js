@@ -385,6 +385,15 @@ $(document).ready(function () {
         });
     }
 
+    function formatearDetalleEstudiante(e) {
+        const doc = e.estu_numerodoc || '—';
+        const cohorte = e.coho_codigo || '—';
+        const semestre = (e.matr_semestre && e.prog_duracion_semestres)
+            ? `sem ${e.matr_semestre}/${e.prog_duracion_semestres}`
+            : 'sem —';
+        return `(${doc}, ${cohorte}, ${semestre})`;
+    }
+
     function renderLista(selector, estudiantes, esAsignado) {
         const container = $(selector);
         container.empty();
@@ -400,7 +409,7 @@ $(document).ready(function () {
                            value="${e.estu_id}">
                     <label class="form-check-label small">
                         ${e.estu_apellidos}, ${e.estu_nombres}
-                        <span class="text-muted">(${e.estu_numerodoc})</span>
+                        <span class="text-muted">${formatearDetalleEstudiante(e)}</span>
                     </label>
                 </div>
             `);
