@@ -89,6 +89,42 @@ function recalcularN3(PDO $pdo, int $grmo_id, int $estu_id): ?float {
     return $valor !== null ? round((float)$valor, 1) : null;
 }
 
+// Recalcula cali_n3 (y Nota Final/Definitiva) de todo el roster vigente de un
+// grupo módulo tras cambiar su conjunto de actividades (crear/eliminar).
+// Solo toca estudiantes que YA tienen fila en calificaciones (nunca la crea) y
+// solo si el cali_n3 guardado difiere del recalculado. No abre transacciones:
+// la maneja quien lo llama. GUARDA: quien lo llama NO debe invocarlo en grupos
+// sin actividades previas (históricos) — recalcularN3() devolvería NULL y
+// borraría el N3 migrado. Retorna cuántos estudiantes cambiaron.
+function recalcularGrupoModuloN3(PDO $pdo, int $grmo_id): int {
+    $roster = $pdo->prepare("
+        SELECT ge.estu_id, c.cali_id, c.cali_n3
+        FROM grmoestudiantes ge
+        INNER JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = ge.estu_id
+        WHERE ge.grmo_id = ?
+    ");
+    $roster->execute([$grmo_id]);
+
+    $upd = $pdo->prepare("UPDATE calificaciones SET cali_n3 = ? WHERE cali_id = ?");
+    $cambiados = 0;
+    foreach ($roster->fetchAll() as $fila) {
+        $estu_id = (int)$fila['estu_id'];
+        $nuevo   = recalcularN3($pdo, $grmo_id, $estu_id);
+        $actual  = $fila['cali_n3'];
+
+        $iguales = ($nuevo === null && $actual === null)
+            || ($nuevo !== null && $actual !== null && round((float)$actual, 1) === round($nuevo, 1));
+        if ($iguales) {
+            continue;
+        }
+
+        $upd->execute([$nuevo, $fila['cali_id']]);
+        recalcularNotaFinalYDefinitiva($pdo, $grmo_id, $estu_id);
+        $cambiados++;
+    }
+    return $cambiados;
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {
@@ -562,16 +598,35 @@ switch ($accion) {
                 break;
             }
             $acn3_orden = (int)$fila['max_orden'] + 1;
+            $totalPrevio = (int)$fila['total'];
 
-            $stmt = $pdo->prepare("
-                INSERT INTO actividadesn3 (grmo_id, acn3_nombre, acn3_comentario, acn3_orden)
-                VALUES (?, ?, ?, ?)
-            ");
-            $stmt->execute([$grmo_id, $acn3_nombre, $acn3_comentario, $acn3_orden]);
+            $pdo->beginTransaction();
+            try {
+                $stmt = $pdo->prepare("
+                    INSERT INTO actividadesn3 (grmo_id, acn3_nombre, acn3_comentario, acn3_orden)
+                    VALUES (?, ?, ?, ?)
+                ");
+                $stmt->execute([$grmo_id, $acn3_nombre, $acn3_comentario, $acn3_orden]);
+                $nuevoId = $pdo->lastInsertId();
+
+                // Guarda: con 0 actividades previas (grupo histórico o primera
+                // actividad) NO se recalcula — recalcularN3() daría NULL y
+                // borraría el N3 migrado del roster.
+                if ($totalPrevio >= 1) {
+                    recalcularGrupoModuloN3($pdo, $grmo_id);
+                }
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                echo json_encode(['status' => 'error', 'message' => 'No se pudo crear la actividad.']);
+                break;
+            }
 
             echo json_encode([
                 'status'          => 'ok',
-                'acn3_id'         => $pdo->lastInsertId(),
+                'acn3_id'         => $nuevoId,
                 'grmo_id'         => $grmo_id,
                 'acn3_nombre'     => $acn3_nombre,
                 'acn3_comentario' => $acn3_comentario,
@@ -714,10 +769,28 @@ switch ($accion) {
                 break;
             }
 
-            $stmt = $pdo->prepare("DELETE FROM actividadesn3 WHERE acn3_id = ?");
-            $stmt->execute([$acn3_id]);
+            $pdo->beginTransaction();
+            try {
+                $stmt = $pdo->prepare("DELETE FROM actividadesn3 WHERE acn3_id = ?");
+                $stmt->execute([$acn3_id]);
+                $filasBorradas = $stmt->rowCount();
 
-            echo json_encode(['status' => 'ok', 'rows' => $stmt->rowCount()]);
+                // Defensivo: la Verificación 1 ya garantiza >= 1 restante.
+                $restantes = $pdo->prepare("SELECT COUNT(*) AS total FROM actividadesn3 WHERE grmo_id = ?");
+                $restantes->execute([$grmo_id]);
+                if ((int)$restantes->fetch()['total'] >= 1) {
+                    recalcularGrupoModuloN3($pdo, $grmo_id);
+                }
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar la actividad.']);
+                break;
+            }
+
+            echo json_encode(['status' => 'ok', 'rows' => $filasBorradas]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }

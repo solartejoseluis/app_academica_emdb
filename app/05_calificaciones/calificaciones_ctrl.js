@@ -690,6 +690,10 @@ $(document).ready(function () {
                 if (r.status === 'ok') {
                     limpiarFormularioActividadN3();
                     cargarActividadesN3(grmo_id_activo);
+                    // Solo al crear: el servidor recalculó cali_n3 del roster
+                    if (!esEdicion) {
+                        cargarCalificaciones(grmo_id_activo);
+                    }
                 } else {
                     alert('Error al guardar: ' + r.message);
                 }
@@ -745,6 +749,7 @@ $(document).ready(function () {
             success: function (r) {
                 if (r.status === 'ok') {
                     cargarActividadesN3(grmo_id_activo);
+                    cargarCalificaciones(grmo_id_activo);
                 } else {
                     alert('Error al eliminar: ' + r.message);
                 }
