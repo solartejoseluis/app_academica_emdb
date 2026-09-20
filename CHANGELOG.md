@@ -7,7 +7,7 @@
 ## Endurecimiento de la raíz web de staging y registro de errores de PHP (sin commit de código) — 2026-09-20
 
 ### Contexto
-Staging es `dev.escuelamdb.com` (misma cuenta de cPanel que producción, `ea-php85`); producción es `app.escuelamdb.com` (`ea-php82` heredado, según MultiPHP INI Editor). El `.htaccess` de la raíz de staging solo tenía bloques generados por cPanel (directivas `php ini` con `ea-php85` y el handler de PHP), con `display_errors` en Off y `php_value error_log "error_log"` (ruta **relativa**: PHP crea un archivo `error_log` dentro de cada carpeta web donde falla un script; no tiene extensión y por eso no lo cubre un `FilesMatch` por extensiones). Además, en la raíz de `dev.escuelamdb.com` había una carpeta `wp-content` que no pertenece al proyecto.
+Staging es `dev.escuelamdb.com` (misma cuenta de cPanel que producción, `ea-php85`); producción es `app.escuelamdb.com`. Ambos corren PHP 8.5.10 (verificado con la cabecera `X-Powered-By` el 2026-09-20). Una versión anterior de estas notas afirmaba una diferencia de versiones entre producción (`ea-php82`) y staging (`ea-php85`), basada en la etiqueta "ea-php82 (Inherited)" de MultiPHP INI Editor; era un error. El `.htaccess` de la raíz de staging solo tenía bloques generados por cPanel (directivas `php ini` con `ea-php85` y el handler de PHP), con `display_errors` en Off y `php_value error_log "error_log"` (ruta **relativa**: PHP crea un archivo `error_log` dentro de cada carpeta web donde falla un script; no tiene extensión y por eso no lo cubre un `FilesMatch` por extensiones). Además, en la raíz de `dev.escuelamdb.com` había una carpeta `wp-content` que no pertenece al proyecto.
 
 **Incidente menor del mismo día:** para evitar el `error_log` relativo, Jose Luis puso `log_errors` en Off a nivel de cuenta, dejando sin registro de errores un lapso corto. Esto contradijo lo que afirma la entrada de producción del mismo día ("Endurecimiento de la raíz web de producción"): "los errores siguen registrándose en `php.error.log`" — dejó de ser cierto durante ese lapso. Se corrigió volviendo a habilitar `log_errors`.
 
@@ -48,6 +48,7 @@ RedirectMatch 302 ^/$ /app_academica_emdb/
 
 ### Verificación
 - Pruebas en ventana privada, hechas por Jose Luis: la raíz redirige al login; `php.ini` responde 403; una carpeta sin index responde 403 sin listado; la aplicación funciona (planilla y exportación).
+- Versión de PHP verificada con la cabecera `X-Powered-By`: PHP/8.5.10 en producción y staging. La etiqueta 'ea-php82 (Inherited)' de MultiPHP INI Editor no es fiable para saber la versión real de ejecución.
 - Prueba de escritura del log en staging: se creó un archivo temporal en la raíz que escribe una línea con `error_log()`, se abrió una vez y la línea apareció en `php.error.staging.log` (hora de Bogotá); el archivo temporal se borró y se comprobó que responde 404.
 - Otros ajustes de MultiPHP INI Editor: "Home directory" y un sitio de la misma cuenta ajeno al proyecto tienen `log_errors` deshabilitado; no se cambiaron (fuera del alcance del proyecto).
 

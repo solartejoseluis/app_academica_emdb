@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-20
-> Versión: 131 — Endurecimiento de la raíz web de staging (dev.escuelamdb.com) y registro de errores de PHP con log_errors On y error_log fuera de la raíz web; sin commit de código
+> Versión: 132 — Corrección: producción y staging corren PHP 8.5.10, no hay diferencia de versión con local; sin commit de código
 
 ---
 
@@ -19,7 +19,7 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | Pruebas en vivo pendientes (prioridad baja): rol Docente con login real (solo se probó con sesión simulada) y el límite de 15 actividades | Hacerlas en staging cuando haya oportunidad | Con un usuario docente de prueba en staging | CHANGELOG.md, entradas de `8613a13` y `7a52825`, sección "Pruebas" (Límites) |
 | Instalar Node en el entorno de Claude Code (prioridad baja) | Hoy no se puede correr `node --check`; solo se verifica el balance de llaves y el navegador | Instalar Node en el contenedor o en el entorno local y documentarlo | CHANGELOG.md, mismas entradas que el ítem anterior |
 | Revisar el servidor de pruebas (aurusmind.com) y otros subdominios por listado de directorios y paquetes .zip/.sql en la raíz web | La misma exposición podría existir. **STAGING (dev.escuelamdb.com) RESUELTO 2026-09-20**; sigue pendiente revisar cualquier OTRO dominio o subdominio de las cuentas | Abrir cada raíz en ventana privada; no requiere esperar al 2 de octubre porque es solo una revisión | CHANGELOG.md, entradas "Endurecimiento de la raíz web de producción" y "Endurecimiento de la raíz web de staging y registro de errores de PHP" |
-| Verificar la diferencia de versión de PHP entre producción (ea-php82) y staging (ea-php85)/local (Docker php:8.5) | Prioridad baja, observación del 2026-09-20; podría funcionar en staging/local y fallar en producción | Comparar la versión mínima que exige el código y revisar si el código usa algo exclusivo de 8.3+ | CHANGELOG.md, entrada "Endurecimiento de la raíz web de staging y registro de errores de PHP" |
+| ~~Verificar la diferencia de versión de PHP entre producción (ea-php82) y staging (ea-php85)/local (Docker php:8.5)~~ **DESCARTADO 2026-09-20: producción y staging corren PHP/8.5.10, igual que local (cabecera X-Powered-By)** | La observación original se basó en la etiqueta "ea-php82 (Inherited)" de MultiPHP INI Editor, que no refleja la versión real de ejecución | — | CHANGELOG.md, entrada "Endurecimiento de la raíz web de staging y registro de errores de PHP" |
 
 ---
 
