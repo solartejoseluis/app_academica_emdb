@@ -602,16 +602,31 @@ $(document).ready(function () {
                 .attr('data-nombre', a.acn3_nombre)
                 .attr('data-comentario', comentario);
 
-            const btnEliminar = esUltima
-                ? $('<button type="button" class="btn btn-sm btn-outline-danger" disabled>Eliminar</button>')
-                    .attr('title', 'No se puede eliminar la última actividad.')
-                : $('<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-actividad-n3">Eliminar</button>')
-                    .attr('data-acn3-id', a.acn3_id);
+            // Acción de eliminar: candado (no clicable) si es la única
+            // actividad o si tiene notas del roster vigente (total_notas,
+            // ya filtrado por grmoestudiantes en el servidor — ver
+            // listar_actividades_n3); botón real en cualquier otro caso.
+            const totalNotas = parseInt(a.total_notas, 10) || 0;
+            let accionEliminar;
+            if (esUltima) {
+                accionEliminar = $('<span class="badge bg-secondary-subtle text-secondary-emphasis border"></span>')
+                    .attr('title', 'Debe existir al menos una actividad.')
+                    .text('🔒 Única actividad');
+            } else if (totalNotas > 0) {
+                const sufijoNotas = totalNotas === 1 ? 'nota registrada' : 'notas registradas';
+                accionEliminar = $('<span class="badge bg-secondary-subtle text-secondary-emphasis border"></span>')
+                    .attr('title', 'Tiene ' + totalNotas + ' ' + sufijoNotas + '. Para eliminarla, primero vacía sus notas en Registro y cálculo de N3.')
+                    .text('🔒 Con notas');
+            } else {
+                accionEliminar = $('<button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-actividad-n3">Eliminar</button>')
+                    .attr('data-acn3-id', a.acn3_id)
+                    .attr('data-fuera-roster', a.total_notas_fuera_roster);
+            }
 
             const fila = $('<tr></tr>');
             fila.append($('<td></td>').text(a.acn3_nombre));
             fila.append($('<td></td>').append($('<small class="text-muted"></small>').text(comentarioMostrado)));
-            fila.append($('<td class="text-end"></td>').append(btnEditar, ' ', btnEliminar));
+            fila.append($('<td class="text-end"></td>').append(btnEditar, ' ', accionEliminar));
             tbody.append(fila);
         });
 
@@ -716,7 +731,11 @@ $(document).ready(function () {
     // ── Click en "Eliminar" de una fila ────────────────────────────────────────
     $(document).on('click', '.btn-eliminar-actividad-n3', function () {
         const acn3Id = $(this).data('acn3-id');
-        if (!confirm('¿Eliminar esta actividad?')) return;
+        const fueraRoster = parseInt($(this).data('fuera-roster'), 10) || 0;
+        const mensajeConfirm = fueraRoster > 0
+            ? 'Esta actividad tiene ' + fueraRoster + ' nota(s) de estudiantes que ya no están en el grupo. Se borrarán definitivamente. ¿Eliminar la actividad?'
+            : '¿Eliminar esta actividad?';
+        if (!confirm(mensajeConfirm)) return;
 
         $.ajax({
             type: 'POST',

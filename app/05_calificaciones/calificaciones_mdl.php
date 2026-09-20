@@ -484,10 +484,19 @@ switch ($accion) {
             }
 
             $stmt = $pdo->prepare("
-                SELECT acn3_id, acn3_nombre, acn3_comentario, acn3_orden
-                FROM actividadesn3
-                WHERE grmo_id = ?
-                ORDER BY acn3_orden ASC, acn3_id ASC
+                SELECT a.acn3_id, a.acn3_nombre, a.acn3_comentario, a.acn3_orden,
+                       (SELECT COUNT(*) FROM notasn3 n
+                          INNER JOIN grmoestudiantes ge
+                                  ON ge.grmo_id = a.grmo_id AND ge.estu_id = n.estu_id
+                         WHERE n.acn3_id = a.acn3_id AND n.non3_valor IS NOT NULL) AS total_notas,
+                       (SELECT COUNT(*) FROM notasn3 n
+                         WHERE n.acn3_id = a.acn3_id AND n.non3_valor IS NOT NULL
+                           AND NOT EXISTS (SELECT 1 FROM grmoestudiantes ge
+                                            WHERE ge.grmo_id = a.grmo_id
+                                              AND ge.estu_id = n.estu_id)) AS total_notas_fuera_roster
+                FROM actividadesn3 a
+                WHERE a.grmo_id = ?
+                ORDER BY a.acn3_orden ASC, a.acn3_id ASC
             ");
             $stmt->execute([$grmo_id]);
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
@@ -686,9 +695,20 @@ switch ($accion) {
                 break;
             }
 
-            // Verificación 2: no eliminar si ya tiene notas registradas
-            $notas = $pdo->prepare("SELECT COUNT(*) AS total FROM notasn3 WHERE acn3_id = ? AND non3_valor IS NOT NULL");
-            $notas->execute([$acn3_id]);
+            // Verificación 2: no eliminar si ya tiene notas registradas de
+            // estudiantes del roster vigente (mismo criterio de roster que
+            // total_notas en listar_actividades_n3, ver "Decisiones
+            // arquitectónicas activas" en CLAUDE.md) — notas de estudiantes
+            // ya retirados del grupo módulo no bloquean el borrado; la FK
+            // fk_non3_acn3 (ON DELETE CASCADE) las elimina junto con la
+            // actividad si el DELETE de abajo procede.
+            $notas = $pdo->prepare("
+                SELECT COUNT(*) AS total FROM notasn3 n
+                  INNER JOIN grmoestudiantes ge
+                          ON ge.grmo_id = ? AND ge.estu_id = n.estu_id
+                 WHERE n.acn3_id = ? AND n.non3_valor IS NOT NULL
+            ");
+            $notas->execute([$grmo_id, $acn3_id]);
             if ((int)$notas->fetch()['total'] > 0) {
                 echo json_encode(['status' => 'error', 'message' => 'No se puede eliminar: ya tiene notas registradas.']);
                 break;
