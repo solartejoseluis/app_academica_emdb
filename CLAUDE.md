@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-09-19 — último commit citado: 2fc573b
+> Última actualización: 2026-09-19 — último commit citado: 8613a13
 
 ## Reglas de documentación
 
@@ -396,13 +396,27 @@ obsoletos en BD si una nota se borraba después de haber estado
 completa.
 
 **Reglas de eliminación de `actividadesn3`** (implementadas desde la
-Fase 2.14.B, `case 'eliminar_actividad_n3'`): rechaza si
-`COUNT(notasn3 WHERE acn3_id=? AND non3_valor IS NOT NULL) > 0`, o si
-es la única actividad activa del `grmo_id`. El orden de verificación
-importa: "última actividad" se evalúa antes que "tiene notas" (ver
-Fase 2.14.B). No cambiar a borrado lógico sin decisión explícita de
-Jose Luis — el borrado físico es intencional aquí, distinto del patrón
-de `requisitos_programa`.
+Fase 2.14.B, `case 'eliminar_actividad_n3'`): rechaza si es la única
+actividad activa del `grmo_id`, o si tiene notas registradas. El orden
+de verificación importa: "última actividad" se evalúa antes que "tiene
+notas" (ver Fase 2.14.B). No cambiar a borrado lógico sin decisión
+explícita de Jose Luis — el borrado físico es intencional aquí,
+distinto del patrón de `requisitos_programa`.
+
+**"Tiene notas" cuenta solo el roster vigente desde el commit `8613a13`
+(2026-09-19):** el criterio dejó de ser
+`COUNT(notasn3 WHERE acn3_id=? AND non3_valor IS NOT NULL) > 0` (contaba
+también notas de estudiantes ya retirados del grupo módulo, huérfanas
+sin ningún filtro) y pasó a `COUNT(notasn3 n INNER JOIN grmoestudiantes
+ge ON ge.grmo_id=? AND ge.estu_id=n.estu_id WHERE n.acn3_id=? AND
+n.non3_valor IS NOT NULL) > 0` — mismo `JOIN` exacto que el nuevo campo
+`total_notas` de `listar_actividades_n3`, para que lo que la UI muestra
+y lo que el servidor bloquea sean siempre la misma respuesta (ver
+"Criterio de roster vigente para contar notas de N3" en "Decisiones
+arquitectónicas activas"). Notas de estudiantes retirados ya no
+bloquean el borrado — si la actividad se elimina, esas notas huérfanas
+se borran con ella por la FK `fk_non3_acn3` (`ON DELETE CASCADE`), con
+aviso explícito en el `confirm()` del frontend cuando aplica.
 
 ---
 
@@ -1430,6 +1444,14 @@ Ejemplo real: al implementar el patrón "Conteo clicable con mini-modal de detal
 - **Consecuencia:** coordinador y administrador quedan **fuera** de esta regla — sus ramas de código (`role_id IN (1,2)`) son independientes y no tienen ni deben tener este filtro. Cualquier endpoint nuevo que el docente use para operar sobre calificaciones debe incluir la misma condición `peri_activo = 1` desde el primer commit, no agregarla después como fix.
 - **Estado:** Activa desde el commit `cef939b` (2026-09-19).
 
+### Criterio de roster vigente para contar notas de N3
+
+- **Contexto:** `notasn3` no tiene ninguna FK hacia `grmoestudiantes` — cuando un estudiante se retira de un grupo módulo (`case 'retirar_estudiante'`, `04_grupos/grupos_mdl.php`), sus filas de `notasn3` quedan huérfanas, sin que nada las borre ni las marque. Antes del commit `8613a13` (2026-09-19), `eliminar_actividad_n3` contaba esas notas huérfanas igual que las de un estudiante activo, bloqueando el borrado de actividades cuya única "nota registrada" era de alguien que ya no está en el grupo — sin ninguna forma de que el docente lo supiera desde la UI.
+- **Decisión:** tanto `total_notas` (nuevo campo de `listar_actividades_n3`) como la Verificación 2 de `eliminar_actividad_n3` cuentan **solo** notas con valor de estudiantes que siguen en el roster vigente — mismo `INNER JOIN grmoestudiantes ge ON ge.grmo_id = <grmo_id> AND ge.estu_id = n.estu_id` en ambos lugares, para que el candado que ve el docente en "Configurar actividades" y lo que realmente bloquea el servidor respondan siempre la misma pregunta.
+- **Riesgo aceptado — borrado en cascada de notas huérfanas:** si una actividad queda sin notas del roster vigente (aunque tenga notas huérfanas de estudiantes retirados), ahora se puede eliminar — la FK `fk_non3_acn3` (`ON DELETE CASCADE`) borra esas notas huérfanas junto con la actividad, de forma física y permanente. El frontend avisa explícitamente en el `confirm()` de Eliminar cuántas notas de estudiantes fuera del roster se van a borrar, para que la decisión sea informada.
+- **Alternativas descartadas:** limpiar las huérfanas en el origen (dentro de `retirar_estudiante`, `04_grupos`) se descartó por borrar datos de calificaciones desde una pantalla distinta, sin ninguna señal visible de que eso también afecta `notasn3`; mantener el criterio sin roster (opción C del análisis previo) se descartó porque dejaba actividades permanentemente imposibles de eliminar sin ninguna explicación visible para el docente.
+- **Estado:** Activa desde el commit `8613a13` (2026-09-19).
+
 ---
 
 ## Frontend stack
@@ -1500,7 +1522,8 @@ manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
 | `doc_view.php`, `est_view.php` y `grupos_view.php` tienen un `<nav>` fallback (`navbar-dark bg-dark px-3`) inalcanzable en la práctica | Los tres comparten el mismo guard de sesión (`if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) { redirect; }`), que rechaza cualquier rol distinto de Admin/Coordinador antes de llegar al `<body>` — la rama `else` con el `<nav>` fallback nunca se ejecuta, es código muerto en los tres archivos. Descubierto al implementar el bloque "Último acceso" en el navbar (commit `ac96f07`, 2026-08-25): se agregó primero a `doc_view.php` asumiendo que era el nav real de Docente, y se confirmó que Docente (`role_id=3`) ni siquiera puede acceder a esa vista — su destino real tras login es `05_calificaciones/calificaciones_view.php` (único con guard `!== 1 && !== 2 && !== 3`, que sí permite Docente); el cambio se revirtió de `doc_view.php` y se aplicó ahí. Pendiente de decisión: ¿eliminar los tres bloques `<nav>` fallback (nunca alcanzables con los guards actuales) o ampliar el guard de esas vistas si algún rol adicional necesita entrar? No implementar sin decisión explícita de Jose Luis. |
 | ~~`total_modulos` en el case `listar_grupos` (`grupos_mdl.php`, `04_grupos`) no filtra por `grmo_activo = 1`, a diferencia del `total_estudiantes` agregado al mismo case~~ (RESUELTO 2026-08-30, commit `b8a583a`) | Detectado al implementar `total_estudiantes` (commit `a39cb24`, 2026-08-30): la nueva subconsulta sí filtraba `gm.grmo_activo = 1` — mismo patrón ya usado en `est_mdl.php` para contar módulos de un estudiante — pero `total_modulos`, ya existente en ese mismo `case 'listar_grupos'` desde antes de ese commit, contaba todos los `gruposmodulos` del grupo semestre sin ese filtro, incluyendo módulos inactivos. Era una inconsistencia preexistente entre dos columnas de la misma fila del listado. Corregido en el commit `b8a583a` (2026-08-30): se agregó `AND gm.grmo_activo = 1` a la subconsulta de `total_modulos`, alineándola con `total_estudiantes` y con el resto de conteos de `gruposmodulos` del proyecto (`listar_docentes` en `grupos_mdl.php`, `doc_mdl.php`, `coordinador_mdl.php`, `calificaciones_mdl.php`, `reportes_mdl.php`). Verificado sin impacto en los datos locales (0 `gruposmodulos` con `grmo_activo = 0` al momento del cambio); pendiente confirmar el mismo resultado en producción cuando aplique el deploy. |
 | "Última fecha de actualización" en `#mdl_actualizacion_datos` puede mostrar `'—'` cuando en realidad sí existe una aprobación en el historial del estudiante | Descubierto en la revisión de cierre de la Fase 5 del feature "Link de actualización de datos" (2026-09-03, sin commit de código — solo documentación). `abrirActualizacionDatos()` (`est_ctrl.js`, commit `70c45ba`) muestra la fecha solo si la solicitud MÁS RECIENTE del estudiante (`estado_solicitud_actualizacion`, que no filtra por estado) está en `'aprobado'` — si el estudiante tuvo una aprobación y luego otra solicitud más nueva que terminó `'descartado'`, el modal muestra `'—'` aunque sí exista una aprobación real más atrás. El badge "✅ Actualizado" de la misma fila (mismo commit, `soac_fecha_ultima_aprobacion` en `listar_matriculados`) usa una subconsulta dedicada que sí busca la aprobación más reciente sin importar si hay algo más nuevo sin aprobar — en ese escenario específico, el badge de la fila y el texto del modal responden distinto a la misma pregunta ("¿cuándo fue la última actualización aprobada?"). No es un bug de datos (ambos leen `soac_resuelto_en` correctamente, solo difieren en el criterio de búsqueda) ni bloqueante para el uso normal del feature. Pendiente de decisión: alinear `abrirActualizacionDatos()` para que use el mismo criterio que la subconsulta de `listar_matriculados` (agregar un `case` dedicado en `est_mdl.php`, o traer `soac_fecha_ultima_aprobacion` como parte de la respuesta de `estado_solicitud_actualizacion`). No implementar sin decisión explícita de Jose Luis. |
-| Retirar a un estudiante del roster (`grmoestudiantes`) no limpia sus `notasn3` ni su fila en `calificaciones` | Descubierto al depurar actividades de prueba en `grmo_id=3` (2026-09-18, sin commit de código — ver CHANGELOG.md, "Corrección de datos — actividades N3 de prueba bloqueadas por notas huérfanas"): un estudiante retirado del roster de un grupo módulo deja huérfanas sus filas en `notasn3` (y su fila en `calificaciones`), sin que ningún flujo del proyecto las borre o las marque. `eliminar_actividad_n3` (`05_calificaciones`) cuenta `notasn3` con valor para decidir si bloquea el borrado de una actividad ("ya tiene notas registradas"), pero esa cuenta no filtra por roster vigente — así que una actividad puede quedar bloqueada por notas de un estudiante que ya no aparece en ningún listado ni en el propio modal N3, haciendo el mensaje de bloqueo incomprensible para el docente (no hay ninguna nota visible que justifique el rechazo). Pendiente de decisión: filtrar el conteo de `eliminar_actividad_n3` por roster vigente, limpiar `notasn3`/`calificaciones` al retirar a un estudiante del roster, o ambas. No implementar sin decisión explícita de Jose Luis. |
+| Retirar a un estudiante del roster (`grmoestudiantes`) no limpia sus `notasn3` ni su fila en `calificaciones` | Descubierto al depurar actividades de prueba en `grmo_id=3` (2026-09-18, sin commit de código — ver CHANGELOG.md, "Corrección de datos — actividades N3 de prueba bloqueadas por notas huérfanas"). **Actualización (commit `8613a13`, 2026-09-19):** la parte de este hallazgo que bloqueaba la eliminación de actividades quedó resuelta — `eliminar_actividad_n3` y `listar_actividades_n3` ahora cuentan "tiene notas" solo sobre el roster vigente (ver "Criterio de roster vigente para contar notas de N3" en Decisiones arquitectónicas activas), así que una actividad ya no queda bloqueada por notas de un estudiante que ya no aparece en ningún listado. **Lo que sigue pendiente, sin resolver:** `retirar_estudiante` (`04_grupos/grupos_mdl.php`) sigue sin limpiar `notasn3`/`calificaciones` del estudiante retirado — esas filas siguen existiendo, huérfanas, indefinidamente (ahora se borran solo si la actividad completa se elimina, vía cascada). Además, si ese mismo estudiante se vuelve a agregar al mismo grupo módulo mientras la actividad todavía existe, sus notas antiguas **reaparecen automáticamente** en el modal "Registro y cálculo de N3" (`cargarTablaRegistroN3()` arma el mapa de notas sin filtrar por roster, solo filtra el roster para decidir qué filas de estudiante mostrar) — sin que quede claro si esto es el comportamiento deseado o un efecto colateral. Pendiente de decisión: limpiar `notasn3`/`calificaciones` al retirar (con el riesgo de perder historial si el retiro fue temporal), dejarlo así documentando la reaparición como comportamiento esperado, u otra alternativa. No implementar sin decisión explícita de Jose Luis. |
+| `eliminar_actividad_n3` no recalcula `cali_n3`/`cali_nota_final`/`cali_definitiva` tras borrar una actividad | Descubierto durante el análisis previo al commit `8613a13` (2026-09-19, `05_calificaciones`): a diferencia de `guardar_nota_n3` (que sí llama a `recalcularN3()`/`recalcularNotaFinalYDefinitiva()` después de cada autosave), `eliminar_actividad_n3` solo ejecuta el `DELETE` — no recalcula nada para ningún estudiante afectado. Como `recalcularN3()` promedia sobre "todas las actividades del `grmo_id`" (sin columna de activo, ver más arriba), eliminar una actividad cambia ese total: un estudiante que antes tenía `cali_n3 = NULL` (por faltarle la nota de la actividad recién eliminada) podría ahora tener todas las notas completas para el nuevo total — pero `calificaciones.cali_n3` queda con el valor viejo (`NULL` u otro) hasta que el próximo autosave de una nota de ese estudiante dispare el recálculo. No es un problema nuevo introducido por `8613a13` — ya existía en `eliminar_actividad_n3` desde la Fase 2.14.B — pero se hizo más relevante al facilitar (con el roster vigente) que más actividades sean elegibles para eliminarse. Pendiente de decisión: si `eliminar_actividad_n3` debe recalcular `cali_n3`/Nota Final/Definitiva de todos los estudiantes del roster tras el `DELETE`, mismo patrón que `guardar_nota_n3`. No implementar sin decisión explícita de Jose Luis. |
 
 ---
 

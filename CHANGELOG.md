@@ -4,6 +4,68 @@
 
 ---
 
+## Candado en Eliminar de actividades N3 (roster vigente) — commit `8613a13` — 2026-09-19
+
+### Contexto
+Pedido de usabilidad: el botón Eliminar de una actividad de N3 (modal "Configurar actividades") solo revelaba que estaba bloqueada **después** de que el docente hacía clic, confirmaba en el `confirm()` del navegador y el servidor lo rechazaba con un `alert()` — sin ninguna señal previa de por qué.
+
+### Cambio
+En "Configurar actividades", cada fila decide ahora su acción de Eliminar en 3 pasos: si es la única actividad del grupo módulo, un indicador "🔒 Única actividad"; si tiene notas de estudiantes del roster vigente, un indicador "🔒 Con notas" con tooltip que dice cuántas notas tiene y cómo desbloquearla (vaciar las notas en "Registro y cálculo de N3"); en cualquier otro caso, el botón Eliminar de siempre. Se elimina el botón deshabilitado anterior que solo cubría el caso de "última actividad".
+
+`listar_actividades_n3` (`calificaciones_mdl.php`) agrega dos campos nuevos por actividad: `total_notas` (notas con valor de estudiantes que siguen en el roster del grupo módulo, vía `INNER JOIN grmoestudiantes`) y `total_notas_fuera_roster` (notas con valor de estudiantes ya retirados). El `confirm()` de Eliminar avisa explícitamente cuando hay notas de estudiantes fuera del roster que se van a borrar de forma permanente junto con la actividad.
+
+### Decisión
+El criterio de roster vigente (`INNER JOIN grmoestudiantes`) se aplica **igual** en `listar_actividades_n3` y en la Verificación 2 de `eliminar_actividad_n3`, para que lo que la UI muestra y lo que el servidor realmente bloquea sean siempre la misma respuesta — nunca un candado que no corresponda con la razón real del rechazo. Las notas de estudiantes retirados ya no bloquean el borrado de una actividad; si la actividad se elimina, esas notas huérfanas se borran con ella por la FK `fk_non3_acn3` (`ON DELETE CASCADE`), con el aviso correspondiente en el `confirm()`.
+
+Se descartaron dos alternativas: limpiar las notas huérfanas en el origen (dentro de `retirar_estudiante`, `04_grupos`) — se habría borrado información de calificaciones desde una pantalla completamente distinta, sin ninguna señal visible de que eso también afecta N3; y mantener el criterio sin roster (contar cualquier nota, huérfana o no) — dejaba actividades permanentemente imposibles de eliminar sin ninguna explicación visible para el docente, el problema original que motivó este ajuste.
+
+Vaciar el valor de una nota en el modal de Registro la guarda como `NULL` (no la borra) y eso ya desbloquea la actividad — comportamiento sin cambios, ahora más visible gracias al candado. El backend sigue siendo el respaldo real de ambas reglas — mismos mensajes de error y mismo orden de verificaciones ("última actividad" antes que "tiene notas") que antes de este commit.
+
+### Alcance
+Markup compartido — aplica igual a Docente, Coordinador y Admin. `calificaciones_view.php` y `04_grupos/*` sin cambios.
+
+### Pruebas
+7 pruebas manuales en navegador local con rol Docente y Coordinador (candados correctos por caso, desbloqueo al vaciar notas, eliminar una actividad de prueba real, botón Editar sin cambios, consola del navegador sin errores). No se probó el modo oscuro del navegador. Además, 4 verificaciones SQL en Docker local, todas dentro de transacciones con `ROLLBACK` y confirmadas con `SELECT` antes/después sin dejar datos de prueba: rechazo con notas del roster, borrado permitido con notas ya vaciadas (`NULL`), borrado permitido con notas huérfanas (simulando un estudiante fuera del roster) confirmando el borrado en cascada, y única actividad del grupo siempre rechazada. No se probó en vivo el ownership del rol Docente contra este cambio específico — se verificó por lectura que el bloque de ownership de ambos `case` quedó carácter por carácter idéntico al de antes del ajuste. No se pudo correr `node --check` (sin Node en este entorno ni en el contenedor `app`).
+
+### Pendiente
+1. Antes de subir a producción, correr en phpMyAdmin de producción esta consulta de solo lectura; si devuelve 0 filas no hay notas huérfanas con valor y nada cambia en producción; si devuelve filas, decidir caso por caso con Jose Luis antes de desplegar (esas notas se borrarían en cascada al eliminar la actividad):
+
+   ```sql
+   SELECT a.grmo_id, n.acn3_id, a.acn3_nombre, COUNT(*) AS notas_huerfanas
+   FROM notasn3 n
+   INNER JOIN actividadesn3 a ON n.acn3_id = a.acn3_id
+   WHERE n.non3_valor IS NOT NULL
+     AND NOT EXISTS (
+         SELECT 1 FROM grmoestudiantes ge
+         WHERE ge.grmo_id = a.grmo_id AND ge.estu_id = n.estu_id
+     )
+   GROUP BY a.grmo_id, n.acn3_id, a.acn3_nombre;
+   ```
+
+   En local dio 0 filas al 2026-09-19.
+2. Hallazgo colateral sin resolver: `eliminar_actividad_n3` no recalcula `cali_n3`/`cali_nota_final`/`cali_definitiva` de los estudiantes afectados tras borrar una actividad — el cambio en el promedio no se refleja hasta el próximo autosave de una nota de ese estudiante (ver CLAUDE.md, deuda técnica).
+
+---
+
+## Color del encabezado N3 — azul marino oscuro (paleta A) — commit `d7cf505` — 2026-09-19
+
+### Contexto
+El resto del encabezado de `#tbl_calificaciones` es `table-dark` (fondo negro, texto blanco); el azul claro (`--bs-primary-bg-subtle`) del encabezado N3 introducido en el ajuste anterior no combinaba con ese fondo oscuro.
+
+### Cambio
+Encabezado de N3 (`th.th-n3-click`) pasa a la paleta A, elegida entre 3 opciones presentadas (marino, acero, índigo): fondo `#1a3a6b`, hover `#25508f`, borde inferior `#5b9bf0`, badge "Actividad" con fondo `#2f6fca` y texto blanco. Colores fijos vía variables CSS propias (`--n3-bg`, `--n3-bg-hover`, `--n3-accent`), no variables de Bootstrap (`--bs-primary-*`) — se eliminaron todas las referencias a esas variables. El badge "Actividad" cambia de la clase `text-bg-primary` de Bootstrap a una clase propia (`th-badge-n3`), porque `text-bg-primary` fuerza su color con reglas de mayor precedencia que una clase propia no puede sobreescribir limpiamente.
+
+### Decisión
+Verificado contra el CSS real de Bootstrap 5.3.3 (descargado del mismo CDN que usa el proyecto) que el fondo nuevo se impone sobre el de `table-dark`: la regla de Bootstrap `.table>:not(caption)>*>*` y la regla propia `th.th-n3-click` tienen la misma especificidad CSS, y el `<style>` inline de la vista va después del `<link>` de Bootstrap en el `<head>` — con especificidad empatada, gana la que aparece después en el documento.
+
+### Alcance
+Solo `app/05_calificaciones/calificaciones_view.php`.
+
+### Pruebas
+Manuales en navegador local, rol Docente y Coordinador.
+
+---
+
 ## Ajustes de usabilidad — encabezados de notas y modal "Configurar actividades" — commit `2fc573b` — 2026-09-19
 
 ### Contexto
