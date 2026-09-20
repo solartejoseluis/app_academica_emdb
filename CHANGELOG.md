@@ -27,8 +27,10 @@ Markup compartido — aplica igual a Docente, Coordinador y Admin. `calificacion
 ### Pruebas
 7 pruebas manuales en navegador local con rol Docente y Coordinador (candados correctos por caso, desbloqueo al vaciar notas, eliminar una actividad de prueba real, botón Editar sin cambios, consola del navegador sin errores). No se probó el modo oscuro del navegador. Además, 4 verificaciones SQL en Docker local, todas dentro de transacciones con `ROLLBACK` y confirmadas con `SELECT` antes/después sin dejar datos de prueba: rechazo con notas del roster, borrado permitido con notas ya vaciadas (`NULL`), borrado permitido con notas huérfanas (simulando un estudiante fuera del roster) confirmando el borrado en cascada, y única actividad del grupo siempre rechazada. No se probó en vivo el ownership del rol Docente contra este cambio específico — se verificó por lectura que el bloque de ownership de ambos `case` quedó carácter por carácter idéntico al de antes del ajuste. No se pudo correr `node --check` (sin Node en este entorno ni en el contenedor `app`).
 
+Desplegado 2026-09-19: probado en staging (7 pruebas, Docente y Coordinador) y luego subido a producción (`calificaciones_view.php`, `calificaciones_ctrl.js` y `calificaciones_mdl.php`, sin cambios de BD). Verificado en producción con cuenta de Administrador: planilla, badges, lista de "Configurar actividades" con candados y exportación Excel/PDF; el registro de métricas (`metricasdesempeno`) siguió activo. Consulta previa de notas huérfanas (`notasn3` fuera del roster) en producción: 0 filas.
+
 ### Pendiente
-1. Antes de subir a producción, correr en phpMyAdmin de producción esta consulta de solo lectura; si devuelve 0 filas no hay notas huérfanas con valor y nada cambia en producción; si devuelve filas, decidir caso por caso con Jose Luis antes de desplegar (esas notas se borrarían en cascada al eliminar la actividad):
+1. **RESUELTO 2026-09-19.** Antes de subir a producción, correr en phpMyAdmin de producción esta consulta de solo lectura; si devuelve 0 filas no hay notas huérfanas con valor y nada cambia en producción; si devuelve filas, decidir caso por caso con Jose Luis antes de desplegar (esas notas se borrarían en cascada al eliminar la actividad):
 
    ```sql
    SELECT a.grmo_id, n.acn3_id, a.acn3_nombre, COUNT(*) AS notas_huerfanas
@@ -42,7 +44,7 @@ Markup compartido — aplica igual a Docente, Coordinador y Admin. `calificacion
    GROUP BY a.grmo_id, n.acn3_id, a.acn3_nombre;
    ```
 
-   En local dio 0 filas al 2026-09-19.
+   En local dio 0 filas al 2026-09-19. En producción, ejecutada como parte del despliegue del mismo día, también dio 0 filas.
 2. Hallazgo colateral sin resolver: `eliminar_actividad_n3` no recalcula `cali_n3`/`cali_nota_final`/`cali_definitiva` de los estudiantes afectados tras borrar una actividad — el cambio en el promedio no se refleja hasta el próximo autosave de una nota de ese estudiante (ver CLAUDE.md, deuda técnica).
 
 ---
@@ -64,6 +66,8 @@ Solo `app/05_calificaciones/calificaciones_view.php`.
 ### Pruebas
 Manuales en navegador local, rol Docente y Coordinador.
 
+Desplegado 2026-09-19: probado en staging (7 pruebas, Docente y Coordinador) y luego subido a producción (`calificaciones_view.php`, `calificaciones_ctrl.js` y `calificaciones_mdl.php`, sin cambios de BD). Verificado en producción con cuenta de Administrador: planilla, badges, lista de "Configurar actividades" con candados y exportación Excel/PDF; el registro de métricas (`metricasdesempeno`) siguió activo. Consulta previa de notas huérfanas (`notasn3` fuera del roster) en producción: 0 filas.
+
 ---
 
 ## Ajustes de usabilidad — encabezados de notas y modal "Configurar actividades" — commit `2fc573b` — 2026-09-19
@@ -84,6 +88,8 @@ Solo `app/05_calificaciones/calificaciones_view.php` y `calificaciones_ctrl.js` 
 
 ### Pruebas
 Manuales en navegador (Docker local), con rol Docente y Coordinador, contra un grupo módulo con 9 actividades N3 configuradas — encabezados, apertura del modal N3, y el flujo completo de Nombre→Comentarios→Guardar/Enter verificados en vivo. El límite de 15 actividades se verificó por lectura de la lógica (`actualizarEstadoFormularioActividadN3()`), no en vivo — no había un grupo de prueba con 15 actividades ya cargadas. No se pudo correr `node --check` (no hay Node instalado en este entorno ni en el contenedor `app`, imagen PHP-only); se validó la sintaxis cargando la página con la consola del navegador limpia (sin `SyntaxError`) y confirmando que el resto del script (carga de grupos, autosave de notas) seguía funcionando con normalidad.
+
+Desplegado 2026-09-19: probado en staging (7 pruebas, Docente y Coordinador) y luego subido a producción (`calificaciones_view.php`, `calificaciones_ctrl.js` y `calificaciones_mdl.php`, sin cambios de BD). Verificado en producción con cuenta de Administrador: planilla, badges, lista de "Configurar actividades" con candados y exportación Excel/PDF; el registro de métricas (`metricasdesempeno`) siguió activo. Consulta previa de notas huérfanas (`notasn3` fuera del roster) en producción: 0 filas.
 
 ---
 
