@@ -62,6 +62,19 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
         .semaforo-verde    { background-color: #d4edda !important; }
         .semaforo-amarillo { background-color: #fff3cd !important; }
         .semaforo-rojo     { background-color: #f8d7da !important; }
+        .th-badge-nota { font-size: .7rem; white-space: nowrap; }
+        th.th-n3-click {
+            background-color: var(--bs-primary-bg-subtle);
+            border-bottom: 3px solid var(--bs-primary);
+            cursor: pointer;
+            transition: background-color .15s;
+        }
+        th.th-n3-click a {
+            color: var(--bs-primary-text-emphasis);
+            text-decoration: none;
+            display: block;
+        }
+        th.th-n3-click:hover { background-color: var(--bs-primary-border-subtle); }
     </style>
 </head>
 <body>
@@ -162,15 +175,16 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                                 <th>#</th>
                                 <th>Estudiante</th>
                                 <th>Documento</th>
-                                <th class="text-center">N1<br><small class="fw-normal">20%</small></th>
+                                <th class="text-center">N1<br><small class="fw-normal">20%</small><br><span class="badge text-bg-secondary fw-normal th-badge-nota">Parcial1</span></th>
                                 <th class="text-center celda-sup">Sup N1</th>
-                                <th class="text-center">N2<br><small class="fw-normal">20%</small></th>
+                                <th class="text-center">N2<br><small class="fw-normal">20%</small><br><span class="badge text-bg-secondary fw-normal th-badge-nota">Parcial2</span></th>
                                 <th class="text-center celda-sup">Sup N2</th>
-                                <th class="text-center">
-                                    <a href="#" data-bs-toggle="modal" data-bs-target="#mdl_registro_n3" class="text-decoration-none text-reset">N3</a>
-                                    <br><small class="fw-normal">20%</small>
+                                <th class="text-center th-n3-click">
+                                    <a href="#" data-bs-toggle="modal" data-bs-target="#mdl_registro_n3" title="Clic para registrar y calcular N3">
+                                        N3<br><small class="fw-normal">20%</small><br><span class="badge text-bg-primary fw-normal th-badge-nota">Actividad</span> <span style="font-size:.8rem">📝</span>
+                                    </a>
                                 </th>
-                                <th class="text-center">N4<br><small class="fw-normal">40%</small></th>
+                                <th class="text-center">N4<br><small class="fw-normal">40%</small><br><span class="badge text-bg-secondary fw-normal th-badge-nota">Eval. Final</span></th>
                                 <th class="text-center celda-sup">Sup N4</th>
                                 <th class="text-center">Nota Final</th>
                                 <th class="text-center celda-hab">Habilitación</th>
@@ -235,7 +249,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                          al cerrar el segundo) — este botón NO usa
                          data-bs-toggle/target directo. La Fase E2 lo conecta
                          por JS: cierra este modal y abre #mdl_configurar_actividades_n3. -->
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="btn_abrir_configurar_n3">Configurar</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btn_abrir_configurar_n3">Configurar actividades</button>
                 </div>
                 <div class="table-responsive">
                     <table id="tbl_registro_n3" class="table table-bordered table-sm">
@@ -267,21 +281,26 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
             <div class="modal-body">
                 <div id="lista_actividades_n3"></div>
                 <hr>
-                <form id="frm_actividad_n3">
-                    <input type="hidden" id="hdn_acn3_id" value="">
-                    <div class="mb-3">
-                        <label class="form-label">Nombre de la actividad</label>
-                        <input type="text" class="form-control" id="txt_acn3_nombre" maxlength="100">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Comentarios</label>
-                        <textarea class="form-control" id="txt_acn3_comentario" maxlength="255" rows="3"></textarea>
-                    </div>
-                </form>
+                <div class="border rounded p-3 mt-4 bg-body-tertiary">
+                    <h6 class="fw-bold mb-3">Agregar nueva actividad</h6>
+                    <form id="frm_actividad_n3">
+                        <input type="hidden" id="hdn_acn3_id" value="">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre de la actividad</label>
+                            <input type="text" class="form-control" id="txt_acn3_nombre" maxlength="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Comentarios</label>
+                            <textarea class="form-control" id="txt_acn3_comentario" maxlength="255" rows="3"></textarea>
+                        </div>
+                        <div class="text-end mt-2">
+                            <button type="button" class="btn btn-primary" id="btn_guardar_actividad_n3">Guardar esta actividad</button>
+                        </div>
+                    </form>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" id="btn_guardar_actividad_n3">Guardar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar y volver a la lista de actividades</button>
             </div>
         </div>
     </div>

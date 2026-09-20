@@ -538,6 +538,7 @@ $(document).ready(function () {
     $('#btn_abrir_configurar_n3').on('click', function () {
         $('#mdl_registro_n3').one('hidden.bs.modal', function () {
             cargarActividadesN3(grmo_id_activo);
+            actualizarEstadoFormularioActividadN3();
             bootstrap.Modal.getOrCreateInstance('#mdl_configurar_actividades_n3').show();
         });
         bootstrap.Modal.getOrCreateInstance('#mdl_registro_n3').hide();
@@ -617,12 +618,20 @@ $(document).ready(function () {
         contenedor.append(tabla);
     }
 
-    // ── Habilitar/deshabilitar el formulario según el límite de 15 ──────────
+    // ── Habilitar/deshabilitar el formulario según el límite de 15 y según si
+    //    Nombre tiene texto — única fuente de verdad, ambas condiciones se
+    //    componen aquí sin pisarse: limiteAlcanzado manda sobre todo el
+    //    formulario (comportamiento ya existente); si no hay límite, Comentarios
+    //    y el botón Guardar dependen de hayNombre ───────────────────────────
     function actualizarEstadoFormularioActividadN3() {
         const enEdicion = $('#hdn_acn3_id').val() !== '';
         const limiteAlcanzado = !enEdicion && totalActividadesN3Actual >= 15;
+        const hayNombre = $('#txt_acn3_nombre').val().trim().length > 0;
+        const botonOculto = limiteAlcanzado || !hayNombre;
 
-        $('#txt_acn3_nombre, #txt_acn3_comentario, #btn_guardar_actividad_n3').prop('disabled', limiteAlcanzado);
+        $('#txt_acn3_nombre').prop('disabled', limiteAlcanzado);
+        $('#txt_acn3_comentario').prop('disabled', limiteAlcanzado || !hayNombre);
+        $('#btn_guardar_actividad_n3').prop('disabled', botonOculto).toggleClass('d-none', botonOculto);
 
         let msg = $('#msg_limite_actividades_n3');
         if (limiteAlcanzado && !msg.length) {
@@ -678,6 +687,22 @@ $(document).ready(function () {
         guardarActividadN3();
     });
     $('#btn_guardar_actividad_n3').on('click', guardarActividadN3);
+
+    // ── Nombre con texto habilita Comentarios y muestra el botón Guardar ────
+    $('#txt_acn3_nombre').on('input', actualizarEstadoFormularioActividadN3);
+
+    // ── Enter en Nombre no guarda de inmediato — pasa el foco a Comentarios
+    //    (el listener de submit de arriba queda como red de seguridad, ya no
+    //    alcanzable desde el teclado: el único disparador de submit implícito
+    //    era Enter en este mismo campo, y Comentarios no envía el form con
+    //    Enter, inserta salto de línea) ───────────────────────────────────────
+    $('#txt_acn3_nombre').on('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        if ($(this).val().trim().length > 0) {
+            $('#txt_acn3_comentario').trigger('focus');
+        }
+    });
 
     // ── Click en "Editar" de una fila ─────────────────────────────────────────
     $(document).on('click', '.btn-editar-actividad-n3', function () {
