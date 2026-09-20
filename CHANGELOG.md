@@ -4,6 +4,98 @@
 
 ---
 
+## Recálculo del N3 de todo el roster al crear o eliminar una actividad — commit `7a52825` — 2026-09-20
+
+### Contexto
+`recalcularN3()` promedia solo si el estudiante tiene nota en **todas** las actividades del grupo módulo, y el resultado se guarda en `calificaciones.cali_n3`. Crear o eliminar una actividad cambia esa regla para todo el grupo, pero el recálculo solo ocurría al guardar una nota (un estudiante a la vez). Consecuencias: tras **crear** una actividad, los estudiantes con N3 completo conservaban un promedio ya inválido (y sus `cali_nota_final`/`cali_definitiva` derivados), visible en planilla, reportes, boletín y `avanzar_semestre`; tras **eliminar** una actividad sin notas, quienes quedaban completos seguían con `NULL`. Caso real: `grmo_id` 30, estudiante 79, `cali_n3 = 4.0` con 2 actividades y solo 1 nota.
+
+### Cambio
+Nuevo helper `recalcularGrupoModuloN3($pdo, $grmo_id)` en `calificaciones_mdl.php`: recorre el roster vigente, usa `recalcularN3()`/`recalcularNotaFinalYDefinitiva()` sin modificarlas, solo actualiza filas de `calificaciones` existentes (nunca crea) y solo si `cali_n3` cambia. `guardar_actividad_n3` y `eliminar_actividad_n3` ejecutan el `INSERT`/`DELETE` y el recálculo en una transacción (rollback + mensaje genérico si falla). En el frontend (`calificaciones_ctrl.js`) la planilla principal se recarga tras crear o eliminar con éxito (no al editar ni con error).
+
+### Decisión
+1. **Guarda obligatoria:** al crear, el helper solo corre si el grupo ya tenía >= 1 actividad. Los grupos históricos (64 en local, con N3 cargado por la migración y 0 actividades) no se tocan: `recalcularN3()` daría `NULL` y borraría N3, nota final y definitiva.
+2. **Un solo helper** para crear y eliminar, en lugar de reset a `NULL` al crear + recálculo al eliminar: al crear el resultado es idéntico y hay una sola ruta que probar.
+3. **Sin triggers ni procedimientos almacenados** (producción debe seguir sin ninguno).
+4. Con el candado de `8613a13`, al eliminar solo puede pasar de `NULL` a un valor.
+
+Descartadas: recalcular de forma perezosa al abrir la planilla (convertía un endpoint de lectura en escritura y los reportes seguían con valores viejos) y solo scripts SQL manuales (el problema reaparecía con cada actividad creada).
+
+### Alcance
+Solo `calificaciones_mdl.php` y `calificaciones_ctrl.js`; sin cambios de esquema. Docente, Coordinador y Admin comparten el comportamiento.
+
+### Pruebas
+Harness PHP con transacción y `ROLLBACK` más pruebas por el endpoint real en Docker local (grupo 19): crear deja `NULL` a los 4 estudiantes con N3 completo; eliminar devuelve 4.8/4.7/4.9/4.4 y las notas finales coinciden con el cálculo independiente (supletorio, habilitación, reprobado sin habilitación); grupo histórico 33: crear la primera actividad no altera ningún `cali_n3`/nota final/definitiva; estudiante sin fila en `calificaciones` no recibe fila; estudiante fuera del roster no se toca; atomicidad probada forzando un fallo real con bloqueo desde otra conexión (crear y eliminar respondieron error genérico sin dejar nada a medias); mensajes de error y ownership iguales. 5 pruebas manuales en navegador local.
+
+Límites: el rol Docente se probó con sesión simulada por variables, no con login real; el límite de 15 actividades no se probó (código sin tocar); no se corrió `node --check` (solo balance de llaves y navegador). El `CHECKSUM` de `calificaciones` cambió solo por `fechaactualizacion` (`ON UPDATE CURRENT_TIMESTAMP`) en 4 filas del grupo 19; los valores de notas quedaron iguales.
+
+### Despliegue
+Desplegado 2026-09-20: probado en staging (5 pruebas correctas, script de corrección aplicado y verificado) y subido a producción (`calificaciones_mdl.php` y `calificaciones_ctrl.js`, sin cambios de esquema); script de corrección aplicado en producción y consulta global de N3 obsoletos vacía después. Verificado en producción con cuenta de Administrador (5 pruebas de solo lectura correctas; no se crearon ni eliminaron actividades). El registro de métricas (`metricasdesempeno`) siguió activo y UptimeRobot marcó 100% en las últimas 24 horas, sin incidentes.
+
+### Pendiente
+Hallazgos como tareas aparte (ver CLAUDE.md, deuda técnica): whitelist de `cali_n3` en `guardar_nota` y migración de los N3 históricos como actividad única. La consulta global de N3 obsoletos en producción quedó **RESUELTA 2026-09-20** (ver "Corrección de datos — N3 obsoleto del estudiante 79", más abajo).
+
+---
+
+## Corrección de datos — N3 obsoleto del estudiante 79 en el grupo módulo 30 (sin commit de código) — 2026-09-20
+
+### Contexto
+La consulta de N3 obsoletos (`calificaciones.cali_n3` distinto del promedio que daría hoy `recalcularN3()`, solo grupos con actividades) devolvió 1 fila idéntica en local y en producción: `grmo_id` 30, `estu_id` 79, `cali_id` 28, `cali_n3 = 4.0`, esperado `NULL`, 2 actividades y 1 nota, con `cali_nota_final` y `cali_definitiva` ya en `NULL`. Era el promedio viejo de cuando el grupo tenía una sola actividad. Impacto solo visual (N3 en planilla y reportes); no afectaba aprobaciones.
+
+### Decisión
+Corregir con script idempotente que apunta solo a esa fila, usa el mismo criterio del cálculo del sistema, solo toca `cali_n3` y solo actúa si `cali_nota_final` y `cali_definitiva` son `NULL`; se ejecutó local -> staging -> producción. La alternativa de dejarla (se corregía sola al guardar la nota faltante o al crear/eliminar una actividad del grupo) se descartó para no depender de que el docente actúe.
+
+### Resultado
+Vista previa (Bloque 1) ejecutada en local y en producción, con lo esperado; en staging se aplicó directamente el Bloque 2. En los tres entornos, Bloque 2 = 1 fila afectada y Bloque 3 con `cali_n3`/nota final/definitiva en `NULL`. Idempotencia (Bloque 2 otra vez = 0 filas) comprobada en local y en staging; en producción se comprobó con la consulta global de obsoletos, que devolvió conjunto vacío.
+
+### Script
+```sql
+-- Bloque 1: vista previa (solo lee)
+SELECT c.cali_id, c.grmo_id, c.estu_id, c.cali_n3 AS cali_n3_actual,
+       x.n3_esperado, x.total_act, x.notas_ok,
+       c.cali_nota_final, c.cali_definitiva
+FROM calificaciones c
+INNER JOIN (
+    SELECT ge.grmo_id, ge.estu_id,
+           COUNT(a.acn3_id)    AS total_act,
+           COUNT(n.non3_valor) AS notas_ok,
+           CASE WHEN COUNT(a.acn3_id) > 0 AND COUNT(n.non3_valor) = COUNT(a.acn3_id)
+                THEN ROUND(AVG(n.non3_valor), 1) ELSE NULL END AS n3_esperado
+    FROM grmoestudiantes ge
+    INNER JOIN actividadesn3 a ON a.grmo_id = ge.grmo_id
+    LEFT JOIN notasn3 n ON n.acn3_id = a.acn3_id AND n.estu_id = ge.estu_id
+    WHERE ge.grmo_id = 30 AND ge.estu_id = 79
+    GROUP BY ge.grmo_id, ge.estu_id
+) x ON x.grmo_id = c.grmo_id AND x.estu_id = c.estu_id
+WHERE c.grmo_id = 30 AND c.estu_id = 79;
+
+-- Bloque 2: aplicación (escribe 1 fila; idempotente)
+UPDATE calificaciones c
+INNER JOIN (
+    SELECT ge.grmo_id, ge.estu_id,
+           CASE WHEN COUNT(a.acn3_id) > 0 AND COUNT(n.non3_valor) = COUNT(a.acn3_id)
+                THEN ROUND(AVG(n.non3_valor), 1) ELSE NULL END AS n3_esperado
+    FROM grmoestudiantes ge
+    INNER JOIN actividadesn3 a ON a.grmo_id = ge.grmo_id
+    LEFT JOIN notasn3 n ON n.acn3_id = a.acn3_id AND n.estu_id = ge.estu_id
+    WHERE ge.grmo_id = 30 AND ge.estu_id = 79
+    GROUP BY ge.grmo_id, ge.estu_id
+) x ON x.grmo_id = c.grmo_id AND x.estu_id = c.estu_id
+SET c.cali_n3 = x.n3_esperado
+WHERE c.grmo_id = 30 AND c.estu_id = 79
+  AND NOT (c.cali_n3 <=> x.n3_esperado)
+  AND c.cali_nota_final IS NULL
+  AND c.cali_definitiva IS NULL;
+
+-- Bloque 3: verificación (solo lee)
+SELECT c.cali_id, c.cali_n3, c.cali_nota_final, c.cali_definitiva
+FROM calificaciones c
+WHERE c.grmo_id = 30 AND c.estu_id = 79;
+```
+
+Reversa (usar el `cali_id` del Bloque 1): `UPDATE calificaciones SET cali_n3 = 4.0 WHERE cali_id = <cali_id del bloque 1>;`
+
+---
+
 ## Candado en Eliminar de actividades N3 (roster vigente) — commit `8613a13` — 2026-09-19
 
 ### Contexto
