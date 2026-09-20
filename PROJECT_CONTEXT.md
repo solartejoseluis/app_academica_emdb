@@ -1,7 +1,23 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-20
-> Versión: 128 — Recálculo del N3 de todo el roster al crear o eliminar una actividad N3 (commit `7a52825`, helper `recalcularGrupoModuloN3()` con guarda para grupos históricos, transaccional, planilla se recarga) + corrección de datos del N3 obsoleto del estudiante 79 / grupo módulo 30 en local, staging y producción (sin commit de código). Desplegado a staging y producción 2026-09-20.
+> Versión: 129 — Sección 'Pendientes programados' para después de la validación TRL5.
+
+---
+
+## Pendientes programados (desde el 2026-10-02, después de la validación TRL5)
+
+Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 2026). Antes de tocar cualquiera, hacer primero un análisis sin modificar código.
+
+| Ítem | Por qué se espera | Primer paso | Detalle en |
+|---|---|---|---|
+| Whitelist de `cali_n3` en `guardar_nota` (`calificaciones_mdl.php`) | Es un hueco de integridad de bajo riesgo (requiere sesión y petición manipulada); quitarlo podría romper un flujo que hoy dependa de eso | Análisis: quién envía `cali_n3` a ese endpoint (JS, pantallas de grupos históricos, scripts), qué pasa si se rechaza, y probar que las notas normales y los grupos históricos siguen igual | CLAUDE.md, deuda técnica ("`guardar_nota` ... tiene `cali_n3` en su whitelist") |
+| Migrar los N3 históricos como una actividad única por grupo | Cambio masivo de datos reales con script a mano en producción; no durante TRL5 | Análisis: cuántos grupos, formato de los N3 históricos, qué hacer con estudiantes retirados, cómo impedir o advertir al crear una 2ª actividad en un grupo migrado (no existe "cierre de período") | CLAUDE.md, deuda técnica ("Migrar los N3 históricos...") |
+| Notas de estudiantes retirados que reaparecen al reincorporarlos al mismo grupo módulo mientras la actividad exista | Falta decidir si es el comportamiento deseado | Decisión de Jose Luis, luego análisis | CLAUDE.md, deuda técnica ("Retirar a un estudiante del roster...") |
+| Tooltips de los candados de "Configurar actividades" ("🔒 Con notas", "🔒 Única actividad") no se ven en pantallas táctiles (usan `title` nativo) | Depende de si los docentes usan la app desde el celular | Preguntar a la coordinadora/docentes; si sí, mostrar el texto visible en la fila en vez de solo tooltip | CLAUDE.md, deuda técnica (fila "Los tooltips (`title`) de los candados...") |
+| Separar del análisis de métricas TRL5 el tráfico de mis pruebas de verificación con la cuenta de Administrador | Al analizar los datos de la validación conviene excluir esas sesiones | Completar horas exactas: "2026-09-19 y 2026-09-20: pruebas de verificación en producción con cuenta de Administrador; horas: [COMPLETAR POR JOSE LUIS]" y usar esas franjas para filtrar en `metricasdesempeno` | CHANGELOG.md, entradas de `2fc573b`/`d7cf505`/`8613a13`/`7a52825`, sección "Despliegue" |
+| Pruebas en vivo pendientes (prioridad baja): rol Docente con login real (solo se probó con sesión simulada) y el límite de 15 actividades | Hacerlas en staging cuando haya oportunidad | Con un usuario docente de prueba en staging | CHANGELOG.md, entradas de `8613a13` y `7a52825`, sección "Pruebas" (Límites) |
+| Instalar Node en el entorno de Claude Code (prioridad baja) | Hoy no se puede correr `node --check`; solo se verifica el balance de llaves y el navegador | Instalar Node en el contenedor o en el entorno local y documentarlo | CHANGELOG.md, mismas entradas que el ítem anterior |
 
 ---
 
