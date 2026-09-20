@@ -1513,6 +1513,9 @@ manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
 - Los archivos que empiezan con punto quedan ocultos en el Administrador de archivos de cPanel; activar "Mostrar archivos ocultos" en Configuración para verificar.
 - **Desplegar un cambio de código puntual (no el proyecto completo):** subir solo los archivos modificados vía FileZilla, con una cuenta FTP/FTPS/SFTP separada por entorno (staging vs. producción), archivos ocultos visibles en el cliente, y sin usar ninguna opción de "sincronizar carpetas" (que podría subir o borrar de más). Evidencia: 2026-09-18/2026-09-19, ver CHANGELOG.md.
 - **Con producción recibiendo datos reales, un cambio de datos (no de esquema ni de código) va con script SQL idempotente**, nunca con un restore completo de la BD — un restore sobrescribiría datos reales acumulados desde el último respaldo (ej. registros de la validación TRL5). El script debe tener 3 bloques explícitos: vista previa (qué filas afecta, sin escribir), aplicación (el `UPDATE`/`INSERT` real) y verificación (confirmar el resultado esperado tras aplicar). Ejemplo: corrección de matrículas sucesoras de 2026-2, commit sin código, 2026-09-19 (ver CHANGELOG.md).
+- **Nunca dejar paquetes `.zip`, copias de la aplicación, `.sql` ni respaldos en la raíz web de un entorno:** borrarlos apenas se descomprimen. Evidencia: 2026-09-20 (`20260918_upload_staging.zip` quedó descargable por dos días, ver CHANGELOG.md).
+- **Después de cada deploy, abrir la raíz del dominio en una ventana privada** y comprobar que redirige a la aplicación y que no muestra un listado de archivos.
+- **El `.htaccess` de la RAÍZ de `app.escuelamdb.com` (fuera del proyecto, no versionado) contiene el bloque "Raíz protegida y redirigida a la aplicación":** no borrarlo ni sobrescribirlo, y ponerlo siempre DESPUÉS del bloque "do not edit" de cPanel. `display_errors` debe permanecer deshabilitado en producción y se cambia solo desde MultiPHP INI Editor.
 
 ---
 

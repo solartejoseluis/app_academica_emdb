@@ -4,6 +4,48 @@
 
 ---
 
+## Endurecimiento de la raíz web de producción — listado de directorios, paquete .zip expuesto y display_errors (sin commit de código) — 2026-09-20
+
+### Contexto
+Al visitar `https://app.escuelamdb.com/` se mostraba un listado público ("Index of /") de la raíz del subdominio, con la carpeta `app_academica_emdb`, `cgi-bin`, el archivo `20260918_upload_staging.zip` (4654k, paquete/restauración de la aplicación subido el 2026-09-18) y `php.ini` (además de `.user.ini`, no listado por ser oculto). Según Jose Luis, el zip **no** contenía ningún `.sql` que expusiera claves.
+
+### Cambio
+1. El zip se eliminó del servidor.
+2. Se agregó un bloque al **final** del `.htaccess` de la raíz de `app.escuelamdb.com` (el que está fuera de `app_academica_emdb`, generado por cPanel), después de la línea `# END cPanel-generated php ini directives, do not edit`, sin tocar el bloque de cPanel ni el `.htaccess` de `app_academica_emdb` (que lleva la línea manual `php_value auto_prepend_file` de las métricas):
+
+```apache
+# ---- Raíz protegida y redirigida a la aplicación (2026-09-20) ----
+# 1. No mostrar el listado de archivos de ninguna carpeta
+Options -Indexes
+
+# 2. Quien escriba app.escuelamdb.com llega a la aplicación
+RedirectMatch 302 ^/$ /app_academica_emdb/
+
+# 3. No entregar por web archivos que no son parte de la aplicación
+<FilesMatch "\.(zip|sql|sh|log|bak|md|ini)$">
+    Require all denied
+</FilesMatch>
+# ---- Fin ----
+```
+
+3. `display_errors` se puso en "Deshabilitado" desde cPanel > MultiPHP INI Editor para `app.escuelamdb.com` (los errores siguen registrándose en `/home/escuelamdb/logs/php.error.log`).
+
+### Decisión
+- El bloque va en el `.htaccess` de la **raíz** del subdominio, separado del `.htaccess` de `app_academica_emdb` (que lleva la línea de métricas no versionada) y después del bloque "do not edit" de cPanel, porque cPanel lo reescribe cuando se cambia la configuración de PHP.
+- La redirección es 302 (temporal), no 301.
+- No se cambió el document root del subdominio porque las URL de la aplicación dependen de la ruta `/app_academica_emdb/`.
+- `FilesMatch` no bloquea `.php`, `.txt` ni `.json`.
+
+### Verificación
+4 pruebas manuales en ventana privada, repetidas después de apagar `display_errors`: la raíz redirige al login; `php.ini` responde 403; una carpeta sin index (`app_academica_emdb/app/`) responde 403 sin listado; la aplicación funciona (planilla de notas y exportación Excel/PDF). Se comprobó además que el bloque nuevo seguía en el `.htaccess` tras el cambio de cPanel.
+
+### Pendiente
+1. Este `.htaccess` de la raíz **no está en git**: Jose Luis guardó una copia local del archivo original antes de editarlo; conviene guardar también la versión nueva fuera del repo.
+2. No se revisaron los registros de acceso del servidor para saber si alguien descargó el zip.
+3. Revisar el servidor de pruebas (`aurusmind.com`) y cualquier otro dominio o subdominio de las cuentas por el mismo problema: listado de directorios y paquetes `.zip`/`.sql` en la raíz web (sin afirmar que exista).
+
+---
+
 ## Recálculo del N3 de todo el roster al crear o eliminar una actividad — commit `7a52825` — 2026-09-20
 
 ### Contexto
