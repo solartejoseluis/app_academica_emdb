@@ -4,6 +4,61 @@
 
 ---
 
+## Endurecimiento de la raíz web de staging y registro de errores de PHP (sin commit de código) — 2026-09-20
+
+### Contexto
+Staging es `dev.escuelamdb.com` (misma cuenta de cPanel que producción, `ea-php85`); producción es `app.escuelamdb.com` (`ea-php82` heredado, según MultiPHP INI Editor). El `.htaccess` de la raíz de staging solo tenía bloques generados por cPanel (directivas `php ini` con `ea-php85` y el handler de PHP), con `display_errors` en Off y `php_value error_log "error_log"` (ruta **relativa**: PHP crea un archivo `error_log` dentro de cada carpeta web donde falla un script; no tiene extensión y por eso no lo cubre un `FilesMatch` por extensiones). Además, en la raíz de `dev.escuelamdb.com` había una carpeta `wp-content` que no pertenece al proyecto.
+
+**Incidente menor del mismo día:** para evitar el `error_log` relativo, Jose Luis puso `log_errors` en Off a nivel de cuenta, dejando sin registro de errores un lapso corto. Esto contradijo lo que afirma la entrada de producción del mismo día ("Endurecimiento de la raíz web de producción"): "los errores siguen registrándose en `php.error.log`" — dejó de ser cierto durante ese lapso. Se corrigió volviendo a habilitar `log_errors`.
+
+### Cambio
+1. Se agregó al **final** del `.htaccess` de la raíz de staging, después del último bloque de cPanel (`php -- END cPanel-generated handler`):
+
+```apache
+# ---- Raíz protegida (2026-09-20) ----
+# 1. No mostrar el listado de archivos de ninguna carpeta
+Options -Indexes
+
+# 2. Quien entre a la raíz llega a la aplicación
+RedirectMatch 302 ^/$ /app_academica_emdb/
+
+# 3. No entregar por web archivos que no son parte de la aplicación
+<FilesMatch "\.(zip|sql|sh|log|bak|md|ini)$">
+    Require all denied
+</FilesMatch>
+
+# 4. No entregar los archivos de log que PHP crea en cada carpeta
+<Files "error_log">
+    Require all denied
+</Files>
+# ---- Fin ----
+```
+
+   La redirección (punto 2) sí se aplicó en staging.
+2. `log_errors` habilitado de nuevo. Configuración verificada en MultiPHP INI Editor:
+   - `app.escuelamdb.com`: `display_errors` Deshabilitado, `log_errors` Habilitado, `error_log` = `/home/<cuenta>/logs/php.error.log`.
+   - `dev.escuelamdb.com`: `display_errors` Deshabilitado, `log_errors` Habilitado, `error_log` = `/home/<cuenta>/logs/php.error.staging.log` (archivo separado del de producción, para no mezclar errores de ambos entornos).
+3. Carpeta `wp-content` ajena eliminada de la raíz de staging.
+
+### Decisión
+- Configuración objetivo en todos los entornos del proyecto: `display_errors` Off, `log_errors` On y `error_log` con ruta absoluta **fuera** de la raíz web, con un archivo por entorno.
+- El bloque va después del último bloque "do not edit" de cPanel.
+- La regla `<Files "error_log">` queda como red de seguridad por si vuelve a crearse un `error_log` suelto.
+- Se descartó desactivar `log_errors` porque elimina el diagnóstico.
+
+### Verificación
+- Pruebas en ventana privada, hechas por Jose Luis: la raíz redirige al login; `php.ini` responde 403; una carpeta sin index responde 403 sin listado; la aplicación funciona (planilla y exportación).
+- Prueba de escritura del log en staging: se creó un archivo temporal en la raíz que escribe una línea con `error_log()`, se abrió una vez y la línea apareció en `php.error.staging.log` (hora de Bogotá); el archivo temporal se borró y se comprobó que responde 404.
+- Otros ajustes de MultiPHP INI Editor: "Home directory" y un sitio de la misma cuenta ajeno al proyecto tienen `log_errors` deshabilitado; no se cambiaron (fuera del alcance del proyecto).
+
+### Pendiente
+1. No se revisaron los registros de acceso de staging.
+2. Guardar copia de los `.htaccess` de las raíces de producción y staging fuera del repo.
+3. "Home directory" y otro sitio de la cuenta ajeno al proyecto tienen `log_errors` deshabilitado (decisión de Jose Luis, pendiente de decidir si se habilita).
+4. Revisar cualquier otro dominio o subdominio de la cuenta por listado de directorios y paquetes `.zip`/`.sql` en la raíz web.
+
+---
+
 ## Endurecimiento de la raíz web de producción — listado de directorios, paquete .zip expuesto y display_errors (sin commit de código) — 2026-09-20
 
 ### Contexto
@@ -28,7 +83,7 @@ RedirectMatch 302 ^/$ /app_academica_emdb/
 # ---- Fin ----
 ```
 
-3. `display_errors` se puso en "Deshabilitado" desde cPanel > MultiPHP INI Editor para `app.escuelamdb.com` (los errores siguen registrándose en `/home/escuelamdb/logs/php.error.log`).
+3. `display_errors` se puso en "Deshabilitado" desde cPanel > MultiPHP INI Editor para `app.escuelamdb.com` (los errores siguen registrándose en `/home/<cuenta>/logs/php.error.log`).
 
 ### Decisión
 - El bloque va en el `.htaccess` de la **raíz** del subdominio, separado del `.htaccess` de `app_academica_emdb` (que lleva la línea de métricas no versionada) y después del bloque "do not edit" de cPanel, porque cPanel lo reescribe cuando se cambia la configuración de PHP.

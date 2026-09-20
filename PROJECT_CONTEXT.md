@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-09-20
-> Versión: 130 — Endurecimiento de la raíz web de producción (zip eliminado, .htaccess de la raíz con Options -Indexes/redirección/bloqueo de tipos de archivo, display_errors deshabilitado); sin commit de código
+> Versión: 131 — Endurecimiento de la raíz web de staging (dev.escuelamdb.com) y registro de errores de PHP con log_errors On y error_log fuera de la raíz web; sin commit de código
 
 ---
 
@@ -18,7 +18,8 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | Separar del análisis de métricas TRL5 el tráfico de mis pruebas de verificación con la cuenta de Administrador | Al analizar los datos de la validación conviene excluir esas sesiones | Completar horas exactas: "2026-09-19 y 2026-09-20: pruebas de verificación en producción con cuenta de Administrador; horas: [COMPLETAR POR JOSE LUIS]" y usar esas franjas para filtrar en `metricasdesempeno` | CHANGELOG.md, entradas de `2fc573b`/`d7cf505`/`8613a13`/`7a52825`, sección "Despliegue" |
 | Pruebas en vivo pendientes (prioridad baja): rol Docente con login real (solo se probó con sesión simulada) y el límite de 15 actividades | Hacerlas en staging cuando haya oportunidad | Con un usuario docente de prueba en staging | CHANGELOG.md, entradas de `8613a13` y `7a52825`, sección "Pruebas" (Límites) |
 | Instalar Node en el entorno de Claude Code (prioridad baja) | Hoy no se puede correr `node --check`; solo se verifica el balance de llaves y el navegador | Instalar Node en el contenedor o en el entorno local y documentarlo | CHANGELOG.md, mismas entradas que el ítem anterior |
-| Revisar el servidor de pruebas (aurusmind.com) y otros subdominios por listado de directorios y paquetes .zip/.sql en la raíz web | La misma exposición podría existir | Abrir cada raíz en ventana privada; no requiere esperar al 2 de octubre porque es solo una revisión | CHANGELOG.md, entrada "Endurecimiento de la raíz web de producción" |
+| Revisar el servidor de pruebas (aurusmind.com) y otros subdominios por listado de directorios y paquetes .zip/.sql en la raíz web | La misma exposición podría existir. **STAGING (dev.escuelamdb.com) RESUELTO 2026-09-20**; sigue pendiente revisar cualquier OTRO dominio o subdominio de las cuentas | Abrir cada raíz en ventana privada; no requiere esperar al 2 de octubre porque es solo una revisión | CHANGELOG.md, entradas "Endurecimiento de la raíz web de producción" y "Endurecimiento de la raíz web de staging y registro de errores de PHP" |
+| Verificar la diferencia de versión de PHP entre producción (ea-php82) y staging (ea-php85)/local (Docker php:8.5) | Prioridad baja, observación del 2026-09-20; podría funcionar en staging/local y fallar en producción | Comparar la versión mínima que exige el código y revisar si el código usa algo exclusivo de 8.3+ | CHANGELOG.md, entrada "Endurecimiento de la raíz web de staging y registro de errores de PHP" |
 
 ---
 
