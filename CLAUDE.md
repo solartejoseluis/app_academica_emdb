@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-09-06 — último commit citado: 0501479
+> Última actualización: 2026-09-19 — último commit citado: 2fc573b
 
 ## Reglas de documentación
 
@@ -1030,6 +1030,12 @@ Ejemplo: `#mdl_estudiante` en `02_estudiantes` (commit `70c45ba`, 2026-09-03) �
 Cuando se necesita medir algo en **todas** las peticiones de la aplicación (ej. duración de respuesta para OE4/TRL5, Fase 2.16) pero el proyecto no tiene router/front controller — cada `_mdl.php`/`_view.php` es un script standalone, como en este proyecto — la opción de "modificar el punto de entrada común" no existe en código. En un hosting compartido (cPanel/LiteSpeed o similar) tampoco se tiene acceso al `vhost` de Apache para agregar módulos, `mod_status`, o directivas de `LogFormat` personalizadas. La única palanca real que queda disponible vía `.htaccess` (que sí es editable por el usuario cPanel, a diferencia del `vhost`) es `php_value auto_prepend_file` — corre un script antes de cada petición PHP de ese directorio, sin necesidad de tocar ningún archivo de la aplicación. Ver Fase 2.16 (`metrics_prepend.php`) para el caso real.
 
 Antes de asumir que el **access log combinado** de Apache (`LogFormat "combined"`, el más común en hosting compartido) ya captura tiempos de respuesta y solo hace falta empezar a parsearlo: verificarlo explícitamente. El formato `combined` estándar **no incluye `%D` (microsegundos) ni `%T` (segundos)** — solo IP, fecha, request, status y tamaño de respuesta. Sin acceso al `vhost` para agregar esas directivas (típico en hosting compartido), el access log no sirve como fuente de esta métrica sin importar cuánto se lo parsee. Confirmado en este proyecto tanto en el entorno Docker local (mismo `LogFormat "combined"` por defecto de la imagen `php:8.5-apache`) como asumido para producción (cPanel, sin acceso a `httpd.conf`).
+
+### Enter en un `<form>` real no debe disparar guardado antes de completar el formulario
+
+Cuando un formulario tiene más de un campo y el primero se llena antes que el resto, Enter en ese primer campo dispara el `submit` implícito del navegador (comportamiento por defecto de un `<form>` con un solo campo de texto enfocado) y guarda con los campos siguientes todavía vacíos. Interceptarlo con un handler `keydown` sobre ese campo específico — `if (e.key === 'Enter') { e.preventDefault(); /* mover foco al siguiente campo */ }` — sin tocar el listener de `submit` existente, que queda como red de seguridad para cualquier otro disparador futuro (ej. un botón `type="submit"` que se agregue después).
+
+Ejemplo: `#txt_acn3_nombre` en el modal "Configurar actividades" (`05_calificaciones`, commit `2fc573b`, 2026-09-19) — Enter en el campo Nombre ya no guarda de inmediato, mueve el foco a Comentarios; el listener de `submit` del formulario queda intacto como red de seguridad, aunque inalcanzable por teclado tras este cambio.
 
 ---
 

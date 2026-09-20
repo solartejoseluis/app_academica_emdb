@@ -4,6 +4,27 @@
 
 ---
 
+## Ajustes de usabilidad — encabezados de notas y modal "Configurar actividades" — commit `2fc573b` — 2026-09-19
+
+### Contexto
+Ajustes de usabilidad pedidos por el operador de la institución, para que el docente distinga de un vistazo qué componente de la nota es cada columna de la planilla (`05_calificaciones`) y entienda mejor el flujo de actividades N3, sin cambiar ninguna regla de negocio — la aplicación sigue en validación TRL5 con usuarios reales.
+
+### Cambio (3 ajustes)
+1. **Encabezados N1-N4 de `#tbl_calificaciones`:** cada uno gana un badge debajo del porcentaje — "Parcial1" (N1), "Parcial2" (N2), "Actividad" (N3, `text-bg-primary`), "Eval. Final" (N4, los otros tres `text-bg-secondary`). El `<th>` de N3 se resalta como clicable: fondo y borde inferior con variables de Bootstrap (`--bs-primary-bg-subtle`/`--bs-primary`, funciona en modo claro y oscuro), `cursor:pointer`, ícono 📝 y `title="Clic para registrar y calcular N3"` — mismo `<a data-bs-toggle="modal" data-bs-target="#mdl_registro_n3">` de siempre, ahora envolviendo todo el contenido del `<th>` en vez de solo el texto "N3", sin JS nuevo para la apertura.
+2. Botón "Configurar" del modal "Registro y cálculo de N3" renombrado a **"Configurar actividades"** — mismo `id`, mismo handler por eventos `show.bs.modal`/`hidden.bs.modal` que ya evitaba el problema de modal-sobre-modal de Bootstrap.
+3. Modal **"Configurar actividades"**: el formulario de crear/editar actividad pasa a un recuadro visualmente separado ("Agregar nueva actividad", `bg-body-tertiary`); el botón **"Guardar esta actividad"** se mueve del footer al propio `<form>`, justo debajo de Comentarios, y solo es visible cuando Nombre tiene texto; **Comentarios queda deshabilitado hasta que Nombre tenga texto**; **Enter en Nombre ya no guarda de inmediato** — mueve el foco a Comentarios; el botón del footer se renombra a **"Cerrar y volver a la lista de actividades"**.
+
+### Decisión
+La regla "Nombre con texto habilita Comentarios y el botón" se integró dentro de `actualizarEstadoFormularioActividadN3()` como única fuente de verdad, compuesta junto con la regla ya existente del límite de 15 actividades — sin duplicar la lógica en otro punto del archivo. El listener de `submit` del formulario (ya existente) queda como red de seguridad, pero inalcanzable por teclado tras este cambio: Enter en Nombre ahora hace `e.preventDefault()` y mueve el foco en vez de disparar el envío implícito, y el textarea de Comentarios nunca envió el formulario con Enter (inserta salto de línea). Comentarios nunca se vacía por código al deshabilitarse — solo cambia su atributo `disabled`, el texto ya escrito se conserva. Se agregó una llamada síncrona a `actualizarEstadoFormularioActividadN3()` justo antes de mostrar el modal (en el handler de `#btn_abrir_configurar_n3`) para que el estado correcto ya esté aplicado en la primerísima apertura de la sesión — antes de este ajuste, esa primera apertura dependía de que resolviera un AJAX asíncrono, dejando una ventana breve con Comentarios habilitado y el botón visible pese a Nombre vacío.
+
+### Alcance
+Solo `app/05_calificaciones/calificaciones_view.php` y `calificaciones_ctrl.js` — markup compartido, sin rama de código por rol: aplica igual a Docente, Coordinador y Admin. Sin cambios en backend (`calificaciones_mdl.php`), ni en las exportaciones PDF/Excel (`06_reportes/pdf_grupo.php`, `pdf_boletin.php`, `reportes_ctrl.js`) ni en ningún otro módulo — todas usan su propio HTML de encabezados, ya duplicado desde antes de este ajuste.
+
+### Pruebas
+Manuales en navegador (Docker local), con rol Docente y Coordinador, contra un grupo módulo con 9 actividades N3 configuradas — encabezados, apertura del modal N3, y el flujo completo de Nombre→Comentarios→Guardar/Enter verificados en vivo. El límite de 15 actividades se verificó por lectura de la lógica (`actualizarEstadoFormularioActividadN3()`), no en vivo — no había un grupo de prueba con 15 actividades ya cargadas. No se pudo correr `node --check` (no hay Node instalado en este entorno ni en el contenedor `app`, imagen PHP-only); se validó la sintaxis cargando la página con la consola del navegador limpia (sin `SyntaxError`) y confirmando que el resto del script (carga de grupos, autosave de notas) seguía funcionando con normalidad.
+
+---
+
 ## Corrección de datos — 6 matrículas sucesoras de MD en 2026-2 (sin commit de código) — 2026-09-19
 
 ### Contexto
