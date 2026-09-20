@@ -64,17 +64,17 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
         .semaforo-rojo     { background-color: #f8d7da !important; }
         .th-badge-nota { font-size: .7rem; white-space: nowrap; }
         th.th-n3-click {
-            background-color: var(--bs-primary-bg-subtle);
-            border-bottom: 3px solid var(--bs-primary);
+            --n3-bg: #1a3a6b;
+            --n3-bg-hover: #25508f;
+            --n3-accent: #5b9bf0;
+            background-color: var(--n3-bg);
+            border-bottom: 3px solid var(--n3-accent);
             cursor: pointer;
             transition: background-color .15s;
         }
-        th.th-n3-click a {
-            color: var(--bs-primary-text-emphasis);
-            text-decoration: none;
-            display: block;
-        }
-        th.th-n3-click:hover { background-color: var(--bs-primary-border-subtle); }
+        th.th-n3-click:hover { background-color: var(--n3-bg-hover); }
+        th.th-n3-click a { color: #fff; text-decoration: none; display: block; }
+        .th-badge-n3 { background-color: #2f6fca; color: #fff; }
     </style>
 </head>
 <body>
@@ -181,7 +181,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
                                 <th class="text-center celda-sup">Sup N2</th>
                                 <th class="text-center th-n3-click">
                                     <a href="#" data-bs-toggle="modal" data-bs-target="#mdl_registro_n3" title="Clic para registrar y calcular N3">
-                                        N3<br><small class="fw-normal">20%</small><br><span class="badge text-bg-primary fw-normal th-badge-nota">Actividad</span> <span style="font-size:.8rem">📝</span>
+                                        N3<br><small class="fw-normal">20%</small><br><span class="badge th-badge-n3 fw-normal th-badge-nota">Actividad</span> <span style="font-size:.8rem">📝</span>
                                     </a>
                                 </th>
                                 <th class="text-center">N4<br><small class="fw-normal">40%</small><br><span class="badge text-bg-secondary fw-normal th-badge-nota">Eval. Final</span></th>
