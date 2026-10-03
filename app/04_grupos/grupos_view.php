@@ -16,6 +16,11 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <link rel="stylesheet" href="/app_academica_emdb/app/00_files/estilos.css">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <style>
+/* Color de relleno por familia de programa en #tbl_grupos (clases aplicadas
+   desde createdRow en grupos_ctrl.js, ver FAMILIAS_PROGRAMA). La variable va
+   en las celdas porque Bootstrap 5.3 pinta el fondo desde cada celda. */
+.fila-familia-aso > * { --bs-table-bg: var(--bs-primary-bg-subtle); }
+.fila-familia-md  > * { --bs-table-bg: var(--bs-success-bg-subtle); }
 .lista-item {
     cursor: pointer;
     user-select: none;

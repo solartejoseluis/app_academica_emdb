@@ -10,6 +10,20 @@ let cacheProgramas = {};
 let programaIdPendienteEliminar = null;
 let periodoIdPendienteEliminar = null;
 
+// Familias de programa para el color de relleno de las filas de #tbl_grupos
+// (pestaña Grupos Semestre). Clave: clase CSS de la fila (definida en el
+// <style> de grupos_view.php); valor: lista de prog_sigla de esa familia.
+// Para un programa nuevo, agregar su sigla a la lista que corresponda — una
+// sigla que no esté en ninguna lista queda sin color.
+const FAMILIAS_PROGRAMA = {
+    'fila-familia-aso': ['ASO', 'ASO2016'],   // azul
+    'fila-familia-md':  ['MD', 'AMD2016']     // verde
+};
+
+function claseFamiliaPrograma(prog_sigla) {
+    return Object.keys(FAMILIAS_PROGRAMA).find(clase => FAMILIAS_PROGRAMA[clase].includes(prog_sigla)) || '';
+}
+
 $(document).ready(function () {
 
     // ── Variables globales de estado ─────────────────────────────────────────
@@ -87,6 +101,10 @@ $(document).ready(function () {
                 url: 'grupos_mdl.php?accion=listar_grupos',
                 type: 'POST',
                 dataSrc: 'data'
+            },
+            createdRow: function (row, data) {
+                const clase = claseFamiliaPrograma(data.prog_sigla);
+                if (clase) $(row).addClass(clase);
             },
             columns: [
                 { data: null, render: (d, t, r, m) => m.row + 1 },
