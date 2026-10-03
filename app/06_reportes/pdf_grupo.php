@@ -10,6 +10,7 @@ if (!in_array($role_id, [1, 2, 3], true)) {
 }
 
 require_once '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Dompdf\Dompdf;
@@ -125,7 +126,7 @@ if (!$estudiantes) {
     }
 }
 
-$jornada = $grupo['grse_jornada'] ?? '—';
+$jornada = etiquetaJornada($grupo['grse_jornada'] ?? null);
 
 // ── HTML del reporte ──────────────────────────────────────────────────────────
 $html = '

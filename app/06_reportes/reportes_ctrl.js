@@ -467,7 +467,7 @@ $(document).ready(function () {
         if (!g) return { linea1: '', linea2: '' };
         return {
             linea1: 'Módulo: ' + g.modu_nombre + ' (' + g.modu_sigla + ') — Grupo: ' + g.grse_codigo + ' — Docente: ' + g.doce_nombres + ' ' + g.doce_apellidos,
-            linea2: 'Programa: ' + g.prog_nombre + ' — Período: ' + g.peri_codigo + ' — Jornada: ' + (g.grse_jornada || '—')
+            linea2: 'Programa: ' + g.prog_nombre + ' — Período: ' + g.peri_codigo + ' — Jornada: ' + etiquetaJornada(g.grse_jornada)
         };
     }
 
@@ -487,7 +487,7 @@ $(document).ready(function () {
         $('#spn_ctx_docente').text(g.doce_apellidos + ', ' + g.doce_nombres);
         $('#spn_ctx_programa').text(g.prog_nombre + ' (' + g.prog_sigla + ')');
         $('#spn_ctx_periodo').text(g.peri_codigo);
-        $('#spn_ctx_jornada').text(g.grse_jornada || '—');
+        $('#spn_ctx_jornada').text(etiquetaJornada(g.grse_jornada));
         $('#info_reporte_grupo').show();
     }
 

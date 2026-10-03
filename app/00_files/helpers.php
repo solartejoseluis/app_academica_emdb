@@ -7,6 +7,15 @@ function formatearUltimoAcceso(?string $ultimoAcceso, ?string $fechaCreacion): s
     return $ts ? date('d/m/Y H:i', $ts) : '—';
 }
 
+// Texto de presentación de gruposemestres.grse_jornada. El valor guardado
+// ('Sabados', sin tilde) no cambia: es el que usan los selects y la fórmula
+// de grse_codigo. Mismo criterio que etiquetaJornada() en 00_files/helpers.js.
+function etiquetaJornada(?string $valor): string {
+    if ($valor === null || $valor === '') return 'Semana';
+    if ($valor === 'Sabados') return 'Sábados';
+    return $valor;
+}
+
 // Extraída del patrón ya usado en doc_mdl.php (case 'guardar', commit
 // b6cc503): valida unicidad de usuarios.usua_email (excluyendo el propio
 // usua_id) y lo actualiza. Debe ejecutarse SIEMPRE dentro de la transacción

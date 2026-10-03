@@ -314,6 +314,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2 && $_SESSION['role_
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.bootstrap5.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+<script src="../00_files/helpers.js"></script>
 <script src="calificaciones_ctrl.js"></script>
 <script>const MODULO_ACTUAL = '05_calificaciones';</script>
 <script src="../00_files/ayuda_sidebar.js"></script>

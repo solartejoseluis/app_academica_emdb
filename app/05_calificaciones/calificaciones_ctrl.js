@@ -54,11 +54,7 @@ $(document).ready(function () {
     // ── Textos de la card de grupo y del encabezado de la planilla ──────────
     // Ambos salen de las mismas dos funciones (tituloGrupo/lineasGrupo), que
     // reciben los data-* de la card, para que no puedan divergir.
-    function etiquetaJornada(valor) {
-        if (valor === null || valor === undefined || valor === '') return 'Semana';
-        if (valor === 'Sabados') return 'Sábados';
-        return valor;
-    }
+    // etiquetaJornada() vive en 00_files/helpers.js (compartida con 06_reportes).
     function tituloGrupo(d) {
         return d['data-modu-sigla'] + ' — ' + d['data-modu-nombre'];
     }
@@ -183,7 +179,7 @@ $(document).ready(function () {
         if (!g) return { linea1: '', linea2: '' };
         return {
             linea1: 'Módulo: ' + g.modu_nombre + ' (' + g.modu_sigla + ') — Grupo: ' + g.grse_codigo + ' — Docente: ' + g.doce_nombres + ' ' + g.doce_apellidos,
-            linea2: 'Programa: ' + g.prog_nombre + ' — Período: ' + g.peri_codigo + ' — Jornada: ' + (g.grse_jornada || '—')
+            linea2: 'Programa: ' + g.prog_nombre + ' — Período: ' + g.peri_codigo + ' — Jornada: ' + etiquetaJornada(g.grse_jornada)
         };
     }
     function escaparXmlExp(texto) {

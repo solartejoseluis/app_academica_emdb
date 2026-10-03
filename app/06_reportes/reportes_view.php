@@ -262,6 +262,7 @@ if (!$es_coordinador) {
 <script>
     const ES_COORDINADOR = <?= $es_coordinador ? 'true' : 'false' ?>;
 </script>
+<script src="../00_files/helpers.js"></script>
 <script src="reportes_ctrl.js"></script>
 <script>const MODULO_ACTUAL = '06_reportes';</script>
 <script src="../00_files/ayuda_sidebar.js"></script>
