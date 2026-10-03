@@ -51,6 +51,25 @@ $(document).ready(function () {
         });
     }
 
+    // ── Textos de la card de grupo y del encabezado de la planilla ──────────
+    // Ambos salen de las mismas dos funciones (tituloGrupo/lineasGrupo), que
+    // reciben los data-* de la card, para que no puedan divergir.
+    function etiquetaJornada(valor) {
+        if (valor === null || valor === undefined || valor === '') return 'Semana';
+        if (valor === 'Sabados') return 'Sábados';
+        return valor;
+    }
+    function tituloGrupo(d) {
+        return d['data-modu-sigla'] + ' — ' + d['data-modu-nombre'];
+    }
+    function lineasGrupo(d) {
+        return [
+            'grupo semestre: ' + d['data-grse-codigo'],
+            'Cohorte: ' + d['data-coho-codigo'] + ' | Semestre: S' + d['data-grse-semestre'],
+            'Periodo: ' + d['data-peri-codigo'] + ' | Jornada: ' + d['data-jornada'] + '.'
+        ];
+    }
+
     // ── Cargar lista de grupos al inicio ────────────────────────────────────
     cargarGrupos();
 
@@ -82,21 +101,38 @@ $(document).ready(function () {
                     return;
                 }
                 r.data.forEach(g => {
-                    const docente = g.doce_nombres
-                        ? `<div class="text-muted" style="font-size:0.75em">${g.doce_apellidos}, ${g.doce_nombres}</div>`
-                        : '';
-                    const card = $(`
-                        <div class="card grupo-card mb-2 p-2" data-grmo="${g.grmo_id}">
-                            <div class="fw-bold" style="font-size:0.9em">${g.modu_sigla} — ${g.modu_nombre}</div>
-                            <div class="text-muted" style="font-size:0.78em">
-                                ${g.coho_codigo} · Sem.${g.grse_semestre} · ${g.peri_codigo}
-                            </div>
-                            ${docente}
-                            <div style="font-size:0.78em">
-                                <span class="badge bg-info text-dark">${g.total_estudiantes} estudiantes</span>
-                            </div>
-                        </div>
-                    `);
+                    // La card se arma con .text()/.attr() (no con un template
+                    // string) para que jQuery escape todos los textos, tanto
+                    // en el contenido como en los data-*. Los data-* son la
+                    // fuente del encabezado de la planilla (cargarCalificaciones).
+                    const datos = {
+                        'data-grmo':          g.grmo_id,
+                        'data-modu-sigla':    g.modu_sigla,
+                        'data-modu-nombre':   g.modu_nombre,
+                        'data-grse-codigo':   g.grse_codigo,
+                        'data-coho-codigo':   g.coho_codigo,
+                        'data-grse-semestre': g.grse_semestre,
+                        'data-peri-codigo':   g.peri_codigo,
+                        'data-jornada':       etiquetaJornada(g.grse_jornada)
+                    };
+                    const card = $('<div class="card grupo-card mb-2 p-2"></div>').attr(datos);
+                    card.append(
+                        $('<div class="fw-bold" style="font-size:0.9em"></div>').text(tituloGrupo(datos))
+                    );
+                    lineasGrupo(datos).forEach(linea => {
+                        card.append($('<div class="text-muted" style="font-size:0.78em"></div>').text(linea));
+                    });
+                    if (g.doce_nombres) {
+                        card.append(
+                            $('<div class="text-muted" style="font-size:0.75em"></div>')
+                                .text(g.doce_apellidos + ', ' + g.doce_nombres)
+                        );
+                    }
+                    card.append(
+                        $('<div style="font-size:0.78em"></div>').append(
+                            $('<span class="badge bg-info text-dark"></span>').text(g.total_estudiantes + ' estudiantes')
+                        )
+                    );
                     contenedor.append(card);
                 });
 
@@ -244,8 +280,17 @@ $(document).ready(function () {
 
                 // Actualizar encabezado
                 const card = $(`.grupo-card[data-grmo="${grmo_id}"]`);
-                $('#titulo_modulo').text(card.find('.fw-bold').first().text());
-                $('#subtitulo_modulo').text(card.find('.text-muted').first().text());
+                const datos = {};
+                ['data-modu-sigla', 'data-modu-nombre', 'data-grse-codigo', 'data-coho-codigo',
+                 'data-grse-semestre', 'data-peri-codigo', 'data-jornada'].forEach(attr => {
+                    datos[attr] = card.attr(attr);
+                });
+                $('#titulo_modulo').text(tituloGrupo(datos));
+                const subtitulo = $('#subtitulo_modulo').empty();
+                lineasGrupo(datos).forEach((linea, i) => {
+                    if (i > 0) subtitulo.append('<br>');
+                    subtitulo.append(document.createTextNode(linea));
+                });
                 $('#badge_total_estudiantes').text(r.data.length + ' estudiantes');
 
                 // Renderizar filas

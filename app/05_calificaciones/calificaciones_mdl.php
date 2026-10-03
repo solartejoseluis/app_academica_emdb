@@ -151,7 +151,7 @@ switch ($accion) {
                 $stmt = $pdo->prepare("
                     SELECT gm.grmo_id, gm.grmo_horario, gm.fechainicio, gm.fechafin,
                            m.modu_nombre, m.modu_sigla,
-                           gs.grse_codigo, gs.grse_semestre,
+                           gs.grse_codigo, gs.grse_semestre, gs.grse_jornada,
                            c.coho_codigo, p.prog_sigla,
                            pe.peri_codigo,
                            (SELECT COUNT(*) FROM grmoestudiantes ge WHERE ge.grmo_id = gm.grmo_id) AS total_estudiantes
@@ -194,7 +194,7 @@ switch ($accion) {
                 $stmt = $pdo->prepare("
                     SELECT gm.grmo_id, gm.grmo_horario, gm.fechainicio, gm.fechafin,
                            m.modu_nombre, m.modu_sigla,
-                           gs.grse_codigo, gs.grse_semestre, gs.peri_id,
+                           gs.grse_codigo, gs.grse_semestre, gs.grse_jornada, gs.peri_id,
                            c.coho_codigo, p.prog_sigla,
                            pe.peri_codigo,
                            d.doce_id, d.doce_nombres, d.doce_apellidos,
