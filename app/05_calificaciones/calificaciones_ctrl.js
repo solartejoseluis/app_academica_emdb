@@ -31,7 +31,7 @@ $(document).ready(function () {
             // El change se engancha recién aquí para que un cambio de filtro
             // hecho antes de tiempo no dispare una segunda petición superpuesta.
             $('#slct_filtro_doce_id, #slct_filtro_prog_id, #slct_filtro_peri_id').on('change', function () {
-                cargarGrupos();
+                cargarGrupos(sincronizarPlanillaConCards);
             });
             cargarGrupos(abrirCard ? abrirCardInicial : null);
         }
@@ -155,6 +155,7 @@ $(document).ready(function () {
                         ? 'Sin módulos asignados'
                         : 'No tienes módulos asignados en el período activo.';
                     contenedor.html(`<p class="text-muted small">${mensaje}</p>`);
+                    if (typeof alTerminar === 'function') alTerminar();
                     return;
                 }
                 r.data.forEach(g => {
@@ -205,6 +206,39 @@ $(document).ready(function () {
         grmo_id_activo = $(this).data('grmo');
         cargarCalificaciones(grmo_id_activo);
     });
+
+    // ── Planilla coherente con los filtros (solo Coordinador/Admin) ──────────
+    // Se invoca al terminar cada recarga de cards por cambio de filtro: si el
+    // grupo abierto sigue en la lista, se vuelve a marcar su card (las cards
+    // se reconstruyen en cada recarga); si ya no está, la planilla vuelve al
+    // estado inicial.
+    function sincronizarPlanillaConCards() {
+        if (grmo_id_activo === null) return;
+        const card = $('.grupo-card[data-grmo="' + grmo_id_activo + '"]');
+        if (card.length) {
+            card.addClass('activo');
+        } else {
+            limpiarPlanilla();
+        }
+    }
+
+    // Deja la planilla como cuando aún no se ha elegido ningún grupo (mismos
+    // valores iniciales que el markup de calificaciones_view.php).
+    function limpiarPlanilla() {
+        grmo_id_activo = null;
+        $('.grupo-card').removeClass('activo');
+        $('#contenedor_notas').hide();
+        $('#msg_seleccione').show();
+        $('#titulo_modulo').text('—');
+        $('#subtitulo_modulo').text('—');
+        $('#badge_total_estudiantes').text('0 estudiantes');
+        $('#tbody_calificaciones').empty();
+        if (tablaExportGrupo !== null) {
+            tablaExportGrupo.destroy();
+            tablaExportGrupo = null;
+        }
+        $('#tbody_export_grupo').empty();
+    }
 
     // ── Exportación de reporte del grupo (Excel / PDF) — reutiliza grmo_id_activo ──
     let tablaExportGrupo = null;
@@ -327,6 +361,9 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (r) {
                 if (r.status !== 'ok') return;
+                // Respuesta de un grupo que ya no es el abierto (se cambió de
+                // card o limpiarPlanilla() lo cerró mientras llegaba): se descarta.
+                if (grmo_id != grmo_id_activo) return;
 
                 // Actualizar encabezado
                 const card = $(`.grupo-card[data-grmo="${grmo_id}"]`);
