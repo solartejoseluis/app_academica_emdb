@@ -5,10 +5,58 @@ $(document).ready(function () {
     // ── Filtros de grupos (solo Coordinador/Admin) ───────────────────────────
     const bloqueFiltros = $('#bloque_filtros_grupos');
 
-    if (bloqueFiltros.length) {
-        poblarFiltros();
-        $('#slct_filtro_doce_id, #slct_filtro_prog_id, #slct_filtro_peri_id').on('change', function () {
-            cargarGrupos();
+    // ?grmo_id (enlace "Ver Notas" de 07_coordinador): se usa UNA sola vez, en
+    // la carga inicial. Solo dígitos — termina dentro de un selector jQuery.
+    const grmoParamCrudo = new URLSearchParams(window.location.search).get('grmo_id');
+    const grmoParam = /^\d+$/.test(grmoParamCrudo || '') ? grmoParamCrudo : null;
+
+    function abrirCardInicial() {
+        if (!grmoParam) return;
+        $('.grupo-card[data-grmo="' + grmoParam + '"]').first().trigger('click');
+    }
+
+    // Arranque de Coordinador/Admin: el período del filtro se decide ANTES de
+    // la única petición inicial de listar_grupos (ver "DataTable con ajax.data
+    // dependiente de un valor async..." en CLAUDE.md — mismo problema, aquí con
+    // cards). poblarFiltros() llama a esta función cuando ya llenó el select.
+    function iniciarListadoGrupos(periodos) {
+        const slctPeri = $('#slct_filtro_peri_id');
+        const activo = periodos.find(pe => pe.peri_activo == 1);
+
+        function lanzar(peri_id, abrirCard) {
+            // Si el período no está entre las opciones, .val() deja el select
+            // sin selección: se vuelve explícitamente a "Todos".
+            slctPeri.val(peri_id ? String(peri_id) : '');
+            if (slctPeri.val() === null) slctPeri.val('');
+            // El change se engancha recién aquí para que un cambio de filtro
+            // hecho antes de tiempo no dispare una segunda petición superpuesta.
+            $('#slct_filtro_doce_id, #slct_filtro_prog_id, #slct_filtro_peri_id').on('change', function () {
+                cargarGrupos();
+            });
+            cargarGrupos(abrirCard ? abrirCardInicial : null);
+        }
+        function lanzarConActivo() {
+            lanzar(activo ? activo.peri_id : null, false);
+        }
+
+        if (!grmoParam) {
+            lanzarConActivo();
+            return;
+        }
+        $.ajax({
+            type: 'POST',
+            url: 'calificaciones_mdl.php?accion=obtener_periodo_grupo',
+            data: { grmo_id: grmoParam },
+            dataType: 'json',
+            success: function (r) {
+                const peri_id = (r.status === 'ok' && r.data) ? r.data.peri_id : null;
+                if (peri_id && periodos.some(pe => pe.peri_id == peri_id)) {
+                    lanzar(peri_id, true);
+                } else {
+                    lanzarConActivo();
+                }
+            },
+            error: lanzarConActivo
         });
     }
 
@@ -42,11 +90,17 @@ $(document).ready(function () {
             url: 'calificaciones_mdl.php?accion=listar_periodos_filtro',
             dataType: 'json',
             success: function (r) {
-                if (r.status !== 'ok') return;
+                // Aunque el catálogo falle, el listado inicial se carga igual
+                // (con "Todos"), para no dejar el panel en "Cargando...".
+                const periodos = (r.status === 'ok' && r.data) ? r.data : [];
                 const slct = $('#slct_filtro_peri_id');
-                r.data.forEach(pe => {
+                periodos.forEach(pe => {
                     slct.append(`<option value="${pe.peri_id}">${pe.peri_codigo}</option>`);
                 });
+                iniciarListadoGrupos(periodos);
+            },
+            error: function () {
+                iniciarListadoGrupos([]);
             }
         });
     }
@@ -67,9 +121,16 @@ $(document).ready(function () {
     }
 
     // ── Cargar lista de grupos al inicio ────────────────────────────────────
-    cargarGrupos();
+    // Coordinador/Admin: lo dispara iniciarListadoGrupos() cuando ya se conoce
+    // el período del filtro. Docente (sin filtros): arranque directo.
+    if (bloqueFiltros.length) {
+        poblarFiltros();
+    } else {
+        cargarGrupos(abrirCardInicial);
+    }
 
-    function cargarGrupos() {
+    // alTerminar (opcional): se invoca una vez con las cards ya en el DOM.
+    function cargarGrupos(alTerminar) {
         const filtros = {};
         if (bloqueFiltros.length) {
             filtros.doce_id = $('#slct_filtro_doce_id').val();
@@ -132,14 +193,7 @@ $(document).ready(function () {
                     contenedor.append(card);
                 });
 
-                const params = new URLSearchParams(window.location.search);
-                const grmoParam = params.get('grmo_id');
-                if (grmoParam) {
-                    const cardTarget = $('.grupo-card[data-grmo="' + grmoParam + '"]');
-                    if (cardTarget.length) {
-                        cardTarget.trigger('click');
-                    }
-                }
+                if (typeof alTerminar === 'function') alTerminar();
             }
         });
     }

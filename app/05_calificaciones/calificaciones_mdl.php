@@ -251,9 +251,46 @@ switch ($accion) {
         }
         try {
             $pdo = getConexion();
-            $stmt = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos ORDER BY peri_anio DESC, peri_semestre DESC");
+            $stmt = $pdo->prepare("SELECT peri_id, peri_codigo, peri_activo FROM periodos ORDER BY peri_anio DESC, peri_semestre DESC");
             $stmt->execute();
             echo json_encode(['status' => 'ok', 'data' => $stmt->fetchAll()]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    // Período de un grupo módulo, para que la vista ajuste el filtro "Período"
+    // ANTES de pedir listar_grupos cuando la URL trae ?grmo_id (enlace "Ver
+    // Notas" de 07_coordinador). Solo Coordinador/Admin: el docente no tiene
+    // ese filtro. Mismos JOIN y mismo grmo_activo = 1 que la rama
+    // Coordinador/Admin de listar_grupos, para que "encontrado" aquí signifique
+    // siempre "aparece como card allá". data = null si no se encuentra.
+    case 'obtener_periodo_grupo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        try {
+            $pdo = getConexion();
+            $stmt = $pdo->prepare("
+                SELECT gs.peri_id
+                FROM gruposmodulos gm
+                INNER JOIN modulos m ON gm.modu_id = m.modu_id
+                INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                INNER JOIN cohortes c ON gs.coho_id = c.coho_id
+                INNER JOIN programas p ON c.prog_id = p.prog_id
+                INNER JOIN periodos pe ON gs.peri_id = pe.peri_id
+                INNER JOIN docentes d ON gm.doce_id = d.doce_id
+                WHERE gm.grmo_id = ? AND gm.grmo_activo = 1
+            ");
+            $stmt->execute([(int)($_POST['grmo_id'] ?? 0)]);
+            $row = $stmt->fetch();
+            echo json_encode(['status' => 'ok', 'data' => $row ?: null]);
         } catch (Exception $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
