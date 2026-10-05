@@ -62,6 +62,27 @@ if (!in_array((int)$_SESSION['role_id'], [1, 2])) {
     <!-- ── Sección 2: Estado de notas por grupo ─────────────────────────── -->
     <h5 class="fw-bold mb-3">Estado de Notas por Grupo</h5>
 
+    <div class="row g-2 mb-3" id="bloque_filtros_estado_notas">
+        <div class="col-md-3">
+            <label class="form-label small mb-1" for="slct_filtro_peri_id">Período</label>
+            <select class="form-select form-select-sm" id="slct_filtro_peri_id">
+                <option value="">Todos los períodos</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small mb-1" for="slct_filtro_prog_id">Programa</label>
+            <select class="form-select form-select-sm" id="slct_filtro_prog_id">
+                <option value="">Seleccione programa</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small mb-1" for="slct_filtro_doce_id">Docente</label>
+            <select class="form-select form-select-sm" id="slct_filtro_doce_id">
+                <option value="">Seleccione docente</option>
+            </select>
+        </div>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-bordered table-hover" id="tbl_estado_notas" style="width:100%">
             <thead class="table-dark">

@@ -25,6 +25,48 @@ function renderTexto(data, type) {
     return type === 'display' ? escaparHtml(data) : data;
 }
 
+// Filtros Período/Programa/Docente: se aplican en el cliente y solo a
+// #tbl_estado_notas. Se registra una sola vez, al cargar este archivo; lee los
+// selects en cada draw(), así que la tabla nace ya filtrada.
+$.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, fila) {
+    if (settings.nTable.id !== 'tbl_estado_notas') return true;
+    const peri_id = $('#slct_filtro_peri_id').val();
+    const prog_id = $('#slct_filtro_prog_id').val();
+    const doce_id = $('#slct_filtro_doce_id').val();
+    return (!peri_id || String(fila.peri_id) === peri_id)
+        && (!prog_id || String(fila.prog_id) === prog_id)
+        && (!doce_id || String(fila.doce_id) === doce_id);
+});
+
+// Agrega al select una opción por cada valor distinto presente en las filas.
+// El texto va con .text(): nunca se interpreta como HTML.
+function poblarFiltro(selector, grupos, campoValor, campoTexto, comparar) {
+    const vistos = {};
+    const opciones = [];
+    grupos.forEach(function (g) {
+        if (vistos[g[campoValor]]) return;
+        vistos[g[campoValor]] = true;
+        opciones.push({ valor: g[campoValor], texto: g[campoTexto] });
+    });
+    opciones.sort(comparar);
+    const slct = $(selector);
+    opciones.forEach(function (o) {
+        slct.append($('<option>').val(o.valor).text(o.texto));
+    });
+}
+
+// Las opciones salen de TODAS las filas recibidas (los tres filtros son
+// independientes). El período arranca en el activo, o en "Todos" si no hay.
+function poblarFiltros(grupos) {
+    const alfabetico = function (a, b) { return String(a.texto).localeCompare(String(b.texto), 'es'); };
+    poblarFiltro('#slct_filtro_peri_id', grupos, 'peri_id', 'peri_codigo', function (a, b) { return alfabetico(b, a); });
+    poblarFiltro('#slct_filtro_prog_id', grupos, 'prog_id', 'prog_sigla', alfabetico);
+    poblarFiltro('#slct_filtro_doce_id', grupos, 'doce_id', 'docente', alfabetico);
+
+    const activo = grupos.find(function (g) { return g.peri_activo == 1; });
+    $('#slct_filtro_peri_id').val(activo ? String(activo.peri_id) : '');
+}
+
 function cargarDashboard() {
     $.ajax({
         type: 'POST',
@@ -41,10 +83,21 @@ function cargarDashboard() {
             $('#cnt_docentes').text(c.total_docentes);
             $('#cnt_grupos').text(c.total_grupos);
 
+            // Antes de crear la tabla, para que el primer draw ya salga filtrado.
+            poblarFiltros(r.data.grupos);
+
             // Única inicialización, ya con los datos (sin tabla vacía previa).
             $('#tbl_estado_notas').DataTable({
                 destroy: true,
                 data: r.data.grupos,
+                // El change se engancha con la tabla ya lista: un cambio hecho
+                // antes igual lo recoge el primer draw.
+                initComplete: function () {
+                    const tabla = this.api();
+                    $('#slct_filtro_peri_id, #slct_filtro_prog_id, #slct_filtro_doce_id').on('change', function () {
+                        tabla.draw();
+                    });
+                },
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
                     emptyTable: 'Sin grupos activos'
