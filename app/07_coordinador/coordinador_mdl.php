@@ -60,7 +60,7 @@ switch ($accion) {
                                   INNER JOIN actividadesn3 a ON n.acn3_id = a.acn3_id
                                   WHERE a.grmo_id = gm.grmo_id), '')
                     ), '') AS ultima_actualizacion,
-                    CONCAT(d.doce_nombres, ' ', d.doce_apellidos) AS docente,
+                    CONCAT(d.doce_apellidos, ', ', d.doce_nombres) AS docente,
                     COUNT(DISTINCT ge.estu_id) AS total_estudiantes,
                     COUNT(DISTINCT c.estu_id)  AS con_notas,
                     COUNT(DISTINCT CASE WHEN c.cali_definitiva IS NOT NULL THEN c.estu_id END) AS con_definitiva,
