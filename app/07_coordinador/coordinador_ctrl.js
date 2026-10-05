@@ -139,7 +139,8 @@ function cargarDashboard() {
                         searchable: false,
                         render: function (data) {
                             return `<a href="../05_calificaciones/calificaciones_view.php?grmo_id=${encodeURIComponent(data)}"
-                                       class="btn btn-sm btn-outline-primary">
+                                       class="btn btn-sm btn-outline-primary"
+                                       target="_blank" rel="noopener">
                                         ✏️ Ver Notas
                                     </a>`;
                         }
