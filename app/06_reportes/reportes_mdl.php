@@ -45,11 +45,15 @@ switch ($accion) {
             $pdo = getConexion();
             $stmt = $pdo->prepare("
                 SELECT gm.grmo_id, m.modu_nombre, m.modu_sigla,
-                       gs.grse_codigo, d.doce_nombres, d.doce_apellidos,
+                       gs.grse_codigo, d.doce_id, d.doce_nombres, d.doce_apellidos,
+                       pe.peri_id, pe.peri_codigo, pe.peri_activo,
+                       p.prog_id, p.prog_sigla,
                        COUNT(ge.estu_id) AS total_estudiantes
                 FROM gruposmodulos gm
                 JOIN modulos m ON gm.modu_id = m.modu_id
                 JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                JOIN periodos pe ON gs.peri_id = pe.peri_id
+                JOIN programas p ON gs.prog_id = p.prog_id
                 JOIN docentes d ON gm.doce_id = d.doce_id
                 LEFT JOIN grmoestudiantes ge ON gm.grmo_id = ge.grmo_id
                 WHERE gm.grmo_activo = 1
