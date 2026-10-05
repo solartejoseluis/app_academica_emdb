@@ -52,3 +52,27 @@ if (typeof jQuery !== 'undefined' && jQuery.fn && jQuery.fn.dataTable) {
     jQuery.fn.dataTable.ext.type.order['fecha-emdb-asc']  = compararFechaAsc;
     jQuery.fn.dataTable.ext.type.order['fecha-emdb-desc'] = compararFechaDesc;
 }
+
+// ── Selects de filtro armados desde las filas recibidas ──────────────────────
+// Agrega al select una opción por cada valor distinto presente en las filas
+// (gana la primera aparición). No borra las opciones que el select ya tenga.
+// El texto va con .text(): nunca se interpreta como HTML. Solo requiere jQuery.
+//   selector    — selector jQuery del <select>
+//   filas       — arreglo de objetos (las filas de la respuesta)
+//   campoValor  — propiedad de la fila que va como value de la opción
+//   campoTexto  — propiedad de la fila que va como texto de la opción
+//   comparar    — comparador para sort(); recibe objetos { valor, texto }
+function poblarFiltro(selector, filas, campoValor, campoTexto, comparar) {
+    const vistos = {};
+    const opciones = [];
+    filas.forEach(function (f) {
+        if (vistos[f[campoValor]]) return;
+        vistos[f[campoValor]] = true;
+        opciones.push({ valor: f[campoValor], texto: f[campoTexto] });
+    });
+    opciones.sort(comparar);
+    const slct = jQuery(selector);
+    opciones.forEach(function (o) {
+        slct.append(jQuery('<option>').val(o.valor).text(o.texto));
+    });
+}

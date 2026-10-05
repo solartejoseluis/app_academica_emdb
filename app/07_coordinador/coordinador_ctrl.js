@@ -38,25 +38,9 @@ $.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, fila) 
         && (!doce_id || String(fila.doce_id) === doce_id);
 });
 
-// Agrega al select una opción por cada valor distinto presente en las filas.
-// El texto va con .text(): nunca se interpreta como HTML.
-function poblarFiltro(selector, grupos, campoValor, campoTexto, comparar) {
-    const vistos = {};
-    const opciones = [];
-    grupos.forEach(function (g) {
-        if (vistos[g[campoValor]]) return;
-        vistos[g[campoValor]] = true;
-        opciones.push({ valor: g[campoValor], texto: g[campoTexto] });
-    });
-    opciones.sort(comparar);
-    const slct = $(selector);
-    opciones.forEach(function (o) {
-        slct.append($('<option>').val(o.valor).text(o.texto));
-    });
-}
-
 // Las opciones salen de TODAS las filas recibidas (los tres filtros son
 // independientes). El período arranca en el activo, o en "Todos" si no hay.
+// poblarFiltro() vive en 00_files/helpers.js.
 function poblarFiltros(grupos) {
     const alfabetico = function (a, b) { return String(a.texto).localeCompare(String(b.texto), 'es'); };
     poblarFiltro('#slct_filtro_peri_id', grupos, 'peri_id', 'peri_codigo', function (a, b) { return alfabetico(b, a); });
