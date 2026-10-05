@@ -73,14 +73,11 @@ if (!in_array((int)$_SESSION['role_id'], [1, 2])) {
                     <th class="text-center">Con Notas</th>
                     <th class="text-center">Completos</th>
                     <th class="text-center">Estado</th>
+                    <th class="text-center">Actualizado</th>
                     <th class="text-center">Acciones</th>
                 </tr>
             </thead>
-            <tbody id="tbody_estado_notas">
-                <tr>
-                    <td colspan="8" class="text-center text-muted">Cargando...</td>
-                </tr>
-            </tbody>
+            <tbody></tbody>
         </table>
     </div>
 
