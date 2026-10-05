@@ -208,9 +208,10 @@ switch ($accion) {
             $stmt = $pdo->prepare("
                 SELECT gs.grse_id, gs.grse_codigo, gs.grse_semestre,
                        gs.fechainicio, gs.fechafin, gs.grse_activo, gs.coho_id,
+                       gs.prog_id, gs.peri_id,
                        c.coho_codigo,
                        p.prog_sigla, p.prog_nombre,
-                       pe.peri_codigo,
+                       pe.peri_codigo, pe.peri_activo,
                        (SELECT COUNT(*) FROM gruposmodulos gm WHERE gm.grse_id = gs.grse_id AND gm.grmo_activo = 1) AS total_modulos,
                        (SELECT COUNT(DISTINCT ge.estu_id)
                         FROM grmoestudiantes ge
