@@ -553,6 +553,23 @@ switch ($accion) {
                 break;
             }
 
+            // fk_grmo_estu_grmo es CASCADE: sin este chequeo el DELETE
+            // borraría el roster del módulo sin avisar.
+            $check = $pdo->prepare("SELECT COUNT(*) FROM grmoestudiantes WHERE grmo_id = ?");
+            $check->execute([$grmo_id]);
+            $total_estudiantes = (int)$check->fetchColumn();
+            if ($total_estudiantes > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Este módulo tiene ' . $total_estudiantes . ' estudiante(s) asignado(s), no puede quitarse del grupo. Retírelos primero en la pestaña Asignación Estudiantes.']);
+                break;
+            }
+
+            $check = $pdo->prepare("SELECT COUNT(*) FROM actividadesn3 WHERE grmo_id = ?");
+            $check->execute([$grmo_id]);
+            if ((int)$check->fetchColumn() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Este módulo tiene actividades de Nota 3 registradas, no puede quitarse del grupo.']);
+                break;
+            }
+
             $stmt = $pdo->prepare("DELETE FROM gruposmodulos WHERE grmo_id = ?");
             $stmt->execute([$grmo_id]);
             echo json_encode(['status' => 'ok', 'rows' => $stmt->rowCount()]);
