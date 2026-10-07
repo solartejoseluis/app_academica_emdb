@@ -173,7 +173,7 @@ $(document).ready(function () {
             columns: [
                 // El dato (índice de la fila) solo sirve para ordenar: lo que
                 // se ve es la posición visible, reescrita en cada draw.
-                { data: null, render: (d, t, r, m) => m.row + 1 },
+                { data: null, searchable: false, render: (d, t, r, m) => m.row + 1 },
                 { data: 'grse_codigo' },
                 { data: 'coho_codigo' },
                 { data: 'prog_sigla' },
