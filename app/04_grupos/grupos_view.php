@@ -15,6 +15,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/app_academica_emdb/app/00_files/estilos.css">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <style>
 /* Color de relleno por familia de programa en #tbl_grupos (clases aplicadas
    desde createdRow en grupos_ctrl.js, ver FAMILIAS_PROGRAMA). La variable va
@@ -534,6 +535,8 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                 </table>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto d-none"
+                        id="btn_eliminar_grupo"><i class="bi bi-trash"></i> Eliminar</button>
                 <button type="button" class="btn btn-secondary"
                         data-bs-dismiss="modal">Cerrar</button>
                 <button type="button" class="btn btn-primary"
@@ -590,6 +593,26 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                         data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary"
                         id="btn_guardar_modulo_grupo">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminar Grupo Semestre (se abre sobre #mdl_grupo) -->
+<div class="modal fade" id="mdl_confirmar_eliminar_grupo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar grupo semestre</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="grse_id_eliminar">
+                <p>¿Eliminar el grupo semestre <strong id="nombre_grupo_eliminar"></strong> de forma permanente? Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn_confirmar_eliminar_grupo">Eliminar definitivamente</button>
             </div>
         </div>
     </div>

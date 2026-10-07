@@ -781,6 +781,7 @@ $(document).ready(function () {
         $('#grse_jornada').val('Semana');
         $('#bloque_activo_grupo').addClass('d-none');
         $('#btn_agregar_modulo').prop('disabled', true);
+        $('#btn_eliminar_grupo').addClass('d-none').removeData('codigo');
         $('#tbody_modulos_grupo').html(
             '<tr><td colspan="7" class="text-center text-muted">Guarde el grupo primero para agregar módulos</td></tr>'
         );
@@ -833,6 +834,53 @@ $(document).ready(function () {
                 } else {
                     alert('Error: ' + r.message);
                 }
+            }
+        });
+    });
+
+    // Eliminar grupo semestre vacío. El botón solo se ve en edición y sin
+    // módulos (lo decide cargarModulosGrupo()); el servidor vuelve a validar.
+    $('#btn_eliminar_grupo').on('click', function () {
+        const grse_id = $('#grse_id').val();
+        if (!grse_id) return;
+        // Código guardado, no el del campo: ese se regenera al cambiar selects.
+        $('#nombre_grupo_eliminar').text($(this).data('codigo') || '');
+        $('#grse_id_eliminar').val(grse_id);
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('mdl_confirmar_eliminar_grupo')).show();
+    });
+
+    $('#btn_confirmar_eliminar_grupo').on('click', function () {
+        const btn = $(this);
+        const grse_id = $('#grse_id_eliminar').val();
+        if (!grse_id) return;
+        btn.prop('disabled', true);
+        $.ajax({
+            type: 'POST',
+            url: 'grupos_mdl.php?accion=eliminar_grupo',
+            data: { grse_id: grse_id },
+            dataType: 'json',
+            success: function (r) {
+                if (r.status === 'ok') {
+                    $('#grse_id_eliminar').val('');
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_confirmar_eliminar_grupo')).hide();
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_grupo')).hide();
+                    cargarTablaGrupos();
+                    cargarGruposAsignacion();
+                    // total_grupos / total_gruposemestres deciden el botón
+                    // Eliminar de estas dos tablas.
+                    cargarTablaCohortes();
+                    cargarTablaPeriodos();
+                } else {
+                    alert(r.message);
+                    // Por si el grupo dejó de estar vacío: actualiza el botón.
+                    cargarModulosGrupo(grse_id);
+                }
+            },
+            error: function () {
+                alert('No se pudo eliminar el grupo. Intente de nuevo.');
+            },
+            complete: function () {
+                btn.prop('disabled', false);
             }
         });
     });
@@ -1147,6 +1195,11 @@ function cargarModulosGrupo(grse_id) {
         success: function (r) {
             const tbody = $('#tbody_modulos_grupo');
             tbody.empty();
+            // Eliminar grupo: solo en edición, con la lista (todos los módulos,
+            // activos o no) vacía y si la respuesta es del grupo abierto.
+            const grupoVacio = r.status === 'ok' && r.data && !r.data.length
+                && String($('#grse_id').val()) === String(grse_id);
+            $('#btn_eliminar_grupo').toggleClass('d-none', !grupoVacio);
             if (!r.data || !r.data.length) {
                 tbody.html('<tr><td colspan="7" class="text-center text-muted">Sin módulos asignados</td></tr>');
                 return;
@@ -1233,6 +1286,7 @@ function abrirEditarGrupo(grse_id) {
             $('#grse_activo').val(d.grse_activo);
             $('#bloque_activo_grupo').removeClass('d-none');
             $('#btn_agregar_modulo').prop('disabled', false);
+            $('#btn_eliminar_grupo').addClass('d-none').data('codigo', d.grse_codigo);
             $('#mdl_grupo_titulo').text('Editar Grupo Semestre');
 
             // Primero selecciona el programa y espera que carguen

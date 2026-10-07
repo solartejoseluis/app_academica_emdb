@@ -387,6 +387,59 @@ switch ($accion) {
         }
         break;
 
+    // Solo se elimina un grupo semestre vacío: sin módulos (activos o no) y
+    // sin horarios. Con módulos no hay borrado en cascada — se quitan antes.
+    case 'eliminar_grupo':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $grse_id = (int)($_POST['grse_id'] ?? 0);
+
+        if ($grse_id === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'ID de grupo inválido']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            $check = $pdo->prepare("SELECT grse_id FROM gruposemestres WHERE grse_id = ?");
+            $check->execute([$grse_id]);
+            if (!$check->fetch()) {
+                echo json_encode(['status' => 'error', 'message' => 'Grupo no encontrado']);
+                break;
+            }
+
+            $check = $pdo->prepare("
+                SELECT
+                    (SELECT COUNT(*) FROM gruposmodulos WHERE grse_id = ?) +
+                    (SELECT COUNT(*) FROM horariosgrupo WHERE grse_id = ?) AS total
+            ");
+            $check->execute([$grse_id, $grse_id]);
+            if ((int)$check->fetchColumn() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Este grupo tiene módulos asignados, no puede eliminarse. Quite primero los módulos.']);
+                break;
+            }
+
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("DELETE FROM gruposemestres WHERE grse_id = ?");
+            $stmt->execute([$grse_id]);
+            $pdo->commit();
+            echo json_encode(['status' => 'ok']);
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo eliminar: existen datos asociados al grupo']);
+        }
+        break;
+
     // ── MÓDULOS DEL GRUPO ─────────────────────────────────────────────────────
 
     case 'listar_modulos_grupo':
