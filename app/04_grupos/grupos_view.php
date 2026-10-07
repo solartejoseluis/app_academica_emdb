@@ -210,6 +210,20 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     + Nuevo Grupo
                 </button>
             </div>
+            <div class="row g-2 mb-3" id="bloque_filtros_grupos">
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="slct_filtro_grupos_peri_id">Período</label>
+                    <select class="form-select form-select-sm" id="slct_filtro_grupos_peri_id">
+                        <option value="">Todos los períodos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="slct_filtro_grupos_prog_id">Programa</label>
+                    <select class="form-select form-select-sm" id="slct_filtro_grupos_prog_id">
+                        <option value="">Seleccione programa</option>
+                    </select>
+                </div>
+            </div>
             <table id="tbl_grupos" class="table table-bordered table-hover w-100">
                 <thead class="table-dark">
                     <tr>
@@ -809,6 +823,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="../00_files/helpers.js"></script>
 <script src="grupos_ctrl.js"></script>
 <script>const MODULO_ACTUAL = '04_grupos';</script>
 <script src="../00_files/ayuda_sidebar.js"></script>

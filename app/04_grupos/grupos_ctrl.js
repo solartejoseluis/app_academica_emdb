@@ -24,6 +24,40 @@ function claseFamiliaPrograma(prog_sigla) {
     return Object.keys(FAMILIAS_PROGRAMA).find(clase => FAMILIAS_PROGRAMA[clase].includes(prog_sigla)) || '';
 }
 
+// Filtros Período/Programa de la pestaña Grupos Semestre: se aplican en el
+// cliente y solo a #tbl_grupos (en esta página conviven cinco DataTables). Se
+// registra una sola vez; lee los selects en cada draw(), así que el filtrado
+// sobrevive a ajax.reload().
+$.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, fila) {
+    if (settings.nTable.id !== 'tbl_grupos') return true;
+    const peri_id = $('#slct_filtro_grupos_peri_id').val();
+    const prog_id = $('#slct_filtro_grupos_prog_id').val();
+    return (!peri_id || String(fila.peri_id) === peri_id)
+        && (!prog_id || String(fila.prog_id) === prog_id);
+});
+
+// El período del filtro arranca en el activo solo la primera vez que llega el
+// catálogo: activar otro período después no mueve el filtro hasta recargar.
+let filtroGruposPeriodoIniciado = false;
+
+// Rehace las opciones de un select de filtro desde su catálogo (poblarFiltro()
+// vive en 00_files/helpers.js) conservando la selección. Si la opción elegida
+// ya no existe, vuelve a la primera y avisa con change para redibujar.
+function repoblarFiltroGrupos(selector, filas, campoValor, campoTexto, comparar) {
+    const slct = $(selector);
+    const actual = slct.val();
+    slct.find('option').not(':first').remove();
+    poblarFiltro(selector, filas, campoValor, campoTexto, comparar);
+    slct.val(actual);
+    if (slct.val() === null) slct.val('');
+    if (slct.val() !== actual) slct.trigger('change');
+}
+
+function repoblarFiltroGruposProgramas(programas) {
+    repoblarFiltroGrupos('#slct_filtro_grupos_prog_id', programas, 'prog_id', 'prog_sigla',
+        (a, b) => String(a.texto).localeCompare(String(b.texto), 'es'));
+}
+
 $(document).ready(function () {
 
     // ── Variables globales de estado ─────────────────────────────────────────
@@ -33,12 +67,15 @@ $(document).ready(function () {
 
     // ── Inicialización ───────────────────────────────────────────────────────
     cargarTablaCohortes();
-    cargarTablaGrupos();
     cargarTablaPeriodos();
     cargarTablaModulos();
     cargarTablaProgramas();
     cargarProgramasSelectores();
-    cargarPeriodosSelector();
+    // #tbl_grupos se crea cuando ya se resolvió el catálogo de períodos (con
+    // éxito o no): su primer draw sale filtrado por el período activo, sin
+    // tabla prematura ni segunda petición (ver "DataTable con ajax.data
+    // dependiente de un valor async..." en CLAUDE.md).
+    cargarPeriodosSelector().always(cargarTablaGrupos);
     cargarDocentesSelector();
     cargarGruposAsignacion();
 
@@ -106,7 +143,17 @@ $(document).ready(function () {
                 const clase = claseFamiliaPrograma(data.prog_sigla);
                 if (clase) $(row).addClass(clase);
             },
+            // El change se engancha con la tabla ya lista: un cambio hecho
+            // antes igual lo recoge el primer draw.
+            initComplete: function () {
+                const tabla = this.api();
+                $('#slct_filtro_grupos_peri_id, #slct_filtro_grupos_prog_id').on('change', function () {
+                    tabla.draw();
+                });
+            },
             columns: [
+                // El dato (índice de la fila) solo sirve para ordenar: lo que
+                // se ve es la posición visible, reescrita en cada draw.
                 { data: null, render: (d, t, r, m) => m.row + 1 },
                 { data: 'grse_codigo' },
                 { data: 'coho_codigo' },
@@ -145,6 +192,27 @@ $(document).ready(function () {
             language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
             responsive: true
         });
+
+        // Columna "#": 1, 2, 3... según el filtro y el orden actuales.
+        tablaGrupos.on('draw.dt', function () {
+            tablaGrupos.column(0, { search: 'applied', order: 'applied' }).nodes().each(function (celda, i) {
+                celda.textContent = i + 1;
+            });
+        });
+    }
+
+    // Tras guardar un grupo NUEVO: si los filtros lo dejarían oculto, se
+    // ajustan para que se vea (período = el del grupo; programa = sin filtro).
+    function mostrarGrupoNuevoEnFiltros(peri_id, prog_id) {
+        const slctPeri = $('#slct_filtro_grupos_peri_id');
+        const slctProg = $('#slct_filtro_grupos_prog_id');
+        if (slctPeri.val() !== '' && slctPeri.val() !== String(peri_id)) {
+            slctPeri.val(String(peri_id));
+            if (slctPeri.val() === null) slctPeri.val('');
+        }
+        if (slctProg.val() !== '' && slctProg.val() !== String(prog_id)) {
+            slctProg.val('');
+        }
     }
 
     function cargarTablaPeriodos() {
@@ -241,6 +309,9 @@ $(document).ready(function () {
                     if (json.status !== 'ok') return [];
                     cacheProgramas = {};
                     json.data.forEach(p => { cacheProgramas[p.prog_id] = p; });
+                    // listar_programas no se vuelve a pedir tras crear/editar/
+                    // eliminar un programa; esta recarga sí trae el catálogo.
+                    repoblarFiltroGruposProgramas(json.data);
                     return json.data;
                 }
             },
@@ -290,6 +361,7 @@ $(document).ready(function () {
                     opts += `<option value="${p.prog_id}" data-sigla="${p.prog_sigla}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                 });
                 $('#slct_prog_cohorte, #slct_prog_grupo, #slct_prog_modulo').html(opts);
+                repoblarFiltroGruposProgramas(r.data);
             }
         });
     }
@@ -682,6 +754,9 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (r) {
                 if (r.status === 'ok') {
+                    if (!$('#grse_id').val()) {
+                        mostrarGrupoNuevoEnFiltros(peri_id, $('#slct_prog_grupo').val());
+                    }
                     cargarTablaGrupos();
                     cargarGruposAsignacion();
                     // Habilitar botón agregar módulo si es nuevo
@@ -1276,8 +1351,9 @@ function toggleEstadoCohorte(coho_id, nuevoEstado) {
     });
 }
 
+// Devuelve el jqXHR: el arranque lo usa para crear #tbl_grupos después.
 function cargarPeriodosSelector() {
-    $.ajax({
+    return $.ajax({
         type: 'POST',
         url: 'grupos_mdl.php?accion=listar_periodos',
         dataType: 'json',
@@ -1291,6 +1367,14 @@ function cargarPeriodosSelector() {
             });
             $('#slct_peri_grupo').html(opts);
             periodoActivoId = activoId;
+
+            // Filtro de Grupos Semestre: de más reciente a más antiguo.
+            repoblarFiltroGrupos('#slct_filtro_grupos_peri_id', r.data, 'peri_id', 'peri_codigo',
+                (a, b) => String(b.texto).localeCompare(String(a.texto), 'es'));
+            if (!filtroGruposPeriodoIniciado) {
+                filtroGruposPeriodoIniciado = true;
+                $('#slct_filtro_grupos_peri_id').val(activoId ? String(activoId) : '');
+            }
         }
     });
 }
