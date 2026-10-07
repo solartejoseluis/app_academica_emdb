@@ -58,12 +58,26 @@ function repoblarFiltroGruposProgramas(programas) {
         (a, b) => String(a.texto).localeCompare(String(b.texto), 'es'));
 }
 
+// Filtros Período/Programa de la pestaña Asignación Estudiantes: mismos
+// catálogos que los de Grupos Semestre, pero selects y estado propios. Solo
+// acotan la lista de #slct_grupo_asignacion (ver aplicarFiltrosAsignacion()).
+let filtroAsigPeriodoIniciado = false;
+
+function repoblarFiltroAsigProgramas(programas) {
+    repoblarFiltroGrupos('#slct_filtro_asig_prog_id', programas, 'prog_id', 'prog_sigla',
+        (a, b) => String(a.texto).localeCompare(String(b.texto), 'es'));
+}
+
 $(document).ready(function () {
 
     // ── Variables globales de estado ─────────────────────────────────────────
     let tablaCohortes, tablaGrupos, tablaPeriodos, tablaModulos, tablaProgramas;
     let grmo_id_activo = null;
     let coho_id_activo = null;
+    // Filas de listar_grupos para #slct_grupo_asignacion (null = aún no llegan)
+    // y si el catálogo de períodos del arranque ya se resolvió (con éxito o no).
+    let filasGruposAsignacion = null;
+    let filtroAsigPeriodoResuelto = false;
 
     // ── Inicialización ───────────────────────────────────────────────────────
     cargarTablaCohortes();
@@ -75,7 +89,12 @@ $(document).ready(function () {
     // éxito o no): su primer draw sale filtrado por el período activo, sin
     // tabla prematura ni segunda petición (ver "DataTable con ajax.data
     // dependiente de un valor async..." en CLAUDE.md).
-    cargarPeriodosSelector().always(cargarTablaGrupos);
+    // El select de grupos de Asignación espera lo mismo: se arma una sola vez,
+    // ya filtrado por el período activo, cuando están el catálogo y sus filas.
+    cargarPeriodosSelector().always(cargarTablaGrupos).always(function () {
+        filtroAsigPeriodoResuelto = true;
+        aplicarFiltrosAsignacion();
+    });
     cargarDocentesSelector();
     cargarGruposAsignacion();
 
@@ -312,6 +331,7 @@ $(document).ready(function () {
                     // listar_programas no se vuelve a pedir tras crear/editar/
                     // eliminar un programa; esta recarga sí trae el catálogo.
                     repoblarFiltroGruposProgramas(json.data);
+                    repoblarFiltroAsigProgramas(json.data);
                     return json.data;
                 }
             },
@@ -362,6 +382,7 @@ $(document).ready(function () {
                 });
                 $('#slct_prog_cohorte, #slct_prog_grupo, #slct_prog_modulo').html(opts);
                 repoblarFiltroGruposProgramas(r.data);
+                repoblarFiltroAsigProgramas(r.data);
             }
         });
     }
@@ -389,14 +410,54 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (r) {
                 if (r.status !== 'ok') return;
-                let opts = '<option value="">-- Seleccionar grupo --</option>';
-                r.data.forEach(g => {
-                    opts += `<option value="${g.grse_id}" data-coho="${g.coho_id}">${g.grse_codigo} — ${g.coho_codigo} Sem.${g.grse_semestre}</option>`;
-                });
-                $('#slct_grupo_asignacion').html(opts);
+                filasGruposAsignacion = r.data;
+                aplicarFiltrosAsignacion();
             }
         });
     }
+
+    // Rearma #slct_grupo_asignacion con las filas en memoria que pasan los
+    // filtros Período y Programa (AND; vacío = sin filtro). Sin peticiones.
+    // Si el grupo elegido sigue en la lista se conservan la selección y el
+    // panel; si no (o no había ninguno), se limpia la asignación. No hace nada
+    // hasta tener las filas y el catálogo de períodos resuelto: así el select
+    // nunca muestra la lista completa antes del filtro del período activo.
+    function aplicarFiltrosAsignacion() {
+        if (filasGruposAsignacion === null || !filtroAsigPeriodoResuelto) return;
+        const peri_id = $('#slct_filtro_asig_peri_id').val();
+        const prog_id = $('#slct_filtro_asig_prog_id').val();
+        const slct = $('#slct_grupo_asignacion');
+        const actual = slct.val();
+
+        slct.find('option').not(':first').remove();
+        filasGruposAsignacion.forEach(function (g) {
+            if (peri_id && String(g.peri_id) !== peri_id) return;
+            if (prog_id && String(g.prog_id) !== prog_id) return;
+            slct.append($('<option>')
+                .val(g.grse_id)
+                .attr('data-coho', g.coho_id)
+                .text(`${g.grse_codigo} — ${g.coho_codigo} Sem.${g.grse_semestre}`));
+        });
+
+        slct.val(actual);
+        if (slct.val() === null) slct.val('');
+        if (!actual || slct.val() !== actual) limpiarAsignacion();
+    }
+
+    // Deja la pestaña sin módulo cargado: el grupo que estaba elegido ya no
+    // está en la lista filtrada.
+    function limpiarAsignacion() {
+        $('#slct_modulo_asignacion').empty()
+            .append($('<option>').val('').text('-- Primero seleccione un grupo --'));
+        $('#panel_asignacion').hide();
+        $('#msg_seleccione').show();
+        $('#lista_disponibles, #lista_asignados').empty();
+        $('#badge_disponibles, #badge_asignados').text('0');
+        grmo_id_activo = null;
+        coho_id_activo = null;
+    }
+
+    $('#slct_filtro_asig_peri_id, #slct_filtro_asig_prog_id').on('change', aplicarFiltrosAsignacion);
 
     // Cuando cambia el programa en modal cohorte — no hace nada adicional
     // Cuando cambia el programa en modal grupo — carga cohortes
@@ -1374,6 +1435,17 @@ function cargarPeriodosSelector() {
             if (!filtroGruposPeriodoIniciado) {
                 filtroGruposPeriodoIniciado = true;
                 $('#slct_filtro_grupos_peri_id').val(activoId ? String(activoId) : '');
+            }
+
+            // Filtro de Asignación Estudiantes: mismo catálogo, estado propio.
+            repoblarFiltroGrupos('#slct_filtro_asig_peri_id', r.data, 'peri_id', 'peri_codigo',
+                (a, b) => String(b.texto).localeCompare(String(a.texto), 'es'));
+            if (!filtroAsigPeriodoIniciado) {
+                filtroAsigPeriodoIniciado = true;
+                const slctAsig = $('#slct_filtro_asig_peri_id');
+                const antes = slctAsig.val();
+                slctAsig.val(activoId ? String(activoId) : '');
+                if (slctAsig.val() !== antes) slctAsig.trigger('change');
             }
         }
     });

@@ -246,6 +246,22 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
         <div class="tab-pane fade" id="tab_asignacion">
             <h5 class="mb-3">Asignación de Estudiantes a Módulos</h5>
 
+            <!-- Filtros de la lista de grupos semestre (no filtran módulos) -->
+            <div class="row g-2 mb-3" id="bloque_filtros_asignacion">
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="slct_filtro_asig_peri_id">Período</label>
+                    <select class="form-select form-select-sm" id="slct_filtro_asig_peri_id">
+                        <option value="">Todos los períodos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="slct_filtro_asig_prog_id">Programa</label>
+                    <select class="form-select form-select-sm" id="slct_filtro_asig_prog_id">
+                        <option value="">Seleccione programa</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- Selector de grupo -->
             <div class="row mb-3">
                 <div class="col-md-4">
