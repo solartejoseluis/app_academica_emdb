@@ -111,7 +111,7 @@ if (!$estudiantes) {
             <td>' . $num++ . '</td>
             <td>' . htmlspecialchars($est['estu_apellidos']) . '</td>
             <td>' . htmlspecialchars($est['estu_nombres']) . '</td>
-            <td>' . htmlspecialchars($est['estu_numerodoc']) . '</td>
+            <td>' . (($est['estu_numerodoc'] ?? '') !== '' ? htmlspecialchars($est['estu_numerodoc']) : '—') . '</td>
             <td class="centro">' . fmtNota($est['cali_n1']) . '</td>
             <td class="centro">' . fmtNota($est['cali_sup_n1']) . '</td>
             <td class="centro">' . fmtNota($est['cali_n2']) . '</td>

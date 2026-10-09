@@ -246,7 +246,7 @@ $html = '
     <table class="contexto">
         <tr>
             <td class="etiqueta">Estudiante:</td><td>' . htmlspecialchars($matricula['estu_apellidos'] . ', ' . $matricula['estu_nombres']) . '</td>
-            <td class="etiqueta">Documento:</td><td>' . htmlspecialchars($matricula['estu_numerodoc']) . '</td>
+            <td class="etiqueta">Documento:</td><td>' . (($matricula['estu_numerodoc'] ?? '') !== '' ? htmlspecialchars($matricula['estu_numerodoc']) : '—') . '</td>
         </tr>
         <tr>
             <td class="etiqueta">Programa:</td><td>' . htmlspecialchars($matricula['prog_nombre']) . ' (' . htmlspecialchars($matricula['prog_sigla']) . ')</td>

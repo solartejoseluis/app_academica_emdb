@@ -558,7 +558,7 @@ $(document).ready(function () {
             <td>${num}</td>
             <td>${e.estu_apellidos}</td>
             <td>${e.estu_nombres}</td>
-            <td>${e.estu_numerodoc}</td>
+            <td>${e.estu_numerodoc || '—'}</td>
             <td class="text-center">${n(e.cali_n1)}</td>
             <td class="text-center">${n(e.cali_sup_n1)}</td>
             <td class="text-center">${n(e.cali_n2)}</td>
@@ -715,7 +715,7 @@ $(document).ready(function () {
                             $('<button>', {
                                 type: 'button',
                                 class: 'list-group-item list-group-item-action',
-                                text: nombreCompleto + ' — ' + est.estu_tipodoc + ' ' + est.estu_numerodoc
+                                text: nombreCompleto + ' — ' + ((est.estu_tipodoc || '') + ' ' + (est.estu_numerodoc || '—')).trim()
                             }).data('estuId', est.estu_id).data('nombreCompleto', nombreCompleto)
                         );
                     });
