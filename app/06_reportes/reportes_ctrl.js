@@ -443,6 +443,74 @@ $(document).ready(function () {
         return nombres.trim().split(' ')[0].charAt(0).toUpperCase();
     }
 
+    // Filas de grupos_para_reporte tal como llegaron (una sola petición).
+    // Los filtros Período/Docente/Programa se aplican en el cliente sobre
+    // este arreglo — nunca disparan otra petición.
+    let gruposReporte = [];
+
+    function textoOpcionGrupo(g) {
+        return g.grse_codigo + ' — ' + g.modu_sigla + ' ' + g.modu_nombre + ' — ' +
+               inicialDocente(g.doce_nombres) + '.' + g.doce_apellidos +
+               ' (' + g.total_estudiantes + ' est)';
+    }
+
+    // Rehace #sel_grupo con las filas que cumplen los tres filtros (un valor
+    // '' no filtra por ese criterio). Conserva la selección si sigue
+    // disponible. No toca el reporte ya cargado en pantalla: ese sigue
+    // visible aunque su grupo salga del select.
+    function reconstruirSelGrupo() {
+        const peri_id = $('#slct_filtro_rep_peri_id').val();
+        const doce_id = $('#slct_filtro_rep_doce_id').val();
+        const prog_id = $('#slct_filtro_rep_prog_id').val();
+
+        const filas = gruposReporte.filter(function (g) {
+            return (!peri_id || String(g.peri_id) === peri_id)
+                && (!doce_id || String(g.doce_id) === doce_id)
+                && (!prog_id || String(g.prog_id) === prog_id);
+        });
+
+        const sel = $('#sel_grupo');
+        const seleccionPrevia = sel.val();
+        sel.empty();
+
+        if (!filas.length) {
+            sel.append($('<option>').val('').text('Sin grupos para estos filtros'));
+        } else {
+            sel.append($('<option>').val('').text('— Seleccione un grupo —'));
+            filas.forEach(function (g) {
+                sel.append($('<option>').val(g.grmo_id).text(textoOpcionGrupo(g)));
+            });
+            const sigueDisponible = filas.some(function (g) {
+                return String(g.grmo_id) === String(seleccionPrevia);
+            });
+            sel.val(sigueDisponible ? String(seleccionPrevia) : '');
+        }
+
+        $('#spn_rep_contador_grupos').text(
+            filas.length === 1 ? '1 grupo' : filas.length + ' grupos'
+        );
+        $('#btn_cargar_reporte').prop('disabled', filas.length === 0);
+    }
+
+    // Las opciones salen de TODAS las filas recibidas (los tres filtros son
+    // independientes). El período arranca en el activo, o en "Todos" si no
+    // hay. poblarFiltro() vive en 00_files/helpers.js.
+    function poblarFiltrosReporte() {
+        const alfabetico = function (a, b) { return String(a.texto).localeCompare(String(b.texto), 'es'); };
+        const filas = gruposReporte.map(function (g) {
+            return $.extend({}, g, { docente: g.doce_apellidos + ', ' + g.doce_nombres });
+        });
+        poblarFiltro('#slct_filtro_rep_peri_id', filas, 'peri_id', 'peri_codigo', function (a, b) { return alfabetico(b, a); });
+        poblarFiltro('#slct_filtro_rep_doce_id', filas, 'doce_id', 'docente', alfabetico);
+        poblarFiltro('#slct_filtro_rep_prog_id', filas, 'prog_id', 'prog_sigla', alfabetico);
+
+        const activo = gruposReporte.find(function (g) { return g.peri_activo == 1; });
+        $('#slct_filtro_rep_peri_id').val(activo ? String(activo.peri_id) : '');
+    }
+
+    $('#slct_filtro_rep_peri_id, #slct_filtro_rep_doce_id, #slct_filtro_rep_prog_id')
+        .on('change', reconstruirSelGrupo);
+
     function cargarGrupos() {
         $.ajax({
             type: 'POST',
@@ -450,15 +518,9 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (r) {
                 if (r.status !== 'ok') return;
-                const sel = $('#sel_grupo');
-                r.data.forEach(function (g) {
-                    sel.append($('<option>', {
-                        value: g.grmo_id,
-                        text:  g.grse_codigo + ' — ' + g.modu_sigla + ' ' + g.modu_nombre + ' — ' +
-                               inicialDocente(g.doce_nombres) + '.' + g.doce_apellidos +
-                               ' (' + g.total_estudiantes + ' est)'
-                    }));
-                });
+                gruposReporte = r.data;
+                poblarFiltrosReporte();
+                reconstruirSelGrupo();
             }
         });
     }

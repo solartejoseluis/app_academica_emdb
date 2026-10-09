@@ -118,6 +118,26 @@ if (!$es_coordinador) {
 
                     <div class="card mb-3">
                         <div class="card-body">
+                            <div class="row g-2 mb-3" id="bloque_filtros_reporte_grupo">
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1" for="slct_filtro_rep_peri_id">Período</label>
+                                    <select class="form-select form-select-sm" id="slct_filtro_rep_peri_id">
+                                        <option value="">Todos los períodos</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1" for="slct_filtro_rep_doce_id">Docente</label>
+                                    <select class="form-select form-select-sm" id="slct_filtro_rep_doce_id">
+                                        <option value="">Seleccione docente</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1" for="slct_filtro_rep_prog_id">Programa</label>
+                                    <select class="form-select form-select-sm" id="slct_filtro_rep_prog_id">
+                                        <option value="">Seleccione programa</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div class="row g-2 align-items-end">
                                 <div class="col-md-9">
                                     <label class="form-label fw-semibold">Grupo Módulo</label>
@@ -131,6 +151,7 @@ if (!$es_coordinador) {
                                     </button>
                                 </div>
                             </div>
+                            <div class="text-muted small mt-1" id="spn_rep_contador_grupos"></div>
                         </div>
                     </div>
 
