@@ -278,7 +278,7 @@ $(document).ready(function () {
             '<td>' + num + '</td>' +
             '<td>' + e.estu_apellidos + '</td>' +
             '<td>' + e.estu_nombres + '</td>' +
-            '<td>' + e.estu_numerodoc + '</td>' +
+            '<td>' + (e.estu_numerodoc || '—') + '</td>' +
             '<td>' + nExp(e.cali_n1) + '</td>' +
             '<td>' + nExp(e.cali_sup_n1) + '</td>' +
             '<td>' + nExp(e.cali_n2) + '</td>' +
@@ -439,7 +439,7 @@ $(document).ready(function () {
             <tr data-estu="${e.estu_id}" data-grmo="${grmo_id}">
                 <td>${num}</td>
                 <td>${e.estu_apellidos}, ${e.estu_nombres}</td>
-                <td><small>${e.estu_numerodoc}</small></td>
+                <td><small>${e.estu_numerodoc || '—'}</small></td>
                 <td class="text-center ${colorSemaforo(n1)}" data-celda="cali_n1">
                     <input class="input-nota" type="text"
                            data-campo="cali_n1" value="${n1}"
