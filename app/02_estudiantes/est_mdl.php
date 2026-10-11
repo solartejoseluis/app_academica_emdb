@@ -118,6 +118,12 @@ switch ($accion) {
             $modu_id_filtro = trim($_POST['modu_id'] ?? '');
             $contexto       = trim($_POST['contexto'] ?? 'actual');
 
+            // Pestaña "Retirados": abarca todos los períodos — se ignora
+            // cualquier peri_id que llegue (tampoco acota total_modulos).
+            if ($contexto === 'retirados') {
+                $peri_id_filtro = '';
+            }
+
             $params = [];
 
             $condicionPeriodoModulos = '';
@@ -132,7 +138,15 @@ switch ($accion) {
             // 'retirado' o 'graduado'. El contexto lo declara explícitamente el
             // frontend (est_ctrl.js) en vez de inferirse comparando peri_id_filtro
             // contra el período activo — frágil si el select quedara desalineado.
-            if ($contexto === 'anteriores') {
+            // Pestaña "Retirados" (Fase D): matrícula retirada en condición de
+            // 'Aplazamiento' que todavía no fue origen de una reincorporación
+            // (ninguna otra matrícula la referencia vía matr_origen_id). Una
+            // vez reincorporada sale de aquí, pero sigue en "Anteriores".
+            if ($contexto === 'retirados') {
+                $where = "WHERE e.estu_activo = 1 AND m.matr_estado = 'retirado'
+                            AND m.matr_estado_academico = 'Aplazamiento'
+                            AND NOT EXISTS (SELECT 1 FROM matriculas r WHERE r.matr_origen_id = m.matr_id)";
+            } elseif ($contexto === 'anteriores') {
                 $where = "WHERE e.estu_activo = 1 AND m.matr_estado IN ('cursado', 'retirado', 'graduado')";
             } else {
                 $where = "WHERE e.estu_activo = 1 AND m.matr_estado = 'matriculado'";
@@ -262,6 +276,19 @@ switch ($accion) {
                            p.prog_sigla, p.prog_duracion_semestres, m.matr_semestre,
                            m.peri_id, pe.peri_codigo, m.matr_estado, m.matr_estado_academico,
                            m.matr_id, m.prog_id AS matr_prog_id,
+                           -- Reincorporación (Fase D). matr_origen_id: matrícula de
+                           -- la que ESTA fila es reincorporación (NULL si no lo es),
+                           -- con el programa y la cohorte de esa matrícula de origen.
+                           -- tiene_reincorporacion: 1 si ESTA fila ya fue origen de
+                           -- otra matrícula (a lo sumo una, por uq_matr_origen).
+                           -- Ojo: la clave 'prog_id' de esta respuesta es la del
+                           -- programa DECLARADO en la ficha (fi.prog_id, línea de
+                           -- abajo); el programa de la matrícula es matr_prog_id.
+                           m.coho_id, m.matr_observacion, m.matr_origen_id,
+                           po.prog_sigla AS origen_prog_sigla,
+                           coo.coho_codigo AS origen_coho_codigo,
+                           EXISTS (SELECT 1 FROM matriculas r2
+                                   WHERE r2.matr_origen_id = m.matr_id) AS tiene_reincorporacion,
                            fi.prog_id, fi.jornada,
                            fi.padr_vive, fi.padr_nombres, fi.padr_apellidos, fi.padr_profesion, fi.padr_empresa,
                            fi.padr_telefono, fi.padr_direccion, fi.padr_barrio, fi.padr_ciudad,
@@ -278,8 +305,11 @@ switch ($accion) {
                     LEFT JOIN cohortes co ON m.coho_id = co.coho_id
                     LEFT JOIN fichas_inscripcion fi ON fi.estu_id = e.estu_id
                     LEFT JOIN usuarios u ON e.usua_id = u.usua_id
+                    LEFT JOIN matriculas mo ON mo.matr_id = m.matr_origen_id
+                    LEFT JOIN programas po ON po.prog_id = mo.prog_id
+                    LEFT JOIN cohortes coo ON coo.coho_id = mo.coho_id
                     {$where}
-                    ORDER BY e.estu_apellidos ASC, e.estu_nombres ASC";
+                    ORDER BY e.estu_apellidos ASC, e.estu_nombres ASC, m.matr_id ASC";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
             $rows = $stmt->fetchAll();
