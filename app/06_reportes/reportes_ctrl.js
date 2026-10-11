@@ -66,7 +66,7 @@ $(document).ready(function () {
     function badgeEstadoAcademico(valor) {
         const mapa = { 'Activo': 'bg-success', 'Aplazamiento': 'bg-warning text-dark', 'Retirado': 'bg-secondary' };
         const cls = mapa[valor] || 'bg-secondary';
-        return '<span class="badge ' + cls + '">' + (valor || '—') + '</span>';
+        return '<span class="badge ' + cls + '">' + escaparHtml(valor || '—') + '</span>';
     }
 
     // Formato "N/M" — mismo criterio que crearColumnasMatriculados()
@@ -91,7 +91,7 @@ $(document).ready(function () {
         if (promedio !== null && promedio !== undefined) {
             texto += ' (Promedio: ' + promedio + ')';
         }
-        return '<span class="badge ' + cls + '">' + texto + '</span>';
+        return '<span class="badge ' + cls + '">' + escaparHtml(texto) + '</span>';
     }
 
     // El backend (mis_periodos) entrega los períodos del más reciente al más
@@ -105,10 +105,13 @@ $(document).ready(function () {
         return n === 0 ? 'en curso' : String(n);
     }
 
+    // Cada parámetro va con encodeURIComponent: estudianteActualId puede
+    // venir tal cual del query string de esta página (llegada desde "Ir al
+    // Reporte"), y la URL termina dentro de un href.
     function construirUrlBoletin(matr_id, peri_id) {
-        let url = 'pdf_boletin.php?matr_id=' + matr_id + '&peri_id=' + peri_id;
+        let url = 'pdf_boletin.php?matr_id=' + encodeURIComponent(matr_id) + '&peri_id=' + encodeURIComponent(peri_id);
         if (ES_COORDINADOR && estudianteActualId) {
-            url += '&estu_id=' + estudianteActualId;
+            url += '&estu_id=' + encodeURIComponent(estudianteActualId);
         }
         return url;
     }
@@ -116,8 +119,8 @@ $(document).ready(function () {
     function construirBloqueModulo(m) {
         return `<div class="card mb-3">
             <div class="card-header d-flex flex-wrap justify-content-between gap-2 bg-dark text-white">
-                <div><strong>Módulo:</strong> ${m.modu_sigla} — ${m.modu_nombre} &nbsp; <strong>Grupo:</strong> ${m.grse_codigo}</div>
-                <div><strong>Docente:</strong> ${m.doce_apellidos}, ${m.doce_nombres}</div>
+                <div><strong>Módulo:</strong> ${escaparHtml(m.modu_sigla)} — ${escaparHtml(m.modu_nombre)} &nbsp; <strong>Grupo:</strong> ${escaparHtml(m.grse_codigo)}</div>
+                <div><strong>Docente:</strong> ${escaparHtml(m.doce_apellidos)}, ${escaparHtml(m.doce_nombres)}</div>
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm text-center mb-0">
@@ -175,7 +178,7 @@ $(document).ready(function () {
                 const urlPdf = construirUrlBoletin(matr_id, peri_id);
                 let html = `<div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <div><strong>Estado del Período:</strong> ${badgeEstadoPeriodo(r.estado_periodo, r.promedio_periodo)}</div>
-                    <a href="${urlPdf}" target="_blank" class="btn btn-outline-danger btn-sm">📄 Descargar Boletín PDF</a>
+                    <a href="${escaparHtml(urlPdf)}" target="_blank" class="btn btn-outline-danger btn-sm">📄 Descargar Boletín PDF</a>
                 </div>`;
 
                 if (!r.data.length) {
@@ -259,7 +262,7 @@ $(document).ready(function () {
 
             $.ajax({
                 type: 'GET',
-                url: 'reportes_mdl.php?accion=mis_requisitos_matricula&matr_id=' + matr_id,
+                url: 'reportes_mdl.php?accion=mis_requisitos_matricula&matr_id=' + encodeURIComponent(matr_id),
                 dataType: 'json',
                 success: function (r) {
                     if (r.status !== 'ok') { $contenedor.empty(); return; }
@@ -280,15 +283,15 @@ $(document).ready(function () {
 
                         filas += `<tr>
                             <td>${idx + 1}</td>
-                            <td>${req.reqp_nombre}</td>
-                            <td>${descripcion}</td>
+                            <td>${escaparHtml(req.reqp_nombre)}</td>
+                            <td>${escaparHtml(descripcion)}</td>
                             <td>${estadoTexto}</td>
-                            <td>${fechaFmt}</td>
+                            <td>${escaparHtml(fechaFmt)}</td>
                         </tr>`;
                     });
 
                     $contenedor.html(`
-                        <h6>Requisitos del programa (${resumenMatricula.entregados} de ${resumenMatricula.total} completados)</h6>
+                        <h6>Requisitos del programa (${escaparHtml(resumenMatricula.entregados)} de ${escaparHtml(resumenMatricula.total)} completados)</h6>
                         <div class="table-responsive">
                             <table class="table table-bordered table-sm">
                                 <thead class="table-light">
@@ -343,16 +346,16 @@ $(document).ready(function () {
 
                     $tabs.append(`<li class="nav-item">
                         <button class="nav-link${activo ? ' active' : ''}" data-bs-toggle="tab"
-                                data-bs-target="#tab_prog_${matr.prog_id}" type="button">${etiqueta}</button>
+                                data-bs-target="#tab_prog_${escaparHtml(matr.prog_id)}" type="button">${escaparHtml(etiqueta)}</button>
                     </li>`);
 
-                    const $pane = $(`<div class="tab-pane fade${activo ? ' show active' : ''}" id="tab_prog_${matr.prog_id}"></div>`);
+                    const $pane = $(`<div class="tab-pane fade${activo ? ' show active' : ''}" id="tab_prog_${escaparHtml(matr.prog_id)}"></div>`);
                     $pane.data('matrId', matr.matr_id);
                     $pane.html(`
                         <div class="row mb-3 g-2">
-                            <div class="col-md-4"><strong>Programa:</strong> ${matr.prog_nombre}</div>
-                            <div class="col-md-2"><strong>Cohorte:</strong> ${matr.coho_codigo || '—'}</div>
-                            <div class="col-md-2"><strong>Semestre:</strong> ${formatoSemestre(matr.matr_semestre, matr.prog_duracion_semestres)}</div>
+                            <div class="col-md-4"><strong>Programa:</strong> ${escaparHtml(matr.prog_nombre)}</div>
+                            <div class="col-md-2"><strong>Cohorte:</strong> ${escaparHtml(matr.coho_codigo || '—')}</div>
+                            <div class="col-md-2"><strong>Semestre:</strong> ${escaparHtml(formatoSemestre(matr.matr_semestre, matr.prog_duracion_semestres))}</div>
                             <div class="col-md-2"><strong>Períodos realizados:</strong> <span class="periodos-realizados">—</span></div>
                             <div class="col-md-2"><strong>Estado actual:</strong> ${badgeEstadoAcademico(matr.matr_estado_academico)}</div>
                         </div>
@@ -556,9 +559,9 @@ $(document).ready(function () {
     function construirFilaReporte(e, num) {
         return `<tr>
             <td>${num}</td>
-            <td>${e.estu_apellidos}</td>
-            <td>${e.estu_nombres}</td>
-            <td>${e.estu_numerodoc || '—'}</td>
+            <td>${escaparHtml(e.estu_apellidos)}</td>
+            <td>${escaparHtml(e.estu_nombres)}</td>
+            <td>${escaparHtml(e.estu_numerodoc || '—')}</td>
             <td class="text-center">${n(e.cali_n1)}</td>
             <td class="text-center">${n(e.cali_sup_n1)}</td>
             <td class="text-center">${n(e.cali_n2)}</td>
@@ -569,7 +572,7 @@ $(document).ready(function () {
             <td class="text-center">${badgeNotaFinal(e.cali_nota_final)}</td>
             <td class="text-center">${badgeDefinitiva(e)}</td>
             <td class="text-center">${badgeEstado(e)}</td>
-            <td>${n(e.cali_observacion)}</td>
+            <td>${escaparHtml(n(e.cali_observacion))}</td>
         </tr>`;
     }
 
@@ -647,7 +650,7 @@ $(document).ready(function () {
                             text: '📄 Descargar PDF',
                             className: 'btn btn-outline-danger btn-sm',
                             action: function () {
-                                window.open('pdf_grupo.php?grmo_id=' + grmo_id, '_blank');
+                                window.open('pdf_grupo.php?grmo_id=' + encodeURIComponent(grmo_id), '_blank');
                             }
                         }
                     ],
