@@ -989,6 +989,80 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </div>
 
+<!-- Modal Reincorporar (pestaña Retirados): crea una matrícula nueva en el período activo a partir de una retirada en Aplazamiento -->
+<div class="modal fade" id="mdl_reincorporar" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reincorporar Estudiante</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="npt_reinc_matr_id" value="">
+                <p class="mb-1"><strong>Estudiante:</strong> <span id="txt_reinc_nombre"></span></p>
+                <p class="mb-3"><strong>Matrícula de origen:</strong>
+                    <span id="txt_reinc_origen_prog"></span> ·
+                    cohorte <span id="txt_reinc_origen_coho"></span> ·
+                    período <span id="txt_reinc_origen_peri"></span> ·
+                    semestre <span id="txt_reinc_origen_sem"></span>
+                </p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Programa <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_reinc_prog_id">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Cohorte <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_reinc_coho_id">
+                            <option value="">-- Primero seleccione un programa --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Semestre <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_reinc_matr_semestre" disabled>
+                            <option value="">-- Primero seleccione un programa --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Período destino</label>
+                        <input type="text" class="form-control" id="txt_reinc_peri_destino" readonly disabled>
+                        <div class="form-text">El servidor usa el período activo.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha de matrícula</label>
+                        <input type="date" class="form-control" id="npt_reinc_fechamatricula">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Folio</label>
+                        <input type="text" class="form-control" id="npt_reinc_matr_folio" maxlength="20" autocomplete="off">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Observación</label>
+                        <textarea class="form-control" id="npt_reinc_observacion" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="alert alert-danger mt-3 mb-0 d-none" id="bloque_reinc_sin_periodo">
+                    No hay un período activo. Active un período en Grupos antes de reincorporar.
+                </div>
+                <div class="border rounded bg-light p-2 mt-3" id="bloque_reinc_resumen">
+                    <div id="txt_reinc_resumen"></div>
+                    <div class="fw-semibold" id="txt_reinc_cambio"></div>
+                </div>
+                <div class="alert alert-warning mt-3 mb-0 d-none" id="bloque_reinc_aviso_programa">
+                    Los módulos cursados en el programa anterior no se homologan automáticamente. La nueva matrícula empieza sin módulos asignados; asígnela en Asignación Estudiantes (04_grupos).
+                </div>
+                <div class="alert alert-danger mt-3 mb-0 d-none" id="bloque_reinc_error"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn_confirmar_reincorporar" disabled>Reincorporar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Agregar/Editar Requisito del Catálogo (Configurar Requisitos) -->
 <div class="modal fade" id="mdl_requisito_programa" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">

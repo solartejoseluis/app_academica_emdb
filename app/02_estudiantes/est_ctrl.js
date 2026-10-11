@@ -603,6 +603,71 @@ $(document).ready(function () {
         });
     });
 
+    // --- Reincorporar (pestaña Retirados) ---
+    $('#slct_reinc_prog_id').on('change', function () {
+        cargarDestinoReincorporar();
+    });
+
+    $('#slct_reinc_coho_id, #slct_reinc_matr_semestre').on('change', function () {
+        actualizarResumenReincorporar();
+    });
+
+    $('#btn_confirmar_reincorporar').click(function () {
+        // reincEnviando cubre el doble clic: una sola petición en curso.
+        if (reincEnviando || !reincOrigen) return false;
+
+        const prog_id       = $('#slct_reinc_prog_id').val();
+        const coho_id       = $('#slct_reinc_coho_id').val();
+        const matr_semestre = $('#slct_reinc_matr_semestre').val();
+        if (!prog_id || !coho_id || !matr_semestre) return false;
+
+        reincEnviando = true;
+        $('#btn_confirmar_reincorporar').prop('disabled', true);
+        $('#bloque_reinc_error').addClass('d-none').text('');
+
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=reincorporar',
+            data: {
+                matr_id: reincOrigen.matr_id,
+                prog_id: prog_id,
+                coho_id: coho_id,
+                matr_semestre: matr_semestre,
+                matr_folio: $('#npt_reinc_matr_folio').val().trim(),
+                fechamatricula: $('#npt_reinc_fechamatricula').val(),
+                observacion: $('#npt_reinc_observacion').val().trim()
+            },
+            dataType: 'json',
+            success: function (response) {
+                if (response && response.status === 'ok') {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_reincorporar')).hide();
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload();
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload();
+                    if (tablaRetirados) tablaRetirados.ajax.reload();
+                    alert((response.message || 'Reincorporación registrada correctamente.')
+                        + '\n\nNueva matrícula: ' + response.prog_sigla + ' / ' + response.coho_codigo
+                        + ', semestre ' + response.matr_semestre + ', período ' + response.peri_codigo + '.'
+                        + '\n\nLa nueva matrícula empieza sin módulos asignados: asígnela en Asignación Estudiantes (04_grupos).');
+                } else {
+                    // Sin cerrar el modal ni recargar nada: el motivo del
+                    // rechazo se muestra dentro del propio modal.
+                    $('#bloque_reinc_error')
+                        .text((response && response.message) || 'No se pudo reincorporar.')
+                        .removeClass('d-none');
+                }
+            },
+            error: function () {
+                $('#bloque_reinc_error')
+                    .text('No se pudo comunicar con el servidor. Verifique la conexión e intente de nuevo.')
+                    .removeClass('d-none');
+            },
+            complete: function () {
+                reincEnviando = false;
+                actualizarResumenReincorporar();
+            }
+        });
+    });
+
     $('#btn_confirmar_avanzar_semestre').click(function () {
         const matr_id         = $('#npt_avanzar_matr_id').val();
         const peri_id_destino = $('#slct_avanzar_peri_id_destino').val();
@@ -950,6 +1015,18 @@ $(document).ready(function () {
                         opciones += `<option value="${p.prog_id}" data-duracion="${p.prog_duracion_semestres}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                     });
                     $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id_actual, #slct_filtro_matr_prog_id_anteriores, #slct_filtro_matr_prog_id_retirados, #slct_editar_prog_id').append(opciones);
+
+                    // Modal Reincorporar: solo programas ACTIVOS (el servidor
+                    // rechaza un destino inactivo). data-sigla alimenta el
+                    // resumen en vivo sin volver a consultar.
+                    response.data.forEach(function (p) {
+                        if (p.prog_activo != 1) return;
+                        $('<option>').val(p.prog_id)
+                            .attr('data-duracion', p.prog_duracion_semestres)
+                            .attr('data-sigla', p.prog_sigla)
+                            .text(p.prog_sigla + ' — ' + p.prog_nombre)
+                            .appendTo('#slct_reinc_prog_id');
+                    });
                 }
             }
         });
@@ -979,6 +1056,10 @@ $(document).ready(function () {
                 const periodoActivo = response.data.find(function (p) { return p.peri_activo == 1; });
                 periodoActivoId = periodoActivo ? periodoActivo.peri_id : null;
                 $('#txt_periodo_activo').val(periodoActivo ? periodoActivo.peri_codigo : 'Sin período activo');
+                // Modal Reincorporar: período destino de referencia (lo fija
+                // el servidor). Vacío = sin período activo; lo lee
+                // actualizarResumenReincorporar() (global) desde el propio campo.
+                $('#txt_reinc_peri_destino').val(periodoActivo ? periodoActivo.peri_codigo : '');
 
                 // Pestaña "Per. Anteriores": select con TODOS los períodos
                 // EXCEPTO el activo — sin opción "Todos" (enviar peri_id vacío
@@ -1488,6 +1569,12 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                 // exige matr_estado 'matriculado') y "Matricular en otro
                 // programa" (crearía una matrícula sin enlace a la de
                 // origen; la vía prevista es la acción Reincorporar).
+                // "↩️ Reincorporar" existe solo aquí. Recibe únicamente el
+                // matr_id: abrirReincorporar() toma el resto de la fila desde
+                // el propio DataTable, sin pasar texto de BD por el onclick.
+                const itemReincorporar = esRetirados ? `<li>
+                                    <button class="dropdown-item" type="button" onclick="abrirReincorporar(${row.matr_id})" title="Crear la matrícula de reincorporación en el período activo">↩️ Reincorporar</button>
+                                </li>` : '';
                 const itemGestionarClaves = esRetirados ? '' : `<li>
                                     <button class="dropdown-item" type="button" onclick="abrirGestionarClaves(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">🔑 Gestionar claves</button>
                                 </li>`;
@@ -1500,6 +1587,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                                 <i class="bi bi-gear-fill"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                ${itemReincorporar}
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="abrirEditar(${row.estu_id}, false)" title="${tituloFicha}">
                                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
@@ -2322,6 +2410,124 @@ function abrirAvanzarSemestre(matr_id, nombreCompleto, matrSemestreActual, progD
     $('#slct_avanzar_peri_id_destino').html('<option value="">-- Seleccionar --</option>').append(opcionesAnteriores);
 
     new bootstrap.Modal(document.getElementById('mdl_avanzar_semestre')).show();
+}
+
+// ── Reincorporar (pestaña Retirados) ────────────────────────────────────
+// Estado del modal #mdl_reincorporar. Global porque abrirReincorporar() se
+// invoca desde el onclick inline del dropdown y el handler de confirmar
+// vive dentro de $(document).ready.
+// reincOrigen: fila de listar_matriculados (contexto 'retirados') de la
+// matrícula que se reincorpora. reincEnviando: hay una petición en curso.
+let reincOrigen = null;
+let reincEnviando = false;
+
+// Toma la fila desde el DataTable ya cargado (sin AJAX adicional) y abre el
+// modal con el programa, la cohorte y el semestre de origen como valores por
+// defecto. El programa de la matrícula es matr_prog_id — la clave 'prog_id'
+// de esa fila es el programa declarado en la ficha, no se usa aquí.
+function abrirReincorporar(matr_id) {
+    const filas = $('#tbl_retirados').DataTable().rows().data().toArray();
+    const fila = filas.find(function (f) { return f.matr_id == matr_id; });
+    if (!fila) {
+        alert('No se encontró la matrícula en la lista de Retirados. Recargue la página.');
+        return;
+    }
+    reincOrigen = fila;
+    reincEnviando = false;
+
+    $('#npt_reinc_matr_id').val(fila.matr_id);
+    $('#txt_reinc_nombre').text((fila.estu_nombres || '') + ' ' + (fila.estu_apellidos || ''));
+    $('#txt_reinc_origen_prog').text(fila.prog_sigla || '—');
+    $('#txt_reinc_origen_coho').text(fila.coho_codigo || '—');
+    $('#txt_reinc_origen_peri').text(fila.peri_codigo || '—');
+    $('#txt_reinc_origen_sem').text(fila.matr_semestre != null ? fila.matr_semestre : '—');
+
+    $('#npt_reinc_matr_folio, #npt_reinc_fechamatricula, #npt_reinc_observacion').val('');
+    $('#bloque_reinc_error').addClass('d-none').text('');
+
+    // Programa por defecto: el de origen, si sigue activo (si no, queda sin
+    // seleccionar y el coordinador elige).
+    const $prog = $('#slct_reinc_prog_id');
+    const hayProgramaOrigen = $prog.find('option').filter(function () { return this.value == fila.matr_prog_id; }).length > 0;
+    $prog.val(hayProgramaOrigen ? String(fila.matr_prog_id) : '');
+
+    cargarDestinoReincorporar();
+    new bootstrap.Modal(document.getElementById('mdl_reincorporar')).show();
+}
+
+// Repuebla Semestre y Cohorte según el programa elegido en el modal.
+// Semestre: 1..duración del programa, por defecto el de origen sin pasarse
+// de esa duración. Cohorte: activas del programa (mismo endpoint que los
+// otros modales), por defecto la de origen si pertenece a ese programa.
+function cargarDestinoReincorporar() {
+    const $prog = $('#slct_reinc_prog_id');
+    const prog_id = $prog.val();
+    const duracion = parseInt($prog.find('option:selected').attr('data-duracion'), 10) || 0;
+
+    const semestreOrigen = reincOrigen ? parseInt(reincOrigen.matr_semestre, 10) || 1 : 1;
+    poblarSelectSemestre('#slct_reinc_matr_semestre', duracion, Math.min(semestreOrigen, duracion || 1));
+
+    if (!prog_id) {
+        $('#slct_reinc_coho_id').html('<option value="">-- Primero seleccione un programa --</option>');
+        actualizarResumenReincorporar();
+        return;
+    }
+
+    $('#slct_reinc_coho_id').html('<option value="">Cargando cohortes…</option>');
+    actualizarResumenReincorporar();
+    cargarCohortesPorPrograma(prog_id, '#slct_reinc_coho_id', function () {
+        // Respuesta de un programa que ya no es el elegido (cambio rápido
+        // de programa): se descarta y se vuelve a pedir el actual.
+        if ($('#slct_reinc_prog_id').val() != prog_id) {
+            cargarDestinoReincorporar();
+            return;
+        }
+        const $coho = $('#slct_reinc_coho_id');
+        const cohoOrigen = reincOrigen ? reincOrigen.coho_id : null;
+        const hayCohorteOrigen = cohoOrigen != null && $coho.find('option').filter(function () { return this.value == cohoOrigen; }).length > 0;
+        $coho.val(hayCohorteOrigen ? String(cohoOrigen) : '');
+        actualizarResumenReincorporar();
+    });
+}
+
+// Resumen en vivo, avisos y estado del botón de confirmar. Todo el texto
+// que viene de BD se escribe con .text().
+function actualizarResumenReincorporar() {
+    if (!reincOrigen) return;
+
+    const $prog = $('#slct_reinc_prog_id');
+    const $coho = $('#slct_reinc_coho_id');
+    const prog_id  = $prog.val();
+    const coho_id  = $coho.val();
+    const semestre = $('#slct_reinc_matr_semestre').val();
+    const periodo  = ($('#txt_reinc_peri_destino').val() || '').trim();
+    const hayPeriodo = periodo !== '';
+
+    const progDestino = prog_id ? ($prog.find('option:selected').attr('data-sigla') || '') : '';
+    const cohoDestino = coho_id ? $coho.find('option:selected').text() : '';
+
+    $('#txt_reinc_resumen').text(
+        (reincOrigen.prog_sigla || '—') + ' / ' + (reincOrigen.coho_codigo || '—')
+        + ' → ' + (progDestino || '—') + ' / ' + (cohoDestino || '—')
+        + ', semestre ' + (semestre || '—')
+        + ', período ' + (hayPeriodo ? periodo : '—')
+    );
+
+    const cambiaPrograma = !!prog_id && prog_id != reincOrigen.matr_prog_id;
+    const cambiaCohorte  = !!coho_id && coho_id != reincOrigen.coho_id;
+    let textoCambio = '';
+    if (prog_id && coho_id) {
+        if (cambiaPrograma && cambiaCohorte) textoCambio = 'Cambio de programa y cohorte';
+        else if (cambiaCohorte)              textoCambio = 'Cambio de cohorte';
+        else if (cambiaPrograma)             textoCambio = 'Cambio de programa';
+        else                                 textoCambio = 'Sin cambio de programa ni cohorte';
+    }
+    $('#txt_reinc_cambio').text(textoCambio);
+    $('#bloque_reinc_aviso_programa').toggleClass('d-none', !cambiaPrograma);
+    $('#bloque_reinc_sin_periodo').toggleClass('d-none', hayPeriodo);
+
+    const completo = !!prog_id && !!coho_id && !!semestre;
+    $('#btn_confirmar_reincorporar').prop('disabled', !(completo && hayPeriodo) || reincEnviando);
 }
 
 // Reset a estado inicial + apertura inmediata (mismo criterio que
