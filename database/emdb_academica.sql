@@ -479,6 +479,7 @@ CREATE TABLE `matriculas` (
   `prog_id` smallint unsigned NOT NULL,
   `peri_id` smallint unsigned NOT NULL,
   `coho_id` smallint unsigned DEFAULT NULL,
+  `matr_origen_id` int unsigned DEFAULT NULL,
   `matr_estado` enum('aspirante','matriculado','retirado','graduado','cursado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'aspirante',
   `matr_estado_academico` enum('Activo','Aplazamiento','Retirado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Activo',
   `matr_semestre` tinyint unsigned NOT NULL DEFAULT '1',
@@ -491,10 +492,12 @@ CREATE TABLE `matriculas` (
   PRIMARY KEY (`matr_id`),
   UNIQUE KEY `uq_matr_estu_peri_prog` (`estu_id`,`peri_id`,`prog_id`),
   UNIQUE KEY `uq_matr_numero` (`matr_numero`),
+  UNIQUE KEY `uq_matr_origen` (`matr_origen_id`),
   KEY `fk_matr_prog` (`prog_id`),
   KEY `fk_matr_peri` (`peri_id`),
   KEY `coho_id` (`coho_id`),
   CONSTRAINT `fk_matr_estu` FOREIGN KEY (`estu_id`) REFERENCES `estudiantes` (`estu_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_matr_origen` FOREIGN KEY (`matr_origen_id`) REFERENCES `matriculas` (`matr_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_matr_peri` FOREIGN KEY (`peri_id`) REFERENCES `periodos` (`peri_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_matr_prog` FOREIGN KEY (`prog_id`) REFERENCES `programas` (`prog_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `matriculas_ibfk_1` FOREIGN KEY (`coho_id`) REFERENCES `cohortes` (`coho_id`) ON DELETE SET NULL
@@ -507,7 +510,7 @@ CREATE TABLE `matriculas` (
 
 LOCK TABLES `matriculas` WRITE;
 /*!40000 ALTER TABLE `matriculas` DISABLE KEYS */;
-INSERT INTO `matriculas` VALUES (2,79,2,5,1,'matriculado','Activo',1,NULL,NULL,NULL,'2026-09-05','2026-09-06',NULL),(3,66,2,5,1,'matriculado','Activo',1,NULL,NULL,NULL,'2026-09-05','2026-09-06',NULL),(4,77,2,5,1,'matriculado','Activo',1,NULL,NULL,NULL,'2026-09-05','2026-09-06',NULL);
+INSERT INTO `matriculas` (`matr_id`,`estu_id`,`prog_id`,`peri_id`,`coho_id`,`matr_estado`,`matr_estado_academico`,`matr_semestre`,`matr_folio`,`matr_numero`,`matr_matriculadopor`,`fechainscripcion`,`fechamatricula`,`matr_observacion`) VALUES (2,79,2,5,1,'matriculado','Activo',1,NULL,NULL,NULL,'2026-09-05','2026-09-06',NULL),(3,66,2,5,1,'matriculado','Activo',1,NULL,NULL,NULL,'2026-09-05','2026-09-06',NULL),(4,77,2,5,1,'matriculado','Activo',1,NULL,NULL,NULL,'2026-09-05','2026-09-06',NULL);
 /*!40000 ALTER TABLE `matriculas` ENABLE KEYS */;
 UNLOCK TABLES;
 
