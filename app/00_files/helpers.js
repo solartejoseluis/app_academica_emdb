@@ -1,5 +1,19 @@
 // Funciones JS compartidas entre módulos (equivalente de helpers.php).
-// Cargar en la vista ANTES de su _ctrl.js.
+// Cargar en la vista ANTES de su _ctrl.js y de ayuda_sidebar.js.
+
+// Todo texto que viene de la base pasa por aquí antes de concatenarse en
+// HTML, sea como contenido o dentro de un atributo entre comillas (title,
+// value, data-*). null/undefined -> ''. Única definición del proyecto: no
+// declarar otra escaparHtml en un _ctrl.js (la que cargue después pisa a
+// esta sin avisar). No sirve para texto dentro de un onclick="...('...')".
+function escaparHtml(valor) {
+    return String(valor === null || valor === undefined ? '' : valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 
 // Texto de presentación de gruposemestres.grse_jornada. El valor guardado
 // ('Sabados', sin tilde) no cambia: es el que usan los selects y la fórmula

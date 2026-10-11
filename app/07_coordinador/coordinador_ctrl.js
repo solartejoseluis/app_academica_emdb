@@ -10,16 +10,6 @@ const ESTADOS_NOTAS = {
     sin_estudiantes: { texto: 'Sin estudiantes', clase: 'bg-secondary' }
 };
 
-// Todo texto que viene de la base pasa por aquí antes de insertarse en HTML.
-function escaparHtml(texto) {
-    return String(texto === null || texto === undefined ? '' : texto)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 // Columna de texto de la base: escapada al mostrar, cruda para ordenar/filtrar.
 function renderTexto(data, type) {
     return type === 'display' ? escaparHtml(data) : data;

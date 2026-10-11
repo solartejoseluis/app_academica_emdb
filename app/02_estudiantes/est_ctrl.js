@@ -1634,17 +1634,6 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
     return columnas;
 }
 
-// Escapa texto libre antes de insertarlo en HTML generado por un render()
-// de DataTables (contenido o atributo entre comillas dobles).
-function escaparHtml(texto) {
-    return String(texto == null ? '' : texto)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 // Insignias de reincorporación para la columna "Estado" de las tres tablas
 // de matriculados. matr_origen_id: ESTA matrícula es la reincorporación de
 // otra (se indica de qué programa y cohorte viene). tiene_reincorporacion:

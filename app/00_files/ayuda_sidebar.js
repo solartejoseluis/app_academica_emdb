@@ -3,6 +3,7 @@
 // cuando el rol no pasa por navbar.php, ej. Docente en 05_calificaciones).
 // Cada _view.php que lo incluye debe declarar `const MODULO_ACTUAL = '...'`
 // ANTES de este <script>, con el mismo valor que ayud_seccion en BD.
+// Usa escaparHtml() de helpers.js, que la vista debe cargar antes.
 
 document.addEventListener('DOMContentLoaded', function () {
     const offcanvasEl = document.getElementById('offcanvasAyuda');
@@ -46,9 +47,3 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
-
-function escaparHtml(texto) {
-    const div = document.createElement('div');
-    div.textContent = texto;
-    return div.innerHTML;
-}
