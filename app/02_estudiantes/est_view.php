@@ -49,6 +49,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
         <li class="nav-item">
             <a class="nav-link" id="tab-matriculados-anteriores" data-bs-toggle="tab" href="#pane-matriculados-anteriores">Matriculados (Per. Anteriores)</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" id="tab-retirados" data-bs-toggle="tab" href="#pane-retirados">Retirados</a>
+        </li>
         <?php if ((int)$_SESSION['role_id'] === 1): ?>
         <li class="nav-item">
             <a class="nav-link" id="tab-config-requisitos" data-bs-toggle="tab" href="#pane-config-requisitos">Configurar Requisitos</a>
@@ -182,6 +185,63 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                                 <th>Período</th>
                                 <th>Módulos</th>
                                 <th>Estado</th>
+                                <th>Observación</th>
+                                <th>Último acceso</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="pane-retirados">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <?php if (in_array((int)$_SESSION['role_id'], [1, 2])): ?>
+                    <div class="row mb-2" id="bloque_filtros_retirados">
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Programa</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_prog_id_retirados">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Período</label>
+                            <input type="text" class="form-control form-control-sm" id="txt_periodo_retirados" value="Todos los períodos" readonly disabled>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Grupo</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_grse_id_retirados">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Módulo</label>
+                            <select class="form-select form-select-sm" id="slct_filtro_matr_modu_id_retirados">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <table id="tbl_retirados" class="table table-hover table-bordered w-100">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Foto</th>
+                                <th>#</th>
+                                <th>Nombres</th>
+                                <th>Apellidos</th>
+                                <th>Documento</th>
+                                <th>Edad</th>
+                                <th>Información</th>
+                                <th>Requisitos</th>
+                                <th>Cohorte</th>
+                                <th>Prog</th>
+                                <th>Sem</th>
+                                <th>Período</th>
+                                <th>Módulos</th>
+                                <th>Estado</th>
+                                <th>Observación</th>
                                 <th>Último acceso</th>
                                 <th>Acciones</th>
                             </tr>

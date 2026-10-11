@@ -110,6 +110,7 @@ $(document).ready(function () {
     let tablaAspirantes;
     let tablaMatriculadosActual;
     let tablaMatriculadosAnteriores;
+    let tablaRetirados;
     // Resuelto por cargarPeriodos() a partir de peri_activo=1 — usado como
     // peri_id fijo (sin selector) en el ajax.data de tablaMatriculadosActual.
     let periodoActivoId = null;
@@ -128,6 +129,11 @@ $(document).ready(function () {
     // --- Filtros de la pestaña "Matriculados (Per. Anteriores)": solo recargan su propia tabla ---
     $('#slct_filtro_matr_prog_id_anteriores, #slct_filtro_matr_peri_id_anteriores, #slct_filtro_matr_grse_id_anteriores, #slct_filtro_matr_modu_id_anteriores').on('change', function () {
         tablaMatriculadosAnteriores.ajax.reload();
+    });
+
+    // --- Filtros de la pestaña "Retirados" (sin filtro de período: abarca todos): solo recargan su propia tabla ---
+    $('#slct_filtro_matr_prog_id_retirados, #slct_filtro_matr_grse_id_retirados, #slct_filtro_matr_modu_id_retirados').on('change', function () {
+        tablaRetirados.ajax.reload();
     });
 
     // Ajustar columnas al cambiar de tab (soluciona render en tab oculto)
@@ -327,6 +333,7 @@ $(document).ready(function () {
                     tablaAspirantes.ajax.reload(null, false);
                     if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
                     if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                    if (tablaRetirados) tablaRetirados.ajax.reload(null, false);
                     let mensaje = estu_id === '' ? 'Aspirante registrado correctamente.' : 'Estudiante actualizado correctamente.';
                     if (response.clave_generada) {
                         mensaje += '\n\nClave asignada: ' + response.clave_generada + '\nAnote esta clave — no se volverá a mostrar.';
@@ -394,6 +401,7 @@ $(document).ready(function () {
                     tablaAspirantes.ajax.reload(null, false);
                     if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
                     if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                    if (tablaRetirados) tablaRetirados.ajax.reload(null, false);
                 } else {
                     alert(response.message);
                 }
@@ -492,6 +500,7 @@ $(document).ready(function () {
                         tablaAspirantes.ajax.reload(null, false);
                         if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
                     if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                    if (tablaRetirados) tablaRetirados.ajax.reload(null, false);
                         alert('Matrícula completada correctamente.');
                     }
                 } else {
@@ -522,6 +531,7 @@ $(document).ready(function () {
         tablaAspirantes.ajax.reload(null, false);
         if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
         if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+        if (tablaRetirados) tablaRetirados.ajax.reload(null, false);
     });
 
     // --- Reset modal matrícula al cerrar ---
@@ -585,6 +595,7 @@ $(document).ready(function () {
                     bootstrap.Modal.getInstance(document.getElementById('mdl_editar_matricula')).hide();
                     if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload();
                     if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload();
+                    if (tablaRetirados) tablaRetirados.ajax.reload();
                 } else {
                     alert('Error: ' + response.message);
                 }
@@ -608,6 +619,7 @@ $(document).ready(function () {
                     bootstrap.Modal.getInstance(document.getElementById('mdl_avanzar_semestre')).hide();
                     if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload();
                     if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload();
+                    if (tablaRetirados) tablaRetirados.ajax.reload();
                     alert(response.message);
                 } else {
                     // Sin cerrar el modal — el coordinador necesita ver el
@@ -661,6 +673,7 @@ $(document).ready(function () {
         $('#mdl_gestionar_claves').modal('hide');
         if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
         if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+        if (tablaRetirados) tablaRetirados.ajax.reload(null, false);
     });
 
     // --- Link de actualización de datos (Fase 4 de 5) ---
@@ -678,6 +691,7 @@ $(document).ready(function () {
                     $('#bloque_link_generado').removeClass('d-none');
                     if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
                     if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                    if (tablaRetirados) tablaRetirados.ajax.reload(null, false);
                 } else {
                     alert(response.message);
                 }
@@ -726,6 +740,7 @@ $(document).ready(function () {
                     bootstrap.Modal.getInstance(document.getElementById('mdl_estudiante')).hide();
                     if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
                     if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                    if (tablaRetirados) tablaRetirados.ajax.reload(null, false);
                     const campos = response.campos_aplicados || [];
                     alert(campos.length > 0
                         ? 'Actualización aprobada. Campos aplicados: ' + campos.join(', ')
@@ -750,6 +765,7 @@ $(document).ready(function () {
                     bootstrap.Modal.getInstance(document.getElementById('mdl_estudiante')).hide();
                     if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload(null, false);
                     if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload(null, false);
+                    if (tablaRetirados) tablaRetirados.ajax.reload(null, false);
                     alert('Actualización descartada.');
                 } else {
                     alert(response.message);
@@ -893,6 +909,33 @@ $(document).ready(function () {
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
             columns: crearColumnasMatriculados(false)
         });
+
+        // Pestaña "Retirados": matrículas retiradas en 'Aplazamiento' que aún
+        // no tienen reincorporación, de todos los períodos (sin peri_id). Se
+        // construye aquí, una sola vez, junto a las otras dos. El contador de
+        // la pestaña se actualiza con cada respuesta — el listener se
+        // registra antes de construir la tabla para captar también la
+        // primera carga.
+        $('#tbl_retirados').on('xhr.dt', function (e, settings, json) {
+            const total = (json && Array.isArray(json.data)) ? json.data.length : 0;
+            $('#tab-retirados').text(total > 0 ? `Retirados (${total})` : 'Retirados');
+        });
+        tablaRetirados = $('#tbl_retirados').DataTable({
+            ajax: {
+                url: 'est_mdl.php?accion=listar_matriculados',
+                type: 'POST',
+                dataSrc: 'data',
+                data: function (d) {
+                    d.prog_id = $('#slct_filtro_matr_prog_id_retirados').val();
+                    d.grse_id = $('#slct_filtro_matr_grse_id_retirados').val();
+                    d.modu_id = $('#slct_filtro_matr_modu_id_retirados').val();
+                    d.contexto = 'retirados';
+                }
+            },
+            destroy: true,
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            columns: crearColumnasMatriculados(false, 'retirados')
+        });
     }
 
     function cargarProgramas() {
@@ -906,7 +949,7 @@ $(document).ready(function () {
                     response.data.forEach(function (p) {
                         opciones += `<option value="${p.prog_id}" data-duracion="${p.prog_duracion_semestres}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
                     });
-                    $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id_actual, #slct_filtro_matr_prog_id_anteriores, #slct_editar_prog_id').append(opciones);
+                    $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id_actual, #slct_filtro_matr_prog_id_anteriores, #slct_filtro_matr_prog_id_retirados, #slct_editar_prog_id').append(opciones);
                 }
             }
         });
@@ -980,7 +1023,7 @@ $(document).ready(function () {
                     response.data.forEach(function (g) {
                         opciones += `<option value="${g.grse_id}">${g.grse_codigo}</option>`;
                     });
-                    $('#slct_filtro_matr_grse_id_actual, #slct_filtro_matr_grse_id_anteriores').append(opciones);
+                    $('#slct_filtro_matr_grse_id_actual, #slct_filtro_matr_grse_id_anteriores, #slct_filtro_matr_grse_id_retirados').append(opciones);
                 }
             }
         });
@@ -997,7 +1040,7 @@ $(document).ready(function () {
                     response.data.forEach(function (m) {
                         opciones += `<option value="${m.modu_id}">${m.modu_sigla} — ${m.modu_nombre}</option>`;
                     });
-                    $('#slct_filtro_matr_modu_id_actual, #slct_filtro_matr_modu_id_anteriores').append(opciones);
+                    $('#slct_filtro_matr_modu_id_actual, #slct_filtro_matr_modu_id_anteriores, #slct_filtro_matr_modu_id_retirados').append(opciones);
                 }
             }
         });
@@ -1197,8 +1240,15 @@ $(document).ready(function () {
 // del dropdown de Acciones (solo tiene sentido avanzar desde el período EN
 // CURSO) — las demás 12 columnas son idénticas entre ambas tablas, por eso
 // se mantiene un solo parámetro puntual en vez de duplicar la función.
-function crearColumnasMatriculados(esPeriodoActual) {
-    return [
+// contexto (opcional): 'actual' | 'anteriores' | 'retirados'. Si se omite se
+// deduce de esPeriodoActual, así las llamadas existentes no cambian. Decide
+// dos cosas: la columna "Observación" (todas menos 'actual') y el menú de
+// Acciones reducido de la pestaña "Retirados".
+function crearColumnasMatriculados(esPeriodoActual, contexto) {
+    contexto = contexto || (esPeriodoActual ? 'actual' : 'anteriores');
+    const esRetirados = contexto === 'retirados';
+
+    const columnas = [
         {
             data: 'estu_foto',
             orderable: false,
@@ -1333,7 +1383,7 @@ function crearColumnasMatriculados(esPeriodoActual) {
                         'En Curso':  'bg-secondary'
                     };
                     const clsAcademico = mapAcademico[textoAcademico] || 'bg-secondary';
-                    return `<span class="badge ${clsAcademico}">${textoAcademico}</span>`;
+                    return `<span class="badge ${clsAcademico}">${textoAcademico}</span>` + insigniasReincorporacion(row);
                 }
 
                 let map = {
@@ -1343,7 +1393,19 @@ function crearColumnasMatriculados(esPeriodoActual) {
                     'graduado':    'bg-primary'
                 };
                 let cls = map[data] || 'bg-secondary';
-                return `<span class="badge ${cls}">${data}</span>`;
+                let html = `<span class="badge ${cls}">${data}</span>`;
+
+                // Matrícula retirada: segunda insignia con la condición
+                // académica — 'Aplazamiento' (puede reincorporarse) se
+                // distingue de un retiro definitivo.
+                if (data === 'retirado') {
+                    if (row.matr_estado_academico === 'Aplazamiento') {
+                        html += ' <span class="badge bg-warning text-dark">Aplazamiento</span>';
+                    } else if (row.matr_estado_academico === 'Retirado') {
+                        html += ' <span class="badge bg-secondary">Retirado</span>';
+                    }
+                }
+                return html + insigniasReincorporacion(row);
             }
         },
         { data: 'ultimo_acceso_fmt', width: '120px' },
@@ -1420,6 +1482,19 @@ function crearColumnasMatriculados(esPeriodoActual) {
                            </li>`;
                 }
 
+                // Pestaña "Retirados": menú reducido. Se omiten las acciones
+                // que no aplican a una matrícula retirada — "Gestionar
+                // claves" (acceso al sistema), "Hoja de Matrícula" (el PDF
+                // exige matr_estado 'matriculado') y "Matricular en otro
+                // programa" (crearía una matrícula sin enlace a la de
+                // origen; la vía prevista es la acción Reincorporar).
+                const itemGestionarClaves = esRetirados ? '' : `<li>
+                                    <button class="dropdown-item" type="button" onclick="abrirGestionarClaves(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">🔑 Gestionar claves</button>
+                                </li>`;
+                const itemHojaMatricula = esRetirados ? '' : `<li>
+                                    <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
+                                </li>`;
+
                 return `<div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                                 <i class="bi bi-gear-fill"></i>
@@ -1430,9 +1505,7 @@ function crearColumnasMatriculados(esPeriodoActual) {
                                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${colorFicha};margin-right:4px;"></span>📝 Datos Estudiante
                                     </button>
                                 </li>
-                                <li>
-                                    <button class="dropdown-item" type="button" onclick="abrirGestionarClaves(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">🔑 Gestionar claves</button>
-                                </li>
+                                ${itemGestionarClaves}
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="abrirRequisitosMatricula(${row.matr_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">📋 Requisitos</button>
                                 </li>
@@ -1441,18 +1514,64 @@ function crearColumnasMatriculados(esPeriodoActual) {
                                     <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
                                 </li>
                                 ${itemAvanzarSemestre}
-                                <li>
-                                    <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
-                                </li>
+                                ${itemHojaMatricula}
                                 <li>
                                     <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/reportes_view.php?estu_id=' + ${row.estu_id} + '&matr_id=' + ${row.matr_id} + '&peri_id=' + ${row.peri_id} + '&nombre=' + encodeURIComponent('${nombreParaReporte}'), '_blank')" title="Ver el informe de calificaciones de este período">📊 Ir al Reporte</button>
                                 </li>
-                                ${itemMatricularOtroPrograma}
+                                ${esRetirados ? '' : itemMatricularOtroPrograma}
                             </ul>
                         </div>`;
             }
         }
     ];
+
+    // Columna "Observación" (matr_observacion): solo fuera de 'actual', entre
+    // "Estado" y "Último acceso" — el <thead> de est_view.php la declara en
+    // las tablas de Anteriores y Retirados. Texto recortado; el completo va
+    // en el title.
+    if (contexto !== 'actual') {
+        columnas.splice(columnas.length - 2, 0, {
+            data: 'matr_observacion',
+            orderable: false,
+            render: function (data, type) {
+                const texto = (data || '').toString().trim();
+                if (type !== 'display') return texto;
+                if (texto === '') return '—';
+                const corto = texto.length > 60 ? texto.substring(0, 60).trimEnd() + '…' : texto;
+                return `<span title="${escaparHtml(texto)}">${escaparHtml(corto)}</span>`;
+            }
+        });
+    }
+
+    return columnas;
+}
+
+// Escapa texto libre antes de insertarlo en HTML generado por un render()
+// de DataTables (contenido o atributo entre comillas dobles).
+function escaparHtml(texto) {
+    return String(texto == null ? '' : texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Insignias de reincorporación para la columna "Estado" de las tres tablas
+// de matriculados. matr_origen_id: ESTA matrícula es la reincorporación de
+// otra (se indica de qué programa y cohorte viene). tiene_reincorporacion:
+// ESTA matrícula ya fue origen de una reincorporación posterior.
+function insigniasReincorporacion(row) {
+    let html = '';
+    if (row.matr_origen_id) {
+        const origen = [row.origen_prog_sigla, row.origen_coho_codigo].filter(Boolean).join(' · ');
+        const titulo = origen !== '' ? 'Reincorporada desde ' + origen : 'Reincorporación de una matrícula anterior';
+        html += ` <span class="badge bg-info text-dark" title="${escaparHtml(titulo)}">Reincorporación</span>`;
+    }
+    if (row.tiene_reincorporacion == 1) {
+        html += ' <span class="badge bg-dark" title="Esta matrícula tiene una reincorporación posterior">Reincorporada</span>';
+    }
+    return html;
 }
 
 // ── Link de actualización de datos (Fase 4 de 5) ────────────────────────
@@ -1689,6 +1808,8 @@ function cargarRequisitosMatricula(matr_id) {
                                 $('#tbl_matriculados_actual').DataTable().ajax.reload(null, false);
                             } else if ($('#pane-matriculados-anteriores').hasClass('active')) {
                                 $('#tbl_matriculados_anteriores').DataTable().ajax.reload(null, false);
+                            } else if ($('#pane-retirados').hasClass('active')) {
+                                $('#tbl_retirados').DataTable().ajax.reload(null, false);
                             }
                         },
                         error: function () {
