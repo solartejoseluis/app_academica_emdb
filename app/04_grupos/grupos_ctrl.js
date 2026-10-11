@@ -10,6 +10,24 @@ let cacheProgramas = {};
 let programaIdPendienteEliminar = null;
 let periodoIdPendienteEliminar = null;
 
+// render de DataTables para columnas de texto de la base: escapado al
+// mostrar (escaparHtml() vive en 00_files/helpers.js), crudo para ordenar y
+// filtrar. null/undefined pasan tal cual, como en una columna sin render.
+function renderTextoEscapado(data, type) {
+    if (type !== 'display' || data === null || data === undefined) return data;
+    return escaparHtml(data);
+}
+
+// Fila ya cargada de una de las tablas, buscada por su id. Los onclick de las
+// tablas pasan solo ids numéricos; el texto que necesita cada acción (código
+// del grupo, de la cohorte, del período) sale de aquí, nunca del HTML del
+// atributo. Devuelve null si la fila ya no está (tabla recargada).
+function filaDeTabla(selector, campoId, id) {
+    if (!$.fn.DataTable.isDataTable(selector)) return null;
+    return $(selector).DataTable().rows().data().toArray()
+        .find(f => f[campoId] == id) || null;
+}
+
 // Familias de programa para el color de relleno de las filas de #tbl_grupos
 // (pestaña Grupos Semestre). Clave: clase CSS de la fila (definida en el
 // <style> de grupos_view.php); valor: lista de prog_sigla de esa familia.
@@ -121,9 +139,9 @@ $(document).ready(function () {
             },
             columns: [
                 { data: null, render: (d, t, r, m) => m.row + 1 },
-                { data: 'coho_codigo' },
-                { data: 'prog_nombre' },
-                { data: 'fechainicio' },
+                { data: 'coho_codigo', render: renderTextoEscapado },
+                { data: 'prog_nombre', render: renderTextoEscapado },
+                { data: 'fechainicio', render: renderTextoEscapado },
                 { data: 'coho_activa', render: v =>
                     v == 1
                         ? '<span class="badge bg-success">Activa</span>'
@@ -134,7 +152,7 @@ $(document).ready(function () {
                         onclick="abrirEditarCohorte(${row.coho_id})">Editar</button>`;
                     if (row.coho_activa == 1 && row.total_estudiantes == 0 && row.total_grupos == 0) {
                         botones += `<button class="btn btn-sm btn-outline-danger"
-                            onclick="confirmarEliminarCohorte(${row.coho_id}, '${row.coho_codigo.replace(/'/g, "\\'")}')">Eliminar</button>`;
+                            onclick="confirmarEliminarCohorte(${row.coho_id})">Eliminar</button>`;
                     } else if (row.coho_activa == 1 && (row.total_estudiantes > 0 || row.total_grupos > 0)) {
                         botones += `<button class="btn btn-sm btn-outline-warning"
                             onclick="toggleEstadoCohorte(${row.coho_id}, 0)">Desactivar</button>`;
@@ -174,10 +192,10 @@ $(document).ready(function () {
                 // El dato (índice de la fila) solo sirve para ordenar: lo que
                 // se ve es la posición visible, reescrita en cada draw.
                 { data: null, searchable: false, render: (d, t, r, m) => m.row + 1 },
-                { data: 'grse_codigo' },
-                { data: 'coho_codigo' },
-                { data: 'prog_sigla' },
-                { data: 'peri_codigo' },
+                { data: 'grse_codigo', render: renderTextoEscapado },
+                { data: 'coho_codigo', render: renderTextoEscapado },
+                { data: 'prog_sigla', render: renderTextoEscapado },
+                { data: 'peri_codigo', render: renderTextoEscapado },
                 { data: 'grse_semestre', render: v => `Semestre ${v}` },
                 {
                     data: 'total_modulos',
@@ -186,7 +204,7 @@ $(document).ready(function () {
                             return data;
                         }
                         if (data > 0) {
-                            return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosGrupo(${row.grse_id}, '${row.grse_codigo.replace(/'/g, "\\'")}')">${data}</button>`;
+                            return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosGrupo(${row.grse_id})">${data}</button>`;
                         }
                         return `<span class="badge bg-info text-dark">${data} módulos</span>`;
                     }
@@ -195,7 +213,7 @@ $(document).ready(function () {
                     data: 'total_estudiantes',
                     orderable: false,
                     render: function (data, type, row) {
-                        return `<button class="btn btn-sm btn-outline-secondary" onclick="verEstudiantesGrupo(${row.grse_id}, '${row.grse_codigo.replace(/'/g, "\\'")}')">${data}</button>`;
+                        return `<button class="btn btn-sm btn-outline-secondary" onclick="verEstudiantesGrupo(${row.grse_id})">${data}</button>`;
                     }
                 },
                 { data: 'grse_activo', render: v =>
@@ -244,11 +262,11 @@ $(document).ready(function () {
             },
             columns: [
                 { data: null, render: (d, t, r, m) => m.row + 1 },
-                { data: 'peri_codigo' },
+                { data: 'peri_codigo', render: renderTextoEscapado },
                 { data: 'peri_anio' },
                 { data: 'peri_semestre' },
-                { data: 'fechainicio', render: v => v || '—' },
-                { data: 'fechafin', render: v => v || '—' },
+                { data: 'fechainicio', render: (v, type) => v ? renderTextoEscapado(v, type) : '—' },
+                { data: 'fechafin', render: (v, type) => v ? renderTextoEscapado(v, type) : '—' },
                 { data: 'peri_activo', render: v =>
                     v == 1
                         ? '<span class="badge bg-success">Activo</span>'
@@ -264,7 +282,7 @@ $(document).ready(function () {
                     const totalDependientes = Number(row.total_gruposemestres) + Number(row.total_matriculas);
                     if (totalDependientes === 0 && row.peri_activo == 0) {
                         botones += `<button class="btn btn-sm btn-outline-danger"
-                            onclick="confirmarEliminarPeriodo(${row.peri_id}, '${row.peri_codigo}')">Eliminar</button>`;
+                            onclick="confirmarEliminarPeriodo(${row.peri_id})">Eliminar</button>`;
                     }
                     return botones;
                 }}
@@ -288,9 +306,9 @@ $(document).ready(function () {
                 }
             },
             columns: [
-                { data: 'prog_nombre' },
-                { data: 'modu_sigla' },
-                { data: 'modu_nombre' },
+                { data: 'prog_nombre', render: renderTextoEscapado },
+                { data: 'modu_sigla', render: renderTextoEscapado },
+                { data: 'modu_nombre', render: renderTextoEscapado },
                 { data: 'modu_orden' },
                 { data: 'modu_activo', render: v =>
                     v == 1
@@ -302,7 +320,7 @@ $(document).ready(function () {
                         onclick="abrirEditarModulo(${row.modu_id})">Editar</button>`;
                     if (row.modu_activo == 1 && row.total_grupos == 0) {
                         botones += `<button class="btn btn-sm btn-outline-danger"
-                            onclick="confirmarEliminarModulo(${row.modu_id}, '${row.modu_nombre.replace(/'/g, "\\'")}')">Eliminar</button>`;
+                            onclick="confirmarEliminarModulo(${row.modu_id})">Eliminar</button>`;
                     } else if (row.modu_activo == 1 && row.total_grupos > 0) {
                         botones += `<button class="btn btn-sm btn-outline-warning"
                             onclick="toggleEstadoModulo(${row.modu_id}, 0)">Desactivar</button>`;
@@ -336,12 +354,12 @@ $(document).ready(function () {
                 }
             },
             columns: [
-                { data: 'prog_nombre' },
-                { data: 'prog_sigla' },
+                { data: 'prog_nombre', render: renderTextoEscapado },
+                { data: 'prog_sigla', render: renderTextoEscapado },
                 { data: 'prog_duracion_semestres' },
-                { data: 'prog_resolucion', render: v => v || '' },
-                { data: 'prog_fechaaprobacion', render: v => v || '' },
-                { data: 'prog_fechavencimiento', render: v => v || '' },
+                { data: 'prog_resolucion', render: (v, type) => v ? renderTextoEscapado(v, type) : '' },
+                { data: 'prog_fechaaprobacion', render: (v, type) => v ? renderTextoEscapado(v, type) : '' },
+                { data: 'prog_fechavencimiento', render: (v, type) => v ? renderTextoEscapado(v, type) : '' },
                 { data: 'prog_activo', render: v =>
                     v == 1
                         ? '<span class="badge bg-success">Activo</span>'
@@ -353,7 +371,7 @@ $(document).ready(function () {
                         onclick="abrirEditarPrograma(${row.prog_id})">Editar</button>`;
                     if (row.prog_activo == 1 && totalDependientes === 0) {
                         botones += `<button class="btn btn-sm btn-outline-danger"
-                            onclick="confirmarEliminarPrograma(${row.prog_id}, '${row.prog_nombre.replace(/'/g, "\\'")}')">Eliminar</button>`;
+                            onclick="confirmarEliminarPrograma(${row.prog_id})">Eliminar</button>`;
                     } else if (row.prog_activo == 1 && totalDependientes > 0) {
                         botones += `<button class="btn btn-sm btn-outline-warning"
                             onclick="toggleEstadoPrograma(${row.prog_id}, 0)">Desactivar</button>`;
@@ -378,7 +396,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 let opts = '<option value="">-- Seleccionar --</option>';
                 r.data.forEach(p => {
-                    opts += `<option value="${p.prog_id}" data-sigla="${p.prog_sigla}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
+                    opts += `<option value="${escaparHtml(p.prog_id)}" data-sigla="${escaparHtml(p.prog_sigla)}">${escaparHtml(p.prog_sigla)} — ${escaparHtml(p.prog_nombre)}</option>`;
                 });
                 $('#slct_prog_cohorte, #slct_prog_grupo, #slct_prog_modulo').html(opts);
                 repoblarFiltroGruposProgramas(r.data);
@@ -396,7 +414,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 let opts = '<option value="">-- Seleccionar --</option>';
                 r.data.forEach(d => {
-                    opts += `<option value="${d.doce_id}">${d.doce_apellidos}, ${d.doce_nombres} (${d.total_grupos} grupos)</option>`;
+                    opts += `<option value="${escaparHtml(d.doce_id)}">${escaparHtml(d.doce_apellidos)}, ${escaparHtml(d.doce_nombres)} (${escaparHtml(d.total_grupos)} grupos)</option>`;
                 });
                 $('#slct_doce_grupo').html(opts);
             }
@@ -477,7 +495,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 let opts = '<option value="">-- Seleccionar --</option>';
                 r.data.forEach(c => {
-                    opts += `<option value="${c.coho_id}">${c.coho_codigo}</option>`;
+                    opts += `<option value="${escaparHtml(c.coho_id)}">${escaparHtml(c.coho_codigo)}</option>`;
                 });
                 $('#slct_coho_grupo').html(opts);
             }
@@ -500,7 +518,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 let opts = '<option value="">-- Seleccionar módulo --</option>';
                 r.data.forEach(m => {
-                    opts += `<option value="${m.grmo_id}">${m.modu_sigla} — ${m.modu_nombre}</option>`;
+                    opts += `<option value="${escaparHtml(m.grmo_id)}">${escaparHtml(m.modu_sigla)} — ${escaparHtml(m.modu_nombre)}</option>`;
                 });
                 $('#slct_modulo_asignacion').html(opts);
             }
@@ -545,6 +563,7 @@ $(document).ready(function () {
         });
     }
 
+    // Devuelve texto plano: quien lo inserte en HTML lo pasa por escaparHtml().
     function formatearDetalleEstudiante(e) {
         const doc = e.estu_numerodoc || '—';
         const cohorte = e.coho_codigo || '—';
@@ -564,12 +583,12 @@ $(document).ready(function () {
         estudiantes.forEach(e => {
             const item = $(`
                 <div class="form-check border-bottom py-1 px-2 lista-item"
-                     data-id="${e.estu_id}">
+                     data-id="${escaparHtml(e.estu_id)}">
                     <input class="form-check-input chk-estudiante" type="checkbox"
-                           value="${e.estu_id}">
+                           value="${escaparHtml(e.estu_id)}">
                     <label class="form-check-label small">
-                        ${e.estu_apellidos}, ${e.estu_nombres}
-                        <span class="text-muted">${formatearDetalleEstudiante(e)}</span>
+                        ${escaparHtml(e.estu_apellidos)}, ${escaparHtml(e.estu_nombres)}
+                        <span class="text-muted">${escaparHtml(formatearDetalleEstudiante(e))}</span>
                     </label>
                 </div>
             `);
@@ -1134,8 +1153,9 @@ $(document).ready(function () {
 // FUNCIONES GLOBALES (fuera de ready — compatibilidad con DataTables render)
 // ════════════════════════════════════════════════════════════════════════════
 
-function verEstudiantesGrupo(grse_id, grse_codigo) {
-    $('#mdl_estudiantes_grupo_titulo').text(grse_codigo);
+function verEstudiantesGrupo(grse_id) {
+    const grupo = filaDeTabla('#tbl_grupos', 'grse_id', grse_id);
+    $('#mdl_estudiantes_grupo_titulo').text(grupo ? grupo.grse_codigo : '');
     $.ajax({
         type: 'POST',
         url: 'grupos_mdl.php?accion=listar_estudiantes_grupo',
@@ -1148,7 +1168,7 @@ function verEstudiantesGrupo(grse_id, grse_codigo) {
                 tbody.html('<tr><td class="text-center text-muted">Sin estudiantes asignados</td></tr>');
             } else {
                 r.data.forEach(e => {
-                    tbody.append(`<tr><td>${e.estu_apellidos}, ${e.estu_nombres}</td></tr>`);
+                    tbody.append(`<tr><td>${escaparHtml(e.estu_apellidos)}, ${escaparHtml(e.estu_nombres)}</td></tr>`);
                 });
             }
             $('#mdl_estudiantes_grupo').modal('show');
@@ -1156,8 +1176,9 @@ function verEstudiantesGrupo(grse_id, grse_codigo) {
     });
 }
 
-function verModulosGrupo(grse_id, grse_codigo) {
-    $('#mdl_modulos_grupo_titulo').text(grse_codigo);
+function verModulosGrupo(grse_id) {
+    const grupo = filaDeTabla('#tbl_grupos', 'grse_id', grse_id);
+    $('#mdl_modulos_grupo_titulo').text(grupo ? grupo.grse_codigo : '');
     $.ajax({
         type: 'POST',
         url: 'grupos_mdl.php?accion=listar_modulos_grupo_resumen',
@@ -1207,12 +1228,12 @@ function cargarModulosGrupo(grse_id) {
             r.data.forEach(m => {
                 tbody.append(`
                     <tr>
-                        <td>${m.modu_sigla} — ${m.modu_nombre}</td>
-                        <td>${m.doce_apellidos}, ${m.doce_nombres}</td>
-                        <td>${m.grmo_horario || '—'}</td>
-                        <td>${m.fechainicio || '—'}</td>
-                        <td>${m.fechafin || '—'}</td>
-                        <td><span class="badge bg-info text-dark">${m.total_estudiantes}</span></td>
+                        <td>${escaparHtml(m.modu_sigla)} — ${escaparHtml(m.modu_nombre)}</td>
+                        <td>${escaparHtml(m.doce_apellidos)}, ${escaparHtml(m.doce_nombres)}</td>
+                        <td>${escaparHtml(m.grmo_horario || '—')}</td>
+                        <td>${escaparHtml(m.fechainicio || '—')}</td>
+                        <td>${escaparHtml(m.fechafin || '—')}</td>
+                        <td><span class="badge bg-info text-dark">${escaparHtml(m.total_estudiantes)}</span></td>
                         <td>
                             <button class="btn btn-xs btn-outline-secondary btn-sm"
                                 onclick="abrirEditarModuloGrupo(${m.grmo_id}, ${grse_id})">✏️</button>
@@ -1301,7 +1322,7 @@ function abrirEditarGrupo(grse_id) {
                     if (rc.status !== 'ok') return;
                     let opts = '<option value="">-- Seleccionar --</option>';
                     rc.data.forEach(c => {
-                        opts += `<option value="${c.coho_id}">${c.coho_codigo}</option>`;
+                        opts += `<option value="${escaparHtml(c.coho_id)}">${escaparHtml(c.coho_codigo)}</option>`;
                     });
                     $('#slct_coho_grupo').html(opts);
                     $('#slct_coho_grupo').val(d.coho_id);
@@ -1323,7 +1344,7 @@ function cargarSelectModulosPrograma(prog_id) {
         if (r.status !== 'ok') return;
         let opts = '<option value="">-- Seleccionar --</option>';
         r.data.forEach(m => {
-            opts += `<option value="${m.modu_id}">Sem.${m.semestre_sugerido} — ${m.modu_sigla} ${m.modu_nombre}</option>`;
+            opts += `<option value="${escaparHtml(m.modu_id)}">Sem.${escaparHtml(m.semestre_sugerido)} — ${escaparHtml(m.modu_sigla)} ${escaparHtml(m.modu_nombre)}</option>`;
         });
         $('#slct_modu_grupo').html(opts);
     });
@@ -1368,15 +1389,21 @@ function abrirEditarModulo(modu_id) {
     new bootstrap.Modal('#mdl_modulo').show();
 }
 
-function confirmarEliminarModulo(modu_id, nombre) {
+// El nombre sale de la fila cacheada por listar_modulos, no del onclick.
+function confirmarEliminarModulo(modu_id) {
+    const d = cacheModulos[modu_id];
+    if (!d) { alert('Módulo no encontrado'); return; }
     moduloIdPendienteEliminar = modu_id;
-    $('#spn_nombre_eliminar_modulo').text(nombre);
+    $('#spn_nombre_eliminar_modulo').text(d.modu_nombre);
     new bootstrap.Modal('#mdl_confirmar_eliminar_modulo').show();
 }
 
-function confirmarEliminarCohorte(coho_id, codigo) {
+// El código sale de la fila ya cargada en #tbl_cohortes, no del onclick.
+function confirmarEliminarCohorte(coho_id) {
+    const d = filaDeTabla('#tbl_cohortes', 'coho_id', coho_id);
+    if (!d) { alert('Cohorte no encontrada'); return; }
     cohorteIdPendienteEliminar = coho_id;
-    $('#spn_codigo_eliminar_cohorte').text(codigo);
+    $('#spn_codigo_eliminar_cohorte').text(d.coho_codigo);
     new bootstrap.Modal('#mdl_confirmar_eliminar_cohorte').show();
 }
 
@@ -1422,15 +1449,21 @@ function abrirEditarPrograma(prog_id) {
     new bootstrap.Modal('#mdl_programa').show();
 }
 
-function confirmarEliminarPrograma(prog_id, nombre) {
+// El nombre sale de la fila cacheada por listar_programas_crud, no del onclick.
+function confirmarEliminarPrograma(prog_id) {
+    const d = cacheProgramas[prog_id];
+    if (!d) { alert('Programa no encontrado'); return; }
     programaIdPendienteEliminar = prog_id;
-    $('#spn_nombre_eliminar_programa').text(nombre);
+    $('#spn_nombre_eliminar_programa').text(d.prog_nombre);
     new bootstrap.Modal('#mdl_confirmar_eliminar_programa').show();
 }
 
-function confirmarEliminarPeriodo(peri_id, codigo) {
+// El código sale de la fila ya cargada en #tbl_periodos, no del onclick.
+function confirmarEliminarPeriodo(peri_id) {
+    const d = filaDeTabla('#tbl_periodos', 'peri_id', peri_id);
+    if (!d) { alert('Período no encontrado'); return; }
     periodoIdPendienteEliminar = peri_id;
-    $('#spn_nombre_eliminar_periodo').text(codigo);
+    $('#spn_nombre_eliminar_periodo').text(d.peri_codigo);
     new bootstrap.Modal('#mdl_confirmar_eliminar_periodo').show();
 }
 
@@ -1477,7 +1510,7 @@ function cargarPeriodosSelector() {
             let opts = '<option value="">-- Seleccionar --</option>';
             let activoId = '';
             r.data.forEach(p => {
-                opts += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                opts += `<option value="${escaparHtml(p.peri_id)}">${escaparHtml(p.peri_codigo)}</option>`;
                 if (p.peri_activo == 1) activoId = p.peri_id;
             });
             $('#slct_peri_grupo').html(opts);
