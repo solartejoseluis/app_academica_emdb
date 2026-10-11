@@ -3,6 +3,14 @@
 // que se invocan vía onclick inline desde el HTML renderizado por DataTables.
 let ayudaIdPendienteEliminar = null;
 
+// render de DataTables para columnas de texto de la base: escapado al
+// mostrar (escaparHtml() vive en 00_files/helpers.js), crudo para ordenar y
+// filtrar. null/undefined pasan tal cual, como en una columna sin render.
+function renderTextoEscapado(data, type) {
+    if (type !== 'display' || data === null || data === undefined) return data;
+    return escaparHtml(data);
+}
+
 $(document).ready(function () {
 
     let tablaAyudas;
@@ -19,8 +27,8 @@ $(document).ready(function () {
             destroy: true,
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
             columns: [
-                { data: 'ayud_seccion' },
-                { data: 'ayud_titulo' },
+                { data: 'ayud_seccion', render: renderTextoEscapado },
+                { data: 'ayud_titulo', render: renderTextoEscapado },
                 { data: 'ayud_orden' },
                 {
                     data: 'ayud_activo',
@@ -34,11 +42,10 @@ $(document).ready(function () {
                     data: null,
                     orderable: false,
                     render: function (data, type, row) {
-                        const tituloEscapado = row.ayud_titulo.replace(/'/g, "\\'");
                         return `<button class="btn btn-sm btn-outline-primary me-1"
                                         onclick="abrirEditarAyuda(${row.ayud_id})">Editar</button>
                                 <button class="btn btn-sm btn-outline-danger"
-                                        onclick="confirmarEliminarAyuda(${row.ayud_id}, '${tituloEscapado}')">Eliminar</button>`;
+                                        onclick="confirmarEliminarAyuda(${row.ayud_id})">Eliminar</button>`;
                     }
                 }
             ]
@@ -137,8 +144,13 @@ function abrirEditarAyuda(ayud_id) {
     });
 }
 
-function confirmarEliminarAyuda(ayud_id, titulo) {
+// El onclick pasa solo el id: el título sale de la fila ya cargada en
+// #tbl_ayudas, nunca del HTML del atributo.
+function confirmarEliminarAyuda(ayud_id) {
+    const fila = $('#tbl_ayudas').DataTable().rows().data().toArray()
+        .find(function (f) { return f.ayud_id == ayud_id; });
+    if (!fila) { alert('Ayuda no encontrada'); return; }
     ayudaIdPendienteEliminar = ayud_id;
-    $('#spn_titulo_eliminar_ayuda').text(titulo);
+    $('#spn_titulo_eliminar_ayuda').text(fila.ayud_titulo);
     new bootstrap.Modal('#mdl_confirmar_eliminar_ayuda').show();
 }

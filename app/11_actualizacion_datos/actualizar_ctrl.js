@@ -142,7 +142,7 @@ $(document).ready(function () {
                 if (response.status === 'ok') {
                     let opciones = '<option value="">-- Seleccionar --</option>';
                     response.data.forEach(function (p) {
-                        opciones += `<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
+                        opciones += `<option value="${escaparHtml(p.prog_id)}">${escaparHtml(p.prog_sigla)} — ${escaparHtml(p.prog_nombre)}</option>`;
                     });
                     $('#slct_finc_prog_id').html(opciones);
                 }
@@ -192,8 +192,12 @@ $(document).ready(function () {
             if (multi.length === 0) {
                 $('#chk_multi_no_aplica').prop('checked', true);
             } else {
+                // Comparación exacta con el atributo, sin armar un selector con
+                // el valor guardado (unas comillas en el dato lo romperían).
                 multi.forEach(function (valor) {
-                    $('.chk-multicultural[data-valor="' + valor + '"]').prop('checked', true);
+                    $('.chk-multicultural').filter(function () {
+                        return this.getAttribute('data-valor') === valor;
+                    }).prop('checked', true);
                 });
             }
 

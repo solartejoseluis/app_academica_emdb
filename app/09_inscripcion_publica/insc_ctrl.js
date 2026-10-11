@@ -118,7 +118,7 @@ $(document).ready(function () {
             if (response.status === 'ok') {
                 let opciones = '<option value="">-- Seleccionar --</option>';
                 response.data.forEach(function (p) {
-                    opciones += `<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
+                    opciones += `<option value="${escaparHtml(p.prog_id)}">${escaparHtml(p.prog_sigla)} — ${escaparHtml(p.prog_nombre)}</option>`;
                 });
                 $('#slct_finc_prog_id').html(opciones);
             }

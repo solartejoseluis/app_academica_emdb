@@ -1,3 +1,11 @@
+// render de DataTables para columnas de texto de la base: escapado al
+// mostrar (escaparHtml() vive en 00_files/helpers.js), crudo para ordenar y
+// filtrar. null/undefined pasan tal cual, como en una columna sin render.
+function renderTextoEscapado(data, type) {
+    if (type !== 'display' || data === null || data === undefined) return data;
+    return escaparHtml(data);
+}
+
 $(document).ready(function () {
 
     let tablaUsuarios;
@@ -128,7 +136,7 @@ $(document).ready(function () {
                 if (response.status === 'ok') {
                     let opts = '<option value="">-- Seleccionar --</option>';
                     response.data.forEach(function (r) {
-                        opts += `<option value="${r.role_id}">${r.role_nombre}</option>`;
+                        opts += `<option value="${escaparHtml(r.role_id)}">${escaparHtml(r.role_nombre)}</option>`;
                     });
                     $('#slct_role_id, #slct_role_id_editar').html(opts);
                 }
@@ -147,8 +155,8 @@ $(document).ready(function () {
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
             columns: [
                 { data: 'usua_id', width: '50px' },
-                { data: 'usua_email' },
-                { data: 'role_nombre' },
+                { data: 'usua_email', render: renderTextoEscapado },
+                { data: 'role_nombre', render: renderTextoEscapado },
                 {
                     data: 'usua_activo',
                     render: function (data) {
@@ -157,8 +165,8 @@ $(document).ready(function () {
                             : '<span class="badge bg-secondary">Inactivo</span>';
                     }
                 },
-                { data: 'fechacreacion' },
-                { data: 'ultimo_acceso_fmt' },
+                { data: 'fechacreacion', render: renderTextoEscapado },
+                { data: 'ultimo_acceso_fmt', render: renderTextoEscapado },
                 {
                     data: null,
                     orderable: false,
@@ -198,7 +206,7 @@ $(document).ready(function () {
 function abrirEditar(usua_id) {
     $.ajax({
         type: 'GET',
-        url: 'admin_mdl.php?accion=obtener&usua_id=' + usua_id,
+        url: 'admin_mdl.php?accion=obtener&usua_id=' + encodeURIComponent(usua_id),
         dataType: 'json',
         success: function (response) {
             if (response.status === 'ok') {
