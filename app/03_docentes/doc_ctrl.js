@@ -3,6 +3,24 @@
 // que se invocan vía onclick inline desde el HTML renderizado por DataTables.
 let docenteIdPendienteEliminar = null;
 
+// render de DataTables para columnas de texto de la base: escapado al
+// mostrar (escaparHtml() vive en 00_files/helpers.js), crudo para ordenar y
+// filtrar. null/undefined pasan tal cual, como en una columna sin render.
+function renderTextoEscapado(data, type) {
+    if (type !== 'display' || data === null || data === undefined) return data;
+    return escaparHtml(data);
+}
+
+// Nombre completo de un docente tomado de la fila ya cargada en
+// #tbl_docentes. Los onclick de la tabla pasan solo ids numéricos; el
+// nombre sale de aquí, nunca del HTML del atributo. null si ya no está.
+function nombreDocenteEnTabla(doce_id) {
+    if (!$.fn.DataTable.isDataTable('#tbl_docentes')) return null;
+    const fila = $('#tbl_docentes').DataTable().rows().data().toArray()
+        .find(function (f) { return f.doce_id == doce_id; });
+    return fila ? fila.doce_nombres + ' ' + fila.doce_apellidos : null;
+}
+
 $(document).ready(function () {
 
     let tablaDocentes;
@@ -31,7 +49,7 @@ $(document).ready(function () {
             let opts = '';
             let activoId = '';
             r.data.forEach(function (p) {
-                opts += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                opts += `<option value="${escaparHtml(p.peri_id)}">${escaparHtml(p.peri_codigo)}</option>`;
                 if (p.peri_activo == 1) activoId = p.peri_id;
             });
             $('#slct_peri_docentes').html(opts);
@@ -138,10 +156,10 @@ $(document).ready(function () {
                         return meta.row + 1;
                     }
                 },
-                { data: 'doce_nombres' },
-                { data: 'doce_apellidos' },
-                { data: 'doce_sigla', width: '70px' },
-                { data: 'usua_email' },
+                { data: 'doce_nombres', render: renderTextoEscapado },
+                { data: 'doce_apellidos', render: renderTextoEscapado },
+                { data: 'doce_sigla', width: '70px', render: renderTextoEscapado },
+                { data: 'usua_email', render: renderTextoEscapado },
                 {
                     data: 'doce_fechanacimiento',
                     width: '85px',
@@ -185,25 +203,26 @@ $(document).ready(function () {
                             return data;
                         }
                         if (data > 0) {
-                            const nombreCompleto = (row.doce_nombres + ' ' + row.doce_apellidos).replace(/'/g, "\\'");
-                            const periIdActual = $('#slct_peri_docentes').val();
-                            return `<button type="button" class="btn btn-sm btn-outline-primary" title="Período: ${row.peri_codigo}"
-                                onclick="verGruposDocente(${row.doce_id}, '${nombreCompleto}', ${periIdActual})">${data}</button>`;
+                            // Al onclick solo van números: el período del
+                            // select (o null si no hay ninguno).
+                            const periIdSelect = $('#slct_peri_docentes').val();
+                            const periIdActual = /^\d+$/.test(String(periIdSelect)) ? periIdSelect : 'null';
+                            return `<button type="button" class="btn btn-sm btn-outline-primary" title="Período: ${escaparHtml(row.peri_codigo)}"
+                                onclick="verGruposDocente(${row.doce_id}, ${periIdActual})">${data}</button>`;
                         }
-                        return `<span class="badge bg-info text-dark" title="Período: ${row.peri_codigo}">${data} grupos</span>`;
+                        return `<span class="badge bg-info text-dark" title="Período: ${escaparHtml(row.peri_codigo)}">${data} grupos</span>`;
                     }
                 },
-                { data: 'ultimo_acceso_fmt', width: '120px' },
+                { data: 'ultimo_acceso_fmt', width: '120px', render: renderTextoEscapado },
                 {
                     data: null,
                     orderable: false,
                     width: '70px',
                     render: function (data, type, row) {
-                        const nombreCompleto = (row.doce_nombres + ' ' + row.doce_apellidos).replace(/'/g, "\\'");
                         let itemEstado;
                         if (row.doce_activo == 1 && row.total_grupos_historico == 0) {
                             itemEstado = `<li><button class="dropdown-item" type="button"
-                                onclick="confirmarEliminarDocente(${row.doce_id}, '${nombreCompleto}')">Eliminar</button></li>`;
+                                onclick="confirmarEliminarDocente(${row.doce_id})">Eliminar</button></li>`;
                         } else if (row.doce_activo == 1 && row.total_grupos_historico > 0) {
                             itemEstado = `<li><button class="dropdown-item" type="button"
                                 onclick="toggleEstadoDocente(${row.doce_id}, 0)">Desactivar</button></li>`;
@@ -304,7 +323,9 @@ function abrirEditar(doce_id) {
     });
 }
 
-function confirmarEliminarDocente(doce_id, nombre) {
+function confirmarEliminarDocente(doce_id) {
+    const nombre = nombreDocenteEnTabla(doce_id);
+    if (nombre === null) { alert('Docente no encontrado'); return; }
     docenteIdPendienteEliminar = doce_id;
     $('#spn_nombre_eliminar_docente').text(nombre);
     new bootstrap.Modal('#mdl_confirmar_eliminar_docente').show();
@@ -326,7 +347,8 @@ function toggleEstadoDocente(doce_id, nuevoEstado) {
     });
 }
 
-function verGruposDocente(doce_id, nombreCompleto, peri_id) {
+function verGruposDocente(doce_id, peri_id) {
+    const nombreCompleto = nombreDocenteEnTabla(doce_id) || '';
     $.ajax({
         type: 'POST',
         url: 'doc_mdl.php?accion=listar_grupos_docente',
