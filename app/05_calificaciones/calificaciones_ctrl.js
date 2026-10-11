@@ -69,7 +69,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 const slct = $('#slct_filtro_doce_id');
                 r.data.forEach(d => {
-                    slct.append(`<option value="${d.doce_id}">${d.doce_apellidos}, ${d.doce_nombres}</option>`);
+                    slct.append(`<option value="${escaparHtml(d.doce_id)}">${escaparHtml(d.doce_apellidos)}, ${escaparHtml(d.doce_nombres)}</option>`);
                 });
             }
         });
@@ -81,7 +81,7 @@ $(document).ready(function () {
                 if (r.status !== 'ok') return;
                 const slct = $('#slct_filtro_prog_id');
                 r.data.forEach(p => {
-                    slct.append(`<option value="${p.prog_id}">${p.prog_sigla} — ${p.prog_nombre}</option>`);
+                    slct.append(`<option value="${escaparHtml(p.prog_id)}">${escaparHtml(p.prog_sigla)} — ${escaparHtml(p.prog_nombre)}</option>`);
                 });
             }
         });
@@ -95,7 +95,7 @@ $(document).ready(function () {
                 const periodos = (r.status === 'ok' && r.data) ? r.data : [];
                 const slct = $('#slct_filtro_peri_id');
                 periodos.forEach(pe => {
-                    slct.append(`<option value="${pe.peri_id}">${pe.peri_codigo}</option>`);
+                    slct.append(`<option value="${escaparHtml(pe.peri_id)}">${escaparHtml(pe.peri_codigo)}</option>`);
                 });
                 iniciarListadoGrupos(periodos);
             },
@@ -273,12 +273,14 @@ $(document).ready(function () {
     function escaparXmlExp(texto) {
         return String(texto).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
+    // Los textos de la base van por escaparHtml() (helpers.js): la fila se
+    // inserta como HTML en #tbody_export_grupo. Las notas son DECIMAL.
     function construirFilaExport(e, num) {
         return '<tr>' +
             '<td>' + num + '</td>' +
-            '<td>' + e.estu_apellidos + '</td>' +
-            '<td>' + e.estu_nombres + '</td>' +
-            '<td>' + (e.estu_numerodoc || '—') + '</td>' +
+            '<td>' + escaparHtml(e.estu_apellidos) + '</td>' +
+            '<td>' + escaparHtml(e.estu_nombres) + '</td>' +
+            '<td>' + escaparHtml(e.estu_numerodoc || '—') + '</td>' +
             '<td>' + nExp(e.cali_n1) + '</td>' +
             '<td>' + nExp(e.cali_sup_n1) + '</td>' +
             '<td>' + nExp(e.cali_n2) + '</td>' +
@@ -289,7 +291,7 @@ $(document).ready(function () {
             '<td>' + textoNotaFinalExp(e.cali_nota_final) + '</td>' +
             '<td>' + textoDefinitivaExp(e) + '</td>' +
             '<td>' + textoEstadoExp(e) + '</td>' +
-            '<td>' + nExp(e.cali_observacion) + '</td>' +
+            '<td>' + escaparHtml(nExp(e.cali_observacion)) + '</td>' +
         '</tr>';
     }
 
@@ -436,57 +438,57 @@ $(document).ready(function () {
             : 'bg-secondary';
 
         return `
-            <tr data-estu="${e.estu_id}" data-grmo="${grmo_id}">
+            <tr data-estu="${escaparHtml(e.estu_id)}" data-grmo="${escaparHtml(grmo_id)}">
                 <td>${num}</td>
-                <td>${e.estu_apellidos}, ${e.estu_nombres}</td>
-                <td><small>${e.estu_numerodoc || '—'}</small></td>
+                <td>${escaparHtml(e.estu_apellidos)}, ${escaparHtml(e.estu_nombres)}</td>
+                <td><small>${escaparHtml(e.estu_numerodoc || '—')}</small></td>
                 <td class="text-center ${colorSemaforo(n1)}" data-celda="cali_n1">
                     <input class="input-nota" type="text"
-                           data-campo="cali_n1" value="${n1}"
+                           data-campo="cali_n1" value="${escaparHtml(n1)}"
                            placeholder="0.0">
                 </td>
                 <td class="text-center celda-sup ${colorSemaforo(s1)}" data-celda="cali_sup_n1">
                     <input class="input-nota input-sup" type="text"
-                           data-campo="cali_sup_n1" value="${s1}"
+                           data-campo="cali_sup_n1" value="${escaparHtml(s1)}"
                            placeholder="0.0" style="${verS1}">
                 </td>
                 <td class="text-center ${colorSemaforo(n2)}" data-celda="cali_n2">
                     <input class="input-nota" type="text"
-                           data-campo="cali_n2" value="${n2}"
+                           data-campo="cali_n2" value="${escaparHtml(n2)}"
                            placeholder="0.0">
                 </td>
                 <td class="text-center celda-sup ${colorSemaforo(s2)}" data-celda="cali_sup_n2">
                     <input class="input-nota input-sup" type="text"
-                           data-campo="cali_sup_n2" value="${s2}"
+                           data-campo="cali_sup_n2" value="${escaparHtml(s2)}"
                            placeholder="0.0" style="${verS2}">
                 </td>
                 <td class="text-center ${colorSemaforo(n3)}" data-celda="cali_n3">
                     <input class="input-n3-solo-lectura" type="text"
-                           data-campo="cali_n3" value="${n3}"
+                           data-campo="cali_n3" value="${escaparHtml(n3)}"
                            placeholder="0.0" readonly
                            style="width:60px;text-align:center;padding:2px 4px;font-size:0.9em;border:1px solid #dee2e6;border-radius:4px;background:#fff;"
                            title="Se calcula desde el modal &quot;Registro y cálculo de N3&quot;">
                 </td>
                 <td class="text-center ${colorSemaforo(n4)}" data-celda="cali_n4">
                     <input class="input-nota" type="text"
-                           data-campo="cali_n4" value="${n4}"
+                           data-campo="cali_n4" value="${escaparHtml(n4)}"
                            placeholder="0.0">
                 </td>
                 <td class="text-center celda-sup ${colorSemaforo(s4)}" data-celda="cali_sup_n4">
                     <input class="input-nota input-sup" type="text"
-                           data-campo="cali_sup_n4" value="${s4}"
+                           data-campo="cali_sup_n4" value="${escaparHtml(s4)}"
                            placeholder="0.0" style="${verS4}">
                 </td>
                 <td class="text-center ${colorSemaforo(notaFinal)}">
-                    <span class="badge notafinal-badge ${notaFinalColor}">${notaFinal}</span>
+                    <span class="badge notafinal-badge ${notaFinalColor}">${escaparHtml(notaFinal)}</span>
                 </td>
                 <td class="text-center celda-hab ${colorSemaforo(hab)}" data-celda="cali_habilitacion">
                     <input class="input-nota input-hab" type="text"
-                           data-campo="cali_habilitacion" value="${hab}"
+                           data-campo="cali_habilitacion" value="${escaparHtml(hab)}"
                            placeholder="0.0" style="${verHab}">
                 </td>
                 <td class="text-center ${colorSemaforo(def)}">
-                    <span class="badge definitiva-badge ${defColor}">${def}</span>
+                    <span class="badge definitiva-badge ${defColor}">${escaparHtml(def)}</span>
                 </td>
             </tr>
         `;
