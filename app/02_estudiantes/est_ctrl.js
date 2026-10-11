@@ -870,7 +870,7 @@ $(document).ready(function () {
                         let src = data
                             ? '../../uploads/fotos_estudiantes/' + data
                             : 'https://via.placeholder.com/40x50?text=%20';
-                        return `<img src="${src}" style="width:40px;height:50px;object-fit:cover;border-radius:4px;">`;
+                        return `<img src="${escaparHtml(src)}" style="width:40px;height:50px;object-fit:cover;border-radius:4px;">`;
                     }
                 },
                 {
@@ -879,22 +879,22 @@ $(document).ready(function () {
                     width: '40px',
                     render: function (data, type, row, meta) { return meta.row + 1; }
                 },
-                { data: 'estu_nombres' },
-                { data: 'estu_apellidos' },
+                { data: 'estu_nombres', render: renderTextoEscapado },
+                { data: 'estu_apellidos', render: renderTextoEscapado },
                 {
                     data: null,
                     render: function (data, type, row) {
                         let tipo = row.estu_tipodoc ? row.estu_tipodoc + ' ' : '';
-                        return tipo + (row.estu_numerodoc || '');
+                        return renderTextoEscapado(tipo + (row.estu_numerodoc || ''), type);
                     }
                 },
-                { data: 'estu_telefono', defaultContent: '—' },
-                { data: 'fechacreacion', width: '130px' },
+                { data: 'estu_telefono', defaultContent: '—', render: renderTextoEscapado },
+                { data: 'fechacreacion', width: '130px', render: renderTextoEscapado },
                 { data: 'estu_origen', render: function (data) {
                     let map = { 'manual': 'bg-secondary', 'web': 'bg-info text-dark' };
                     let label = { 'manual': 'Manual', 'web': 'Web' };
                     let cls = map[data] || 'bg-secondary';
-                    return `<span class="badge ${cls}">${label[data] || data}</span>`;
+                    return `<span class="badge ${cls}">${label[data] || escaparHtml(data)}</span>`;
                 }},
                 {
                     data: null,
@@ -1012,7 +1012,7 @@ $(document).ready(function () {
                 if (response.status === 'ok') {
                     let opciones = '';
                     response.data.forEach(function (p) {
-                        opciones += `<option value="${p.prog_id}" data-duracion="${p.prog_duracion_semestres}">${p.prog_sigla} — ${p.prog_nombre}</option>`;
+                        opciones += `<option value="${escaparHtml(p.prog_id)}" data-duracion="${escaparHtml(p.prog_duracion_semestres)}">${escaparHtml(p.prog_sigla)} — ${escaparHtml(p.prog_nombre)}</option>`;
                     });
                     $('#slct_prog_id, #slct_finc_prog_id, #slct_filtro_matr_prog_id_actual, #slct_filtro_matr_prog_id_anteriores, #slct_filtro_matr_prog_id_retirados, #slct_editar_prog_id').append(opciones);
 
@@ -1045,7 +1045,7 @@ $(document).ready(function () {
                 // no tienen relación con las pestañas Actual/Anteriores.
                 let opciones = '';
                 response.data.forEach(function (p) {
-                    opciones += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                    opciones += `<option value="${escaparHtml(p.peri_id)}">${escaparHtml(p.peri_codigo)}</option>`;
                 });
                 $('#slct_peri_id').append(opciones);
                 $('#slct_editar_peri_id').append(opciones);
@@ -1071,7 +1071,7 @@ $(document).ready(function () {
                 if (periodosAnteriores.length > 0) {
                     let opcionesAnteriores = '';
                     periodosAnteriores.forEach(function (p) {
-                        opcionesAnteriores += `<option value="${p.peri_id}">${p.peri_codigo}</option>`;
+                        opcionesAnteriores += `<option value="${escaparHtml(p.peri_id)}">${escaparHtml(p.peri_codigo)}</option>`;
                     });
                     $('#slct_filtro_matr_peri_id_anteriores').html(opcionesAnteriores).val(periodosAnteriores[0].peri_id);
                 } else {
@@ -1102,7 +1102,7 @@ $(document).ready(function () {
                 if (response.status === 'ok') {
                     let opciones = '';
                     response.data.forEach(function (g) {
-                        opciones += `<option value="${g.grse_id}">${g.grse_codigo}</option>`;
+                        opciones += `<option value="${escaparHtml(g.grse_id)}">${escaparHtml(g.grse_codigo)}</option>`;
                     });
                     $('#slct_filtro_matr_grse_id_actual, #slct_filtro_matr_grse_id_anteriores, #slct_filtro_matr_grse_id_retirados').append(opciones);
                 }
@@ -1119,7 +1119,7 @@ $(document).ready(function () {
                 if (response.status === 'ok') {
                     let opciones = '';
                     response.data.forEach(function (m) {
-                        opciones += `<option value="${m.modu_id}">${m.modu_sigla} — ${m.modu_nombre}</option>`;
+                        opciones += `<option value="${escaparHtml(m.modu_id)}">${escaparHtml(m.modu_sigla)} — ${escaparHtml(m.modu_nombre)}</option>`;
                     });
                     $('#slct_filtro_matr_modu_id_actual, #slct_filtro_matr_modu_id_anteriores, #slct_filtro_matr_modu_id_retirados').append(opciones);
                 }
@@ -1168,7 +1168,7 @@ $(document).ready(function () {
 
                 const $lista = $('#lista_requisitos_info_matricula').empty();
                 activos.forEach(function (r) {
-                    $lista.append(`<li>${r.reqp_nombre}</li>`);
+                    $lista.append(`<li>${escaparHtml(r.reqp_nombre)}</li>`);
                 });
             }
         });
@@ -1338,7 +1338,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                 let src = data
                     ? '../../uploads/fotos_estudiantes/' + data
                     : 'https://via.placeholder.com/40x50?text=%20';
-                return `<img src="${src}" style="width:40px;height:50px;object-fit:cover;border-radius:4px;">`;
+                return `<img src="${escaparHtml(src)}" style="width:40px;height:50px;object-fit:cover;border-radius:4px;">`;
             }
         },
         {
@@ -1347,13 +1347,13 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
             width: '40px',
             render: function (data, type, row, meta) { return meta.row + 1; }
         },
-        { data: 'estu_nombres' },
-        { data: 'estu_apellidos' },
+        { data: 'estu_nombres', render: renderTextoEscapado },
+        { data: 'estu_apellidos', render: renderTextoEscapado },
         {
             data: null,
             render: function (data, type, row) {
                 let tipo = row.estu_tipodoc ? row.estu_tipodoc + ' ' : '';
-                return tipo + (row.estu_numerodoc || '');
+                return renderTextoEscapado(tipo + (row.estu_numerodoc || ''), type);
             }
         },
         {
@@ -1385,8 +1385,8 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
             render: function (data, type, row) {
                 let badges = '';
                 if (row.total_matriculas_estudiante > 1) {
-                    const detalle = (row.detalle_matriculas_estudiante || '').replace(/"/g, '&quot;');
-                    badges += `<span class="badge bg-info text-dark" title="${detalle}">🎓 ${row.total_matriculas_estudiante} programas</span> `;
+                    const detalle = escaparHtml(row.detalle_matriculas_estudiante || '');
+                    badges += `<span class="badge bg-info text-dark" title="${detalle}">🎓 ${escaparHtml(row.total_matriculas_estudiante)} programas</span> `;
                 }
                 if (row.soac_estado_activo === 'generado') {
                     badges += `<span class="badge bg-warning text-dark" title="Link enviado, esperando respuesta del estudiante">🔔 Link enviado</span> `;
@@ -1396,7 +1396,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                 if (row.soac_fecha_ultima_aprobacion) {
                     const partesFecha = row.soac_fecha_ultima_aprobacion.split(' ')[0].split('-');
                     const fechaFmt = partesFecha[2] + '/' + partesFecha[1] + '/' + partesFecha[0];
-                    badges += `<span class="badge bg-success" title="Última actualización aprobada: ${row.soac_fecha_ultima_aprobacion}">✅ Actualizado ${fechaFmt}</span> `;
+                    badges += `<span class="badge bg-success" title="Última actualización aprobada: ${escaparHtml(row.soac_fecha_ultima_aprobacion)}">✅ Actualizado ${escaparHtml(fechaFmt)}</span> `;
                 }
                 return badges.trim() !== '' ? badges.trim() : '—';
             }
@@ -1420,13 +1420,13 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                     // sin función compartida extraída en el archivo.
                     const partes = row.requisitos_ultima_actualizacion.split(' ')[0].split('-');
                     const fechaFmt = partes[2] + '/' + partes[1] + '/' + partes[0];
-                    html += ` <small class="text-muted d-block">${fechaFmt}</small>`;
+                    html += ` <small class="text-muted d-block">${escaparHtml(fechaFmt)}</small>`;
                 }
                 return html;
             }
         },
-        { data: 'coho_codigo', render: v => v || '—' },
-        { data: 'prog_sigla', width: '85px' },
+        { data: 'coho_codigo', render: (v, type) => v ? renderTextoEscapado(v, type) : '—' },
+        { data: 'prog_sigla', width: '85px', render: renderTextoEscapado },
         {
             data: null,
             width: '50px',
@@ -1438,13 +1438,13 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                     : texto;
             }
         },
-        { data: 'peri_codigo', width: '80px' },
+        { data: 'peri_codigo', width: '80px', render: renderTextoEscapado },
         {
             data: 'total_modulos',
             orderable: false,
             width: '90px',
             render: function (data, type, row) {
-                return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosEstudiante(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}', ${row.matr_prog_id}, ${row.peri_id})">${data}</button>`;
+                return `<button class="btn btn-sm btn-outline-secondary" onclick="verModulosEstudiante(${row.matr_id})">${escaparHtml(data)}</button>`;
             }
         },
         {
@@ -1464,7 +1464,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                         'En Curso':  'bg-secondary'
                     };
                     const clsAcademico = mapAcademico[textoAcademico] || 'bg-secondary';
-                    return `<span class="badge ${clsAcademico}">${textoAcademico}</span>` + insigniasReincorporacion(row);
+                    return `<span class="badge ${clsAcademico}">${escaparHtml(textoAcademico)}</span>` + insigniasReincorporacion(row);
                 }
 
                 let map = {
@@ -1474,7 +1474,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                     'graduado':    'bg-primary'
                 };
                 let cls = map[data] || 'bg-secondary';
-                let html = `<span class="badge ${cls}">${data}</span>`;
+                let html = `<span class="badge ${cls}">${escaparHtml(data)}</span>`;
 
                 // Matrícula retirada: segunda insignia con la condición
                 // académica — 'Aplazamiento' (puede reincorporarse) se
@@ -1489,7 +1489,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                 return html + insigniasReincorporacion(row);
             }
         },
-        { data: 'ultimo_acceso_fmt', width: '120px' },
+        { data: 'ultimo_acceso_fmt', width: '120px', render: renderTextoEscapado },
         {
             data: null,
             orderable: false,
@@ -1526,25 +1526,14 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                         motivoDeshabilitado = 'El estudiante aún no ha aprobado el período actual.';
                     }
 
-                    const nombreCompleto = (row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'");
-
                     itemAvanzarSemestre = motivoDeshabilitado
                         ? `<li tabindex="0" title="${motivoDeshabilitado}">
                                <button class="dropdown-item disabled" type="button" disabled>⏩ Matricular al sgte. sem.</button>
                            </li>`
                         : `<li>
-                               <button class="dropdown-item" type="button" onclick="abrirAvanzarSemestre(${row.matr_id}, '${nombreCompleto}', ${row.matr_semestre}, ${row.prog_duracion_semestres}, '${row.prog_sigla}')">⏩ Matricular al sgte. sem.</button>
+                               <button class="dropdown-item" type="button" onclick="abrirAvanzarSemestre(${row.matr_id})">⏩ Matricular al sgte. sem.</button>
                            </li>`;
                 }
-
-                // Abre 06_reportes/reportes_view.php en pestaña nueva, ya
-                // posicionado en "Reporte por Estudiante" con el estudiante,
-                // programa (matr_id) y período (peri_id) de ESTA fila —
-                // mismo patrón window.open(...,'_blank') que "Hoja de
-                // Matrícula". El nombre viaja por query string (encodeURIComponent)
-                // en vez de un lookup nuevo al servidor — decisión explícita,
-                // ver diagnóstico de este ajuste.
-                const nombreParaReporte = (row.estu_apellidos + ', ' + row.estu_nombres).replace(/'/g, "\\'");
 
                 // Igual que "Matricular al sgte. sem." — solo tiene sentido
                 // generar un link para el período EN CURSO. matr_estado ya
@@ -1569,14 +1558,15 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                 // exige matr_estado 'matriculado') y "Matricular en otro
                 // programa" (crearía una matrícula sin enlace a la de
                 // origen; la vía prevista es la acción Reincorporar).
-                // "↩️ Reincorporar" existe solo aquí. Recibe únicamente el
-                // matr_id: abrirReincorporar() toma el resto de la fila desde
-                // el propio DataTable, sin pasar texto de BD por el onclick.
+                // "↩️ Reincorporar" existe solo aquí. Como el resto de acciones
+                // del menú, recibe únicamente el matr_id y toma lo demás de la
+                // fila ya cargada (ver filaMatriculado()): por un onclick no
+                // pasa ningún texto de la base.
                 const itemReincorporar = esRetirados ? `<li>
                                     <button class="dropdown-item" type="button" onclick="abrirReincorporar(${row.matr_id})" title="Crear la matrícula de reincorporación en el período activo">↩️ Reincorporar</button>
                                 </li>` : '';
                 const itemGestionarClaves = esRetirados ? '' : `<li>
-                                    <button class="dropdown-item" type="button" onclick="abrirGestionarClaves(${row.estu_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">🔑 Gestionar claves</button>
+                                    <button class="dropdown-item" type="button" onclick="abrirGestionarClaves(${row.matr_id})">🔑 Gestionar claves</button>
                                 </li>`;
                 const itemHojaMatricula = esRetirados ? '' : `<li>
                                     <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
@@ -1595,7 +1585,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                                 </li>
                                 ${itemGestionarClaves}
                                 <li>
-                                    <button class="dropdown-item" type="button" onclick="abrirRequisitosMatricula(${row.matr_id}, '${(row.estu_nombres + ' ' + row.estu_apellidos).replace(/'/g, "\\'")}')">📋 Requisitos</button>
+                                    <button class="dropdown-item" type="button" onclick="abrirRequisitosMatricula(${row.matr_id})">📋 Requisitos</button>
                                 </li>
                                 ${itemActualizacionDatos}
                                 <li>
@@ -1604,7 +1594,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                                 ${itemAvanzarSemestre}
                                 ${itemHojaMatricula}
                                 <li>
-                                    <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/reportes_view.php?estu_id=' + ${row.estu_id} + '&matr_id=' + ${row.matr_id} + '&peri_id=' + ${row.peri_id} + '&nombre=' + encodeURIComponent('${nombreParaReporte}'), '_blank')" title="Ver el informe de calificaciones de este período">📊 Ir al Reporte</button>
+                                    <button class="dropdown-item" type="button" onclick="irAlReporte(${row.matr_id})" title="Ver el informe de calificaciones de este período">📊 Ir al Reporte</button>
                                 </li>
                                 ${esRetirados ? '' : itemMatricularOtroPrograma}
                             </ul>
@@ -1632,6 +1622,46 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
     }
 
     return columnas;
+}
+
+// render de DataTables para columnas de texto de la base: escapado al
+// mostrar, crudo para ordenar/filtrar. null/undefined pasan tal cual para
+// que DataTables aplique defaultContent o deje la celda vacía, como antes.
+function renderTextoEscapado(data, type) {
+    if (type !== 'display' || data === null || data === undefined) return data;
+    return escaparHtml(data);
+}
+
+// Fila de listar_matriculados de una matrícula, buscada en las tres tablas
+// ya cargadas (Per. Actual, Per. Anteriores, Retirados). Los onclick del
+// menú de Acciones y del botón de módulos pasan solo el matr_id; el nombre
+// y los demás datos salen de aquí, nunca del HTML del atributo. Si no se
+// encuentra (tabla recargada mientras el menú estaba abierto) avisa y
+// devuelve null.
+function filaMatriculado(matr_id) {
+    const tablas = ['#tbl_matriculados_actual', '#tbl_matriculados_anteriores', '#tbl_retirados'];
+    for (let i = 0; i < tablas.length; i++) {
+        if (!$.fn.DataTable.isDataTable(tablas[i])) continue;
+        const fila = $(tablas[i]).DataTable().rows().data().toArray()
+            .find(function (f) { return f.matr_id == matr_id; });
+        if (fila) return fila;
+    }
+    alert('No se encontró la matrícula en la lista. Recargue la página.');
+    return null;
+}
+
+// Abre 06_reportes/reportes_view.php en pestaña nueva, ya posicionado en
+// "Reporte por Estudiante" con el estudiante, programa (matr_id) y período
+// (peri_id) de la fila. El nombre viaja por query string
+// (encodeURIComponent) en vez de un lookup nuevo al servidor.
+function irAlReporte(matr_id) {
+    const fila = filaMatriculado(matr_id);
+    if (!fila) return;
+    const nombre = fila.estu_apellidos + ', ' + fila.estu_nombres;
+    window.open('../06_reportes/reportes_view.php?estu_id=' + encodeURIComponent(fila.estu_id) +
+        '&matr_id=' + encodeURIComponent(fila.matr_id) +
+        '&peri_id=' + encodeURIComponent(fila.peri_id) +
+        '&nombre=' + encodeURIComponent(nombre), '_blank');
 }
 
 // Insignias de reincorporación para la columna "Estado" de las tres tablas
@@ -1765,8 +1795,10 @@ function abrirActualizacionDatos(estu_id) {
 // Per. Anteriores, sin condición). Etapa 2.12.F3: ya carga el listado real
 // (cargarRequisitosMatricula()) — el wiring del guardado por fila
 // (handler change de .select-estado-requisito) se conecta en la Etapa 2.12.F4.
-function abrirRequisitosMatricula(matr_id, nombreEstudiante) {
-    $('#mdl_requisitos_matricula_titulo').text('Requisitos del estudiante: ' + nombreEstudiante);
+function abrirRequisitosMatricula(matr_id) {
+    const fila = filaMatriculado(matr_id);
+    if (!fila) return;
+    $('#mdl_requisitos_matricula_titulo').text('Requisitos del estudiante: ' + fila.estu_nombres + ' ' + fila.estu_apellidos);
     $('#npt_matr_id_requisitos').val(matr_id);
     new bootstrap.Modal(document.getElementById('mdl_requisitos_matricula')).show();
     cargarRequisitosMatricula(matr_id);
@@ -1812,15 +1844,15 @@ function cargarRequisitosMatricula(matr_id) {
 
                 $tbody.append(`<tr>
                     <td>${idx + 1}</td>
-                    <td>${r.reqp_nombre}</td>
-                    <td>${descripcion}</td>
+                    <td>${escaparHtml(r.reqp_nombre)}</td>
+                    <td>${escaparHtml(descripcion)}</td>
                     <td>
-                        <select class="form-select form-select-sm select-estado-requisito" data-reqe-id="${r.reqe_id}" data-valor-previo="${r.reqe_estado}">
+                        <select class="form-select form-select-sm select-estado-requisito" data-reqe-id="${escaparHtml(r.reqe_id)}" data-valor-previo="${escaparHtml(r.reqe_estado)}">
                             <option value="pendiente" ${r.reqe_estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
                             <option value="entregado" ${r.reqe_estado === 'entregado' ? 'selected' : ''}>Entregado</option>
                         </select>
                     </td>
-                    <td class="celda-fecha-requisito">${fechaFmt}</td>
+                    <td class="celda-fecha-requisito">${escaparHtml(fechaFmt)}</td>
                 </tr>`);
             });
 
@@ -2290,7 +2322,7 @@ function abrirMatricular(estu_id) {
             if (response.status === 'ok' && response.data.length > 0) {
                 const $lista = $('#lista_matriculas_previas').empty();
                 response.data.forEach(function (m) {
-                    $lista.append('<li>' + m.prog_nombre + ' — ' + m.matr_estado + ' (' + m.peri_codigo + ')</li>');
+                    $lista.append('<li>' + escaparHtml(m.prog_nombre) + ' — ' + escaparHtml(m.matr_estado) + ' (' + escaparHtml(m.peri_codigo) + ')</li>');
                 });
                 $('#bloque_matriculas_previas').show();
             }
@@ -2337,7 +2369,7 @@ function cargarCohortesPorPrograma(prog_id, selectorDestino, callback) {
             if (response.status === 'ok' && response.data.length > 0) {
                 let opciones = '<option value="">-- Seleccionar --</option>';
                 response.data.forEach(function (c) {
-                    opciones += `<option value="${c.coho_id}">${c.coho_codigo}</option>`;
+                    opciones += `<option value="${escaparHtml(c.coho_id)}">${escaparHtml(c.coho_codigo)}</option>`;
                 });
                 sel.html(opciones);
             } else {
@@ -2379,19 +2411,24 @@ function abrirEditarMatricula(matr_id) {
     });
 }
 
-// Todos los datos ya viajan en la fila de listar_matriculados (matr_id,
-// matr_semestre, prog_duracion_semestres, prog_sigla) — sin llamada AJAX
-// adicional, mismo criterio que verModulosEstudiante() de abajo. El select
+// Recibe solo el matr_id: nombre, matr_semestre, prog_duracion_semestres y
+// prog_sigla salen de la fila ya cargada (filaMatriculado()) — sin llamada
+// AJAX adicional, mismo criterio que verModulosEstudiante() de abajo. El select
 // de período destino se puebla clonando las opciones ya calculadas de
 // #slct_filtro_matr_peri_id_anteriores (todos los períodos EXCEPTO el
 // activo, ya resuelto una vez por cargarPeriodos()) en vez de duplicar esa
 // misma exclusión aquí o depender de periodoActivoId — esa variable es
 // local a $(document).ready y esta función es global (invocada desde el
 // onclick inline del dropdown), así que no es accesible directamente.
-function abrirAvanzarSemestre(matr_id, nombreCompleto, matrSemestreActual, progDuracionSemestres, progSigla) {
+function abrirAvanzarSemestre(matr_id) {
+    const fila = filaMatriculado(matr_id);
+    if (!fila) return;
+    const matrSemestreActual = Number(fila.matr_semestre);
+    const progDuracionSemestres = Number(fila.prog_duracion_semestres);
+
     $('#npt_avanzar_matr_id').val(matr_id);
-    $('#txt_avanzar_nombre').text(nombreCompleto);
-    $('#txt_avanzar_prog_sigla').text(progSigla);
+    $('#txt_avanzar_nombre').text(fila.estu_nombres + ' ' + fila.estu_apellidos);
+    $('#txt_avanzar_prog_sigla').text(fila.prog_sigla);
     $('#txt_avanzar_semestre_actual').text(matrSemestreActual + '/' + progDuracionSemestres);
     $('#txt_avanzar_semestre_nuevo').text((matrSemestreActual + 1) + '/' + progDuracionSemestres);
 
@@ -2524,7 +2561,12 @@ function actualizarResumenReincorporar() {
 // seguido de accion=obtener_completo para decidir qué bloque mostrar según
 // si el estudiante ya tiene usua_id. Función global — invocada desde el
 // onclick inline del dropdown de Acciones.
-function abrirGestionarClaves(estu_id, nombreCompleto) {
+function abrirGestionarClaves(matr_id) {
+    const fila = filaMatriculado(matr_id);
+    if (!fila) return;
+    const estu_id = fila.estu_id;
+    const nombreCompleto = fila.estu_nombres + ' ' + fila.estu_apellidos;
+
     $('#bloque_gestionar_sin_acceso').addClass('d-none');
     $('#bloque_gestionar_con_acceso').addClass('d-none');
     $('input[name="tipo_gestionar_clave"]').prop('checked', false);
@@ -2569,15 +2611,18 @@ function descargarFichaPdf(estu_id) {
     window.open('../06_reportes/pdf_ficha.php?estu_id=' + estu_id, '_blank');
 }
 
-// peri_id ahora llega como 4º parámetro explícito desde el onclick inline del
-// botón de total_modulos (row.peri_id, ya incluido en la respuesta de
-// listar_matriculados) — antes se leía de #slct_filtro_matr_peri_id, un
-// selector único que dejó de existir al dividirse en las pestañas Per.
-// Actual/Per. Anteriores (cada una con su propia fuente de peri_id, o
-// ninguna en el caso de Actual). Así la función queda correcta en ambas
-// pestañas sin depender de cuál filtro esté visible.
-function verModulosEstudiante(estu_id, nombreCompleto, prog_id, peri_id) {
-    $('#mdl_modulos_estudiante_titulo').text('Módulos de ' + nombreCompleto);
+// Recibe solo el matr_id (onclick inline del botón de total_modulos) y toma
+// de la fila ya cargada (filaMatriculado()) el estudiante, el programa de la
+// matrícula (matr_prog_id) y su período (peri_id). Así queda correcta en las
+// tres pestañas sin depender de cuál filtro esté visible, y por el onclick
+// no pasa ningún texto de la base.
+function verModulosEstudiante(matr_id) {
+    const fila = filaMatriculado(matr_id);
+    if (!fila) return;
+    const estu_id = fila.estu_id;
+    const prog_id = fila.matr_prog_id;
+    const peri_id = fila.peri_id;
+    $('#mdl_modulos_estudiante_titulo').text('Módulos de ' + fila.estu_nombres + ' ' + fila.estu_apellidos);
     const data = { estu_id: estu_id, peri_id: peri_id };
     // prog_id es opcional (tercer parámetro): solo se envía cuando el
     // llamador conoce la matrícula/programa específico de la fila (ej. el
@@ -2598,10 +2643,10 @@ function verModulosEstudiante(estu_id, nombreCompleto, prog_id, peri_id) {
                 response.data.forEach(function (m) {
                     tbody.append(`
                         <tr>
-                            <td>${m.modu_sigla} — ${m.modu_nombre}</td>
-                            <td>${m.grse_codigo}</td>
-                            <td>${m.peri_codigo}</td>
-                            <td>${m.doce_apellidos}, ${m.doce_nombres}</td>
+                            <td>${escaparHtml(m.modu_sigla)} — ${escaparHtml(m.modu_nombre)}</td>
+                            <td>${escaparHtml(m.grse_codigo)}</td>
+                            <td>${escaparHtml(m.peri_codigo)}</td>
+                            <td>${escaparHtml(m.doce_apellidos)}, ${escaparHtml(m.doce_nombres)}</td>
                         </tr>
                     `);
                 });
@@ -2681,7 +2726,7 @@ function cargarProgramasConfigRequisitos() {
             let opciones = '';
             response.data.forEach(function (p) {
                 if (p.prog_activo == 1) {
-                    opciones += `<option value="${p.prog_id}">${p.prog_nombre}</option>`;
+                    opciones += `<option value="${escaparHtml(p.prog_id)}">${escaparHtml(p.prog_nombre)}</option>`;
                 }
             });
             $('#slct_prog_config_requisitos').append(opciones);
@@ -2743,9 +2788,9 @@ function cargarTablaRequisitosPrograma(prog_id) {
 
                 $tbody.append(`<tr class="${claseFila}">
                     <td>${idx + 1}</td>
-                    <td>${r.reqp_nombre}</td>
-                    <td>${descripcion}</td>
-                    <td>${fechaFmt}</td>
+                    <td>${escaparHtml(r.reqp_nombre)}</td>
+                    <td>${escaparHtml(descripcion)}</td>
+                    <td>${escaparHtml(fechaFmt)}</td>
                     <td>${acciones}</td>
                 </tr>`);
             });
