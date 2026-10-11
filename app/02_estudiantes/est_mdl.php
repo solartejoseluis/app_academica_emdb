@@ -925,14 +925,20 @@ switch ($accion) {
             $pdo = getConexion();
             $pdo->beginTransaction();
 
-            $stmtEstu = $pdo->prepare("SELECT estu_id FROM matriculas WHERE matr_id = ?");
+            // Se leen también el programa y el período que la matrícula tiene
+            // ANTES de guardar (fila bloqueada): deciden más abajo si hay
+            // asignaciones a módulos que retirar.
+            $stmtEstu = $pdo->prepare("SELECT estu_id, prog_id, peri_id FROM matriculas WHERE matr_id = ? FOR UPDATE");
             $stmtEstu->execute([$matr_id]);
-            $estu_id = $stmtEstu->fetchColumn();
-            if (!$estu_id) {
+            $anterior = $stmtEstu->fetch();
+            if (!$anterior) {
                 $pdo->rollBack();
                 echo json_encode(['status' => 'error', 'message' => 'Matrícula no encontrada']);
                 break;
             }
+            $estu_id          = $anterior['estu_id'];
+            $prog_id_anterior = (int)$anterior['prog_id'];
+            $peri_id_anterior = (int)$anterior['peri_id'];
 
             // matr_semestre: misma validación que 'matricular' — si no llega
             // por POST, se asume semestre 1 explícitamente.
@@ -979,14 +985,22 @@ switch ($accion) {
             );
             $stmtM->execute([$prog_id, $peri_id, $coho_id, $matr_semestre, $matr_folio, $fechamatricula, $matr_observacion, $matr_numero, $matr_id]);
 
-            $stmtDel = $pdo->prepare("
-                DELETE ge FROM grmoestudiantes ge
-                JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
-                JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
-                WHERE ge.estu_id = ? AND (gs.prog_id != ? OR gs.peri_id != ?)
-            ");
-            $stmtDel->execute([$estu_id, $prog_id, $peri_id]);
-            $modulos_retirados = $stmtDel->rowCount();
+            // Solo si ESTA matrícula cambió de programa o de período se
+            // retiran sus asignaciones a módulos, y únicamente las de los
+            // grupos del programa+período que tenía antes — nunca las de
+            // otras matrículas del estudiante (historial de otros períodos o
+            // programas). Guardar sin cambiar programa ni período no retira nada.
+            $modulos_retirados = 0;
+            if ($prog_id_anterior !== $prog_id || $peri_id_anterior !== $peri_id) {
+                $stmtDel = $pdo->prepare("
+                    DELETE ge FROM grmoestudiantes ge
+                    JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
+                    JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                    WHERE ge.estu_id = ? AND gs.prog_id = ? AND gs.peri_id = ?
+                ");
+                $stmtDel->execute([$estu_id, $prog_id_anterior, $peri_id_anterior]);
+                $modulos_retirados = $stmtDel->rowCount();
+            }
 
             $pdo->commit();
             echo json_encode(['status' => 'ok', 'modulos_retirados' => $modulos_retirados]);
