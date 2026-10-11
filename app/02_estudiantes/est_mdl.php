@@ -1128,6 +1128,253 @@ switch ($accion) {
         }
         break;
 
+    // ── REINCORPORAR (Fase D) ────────────────────────────────────────────
+    // Crea una matrícula NUEVA en el período activo a partir de una
+    // matrícula de origen en 'retirado' + 'Aplazamiento', con posibilidad de
+    // cambiar programa y cohorte. La nueva queda enlazada con
+    // matr_origen_id = origen. La de origen NO cambia de estado (deja de
+    // salir en el contexto 'retirados' de listar_matriculados por su NOT
+    // EXISTS): lo único que se le modifica es matr_observacion, con una nota
+    // añadida al final. No toca grmoestudiantes ni calificaciones, no crea
+    // usuario/acceso y nunca reactiva una matrícula existente.
+    // El período destino lo decide el SERVIDOR (peri_activo = 1), no el
+    // cliente. Las validaciones corren dentro de la transacción, con la fila
+    // de origen bloqueada (FOR UPDATE), para que dos reincorporaciones
+    // simultáneas de la misma matrícula no pasen ambas; un rechazo de
+    // validación se lanza como Exception con el mensaje para el usuario
+    // (mismo criterio que sincronizarEmailUsuario() en helpers.php).
+
+    case 'reincorporar':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $matr_id_origen = (int)($_POST['matr_id'] ?? 0);
+        $prog_id        = (int)($_POST['prog_id'] ?? 0);
+        $coho_id        = (int)($_POST['coho_id'] ?? 0);
+        $matr_semestre  = (int)trim($_POST['matr_semestre'] ?? '');
+        if ($matr_id_origen <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'La matrícula de origen es requerida']);
+            break;
+        }
+        if ($prog_id <= 0 || $coho_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Programa y cohorte de destino son requeridos']);
+            break;
+        }
+
+        $matr_folio     = trim($_POST['matr_folio'] ?? '') ?: null;
+        $fechamatricula = trim($_POST['fechamatricula'] ?? '') ?: null;
+        $observacion    = trim($_POST['observacion'] ?? '');
+
+        if ($matr_folio !== null && mb_strlen($matr_folio) > 20) {
+            echo json_encode(['status' => 'error', 'message' => 'El folio no puede superar 20 caracteres']);
+            break;
+        }
+        if ($fechamatricula !== null) {
+            $fechaValidada = DateTime::createFromFormat('Y-m-d', $fechamatricula);
+            if (!$fechaValidada || $fechaValidada->format('Y-m-d') !== $fechamatricula) {
+                echo json_encode(['status' => 'error', 'message' => 'La fecha de matrícula no es válida']);
+                break;
+            }
+        }
+
+        try {
+            $pdo = getConexion();
+            $pdo->beginTransaction();
+
+            // 2. Matrícula de origen: existe, retirado + Aplazamiento, estudiante activo
+            $stmtLock = $pdo->prepare("SELECT matr_id FROM matriculas WHERE matr_id = ? FOR UPDATE");
+            $stmtLock->execute([$matr_id_origen]);
+            if (!$stmtLock->fetch()) {
+                throw new Exception('Matrícula de origen no encontrada');
+            }
+
+            $stmtOrigen = $pdo->prepare(
+                "SELECT m.matr_id, m.estu_id, m.prog_id, m.coho_id, m.peri_id, m.matr_semestre,
+                        m.matr_estado, m.matr_estado_academico,
+                        e.estu_activo, p.prog_sigla, co.coho_codigo, pe.peri_codigo
+                 FROM matriculas m
+                 INNER JOIN estudiantes e ON e.estu_id = m.estu_id
+                 INNER JOIN programas p ON p.prog_id = m.prog_id
+                 INNER JOIN periodos pe ON pe.peri_id = m.peri_id
+                 LEFT JOIN cohortes co ON co.coho_id = m.coho_id
+                 WHERE m.matr_id = ?"
+            );
+            $stmtOrigen->execute([$matr_id_origen]);
+            $origen = $stmtOrigen->fetch();
+            if (!$origen) {
+                throw new Exception('Matrícula de origen no encontrada');
+            }
+            if ($origen['matr_estado'] !== 'retirado' || $origen['matr_estado_academico'] !== 'Aplazamiento') {
+                throw new Exception('Solo se puede reincorporar una matrícula retirada en condición de Aplazamiento');
+            }
+            if ((int)$origen['estu_activo'] !== 1) {
+                throw new Exception('El estudiante está inactivo, no se puede reincorporar');
+            }
+            $estu_id = (int)$origen['estu_id'];
+
+            // 3. La matrícula de origen todavía no fue reincorporada
+            $stmtYa = $pdo->prepare("SELECT matr_id FROM matriculas WHERE matr_origen_id = ?");
+            $stmtYa->execute([$matr_id_origen]);
+            if ($stmtYa->fetch()) {
+                throw new Exception('Esta matrícula ya fue reincorporada');
+            }
+
+            // 4. Programa, cohorte y semestre de destino
+            $stmtProg = $pdo->prepare("SELECT prog_sigla, prog_activo FROM programas WHERE prog_id = ?");
+            $stmtProg->execute([$prog_id]);
+            $progDestino = $stmtProg->fetch();
+            if (!$progDestino) {
+                throw new Exception('El programa de destino no existe');
+            }
+            if ((int)$progDestino['prog_activo'] !== 1) {
+                throw new Exception('El programa de destino está inactivo');
+            }
+
+            $stmtCoho = $pdo->prepare("SELECT coho_codigo, prog_id, coho_activa FROM cohortes WHERE coho_id = ?");
+            $stmtCoho->execute([$coho_id]);
+            $cohoDestino = $stmtCoho->fetch();
+            if (!$cohoDestino) {
+                throw new Exception('La cohorte de destino no existe');
+            }
+            if ((int)$cohoDestino['coho_activa'] !== 1) {
+                throw new Exception('La cohorte de destino está inactiva');
+            }
+            if ((int)$cohoDestino['prog_id'] !== $prog_id) {
+                throw new Exception('La cohorte de destino no pertenece al programa de destino');
+            }
+
+            $errorSemestre = validarSemestrePrograma($pdo, $prog_id, $matr_semestre);
+            if ($errorSemestre !== null) {
+                throw new Exception($errorSemestre);
+            }
+
+            // 5. Período destino: el único activo, resuelto en el servidor
+            $stmtPeri = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos WHERE peri_activo = 1");
+            $stmtPeri->execute();
+            $periodosActivos = $stmtPeri->fetchAll();
+            if (count($periodosActivos) === 0) {
+                throw new Exception('No hay un período activo. Active un período antes de reincorporar');
+            }
+            if (count($periodosActivos) > 1) {
+                throw new Exception('Hay más de un período activo. Deje un solo período activo antes de reincorporar');
+            }
+            $peri_id     = (int)$periodosActivos[0]['peri_id'];
+            $peri_codigo = $periodosActivos[0]['peri_codigo'];
+
+            // 6. Sin matrícula vigente en el programa destino (misma regla de
+            // 'matricular') ni fila previa para estudiante+programa+período
+            // (uq_matr_estu_peri_prog). A diferencia de 'matricular', una fila
+            // previa NO se reactiva: se rechaza sin tocarla.
+            $stmtProgCheck = $pdo->prepare(
+                "SELECT matr_id FROM matriculas
+                 WHERE estu_id = ? AND prog_id = ? AND matr_estado = 'matriculado'"
+            );
+            $stmtProgCheck->execute([$estu_id, $prog_id]);
+            if ($stmtProgCheck->fetch()) {
+                throw new Exception('El estudiante ya está matriculado en el programa de destino');
+            }
+            $stmtDup = $pdo->prepare(
+                "SELECT matr_id FROM matriculas WHERE estu_id = ? AND prog_id = ? AND peri_id = ?"
+            );
+            $stmtDup->execute([$estu_id, $prog_id, $peri_id]);
+            if ($stmtDup->fetch()) {
+                throw new Exception('Ya existe una matrícula de este estudiante en el programa de destino para el período ' . $peri_codigo . '. Revísela antes de reincorporar');
+            }
+
+            // Fecha del servidor de BD — la misma que usa CURDATE() en fechainscripcion
+            $hoy = $pdo->query("SELECT CURDATE()")->fetchColumn();
+
+            $cambiaPrograma = (int)$origen['prog_id'] !== $prog_id;
+            $cambiaCohorte  = (int)$origen['coho_id'] !== $coho_id;
+            if ($cambiaPrograma && $cambiaCohorte) {
+                $textoCambio = 'Cambio de programa y cohorte';
+            } elseif ($cambiaCohorte) {
+                $textoCambio = 'Cambio de cohorte';
+            } elseif ($cambiaPrograma) {
+                $textoCambio = 'Cambio de programa';
+            } else {
+                $textoCambio = 'Sin cambio de programa ni cohorte';
+            }
+
+            $notaNueva = '[' . $hoy . '] Reincorporación desde matrícula ' . $matr_id_origen
+                . ' (' . $origen['prog_sigla'] . ', ' . ($origen['coho_codigo'] ?? 'sin cohorte')
+                . ', ' . $origen['peri_codigo'] . ', semestre ' . $origen['matr_semestre'] . '). '
+                . $textoCambio . '.';
+            if ($observacion !== '') {
+                $notaNueva .= ' | ' . $observacion;
+            }
+
+            $stmtNueva = $pdo->prepare(
+                "INSERT INTO matriculas
+                    (estu_id, prog_id, peri_id, coho_id, matr_origen_id, matr_estado, matr_estado_academico,
+                     matr_semestre, matr_folio, fechainscripcion, fechamatricula, matr_observacion)
+                 VALUES (?, ?, ?, ?, ?, 'matriculado', 'Activo', ?, ?, CURDATE(), ?, ?)"
+            );
+            $stmtNueva->execute([
+                $estu_id, $prog_id, $peri_id, $coho_id, $matr_id_origen,
+                $matr_semestre, $matr_folio, $fechamatricula, $notaNueva
+            ]);
+            $matr_id_nueva = (int)$pdo->lastInsertId();
+
+            // Mismo INSERT de requisitos que 'matricular' para una matrícula nueva
+            $stmtReq = $pdo->prepare("
+                INSERT INTO requisitos_estudiante (matr_id, reqp_id, reqe_estado)
+                SELECT ?, reqp_id, 'pendiente'
+                FROM requisitos_programa
+                WHERE prog_id = ? AND reqp_activo = 1
+            ");
+            $stmtReq->execute([$matr_id_nueva, $prog_id]);
+
+            // Única modificación de la fila de origen: la nota al final de su observación
+            $notaOrigen = '[' . $hoy . '] Reincorporada a ' . $progDestino['prog_sigla']
+                . ', cohorte ' . $cohoDestino['coho_codigo'] . ', semestre ' . $matr_semestre
+                . ', período ' . $peri_codigo . ' (matrícula nueva ' . $matr_id_nueva . ').';
+            $stmtObs = $pdo->prepare(
+                "UPDATE matriculas
+                 SET matr_observacion = CASE
+                        WHEN matr_observacion IS NULL OR matr_observacion = '' THEN ?
+                        ELSE CONCAT(matr_observacion, ' | ', ?)
+                     END
+                 WHERE matr_id = ?"
+            );
+            $stmtObs->execute([$notaOrigen, $notaOrigen, $matr_id_origen]);
+
+            $pdo->commit();
+            echo json_encode([
+                'status'        => 'ok',
+                'rows'          => 1,
+                'message'       => 'Reincorporación registrada correctamente.',
+                'matr_id_nueva' => $matr_id_nueva,
+                'prog_sigla'    => $progDestino['prog_sigla'],
+                'coho_codigo'   => $cohoDestino['coho_codigo'],
+                'peri_codigo'   => $peri_codigo,
+                'matr_semestre' => $matr_semestre
+            ]);
+
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            // 23000: choque contra uq_matr_origen / uq_matr_estu_peri_prog por
+            // una reincorporación o matrícula simultánea, pese a los chequeos previos.
+            $mensaje = ($e->getCode() === '23000')
+                ? 'La matrícula ya fue reincorporada o ya existe una matrícula igual, intente nuevamente'
+                : 'Error al reincorporar';
+            echo json_encode(['status' => 'error', 'message' => $mensaje]);
+        } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
     // ── LINK DE ACTUALIZACIÓN DE DATOS (Fase 2 de 5) ─────────────────────
     // Genera un token público para que el estudiante actualice su ficha sin
     // sesión (Fase 3, todavía sin implementar); el coordinador aprueba o
