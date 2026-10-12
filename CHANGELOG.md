@@ -4,6 +4,42 @@
 
 ---
 
+## fix(estudiantes): corrige los mensajes de anular_retiro y los comentarios que mencionaban Per. Anteriores (commit `a0e8d30`) — 2026-10-12
+
+### Contexto
+Los dos mensajes de período activo de `case 'anular_retiro'` (`est_mdl.php`) decían "antes de reincorporar", texto copiado de `case 'reincorporar'` al agregar esa verificación en `97b5a68`. Además, cuatro comentarios afirmaban que el ítem "↩️ Anular retiro" aparecía en Retirados y en Per. Anteriores. El ítem aplica solo a matrículas retiradas del período activo, y el select de período de Per. Anteriores excluye el activo: en la práctica se ve únicamente en la pestaña Retirados. Hallazgo registrado en la deuda técnica del 2026-10-12 de CLAUDE.md.
+
+### Cambio
+- `app/02_estudiantes/est_mdl.php`, `case 'anular_retiro'` — 7 mensajes y 1 comentario. Cada mensaje dice ahora qué impide anular el retiro y, cuando aplica, qué hacer:
+
+| Condición | Mensaje nuevo |
+|---|---|
+| La matrícula está en un estado distinto de `'retirado'` | "Esta matrícula no está retirada, no hay retiro que anular. Recargue la página para ver su estado actual." |
+| Ningún período activo | "No hay un período activo, por eso no se puede anular el retiro. Active un período en Grupos e intente de nuevo." |
+| Más de un período activo | "Hay más de un período activo, por eso no se puede anular el retiro. Deje un solo período activo en Grupos e intente de nuevo." |
+| La matrícula es de otro período | "Esta matrícula es de un período cerrado y su retiro ya no se puede anular." |
+| La matrícula ya fue origen de una reincorporación | "Esta matrícula ya tiene una reincorporación registrada, su retiro no se puede anular. Gestione la matrícula nueva desde Matriculados." |
+| Otra matrícula vigente del mismo programa | "El estudiante ya tiene otra matrícula vigente en este programa, no se puede anular el retiro. Revise esa matrícula en Matriculados (Per. Actual)." |
+| Error de base de datos (`PDOException`) | "No se pudo anular el retiro por un error del sistema. Intente de nuevo." |
+
+  Comentario: "Período activo: misma consulta que 'reincorporar', con mensajes propios."
+- El mensaje "El estudiante está inactivo, no se puede anular el retiro" queda igual: falta confirmar si existe una pantalla para reactivar estudiantes, y sin ese dato el mensaje no puede indicar qué hacer.
+- `app/02_estudiantes/est_ctrl.js` — 3 comentarios: los dos encabezados "(Retirados y Per. Anteriores)" pasan a "(pestaña Retirados, matrículas del período activo)", y el comentario del menú de Acciones describe el ítem como aplicable solo a matrículas retiradas del período activo sin reincorporación.
+- `app/02_estudiantes/est_view.php` — 1 comentario (encabezado del modal `#mdl_anular_retiro`), con el mismo cambio.
+- Los mensajes idénticos de `case 'reincorporar'` quedan intactos: ahí "antes de reincorporar" es correcto.
+- Sin cambios de lógica, de condiciones ni de base de datos. Títulos, botones y tooltips visibles quedan iguales.
+
+### Decisión
+- El cambio es seguro porque el frontend nunca compara `response.message` por texto: el handler de `anular_retiro` evalúa solo `response.status` y muestra el mensaje con `.text()` en `#bloque_anular_error`.
+- Las menciones "Anular retiro en Retirados y Per. Anteriores" de las entradas anteriores de este archivo describen la intención original del commit `9aea146`; el comportamiento real es el descrito en esta entrada.
+
+### Pruebas
+- Verificación estática: `php -l` sin errores de sintaxis; 0 apariciones de "antes de reincorporar" dentro del `case 'anular_retiro'`; el diff contiene solo cadenas y comentarios.
+- Local: se abrió el modal "Anular retiro" desde la pestaña Retirados sin errores de consola. La aparición en pantalla de un mensaje nuevo queda sin probar: la base local no tiene un caso de retiro en período cerrado.
+- Desplegado el 2026-10-12 a dev y a producción (3 archivos, sin cambios de BD). Verificadas las pestañas Per. Actual, Per. Anteriores y Retirados sin errores de consola, sin anular retiros reales.
+
+---
+
 ## Cierre de las actividades 109-112 — despliegue de `50cea23` y `da9ceb1` en local, dev y producción — 2026-10-12
 
 ### Contexto
