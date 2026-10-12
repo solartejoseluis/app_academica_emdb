@@ -725,7 +725,7 @@ $(document).ready(function () {
         });
     });
 
-    // --- Anular retiro (Retirados y Per. Anteriores) ---
+    // --- Anular retiro (pestaña Retirados, matrículas del período activo) ---
     $('#npt_anular_motivo').on('input change', function () {
         actualizarEstadoAnularRetiro();
     });
@@ -1680,11 +1680,11 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                                 </li>`;
 
                 // "🚫 Retirar / Aplazar": solo en Per. Actual y solo sobre una
-                // matrícula vigente. "↩️ Anular retiro": en Retirados y Per.
-                // Anteriores, solo sobre una matrícula retirada del período
-                // activo que todavía no fue origen de una reincorporación (el
-                // servidor rechaza las de otros períodos: quedarían
-                // 'matriculado' fuera de Per. Actual y de Per. Anteriores).
+                // matrícula vigente. "↩️ Anular retiro": solo sobre una
+                // matrícula retirada del período activo que todavía no fue
+                // origen de una reincorporación (el servidor rechaza las de
+                // otros períodos: quedarían 'matriculado' fuera de todos los
+                // listados de Matriculados).
                 // El período activo se lee del campo que llena
                 // cargarPeriodos() para el modal Reincorporar (peri_codigo es
                 // único); vacío = sin período activo o aún sin cargar, y el
@@ -2752,7 +2752,7 @@ function actualizarEstadoRetiro() {
     $('#btn_confirmar_retirar_matricula').prop('disabled', !retiroFormularioValido() || retiroEnviando);
 }
 
-// ── Anular retiro (Retirados y Per. Anteriores) ─────────────────────────
+// ── Anular retiro (pestaña Retirados, matrículas del período activo) ─────────────────────────
 // Estado del modal #mdl_anular_retiro, mismo esquema que el de Retirar.
 let anularFila = null;
 let anularEnviando = false;

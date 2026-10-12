@@ -1114,7 +1114,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </div>
 
-<!-- Modal Anular retiro (Retirados y Per. Anteriores): devuelve una matrícula 'retirado' sin reincorporación a 'matriculado' + 'Activo' -->
+<!-- Modal Anular retiro (pestaña Retirados, matrículas del período activo): devuelve una matrícula 'retirado' sin reincorporación a 'matriculado' + 'Activo' -->
 <div class="modal fade" id="mdl_anular_retiro" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">

@@ -1627,23 +1627,23 @@ switch ($accion) {
                 throw new Exception('Matrícula no encontrada');
             }
             if ($matricula['matr_estado'] !== 'retirado') {
-                throw new Exception('Solo se puede anular el retiro de una matrícula en estado "retirado"');
+                throw new Exception('Esta matrícula no está retirada, no hay retiro que anular. Recargue la página para ver su estado actual.');
             }
 
-            // Período activo: misma consulta y mismos mensajes que 'reincorporar'.
+            // Período activo: misma consulta que 'reincorporar', con mensajes propios.
             // Una matrícula 'matriculado' de un período que no es el activo no
             // saldría en Per. Actual ni en Per. Anteriores.
             $stmtPeri = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos WHERE peri_activo = 1");
             $stmtPeri->execute();
             $periodosActivos = $stmtPeri->fetchAll();
             if (count($periodosActivos) === 0) {
-                throw new Exception('No hay un período activo. Active un período antes de reincorporar');
+                throw new Exception('No hay un período activo, por eso no se puede anular el retiro. Active un período en Grupos e intente de nuevo.');
             }
             if (count($periodosActivos) > 1) {
-                throw new Exception('Hay más de un período activo. Deje un solo período activo antes de reincorporar');
+                throw new Exception('Hay más de un período activo, por eso no se puede anular el retiro. Deje un solo período activo en Grupos e intente de nuevo.');
             }
             if ((int)$matricula['peri_id'] !== (int)$periodosActivos[0]['peri_id']) {
-                throw new Exception('Solo se puede anular el retiro de una matrícula del período activo');
+                throw new Exception('Esta matrícula es de un período cerrado y su retiro ya no se puede anular.');
             }
             if ((int)$matricula['estu_activo'] !== 1) {
                 throw new Exception('El estudiante está inactivo, no se puede anular el retiro');
@@ -1652,7 +1652,7 @@ switch ($accion) {
             $stmtYa = $pdo->prepare("SELECT matr_id FROM matriculas WHERE matr_origen_id = ?");
             $stmtYa->execute([$matr_id]);
             if ($stmtYa->fetch()) {
-                throw new Exception('Esta matrícula ya fue reincorporada, no se puede anular el retiro');
+                throw new Exception('Esta matrícula ya tiene una reincorporación registrada, su retiro no se puede anular. Gestione la matrícula nueva desde Matriculados.');
             }
 
             // Misma validación de programa duplicado de 'matricular' y 'editar_matricula'
@@ -1662,7 +1662,7 @@ switch ($accion) {
             );
             $stmtProgCheck->execute([$matricula['estu_id'], $matricula['prog_id'], $matr_id]);
             if ($stmtProgCheck->fetch()) {
-                throw new Exception('El estudiante ya tiene otra matrícula vigente en este programa, no se puede anular el retiro');
+                throw new Exception('El estudiante ya tiene otra matrícula vigente en este programa, no se puede anular el retiro. Revise esa matrícula en Matriculados (Per. Actual).');
             }
 
             $hoy = $pdo->query("SELECT CURDATE()")->fetchColumn();
@@ -1699,7 +1699,7 @@ switch ($accion) {
             if (isset($pdo) && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            echo json_encode(['status' => 'error', 'message' => 'Error al anular el retiro']);
+            echo json_encode(['status' => 'error', 'message' => 'No se pudo anular el retiro por un error del sistema. Intente de nuevo.']);
         } catch (Exception $e) {
             if (isset($pdo) && $pdo->inTransaction()) {
                 $pdo->rollBack();
