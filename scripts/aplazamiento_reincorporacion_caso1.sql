@@ -1,12 +1,18 @@
 -- =============================================================================
--- CORRECCIÓN DE DATOS — matrícula de Valeria Muñoz Gómez: estado académico
+-- CORRECCIÓN DE DATOS — matrícula de una estudiante: estado académico
 -- 'Retirado' -> 'Aplazamiento' (Fase D, reincorporación de estudiantes,
 -- commit 2). Fecha: 2026-10-11.
+--
+-- ⚠️  Antes de ejecutar, reemplazar los valores de @est_nombres y
+--     @est_apellidos. No versionar los valores reales.
+--     Están declarados más abajo, justo después de SET NAMES. Con los
+--     valores de ejemplo el script no encuentra la matrícula y se detiene
+--     en el PASO 1 sin modificar nada.
 --
 -- PROPÓSITO
 --   La pestaña "Retirados" (commits siguientes de la Fase D) listará las
 --   matrículas con matr_estado = 'retirado' AND matr_estado_academico =
---   'Aplazamiento'. La matrícula 2026-1 de Valeria Muñoz Gómez (programa
+--   'Aplazamiento'. La matrícula 2026-1 de la estudiante (programa
 --   ASO2016, cohorte CH-ASO-2025B) está hoy en retirado + Retirado. Este
 --   script la deja en retirado + Aplazamiento y anota el cambio al final de
 --   matr_observacion, sin borrar el texto que ya tenga.
@@ -16,15 +22,14 @@
 --
 -- IDENTIFICACIÓN POR CLAVE NATURAL (no por matr_id: los ids difieren entre
 -- local, dev y producción)
---   estudiantes.estu_apellidos = 'MUÑOZ GOMEZ'  y  estu_nombres = 'VALERIA'
+--   estudiantes.estu_apellidos = @est_apellidos  y  estu_nombres = @est_nombres
 --   programas.prog_sigla       = 'ASO2016'
 --   periodos.peri_codigo       = '2026-1'
 --   cohortes.coho_codigo       = 'CH-ASO-2025B'
 --   matriculas.matr_estado     = 'retirado'
 --   Las columnas de texto son utf8mb4_unicode_ci: la comparación no
---   distingue mayúsculas ni tildes ('MUÑOZ GOMEZ' también encuentra
---   'Muñoz Gómez'). En la base local está guardado 'MUÑOZ GOMEZ', sin tilde
---   en GOMEZ.
+--   distingue mayúsculas ni tildes. Escribir los apellidos y nombres
+--   completos, tal como están guardados en `estudiantes`.
 --
 -- ORDEN DE DESPLIEGUE (en CADA entorno: local, dev/staging, producción)
 --   1. mysqldump (o phpMyAdmin > Exportar) de ESTA base, con nombre fechado.
@@ -37,7 +42,7 @@
 --   es el estado académico de esa fila en "Matriculados (Per. Anteriores)".
 --
 -- CÓMO EJECUTARLO
---   - CLI:        mysql -u <usuario> -p <nombre_de_la_base> < aplazamiento_valeria_munoz.sql
+--   - CLI:        mysql -u <usuario> -p <nombre_de_la_base> < aplazamiento_reincorporacion_caso1.sql
 --   - phpMyAdmin: seleccionar primero la base en el panel izquierdo, luego
 --                 pestaña Importar > elegir este archivo (juego de
 --                 caracteres utf-8) > Continuar. También sirve pegarlo
@@ -61,9 +66,12 @@
 --
 -- REVERSIÓN MANUAL (hacer mysqldump antes). Devuelve el estado académico a
 -- 'Retirado' y quita la anotación, dejando la observación como estaba.
--- Ejecutar con la base seleccionada, quitando los "-- " del inicio:
+-- Ejecutar con la base seleccionada, quitando los "-- " del inicio y
+-- reemplazando antes los dos valores (misma sesión que el UPDATE):
 --
--- SET NAMES utf8mb4;
+-- SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- SET @est_nombres   := 'COMPLETAR_NOMBRES';
+-- SET @est_apellidos := 'COMPLETAR_APELLIDOS';
 -- UPDATE matriculas m
 -- INNER JOIN estudiantes e ON e.estu_id = m.estu_id
 -- INNER JOIN programas p   ON p.prog_id = m.prog_id
@@ -73,7 +81,7 @@
 --     m.matr_observacion = NULLIF(REPLACE(REPLACE(m.matr_observacion,
 --         ' | [2026-10-11] Estado académico cambiado de Retirado a Aplazamiento para su reincorporación.', ''),
 --         '[2026-10-11] Estado académico cambiado de Retirado a Aplazamiento para su reincorporación.', ''), '')
--- WHERE e.estu_apellidos = 'MUÑOZ GOMEZ' AND e.estu_nombres = 'VALERIA'
+-- WHERE e.estu_apellidos = @est_apellidos AND e.estu_nombres = @est_nombres
 --   AND p.prog_sigla = 'ASO2016' AND pe.peri_codigo = '2026-1'
 --   AND c.coho_codigo = 'CH-ASO-2025B'
 --   AND m.matr_estado = 'retirado' AND m.matr_estado_academico = 'Aplazamiento';
@@ -81,7 +89,16 @@
 --   Debe informar 1 fila afectada (0 si ya estaba revertida).
 -- =============================================================================
 
-SET NAMES utf8mb4;
+-- COLLATE explícito: las variables @est_* heredan la colación de la conexión
+-- y deben coincidir con la de las columnas (utf8mb4_unicode_ci); sin esto,
+-- MySQL 8 las crea en utf8mb4_0900_ai_ci y la comparación falla con
+-- "Illegal mix of collations".
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Clave natural de la estudiante. Reemplazar antes de ejecutar.
+-- No versionar los valores reales.
+SET @est_nombres   := 'COMPLETAR_NOMBRES';
+SET @est_apellidos := 'COMPLETAR_APELLIDOS';
 
 
 -- =============================================================================
@@ -117,7 +134,7 @@ INNER JOIN estudiantes e ON e.estu_id = m.estu_id
 INNER JOIN programas p   ON p.prog_id = m.prog_id
 INNER JOIN periodos pe   ON pe.peri_id = m.peri_id
 INNER JOIN cohortes c    ON c.coho_id = m.coho_id
-WHERE e.estu_apellidos = 'MUÑOZ GOMEZ' AND e.estu_nombres = 'VALERIA'
+WHERE e.estu_apellidos = @est_apellidos AND e.estu_nombres = @est_nombres
   AND p.prog_sigla = 'ASO2016' AND pe.peri_codigo = '2026-1'
   AND c.coho_codigo = 'CH-ASO-2025B'
   AND m.matr_estado = 'retirado';
@@ -130,7 +147,7 @@ SET @n_pendientes := (
     INNER JOIN programas p   ON p.prog_id = m.prog_id
     INNER JOIN periodos pe   ON pe.peri_id = m.peri_id
     INNER JOIN cohortes c    ON c.coho_id = m.coho_id
-    WHERE e.estu_apellidos = 'MUÑOZ GOMEZ' AND e.estu_nombres = 'VALERIA'
+    WHERE e.estu_apellidos = @est_apellidos AND e.estu_nombres = @est_nombres
       AND p.prog_sigla = 'ASO2016' AND pe.peri_codigo = '2026-1'
       AND c.coho_codigo = 'CH-ASO-2025B'
       AND m.matr_estado = 'retirado' AND m.matr_estado_academico = 'Retirado'
@@ -144,7 +161,7 @@ SET @n_hechas := (
     INNER JOIN programas p   ON p.prog_id = m.prog_id
     INNER JOIN periodos pe   ON pe.peri_id = m.peri_id
     INNER JOIN cohortes c    ON c.coho_id = m.coho_id
-    WHERE e.estu_apellidos = 'MUÑOZ GOMEZ' AND e.estu_nombres = 'VALERIA'
+    WHERE e.estu_apellidos = @est_apellidos AND e.estu_nombres = @est_nombres
       AND p.prog_sigla = 'ASO2016' AND pe.peri_codigo = '2026-1'
       AND c.coho_codigo = 'CH-ASO-2025B'
       AND m.matr_estado = 'retirado' AND m.matr_estado_academico = 'Aplazamiento'
@@ -155,7 +172,7 @@ SET @n_hechas := (
 -- Cualquier otra combinación detiene el script aquí, sin modificar nada.
 SET @sql := CASE
     WHEN @n_pendientes + @n_hechas = 0
-        THEN 'SELECT * FROM `ERROR_no_se_encontro_la_matricula_retirada_de_Valeria_Munoz`'
+        THEN 'SELECT * FROM `ERROR_no_se_encontro_la_matricula_retirada_de_la_estudiante`'
     WHEN @n_pendientes + @n_hechas > 1
         THEN 'SELECT * FROM `ERROR_hay_mas_de_una_matricula_candidata_no_se_modifica_nada`'
     WHEN @n_pendientes = 1
@@ -173,7 +190,7 @@ SET @matr_id := (
     INNER JOIN programas p   ON p.prog_id = m.prog_id
     INNER JOIN periodos pe   ON pe.peri_id = m.peri_id
     INNER JOIN cohortes c    ON c.coho_id = m.coho_id
-    WHERE e.estu_apellidos = 'MUÑOZ GOMEZ' AND e.estu_nombres = 'VALERIA'
+    WHERE e.estu_apellidos = @est_apellidos AND e.estu_nombres = @est_nombres
       AND p.prog_sigla = 'ASO2016' AND pe.peri_codigo = '2026-1'
       AND c.coho_codigo = 'CH-ASO-2025B'
       AND m.matr_estado = 'retirado'
@@ -233,7 +250,7 @@ INNER JOIN estudiantes e ON e.estu_id = m.estu_id
 INNER JOIN programas p   ON p.prog_id = m.prog_id
 INNER JOIN periodos pe   ON pe.peri_id = m.peri_id
 INNER JOIN cohortes c    ON c.coho_id = m.coho_id
-WHERE e.estu_apellidos = 'MUÑOZ GOMEZ' AND e.estu_nombres = 'VALERIA'
+WHERE e.estu_apellidos = @est_apellidos AND e.estu_nombres = @est_nombres
   AND p.prog_sigla = 'ASO2016' AND pe.peri_codigo = '2026-1'
   AND c.coho_codigo = 'CH-ASO-2025B'
   AND m.matr_estado = 'retirado' AND m.matr_estado_academico = 'Aplazamiento';
