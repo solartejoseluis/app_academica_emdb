@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-09-20
-> Versión: 132 — Corrección: producción y staging corren PHP 8.5.10, no hay diferencia de versión con local; sin commit de código
+> Última actualización: 2026-10-12
+> Versión: 133 — Etapa posterior a TRL5 (2026-10-03 a 2026-10-12): filtros por período/programa/docente, fechas en listados (B2 iniciada), escapado de HTML en toda la interfaz, y Retirar/Aplazar/Anular retiro/Reincorporar matrículas (`matr_origen_id`); último commit `32338a4`
 
 ---
 
@@ -20,6 +20,14 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | Instalar Node en el entorno de Claude Code (prioridad baja) | Hoy no se puede correr `node --check`; solo se verifica el balance de llaves y el navegador | Instalar Node en el contenedor o en el entorno local y documentarlo | CHANGELOG.md, mismas entradas que el ítem anterior |
 | Revisar el servidor de pruebas (aurusmind.com) y otros subdominios por listado de directorios y paquetes .zip/.sql en la raíz web | La misma exposición podría existir. **STAGING (dev.escuelamdb.com) RESUELTO 2026-09-20**; sigue pendiente revisar cualquier OTRO dominio o subdominio de las cuentas | Abrir cada raíz en ventana privada; no requiere esperar al 2 de octubre porque es solo una revisión | CHANGELOG.md, entradas "Endurecimiento de la raíz web de producción" y "Endurecimiento de la raíz web de staging y registro de errores de PHP" |
 | ~~Verificar la diferencia de versión de PHP entre producción (ea-php82) y staging (ea-php85)/local (Docker php:8.5)~~ **DESCARTADO 2026-09-20: producción y staging corren PHP/8.5.10, igual que local (cabecera X-Powered-By)** | La observación original se basó en la etiqueta "ea-php82 (Inherited)" de MultiPHP INI Editor, que no refleja la versión real de ejecución | — | CHANGELOG.md, entrada "Endurecimiento de la raíz web de staging y registro de errores de PHP" |
+
+| Fase B2 — `renderFecha`/`fecha-emdb` en las demás tablas con fechas (`04_grupos`, `08_admin`, `02_estudiantes`, `03_docentes`) | **Iniciada 2026-10-05**: un solo consumidor (columna "Actualizado" del dashboard del coordinador). Las columnas `ultimo_acceso_fmt` llegan formateadas desde PHP | Análisis tabla por tabla; decidir si el backend entrega la fecha cruda en las de último acceso | CHANGELOG.md, entrada del 2026-10-05; CLAUDE.md, Phase 2.19 |
+| Fase E — fechas por nota | Pendiente, sin iniciar | Análisis sin modificar código | CLAUDE.md, Phase 2.19 |
+| Fase F — módulo `12_configuracion` | Pendiente, sin iniciar | Análisis sin modificar código | CLAUDE.md, Phase 2.19 |
+| El nombre real de una estudiante sigue en el historial de git anterior a `32338a4` (commit `ff1a4db`: contenido, nombre de archivo y mensaje), ya publicado | Quitarlo exige reescribir el historial y forzar el push; GitHub puede conservar el commit antiguo en caché | Decisión de Jose Luis; si se hace, coordinar el re-clonado en cada equipo | CLAUDE.md, deuda técnica (2026-10-12) |
+| Deuda de Retirar/Aplazar/Reincorporar y pendientes del archivo de contexto (login sin `usua_activo`, seed de `docentes` roto, validaciones de `estu_tipodoc`/`estu_telefono`, bugs del modal de estudiante, ids 111-114 con documentos pendientes) | Ninguno bloquea la operación diaria | Priorizar con Jose Luis | CLAUDE.md, "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)" |
+
+**Nota de vocabulario (2026-10-12):** la fila "Notas de estudiantes retirados que reaparecen al reincorporarlos al mismo grupo módulo" de esta tabla habla del retiro de roster (`retirar_estudiante`, `04_grupos`). Desde el 2026-10-11 existe además el retiro de matrícula (`retirar_matricula`, `02_estudiantes`), que conserva el roster y las notas; ver CLAUDE.md, "Retirar, Aplazar, Anular retiro y Reincorporar matrículas".
 
 ---
 
@@ -173,6 +181,10 @@ app_academica_emdb/
 ```
 
 **Filtros disponibles en 02_estudiantes (pestaña Matriculados, solo roles 1/2):** fila de 4 selects — Programa, Período, Grupo, Módulo — sobre `tbl_matriculados`, aplicados vía `WHERE`/`EXISTS` dinámico en `listar_matriculados` (commit `b0e6660`, 2026-08-20). Cualquier combinación se envía junta en cada `ajax.reload()` del DataTable; no hay cascada entre los 4 selects (cada uno se puebla de forma independiente, igual que los filtros de `05_calificaciones`).
+
+**Actualización 2026-10-12:** `app/00_files/` suma `helpers.js` (funciones JS compartidas: `escaparHtml`, `renderFecha`/`fecha-emdb`, `poblarFiltro`, `etiquetaJornada`), cargado en todas las vistas menos `01_login`. `02_estudiantes` tiene una pestaña "Retirados" y las acciones Retirar / Aplazar, Anular retiro y Reincorporar. `scripts/` suma `migracion_matr_origen_id.sql`, `rollback_matr_origen_id.sql` y `aplazamiento_reincorporacion_caso1.sql`. `matriculas` gana la columna `matr_origen_id`.
+
+**Filtros por período, programa y docente (2026-10-03 a 2026-10-09):** dashboard del coordinador, calificaciones (Coordinador/Admin), Grupos Semestre, Asignación Estudiantes y Reporte por grupo arrancan en el período activo. Salvo en calificaciones, se aplican en el cliente sobre las filas ya recibidas.
 
 ---
 
@@ -582,6 +594,50 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `d7cf505` | style(calificaciones): encabezado N3 pasa de azul claro (`--bs-primary-bg-subtle`) a azul marino oscuro (paleta A: fondo `#1a3a6b`, hover `#25508f`, borde `#5b9bf0`, badge `#2f6fca`) para combinar con el `table-dark` del resto del encabezado — variables CSS propias `--n3-*` (no `--bs-primary-*`), badge "Actividad" con clase propia `th-badge-n3` en vez de `text-bg-primary`; verificado contra el CSS real de Bootstrap 5.3.3 que el fondo se impone (misma especificidad, `<style>` después del `<link>`); solo `calificaciones_view.php` | 2026-09-19 |
 | `8613a13` | feat(calificaciones): candado en Eliminar de actividades N3, filtrado por roster vigente — `listar_actividades_n3` agrega `total_notas`/`total_notas_fuera_roster` (mismo `INNER JOIN grmoestudiantes` en ambos); "Configurar actividades" muestra "🔒 Única actividad"/"🔒 Con notas" (tooltip con cantidad y cómo desbloquear) en vez del botón Eliminar cuando aplica, reemplazando el botón deshabilitado anterior; Verificación 2 de `eliminar_actividad_n3` cuenta solo notas del roster vigente (antes contaba también huérfanas de estudiantes retirados, bloqueando el borrado sin explicación visible); notas huérfanas se borran en cascada (`fk_non3_acn3 ON DELETE CASCADE`) con aviso explícito en el `confirm()`; mismos mensajes/orden de verificaciones del backend; markup compartido Docente/Coordinador/Admin; 7 pruebas en navegador + 4 verificaciones SQL con `ROLLBACK` sin dejar datos de prueba; pendiente correr en producción la consulta de notas huérfanas antes de desplegar, y hallazgo colateral sin resolver (no recalcula `cali_n3`/Nota Final/Definitiva tras borrar) | 2026-09-19 |
 | `7a52825` | fix(calificaciones): recalcula el N3 de todo el roster al crear o eliminar una actividad N3 — helper `recalcularGrupoModuloN3()` (`calificaciones_mdl.php`) reutiliza `recalcularN3()`/`recalcularNotaFinalYDefinitiva()`, solo actualiza filas existentes y solo si `cali_n3` cambia; guarda: al crear solo corre si el grupo ya tenía >= 1 actividad (grupos históricos sin actividades no se tocan); INSERT/DELETE + recálculo en una transacción; `calificaciones_ctrl.js` recarga la planilla tras crear/eliminar; sin cambios de esquema, sin triggers; probado con harness + endpoint real en local y 5 pruebas en navegador; desplegado a staging y producción 2026-09-20 (script de corrección de datos del grupo 30/estudiante 79 aplicado en los 3 entornos, consulta global de obsoletos vacía en producción) | 2026-09-20 |
+| `f7b0e92` | feat(calificaciones): cards y encabezado de planilla con grupo semestre, cohorte, periodo y jornada | 2026-10-03 |
+| `9d04f99` | fix(reportes): mostrar jornada Sábados con tilde en PDF, Excel y bloque de contexto | 2026-10-03 |
+| `318baa0` | feat(calificaciones): periodo activo por defecto en el filtro y ajuste por grmo_id | 2026-10-03 |
+| `5e8f6d8` | fix(calificaciones): limpiar planilla al cambiar filtros si el grupo abierto ya no esta en la lista | 2026-10-03 |
+| `ff5a5e7` | feat(grupos): color de relleno por familia de programa en la lista de grupos semestre | 2026-10-03 |
+| `ee74988` | feat(coordinador): agregar periodo, programa, docente y ultima_actualizacion a resumen_dashboard | 2026-10-05 |
+| `6169f5f` | feat(fechas): agregar renderFecha y tipo de orden fecha-emdb para DataTables | 2026-10-05 |
+| `41075d4` | feat(coordinador): columna Actualizado ordenada por defecto, tabla con datos y escapado de HTML | 2026-10-05 |
+| `03d005c` | feat(coordinador): filtros de periodo, programa y docente con periodo activo por defecto | 2026-10-05 |
+| `77d2dea` | fix(coordinador): mostrar docente como APELLIDOS, NOMBRES igual que calificaciones | 2026-10-05 |
+| `77dab7f` | feat(coordinador): Ver Notas abre la planilla en una pestana nueva | 2026-10-05 |
+| `852fd4c` | feat(grupos): agregar peri_id, peri_activo y prog_id a listar_grupos | 2026-10-05 |
+| `13ec80f` | feat(reportes): agregar periodo, programa y doce_id a grupos_para_reporte | 2026-10-05 |
+| `f5821b0` | refactor(filtros): mover poblarFiltro a helpers.js y usarla desde el dashboard | 2026-10-05 |
+| `c77d458` | feat(grupos): filtros de periodo y programa en grupos semestre con periodo activo por defecto | 2026-10-07 |
+| `8268fea` | feat(grupos): filtros de periodo y programa en asignacion de estudiantes | 2026-10-07 |
+| `ebb756e` | fix(grupos): excluir columna # de la busqueda en grupos semestre | 2026-10-07 |
+| `23d207b` | feat(grupos): eliminar grupo semestre vacio desde el modal de edicion | 2026-10-07 |
+| `a3ca174` | fix(grupos): bloquear quitar modulo del grupo con estudiantes asignados o actividades N3 | 2026-10-07 |
+| `9d4aead` | feat(reportes): filtros de periodo, docente y programa en reporte por grupo | 2026-10-09 |
+| `bdcc6e2` | fix(reportes): tolerar estudiantes sin numero de documento en PDF, tabla y buscador | 2026-10-09 |
+| `26055f3` | fix(calificaciones): mostrar guion cuando el estudiante no tiene numero de documento | 2026-10-09 |
+| `08faa8e` | feat(db): columna matr_origen_id en matriculas para enlazar reincorporaciones | 2026-10-11 |
+| `ff1a4db` | fix(datos): script de corrección de datos de una reincorporación — pasa una matrícula de Retirado a Aplazamiento (renombrado y anonimizado en `32338a4`) | 2026-10-11 |
+| `e8961f7` | feat(estudiantes): contexto retirados y datos de reincorporacion en listar_matriculados | 2026-10-11 |
+| `6d6d851` | feat(estudiantes): pestana Retirados, insignias de estado academico y observacion en matriculados | 2026-10-11 |
+| `e74a089` | feat(estudiantes): accion reincorporar con enlace a la matricula de origen | 2026-10-11 |
+| `7ca433a` | fix(estudiantes): editar matricula solo retira asignaciones si cambia programa o periodo | 2026-10-11 |
+| `cd92f65` | feat(estudiantes): modal para reincorporar estudiantes retirados | 2026-10-11 |
+| `b2797f9` | fix(seguridad): escaparHtml unico en helpers.js y carga en todas las vistas | 2026-10-11 |
+| `51af4c7` | fix(seguridad): escapar datos de la base en estudiantes y pasar solo ids en las acciones | 2026-10-11 |
+| `e4ca92f` | fix(seguridad): escapar datos de la base en calificaciones | 2026-10-11 |
+| `e40723d` | fix(seguridad): escapar datos de la base en grupos y pasar solo ids en las acciones | 2026-10-11 |
+| `9b86388` | fix(seguridad): escapar datos de la base y codificar parametros de URL en reportes | 2026-10-11 |
+| `5e9a982` | fix(seguridad): escapar datos de la base en docentes y pasar solo ids en las acciones | 2026-10-11 |
+| `96f41f1` | fix(seguridad): escapar datos de la base en admin, ayudas y vistas publicas | 2026-10-11 |
+| `cef29d0` | feat(estudiantes): acciones retirar_matricula y anular_retiro | 2026-10-11 |
+| `97b5a68` | fix(estudiantes): anular retiro solo en el periodo activo y listar ambos tipos de retiro en Retirados | 2026-10-11 |
+| `9aea146` | feat(estudiantes): modales y menus para retirar, aplazar y anular retiro | 2026-10-11 |
+| `ede88cd` | Retirar/Aplazar: sacar retirados de planillas y conteos del período activo | 2026-10-11 |
+| `19b7f8b` | Retirar/Aplazar: bloquear guardado de notas de estudiantes retirados | 2026-10-11 |
+| `50cea23` | Matricular: conservar el historial de matr_observacion al reactivar | 2026-10-12 |
+| `da9ceb1` | Matricular: solo reactivar matrículas en estado aspirante | 2026-10-12 |
+| `32338a4` | chore(datos): anonimiza script de aplazamiento de una reincorporacion (nombre y apellidos pasan a variables de sesion) | 2026-10-12 |
 
 ---
 
@@ -611,6 +667,18 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | N3 configurable (Fase 2.14.A, commit `f592885`) — 3 decisiones de esquema | (1) Histórico de N3 se descarta, no se migra — el reseteo de `cali_n3`/`cali_nota_final`/`cali_definitiva` a `NULL` asume que las notas existentes son datos de prueba sin valor de negocio real; no hay mecanismo de migración hacia `notasn3`. (2) Roles autorizados = Docente con verificación de ownership + Coordinador/Admin sin restricción, igual que el resto de `calificaciones_mdl.php` (`listar_calificaciones`/`guardar_nota`) — sin backend nuevo todavía, decisión que rige las fases siguientes. (3) Eliminación de una actividad de `actividadesn3` quedará bloqueada si tiene notas en `notasn3` o si es la última actividad activa del `grmo_id` — a diferencia de `requisitos_programa` (borrado lógico vía `reqp_activo`), aquí no hace falta un flag porque el borrado físico solo procede si la actividad está vacía. |
 | Seed público (`database/emdb_academica.sql`) y snapshot real (`database/hosting_deploy/`) son dos archivos deliberadamente separados, nunca sincronizados entre sí | El repositorio GitHub de este proyecto es **público**. `database/emdb_academica.sql` (versionado en git) contiene únicamente estructura y datos base/de ejemplo — **nunca** debe llevar datos reales de estudiantes (nombres, documentos, notas, contactos), porque eso expondría datos personales bajo la Ley 1581 de 2012 (Habeas Data) en un repo público. Los snapshots con datos reales, generados por `scripts/export_para_hosting.sh`, viven exclusivamente en `database/hosting_deploy/` — carpeta en `.gitignore` (excepto `.gitkeep`) que nunca se sube a GitHub, de uso puramente local para la subida manual al hosting. No reintroducir un mecanismo que sincronice o actualice el seed público a partir de datos reales sin decisión explícita de Jose Luis. |
 | `database/emdb_academica.sql` reemplazado por un dataset anonimizado (2026-09-06) — es ahora la carga inicial oficial del proyecto | Tras el despliegue exitoso en producción (`app.escuelamdb.com`, mismo día), los datos reales de 54 estudiantes/aspirantes y 5 docentes que habían quedado en el seed público (cargados durante la Fase 2.14.A / período 2026-2) se reemplazaron por nombres, documentos y datos de ficha familiar generados aleatoriamente — conservando `prog_id`/`jornada` originales y la distribución de casos de prueba (5 menores de edad con tarjeta de identidad, variedad de tipos de acudiente). Los usuarios Administrador y Coordinador conservan su `usua_passwordhash` real (mismo acceso), excepto `usua_id=26` (Coordinador), anonimizado también por tener el nombre real de una persona de la institución. Backup del contenido anterior en `database/hosting_deploy/backup_antes_de_seed_anonimizado.sql` (fuera de git). Cualquier persona que clone el repositorio desde ahora ve este dataset anonimizado, no los datos reales. No revertir a un seed con datos reales sin decisión explícita de Jose Luis. |
+| Retiro de matrícula con un único escritor (2026-10-11) | `retirar_matricula` (`est_mdl.php`) es el único `case` que escribe `matr_estado = 'retirado'`, con `matr_estado_academico` en `'Aplazamiento'` o `'Retirado'`. Conserva asignaciones a módulos, calificaciones, notas de N3, acceso y requisitos como historial. Exige motivo (1 a 300 caracteres) y fecha efectiva no futura. |
+| Reincorporar crea una matrícula nueva enlazada, nunca reactiva la anterior | Solo desde una matrícula retirada en Aplazamiento. La nueva nace en el período activo (lo decide el servidor), con `matr_origen_id` apuntando a la de origen, y admite cambio de programa, cohorte y semestre. Arranca sin módulos, sin notas y sin crear acceso. Una matrícula es origen de una sola reincorporación (`uq_matr_origen`). |
+| Anular retiro solo en el período activo | Devuelve la matrícula a `matriculado` + `Activo` si todavía no fue reincorporada y el estudiante no tiene otra matrícula vigente del mismo programa. |
+| `matr_observacion` es el historial de la matrícula | Cada acción (aplazamiento, retiro, retiro anulado, reincorporación, reactivación) agrega al final una nota fechada separada con `' \| '`. Ningún guardado la reemplaza. |
+| Los retirados del período activo salen de planillas, roster y conteos | Regla única en `sqlNoRetiradoPeriodoActivo()` (`helpers.php`). El reporte de grupo, su PDF y su Excel los muestran con la marca Aplazamiento o Retirado. Los grupos de períodos cerrados conservan su historial completo. El servidor rechaza guardar notas de un retirado (`codigo: 'matricula_retirada'`). |
+| `matricular` solo reactiva matrículas en estado aspirante (`da9ceb1`) | Una matrícula retirada vuelve por Anular retiro o Reincorporar; matriculado, cursado y graduado quedan cerradas a esa vía. |
+| Bloqueo de fila (`SELECT ... FOR UPDATE`) en todo `case` que cambia el estado de una matrícula | Retirar, anular, reincorporar, matricular, editar matrícula y guardar nota bloquean la misma fila de `matriculas`, para que dos operaciones simultáneas corran una después de la otra. |
+| Migración de esquema antes del código, en cada entorno | `mysqldump`, script de migración idempotente con su script de reversión, y después el código. Aplicado con `migracion_matr_origen_id.sql` (`08faa8e`). |
+| Escapado de HTML obligatorio y centralizado (2026-10-11) | Todo texto de la base pasa por `escaparHtml()` (única, en `00_files/helpers.js`) antes de insertarse en HTML. Los `onclick` reciben solo ids numéricos y el texto se lee de la fila ya cargada. Parámetros de URL con `encodeURIComponent`. |
+| Filtros de listado en el cliente, con el período activo por defecto | Los selects de filtro se arman desde las filas del propio listado (`poblarFiltro()`), sin endpoint de catálogo ni peticiones nuevas al filtrar. |
+| Fechas en DataTables con `renderFecha` y el tipo `fecha-emdb` | El servidor entrega la fecha cruda; se muestra `d/m/Y H:i`, se ordena por el texto ISO y las vacías van siempre al final. Sin `new Date()` y sin `fecha-emdb-pre`. |
+| Nunca versionar nombres ni datos reales de personas (`32338a4`) | Aplica a archivos, nombres de archivo, mensajes de commit y documentación. Los scripts de datos identifican a la persona con variables `@...` que se completan al ejecutar. |
 
 ---
 
@@ -622,7 +690,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `case 'obtener'` de `doc_mdl.php` (03_docentes) usa `INNER JOIN` entre `docentes` y `usuarios` | Un docente con `usua_id NULL` (sin acceso al sistema) haría que este `JOIN` no devuelva ninguna fila — el endpoint respondería "Docente no encontrado" en vez de abrir el modal "Editar Docente" con el campo de contraseña oculto. Detectado como efecto colateral al implementar el cambio de contraseña opcional en edición (commit `35c312a`, 2026-08-25). Hoy no hay ningún docente en esa condición en la BD (`SELECT COUNT(*) FROM docentes WHERE usua_id IS NULL` → 0), así que no es un bug activo — es una decisión de diseño pendiente, no una limpieza mecánica (mismo criterio ya aplicado a `matriculas.matr_matriculadopor`, commit `5de9a9e`). Pendiente de decisión futura: ¿cambiar a `LEFT JOIN` si en algún momento se permite crear/editar docentes sin usuario asociado? No implementar sin decisión explícita de Jose Luis. |
 | `doc_view.php`, `est_view.php` y `grupos_view.php` (03_docentes / 02_estudiantes / 04_grupos) tienen un `<nav>` fallback (`navbar-dark bg-dark px-3`, patrón "Docente/rol sin navbar.php") inalcanzable en la práctica | Los tres archivos comparten el mismo guard de sesión (`if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) { redirect; }`), que rechaza cualquier rol distinto de Admin/Coordinador **antes** de llegar al `<body>` — la rama `else` con el `<nav>` fallback nunca se ejecuta para ningún otro rol, es código muerto en los tres casos. Detectado al implementar el bloque "Último acceso" en el navbar (commit `ac96f07`, 2026-08-25): se agregó primero a `doc_view.php` asumiendo que era el nav real de Docente, y se descubrió que Docente (`role_id=3`) ni siquiera puede acceder a esa vista — su destino real tras login es `05_calificaciones/calificaciones_view.php` (único de los tres con guard `!== 1 && !== 2 && !== 3`, que sí permite Docente); el cambio se revirtió de `doc_view.php` y se aplicó ahí en su lugar. `est_view.php` y `grupos_view.php` quedan con el mismo tipo de código muerto sin verificar si algún otro rol debería alcanzarlos. Pendiente de decisión futura: ¿eliminar esos tres bloques `<nav>` fallback (nunca alcanzables con los guards actuales) o ampliar el guard de esas vistas si en algún momento un rol adicional necesita entrar? No implementar sin decisión explícita de Jose Luis. |
 | ~~UI de segunda matrícula / multi-programa~~ (RESUELTO 2026-08-30, commit `f5c21e5`; indicador visual RESUELTO 2026-08-31, commit `1529832`) | El esquema ya permitía que un estudiante tuviera más de una fila en `matriculas` desde `3e551e5`, pero no existía ninguna UI para que el coordinador matriculara deliberadamente a un estudiante ya matriculado en un segundo programa. Implementado en `f5c21e5`: botón "➕ Matricular en otro programa" en `tablaMatriculados` (reutiliza `abrirMatricular()`/`#mdl_matricular`), contexto de matrículas previas en ese modal, sección "Programas matriculados" en el modal Datos Estudiante, validaciones que bloquean duplicar el mismo programa en `matricular`/`editar_matricula`, y fix del bug real de `total_modulos` que mezclaba módulos entre programas (ver CHANGELOG.md). El indicador visual tipo "2 programas" en las filas de Matriculados, evaluado y descartado en `f5c21e5`, se retomó a pedido explícito de Jose Luis y **sí se implementó finalmente** en el commit `1529832` (2026-08-31): badge "🎓 N programas" junto al apellido en `tablaMatriculados`, visible solo cuando el estudiante tiene 2+ matrículas, con el detalle (`"SIGLA — Estado"` por cada una) en el `title` — `tablaAspirantes` queda sin cambios por diseño, ese caso nunca aplica ahí. Ítem cerrado por completo, sin pendientes conocidos. |
-| `matr_estado_academico` se muestra en la UI pero sigue sin ningún mecanismo de edición (commit `3e551e5`, 2026-08-30 → actualizado en `b3a0296`, 2026-08-30) | La columna se agregó con su default `'Activo'` como preparación de esquema para la funcionalidad de multi-programa. Desde `b3a0296` (case `mis_programas` de `reportes_mdl.php`) **sí se lee y se muestra** — visible como "Estado actual" (badge de solo lectura) en la pestaña "Reporte por Estudiante" de `06_reportes`, tanto para el propio estudiante como para el coordinador consultando a otro. Lo que sigue pendiente es la escritura: ningún `case` de `est_mdl.php` ni de ningún otro `_mdl.php` permite todavía cambiar su valor (`SELECT` sí, `UPDATE` no en ningún lado). Pendiente: diseñar dónde y cómo se edita — la futura pestaña "Novedades" (Activo/Aplazamiento/Retirado por período) es el candidato natural. No implementar sin decisión explícita de Jose Luis. |
+| `matr_estado_academico` se muestra en la UI pero sigue sin ningún mecanismo de edición (commit `3e551e5`, 2026-08-30 → actualizado en `b3a0296`, 2026-08-30) | La columna se agregó con su default `'Activo'` como preparación de esquema para la funcionalidad de multi-programa. Desde `b3a0296` (case `mis_programas` de `reportes_mdl.php`) **sí se lee y se muestra** — visible como "Estado actual" (badge de solo lectura) en la pestaña "Reporte por Estudiante" de `06_reportes`, tanto para el propio estudiante como para el coordinador consultando a otro. Lo que sigue pendiente es la escritura: ningún `case` de `est_mdl.php` ni de ningún otro `_mdl.php` permite todavía cambiar su valor (`SELECT` sí, `UPDATE` no en ningún lado). Pendiente: diseñar dónde y cómo se edita — la futura pestaña "Novedades" (Activo/Aplazamiento/Retirado por período) es el candidato natural. No implementar sin decisión explícita de Jose Luis. **Actualización 2026-10-11 (RESUELTO, commits `cef29d0`, `e74a089`, `9aea146`):** `matr_estado_academico` ya tiene mecanismo de edición — "🚫 Retirar / Aplazar" lo pone en `'Aplazamiento'` o `'Retirado'`; "↩️ Anular retiro", "↩️ Reincorporar" y la reactivación de un aspirante lo dejan en `'Activo'`. Se edita solo a través de esas acciones, sin campo libre. |
 | `mis_modulos` y `mis_notas` de `reportes_mdl.php` quedan sin llamador desde el frontend actual (commit `8d479a1`, 2026-08-30) | Estos 2 `case` alimentaban la interfaz "Mis Notas" del estudiante (un módulo a la vez, sin noción de período) que existía antes del rediseño de `06_reportes` — reemplazada por completo por "Reporte por Estudiante" (`mis_programas`/`mis_periodos`/`detalle_periodo`). `grupos_para_reporte` y `reporte_grupo` sí siguen con llamador activo (alimentan la pestaña "Reporte por Grupo", recuperada intacta en el mismo commit). Limpieza de código muerto diferida a una fase futura aparte — mismo criterio ya aplicado en otros ciclos del proyecto (ver `5de9a9e`). No implementar sin decisión explícita de Jose Luis. |
 | Nombre institucional sin centralizar en 3 de los 4 PDF del proyecto (commit `ef429bd`, 2026-08-30) | `pdf_boletin.php` ya lee `configuracion.institucion_nombre` en vez de hardcodear el nombre — pero `pdf_grupo.php`, `pdf_ficha.php` y `pdf_hoja_matricula.php` siguen con `"Escuela de Mecánica Dental Bolaños (EMDB)"` hardcodeado inline, cada uno por separado. Deliberadamente fuera de alcance de la Fase 2 de `06_reportes` (que solo tocó `pdf_boletin.php`). Pendiente de decisión futura: ¿vale la pena unificar los 4 archivos para que lean todos de `configuracion`? No implementar sin decisión explícita de Jose Luis. |
 
@@ -1019,6 +1087,53 @@ Detalle completo en CHANGELOG.md.
 - `avanzar_semestre` no crea filas en `requisitos_estudiante` para la sucesora (21/32 sucesoras existentes sin requisitos) — pendiente de decisión sobre si los requisitos aplican por semestre.
 - No existe una vista de "estudiantes sin matrícula en el período activo" — el ítem "Matricular al sgte. sem." solo aparece en Per. Actual, sobre una matrícula ya existente.
 - Hallazgo sin resolver: "Matricular en otro programa" sí bloquea la matrícula duplicada (`matr_estado='matriculado'` en otro período), pero si la única fila del estudiante para ese programa está en `'cursado'` (ej. una migrada sin sucesora), `case 'matricular'` la acepta y crea una matrícula nueva desde cero para un programa ya cursado — uso no previsto por el nombre del ítem, sin heredar semestre/cohorte ni requisitos de la matrícula anterior.
+
+---
+
+## Calificaciones: cards, jornada y filtro por período activo — 2026-10-03
+
+Primer bloque después de la ventana TRL5. Commits `f7b0e92`, `9d04f99`, `318baa0`, `5e8f6d8`, `ff5a5e7`. Las cards de grupo y el encabezado de la planilla muestran grupo semestre, cohorte, semestre, período y jornada; "Sábados" sale con tilde en PDF, Excel y pantalla (`etiquetaJornada()`, con el valor guardado sin cambios); el filtro Período de Coordinador/Admin arranca en el activo y se ajusta al grupo cuando la URL trae `?grmo_id`; la planilla se limpia si el grupo abierto sale de la lista. Nace `app/00_files/helpers.js`. En `04_grupos`, las filas de Grupos Semestre se colorean por familia de programa (`FAMILIAS_PROGRAMA`).
+
+---
+
+## Dashboard del coordinador, fechas y filtros compartidos — 2026-10-05
+
+Commits `ee74988`, `6169f5f`, `41075d4`, `03d005c`, `77d2dea`, `77dab7f`, `852fd4c`, `13ec80f`, `f5821b0`. La tabla "Estado de notas" gana la columna "Actualizado" (última nota registrada en el grupo, orden por defecto), filtros de Período, Programa y Docente, docente como "APELLIDOS, NOMBRES" y "Ver Notas" en pestaña nueva. `helpers.js` suma `renderFecha()`, el tipo de orden `fecha-emdb` y `poblarFiltro()`. `listar_grupos` (`04_grupos`) y `grupos_para_reporte` (`06_reportes`) devuelven ids de período, programa y docente para los filtros de los bloques siguientes.
+
+**Fase B2 apenas iniciada:** `renderFecha`/`fecha-emdb` tiene un solo consumidor. Tablas pendientes en "Pendientes programados".
+
+---
+
+## Grupos: filtros, eliminar grupo semestre vacío y bloqueo al quitar módulo — 2026-10-07
+
+Commits `c77d458`, `8268fea`, `ebb756e`, `23d207b`, `a3ca174`. Filtros de Período y Programa en Grupos Semestre y en Asignación Estudiantes (período activo por defecto, columna "#" renumerada). Nuevo `case 'eliminar_grupo'`: elimina un grupo semestre solo si está vacío (sin módulos, activos o inactivos, y sin horarios), desde el modal de edición. `eliminar_modulo_grupo` rechaza quitar un módulo con estudiantes asignados o con actividades de Nota 3; antes el `DELETE` borraba el roster en silencio por la FK en cascada.
+
+---
+
+## Reporte por grupo con filtros y documento vacío — 2026-10-09
+
+Commits `9d4aead`, `bdcc6e2`, `26055f3`. Filtros de Período, Docente y Programa y contador de grupos en "Reporte por grupo" (`06_reportes`). Un estudiante sin número de documento se muestra con "—" en PDF de grupo, boletín, tabla de reporte, buscador y planilla. `estu_numerodoc` puede ser `NULL` en datos reales.
+
+---
+
+## Endurecimiento de escapado de HTML — 2026-10-11
+
+Commits `b2797f9`, `51af4c7`, `e4ca92f`, `e40723d`, `9b86388`, `5e9a982`, `96f41f1`. `escaparHtml()` queda con una única definición en `helpers.js`, cargada en todas las vistas menos `01_login`. Todos los controladores escapan los textos de la base antes de insertarlos en HTML, los `onclick` pasan solo ids numéricos (`filaMatriculado()`, `filaDeTabla()`, `nombreDocenteEnTabla()` leen el resto de la fila ya cargada) y los parámetros de URL van con `encodeURIComponent`. Reglas y antipatrones en CLAUDE.md.
+
+---
+
+## Retirar, Aplazar, Anular retiro y Reincorporar — 2026-10-11 / 2026-10-12
+
+Commits `08faa8e`, `ff1a4db`, `e8961f7`, `6d6d851`, `e74a089`, `7ca433a`, `cd92f65`, `cef29d0`, `97b5a68`, `9aea146`, `ede88cd`, `19b7f8b`, `50cea23`, `da9ceb1`, más `32338a4` (anonimización del script de datos).
+
+- **Esquema:** `matriculas.matr_origen_id` con `uq_matr_origen` y `fk_matr_origen` (`ON DELETE SET NULL`). Scripts idempotentes `migracion_matr_origen_id.sql` y `rollback_matr_origen_id.sql`. La migración va antes del código en cada entorno.
+- **Pantallas (`02_estudiantes`):** pestaña "Retirados"; acciones "Retirar / Aplazar" (Per. Actual), "Anular retiro" (Retirados y Per. Anteriores, período activo) y "Reincorporar" (Retirados, solo Aplazamiento); insignias de estado y columna Observación.
+- **Efecto en el resto del sistema:** los retirados del período activo salen de la planilla, del roster y de los conteos; aparecen marcados en el reporte de grupo, su PDF y su Excel; el servidor rechaza guardar sus notas.
+- **Correcciones incluidas:** `editar_matricula` retira asignaciones solo si cambia programa o período; `matricular` conserva el historial de observaciones y solo reactiva aspirantes.
+- **Despliegue:** `50cea23` y `da9ceb1` (solo `est_mdl.php`, sin cambios de BD) probados en local, dev y producción el 2026-10-12 — cierre de las actividades 109-112.
+- **Script de datos:** el script de corrección de datos de una reincorporación quedó anonimizado en `32338a4` (variables `@est_nombres`/`@est_apellidos`). El historial anterior a ese commit todavía contiene el nombre.
+
+**Pendientes abiertos:** los 10 puntos de la sección de deuda técnica del 2026-10-12 en CLAUDE.md, y los entornos donde se ejecutó la migración [COMPLETAR POR JOSE LUIS].
 
 ---
 

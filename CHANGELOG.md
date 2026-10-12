@@ -4,6 +4,241 @@
 
 ---
 
+## Cierre de las actividades 109-112 — despliegue de `50cea23` y `da9ceb1` en local, dev y producción — 2026-10-12
+
+### Contexto
+Los commits `50cea23` y `da9ceb1` cierran el bloque de Retirar, Aplazar, Anular retiro y Reincorporar (entrada siguiente). Ambos modifican un solo archivo: `app/02_estudiantes/est_mdl.php` (`case 'matricular'`).
+
+### Cambio
+- Se subió únicamente `app/02_estudiantes/est_mdl.php` a staging (`dev.escuelamdb.com`) y a producción (`app.escuelamdb.com`).
+- Sin cambios de base de datos: ninguno de los dos commits toca el esquema ni requiere script.
+
+### Verificación
+- Probado por Jose Luis en local, dev y producción el 2026-10-12.
+
+### Pendiente
+- Documentación de cierre de toda la etapa (esta serie de entradas), en commit separado del código.
+
+---
+
+## Anonimización del script de corrección de datos de una reincorporación (commit `32338a4`) — 2026-10-12
+
+### Contexto
+El script de corrección de datos de una reincorporación, agregado en `ff1a4db` (2026-10-11), identificaba a una estudiante reincorporada por su nombre y apellidos escritos como literales, y llevaba ese nombre también en el nombre del archivo y en el mensaje del commit. El repositorio es público y `database/emdb_academica.sql` ya se había anonimizado por la misma razón (Ley 1581 de 2012, ver "Seed versionado en git..." en CLAUDE.md).
+
+### Cambio
+- Archivo renombrado a `scripts/aplazamiento_reincorporacion_caso1.sql`.
+- La clave natural (nombres y apellidos) se lee de dos variables de sesión de MySQL, `@est_nombres` y `@est_apellidos`, declaradas al inicio con los valores de ejemplo `'COMPLETAR_NOMBRES'` y `'COMPLETAR_APELLIDOS'`. Los 5 `WHERE` activos y el de la reversión manual comentada usan esas variables.
+- `SET NAMES utf8mb4` pasó a `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci` (en el script y en la reversión comentada): las variables de usuario heredan la colación de la conexión, y en MySQL 8 esa colación es `utf8mb4_0900_ai_ci`, distinta de la de las columnas (`utf8mb4_unicode_ci`); compararlas sin el `COLLATE` puede fallar con "Illegal mix of collations".
+- Comentarios y nombre de la tabla de error reescritos sin el nombre ("una estudiante", "la estudiante").
+- Sin cambios de lógica: programa, cohorte, período, idempotencia, detención con 0 o más de 1 coincidencia y reversión manual comentada quedan iguales. Con los valores de ejemplo el script se detiene en el PASO 1 sin modificar nada.
+
+### Decisión
+- Los scripts de datos que identifican a una persona se versionan con variables `@...` y valores de ejemplo; los valores reales se escriben solo al ejecutar y nunca se suben a git (regla agregada al "Checklist de deploy a producción" de CLAUDE.md).
+
+### Verificación
+- Revisión por lectura: ninguna cadena literal con el nombre en el archivo, variables declaradas antes de su primer uso, comillas balanceadas.
+- El script anonimizado no se ejecutó contra ninguna base de datos. Queda por confirmar en local, la primera vez que se use, que el `COLLATE` de `SET NAMES` evita el error de colaciones.
+
+### Pendiente
+- **El historial de git anterior a `32338a4` todavía contiene el nombre real:** en el contenido y el nombre de archivo del commit `ff1a4db` y en su mensaje. Este commit limpia el árbol de trabajo; quitarlo del historial exige reescribirlo y forzar el push. Decisión de Jose Luis (ver "Deuda técnica" en CLAUDE.md).
+
+---
+
+## Retirar, Aplazar, Anular retiro y Reincorporar matrículas (commits `08faa8e`, `ff1a4db`, `e8961f7`, `6d6d851`, `e74a089`, `7ca433a`, `cd92f65`, `cef29d0`, `97b5a68`, `9aea146`, `ede88cd`, `19b7f8b`, `50cea23`, `da9ceb1`) — 2026-10-11 / 2026-10-12
+
+### Contexto
+`matriculas.matr_estado` tenía el valor `'retirado'` y `matr_estado_academico` los valores `'Aplazamiento'` y `'Retirado'` desde `3e551e5`, pero ninguna pantalla los escribía: un retiro se registraba a mano en la base. Tampoco existía forma de traer de vuelta a una estudiante que aplazó, ni de dejar trazado de qué matrícula venía. En el código esta etapa se llama "Fase D, reincorporación de estudiantes".
+
+### Cambio
+
+**Esquema (`08faa8e`)**
+- `matriculas.matr_origen_id`: mismo tipo que `matr_id`, `NULL` por defecto, ubicada después de `coho_id`. Enlaza la matrícula nueva de una reincorporación con la matrícula de origen.
+- `UNIQUE KEY uq_matr_origen (matr_origen_id)`: una matrícula es origen de una sola reincorporación (los `NULL` no chocan entre sí).
+- `CONSTRAINT fk_matr_origen FOREIGN KEY (matr_origen_id) REFERENCES matriculas (matr_id) ON DELETE SET NULL ON UPDATE CASCADE` (auto-referenciada; usa el índice único).
+- `database/emdb_academica.sql` actualizado; su `INSERT INTO matriculas` pasó a lista de columnas explícita.
+- `scripts/migracion_matr_origen_id.sql`: idempotente (consulta `information_schema` y usa `PREPARE`/`EXECUTE`, válido en MySQL 5.7/8 y MariaDB 10), sin `USE`, se detiene si no hay base seleccionada, termina con una comprobación de 3 filas en 1.
+- `scripts/rollback_matr_origen_id.sql`: reversión idempotente (quita FK, índice y columna, en ese orden). Pierde el enlace de todas las reincorporaciones ya registradas.
+
+**Script de corrección de datos de una reincorporación (`ff1a4db`)**
+- Cambia una matrícula de `retirado` + `Retirado` a `retirado` + `Aplazamiento` y agrega una anotación fechada al final de `matr_observacion`. Identifica la fila por clave natural (los `matr_id` difieren entre entornos), es idempotente y se detiene sin modificar nada si encuentra 0 o más de 1 coincidencia. La reversión manual va comentada dentro del propio script.
+- Renombrado y anonimizado en `32338a4` (entrada de arriba): variables `@est_nombres`/`@est_apellidos` y `SET NAMES` con `COLLATE utf8mb4_unicode_ci`. El historial previo a `32338a4` todavía contiene el nombre.
+
+**Backend — `app/02_estudiantes/est_mdl.php`**
+- `listar_matriculados` (`e8961f7`, `97b5a68`): nuevo contexto `'retirados'` — matrículas `retirado` en `Aplazamiento` o `Retirado` que todavía no fueron origen de una reincorporación (`NOT EXISTS` sobre `matr_origen_id`), de todos los períodos (se ignora `peri_id`). Columnas nuevas en los tres contextos: `coho_id`, `matr_observacion`, `matr_origen_id`, `origen_prog_sigla`, `origen_coho_codigo`, `tiene_reincorporacion`. Orden con desempate `m.matr_id ASC`.
+- `case 'reincorporar'` (`e74a089`): crea una matrícula nueva `matriculado` + `Activo` en el período activo, con `matr_origen_id` = matrícula de origen, y sus `requisitos_estudiante` en `'pendiente'`. La fila de origen conserva su estado y recibe una nota al final de `matr_observacion`.
+- `case 'retirar_matricula'` y `case 'anular_retiro'` (`cef29d0`, `97b5a68`).
+- `case 'editar_matricula'` (`7ca433a`): lee la fila con `FOR UPDATE` y retira asignaciones de `grmoestudiantes` solo cuando la matrícula cambia de programa o de período, y solo las del programa+período que tenía antes. Antes borraba las asignaciones de cualquier otro programa o período del estudiante, incluido el historial de otras matrículas.
+- `case 'matricular'` (`cef29d0`, `50cea23`, `da9ceb1`): la fila existente del mismo estudiante+programa+período se lee dentro de la transacción con `FOR UPDATE`; solo una matrícula `'aspirante'` se reactiva; al reactivar se fija `matr_estado_academico = 'Activo'` y la observación nueva se agrega al final del historial.
+
+**Frontend — `app/02_estudiantes/est_ctrl.js`, `est_view.php`**
+- Pestaña "Retirados" (`#tab-retirados`, `#tbl_retirados`) con filtros de Programa, Grupo y Módulo y contador en la pestaña (`6d6d851`).
+- Columna "Estado" con segunda insignia (`Aplazamiento` amarilla, `Retirado` gris) e insignias "Reincorporación" / "Reincorporada" (`insigniasReincorporacion()`); columna "Observación" recortada con el texto completo en el `title`, en Per. Anteriores y Retirados.
+- `crearColumnasMatriculados(esPeriodoActual, contexto)` gana el parámetro `contexto` (`'actual'` | `'anteriores'` | `'retirados'`).
+- Modales `#mdl_reincorporar` (`cd92f65`), `#mdl_retirar_matricula` y `#mdl_anular_retiro` (`9aea146`), con resumen en vivo, contador de caracteres del motivo y bandera contra doble envío. Funciones: `abrirReincorporar()`, `cargarDestinoReincorporar()`, `actualizarResumenReincorporar()`, `abrirRetirarMatricula()`, `retiroFormularioValido()`, `actualizarEstadoRetiro()`, `abrirAnularRetiro()`, `actualizarEstadoAnularRetiro()`, `fechaLocalHoy()`.
+- Menú de Acciones: "🚫 Retirar / Aplazar" en Per. Actual; "↩️ Anular retiro" en Retirados y Per. Anteriores; "↩️ Reincorporar" solo en Retirados y solo para `Aplazamiento`. El menú de Retirados omite Gestionar claves, Hoja de Matrícula y Matricular en otro programa.
+
+**Retirados fuera de planillas y conteos (`ede88cd`)**
+- `app/00_files/helpers.php`: `sqlNoRetiradoPeriodoActivo($ge)` (condición para `WHERE`/`ON`) y `sqlTipoRetiroPeriodoActivo($ge)` (columna con `'Aplazamiento'` | `'Retirado'` | `NULL`). Ambas devuelven SQL fijo correlacionado con el alias de `grmoestudiantes`.
+- Excluyen al retirado: planilla de calificaciones y roster del modal de N3, `total_estudiantes` de `listar_grupos` (`calificaciones_mdl.php`, ambas ramas), `recalcularGrupoModuloN3()`, `total_estudiantes` de `listar_grupos` y `listar_estudiantes_grupo` (`grupos_mdl.php`), y los conteos de `resumen_dashboard` (`coordinador_mdl.php`).
+- Muestran al retirado con marca: `reporte_grupo` (`reportes_mdl.php`, columna `retiro_tipo`, `badgeRetiro()` en `reportes_ctrl.js`), `pdf_grupo.php` (`marcaRetiro()`) y el Excel del docente (`textoRetiroExp()` en `calificaciones_ctrl.js`).
+
+**Bloqueo de notas (`19b7f8b`)**
+- `matriculaRetiradaPeriodoActivo()` y la constante `MSG_MATRICULA_RETIRADA` en `calificaciones_mdl.php`. `guardar_nota` y `guardar_nota_n3` corren ahora dentro de una transacción y rechazan la nota con `{status:'error', codigo:'matricula_retirada', message:...}`.
+- `manejarNotaRechazadaPorRetiro()` en `calificaciones_ctrl.js`: avisa y recarga la planilla (y la tabla de N3 si su modal está abierto).
+
+### Decisión
+- `retirar_matricula` es el único escritor de `matr_estado = 'retirado'`. Conserva asignaciones, calificaciones, notas de N3, usuario y requisitos como historial.
+- Validaciones de `retirar_matricula`: tipo en lista blanca (`Aplazamiento` | `Retirado`), motivo de 1 a 300 caracteres, fecha efectiva `Y-m-d` real y no futura (contra `CURDATE()` del servidor de BD), matrícula en `'matriculado'`, estudiante activo.
+- `reincorporar` parte solo de `retirado` + `Aplazamiento`. El período destino lo fija el servidor (`peri_activo = 1`) y la acción se rechaza con 0 o con más de 1 período activo. Valida programa y cohorte activos, que la cohorte pertenezca al programa y el semestre con `validarSemestrePrograma()`. Rechaza una fila previa del mismo estudiante+programa+período en vez de reactivarla. La matrícula nueva arranca sin módulos ni notas y sin crear acceso al sistema.
+- `anular_retiro` aplica a matrículas del período activo, sin reincorporación posterior y sin otra matrícula vigente del mismo programa.
+- Regla única de roster: una fila de `grmoestudiantes` queda fuera de las listas operativas cuando el grupo es del período activo y la matrícula de ese programa+período está `'retirado'`. Los grupos de períodos cerrados conservan su historial completo y las matrículas `'cursado'` siguen apareciendo.
+- `matr_observacion` es el historial de la matrícula: notas `[fecha] ...` unidas con `' | '`, siempre agregadas al final. Cada nota registra quién, cuándo y por qué.
+- Concurrencia: `SELECT ... FOR UPDATE` sobre la fila de la matrícula en `retirar_matricula`, `anular_retiro`, `reincorporar`, `matricular`, `editar_matricula` y en el guardado de notas, para que un retiro y un guardado simultáneos corran uno después del otro. Los rechazos de validación dentro de la transacción se lanzan como `Exception` con el mensaje para el usuario; `SQLSTATE 23000` tiene mensaje propio en `reincorporar`.
+- `matricular` solo reactiva matrículas `'aspirante'`. Mensajes para una fila existente en otro estado: `'matriculado'` → "El estudiante ya está matriculado en este programa y período."; `'retirado'` → "...Use Anular retiro o Reincorporar desde la pestaña Retirados."; `'cursado'`/`'graduado'` → "El estudiante ya tiene una matrícula cerrada en este programa y período."
+- **Regla de despliegue:** la migración de esquema se ejecuta antes de subir el código, en cada entorno (local, dev, producción), con `mysqldump` previo. El código nuevo falla con "Unknown column 'matr_origen_id'" si la columna falta; el código anterior funciona igual con la columna ya creada.
+- Vocabulario: "retiro de matrícula" es esta funcionalidad (`retirar_matricula`, `02_estudiantes`); "retiro de roster" es quitar a un estudiante de un grupo módulo (`retirar_estudiante`, `04_grupos`), que ya existía.
+
+### Pruebas
+- `50cea23` y `da9ceb1` probados por Jose Luis en local, dev y producción el 2026-10-12 (entrada de cierre de las actividades 109-112).
+- Los mensajes de los demás commits no registran pruebas. Entornos donde se ejecutaron `migracion_matr_origen_id.sql` y el script de corrección de datos, y pruebas en navegador de los tres modales: [COMPLETAR POR JOSE LUIS].
+
+### Pendiente
+- Diez puntos registrados en CLAUDE.md, sección "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)".
+
+---
+
+## Endurecimiento de escapado de HTML en toda la interfaz (commits `b2797f9`, `51af4c7`, `e4ca92f`, `e40723d`, `9b86388`, `5e9a982`, `96f41f1`) — 2026-10-11
+
+### Contexto
+Los controladores armaban HTML concatenando textos de la base (nombres, códigos, observaciones) y pasaban algunos de esos textos como argumento dentro de `onclick="f('...')"`. Un dato con comillas, `<` o `&` rompía el HTML o el atributo, y abría la puerta a inyección de código (XSS) desde cualquier campo de texto libre, incluidos los formularios públicos. Existían tres copias distintas de `escaparHtml()` (`ayuda_sidebar.js`, `est_ctrl.js`, `coordinador_ctrl.js`).
+
+### Cambio
+- `b2797f9`: `escaparHtml()` queda con una única definición en `app/00_files/helpers.js` (escapa `&`, `<`, `>`, `"`, `'`; `null`/`undefined` → `''`). Se eliminan las tres copias. `helpers.js` se carga en `est_view.php`, `doc_view.php`, `admin_view.php`, `insc_view.php`, `ayud_view.php` y `actualizar_view.php` (ya estaba en calificaciones, reportes, coordinador y grupos). La única vista sin `helpers.js` es `01_login`.
+- `51af4c7` (`est_ctrl.js`): `renderTextoEscapado()`, `filaMatriculado()`, `irAlReporte(matr_id)`; `abrirRequisitosMatricula`, `abrirAvanzarSemestre`, `abrirGestionarClaves` y `verModulosEstudiante` reciben solo `matr_id`.
+- `e4ca92f` (`calificaciones_ctrl.js`): textos de la base escapados en la planilla y en la tabla de exportación.
+- `e40723d` (`grupos_ctrl.js`): `renderTextoEscapado()`, `filaDeTabla()`; `confirmarEliminarCohorte`, `confirmarEliminarPeriodo`, `confirmarEliminarModulo`, `confirmarEliminarPrograma`, `verModulosGrupo` y `verEstudiantesGrupo` reciben solo el id.
+- `9b86388` (`reportes_ctrl.js`): escapado de la tabla de reporte y `encodeURIComponent` en los parámetros de `pdf_boletin.php`, `pdf_grupo.php` y `mis_requisitos_matricula`.
+- `5e9a982` (`doc_ctrl.js`): `renderTextoEscapado()`, `nombreDocenteEnTabla()`; `confirmarEliminarDocente` y `verGruposDocente` reciben solo números.
+- `96f41f1`: `admin_ctrl.js` y `ayud_ctrl.js` (`renderTextoEscapado()`, `confirmarEliminarAyuda(ayud_id)`), `insc_ctrl.js` y `actualizar_ctrl.js` (comparación exacta con el atributo en vez de armar un selector con el valor guardado).
+
+### Decisión
+- Todo texto que viene de la base pasa por `escaparHtml()` antes de concatenarse en HTML, como contenido o dentro de un atributo entre comillas.
+- `escaparHtml()` tiene una sola definición. Una segunda declaración en un `_ctrl.js` pisa a la compartida sin avisar, porque carga después.
+- Un `onclick` inline recibe solo ids numéricos. El texto que la acción necesita (nombre, código) se lee de la fila ya cargada en la tabla (`filaMatriculado()`, `filaDeTabla()`, `nombreDocenteEnTabla()`). `escaparHtml()` no protege un texto dentro de `onclick="f('...')"`.
+- Columnas de texto de DataTables: `renderTextoEscapado` escapa en `display` y entrega el dato crudo para ordenar y filtrar.
+- Parámetros de URL siempre con `encodeURIComponent`.
+- `helpers.js` se carga antes del `_ctrl.js` de la vista y antes de `ayuda_sidebar.js`.
+
+### Pruebas
+- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+
+### Pendiente
+- `renderTextoEscapado()` quedó duplicada en 5 controladores (más `renderTexto()` en el coordinador); candidata a `helpers.js` (deuda técnica en CLAUDE.md).
+
+---
+
+## Reporte por grupo con filtros y tolerancia a estudiantes sin número de documento (commits `9d4aead`, `bdcc6e2`, `26055f3`) — 2026-10-09
+
+### Contexto
+El select de "Reporte por grupo" (`06_reportes`) listaba todos los grupos módulo de todos los períodos. Además, un estudiante sin número de documento mostraba `null` en las tablas y hacía fallar `htmlspecialchars()` en los PDF.
+
+### Cambio
+- `9d4aead` (`reportes_ctrl.js`, `reportes_view.php`): filtros Período, Docente y Programa (`#bloque_filtros_reporte_grupo`), con el período activo por defecto, y contador de grupos (`#spn_rep_contador_grupos`). Funciones `textoOpcionGrupo()`, `reconstruirSelGrupo()`, `poblarFiltrosReporte()`; las filas se guardan en `gruposReporte`.
+- `bdcc6e2` (`pdf_boletin.php`, `pdf_grupo.php`, `reportes_ctrl.js`): documento vacío o `NULL` se muestra como "—" en el boletín, el PDF de grupo, la tabla de reporte y el buscador de estudiantes.
+- `26055f3` (`calificaciones_ctrl.js`): mismo guion en la planilla y en la tabla de exportación.
+
+### Decisión
+- Una sola petición (`grupos_para_reporte`); los filtros trabajan en el cliente sobre las filas recibidas.
+- El reporte ya cargado sigue en pantalla aunque su grupo salga del select por un cambio de filtro.
+- Sin grupos para los filtros elegidos, el select muestra "Sin grupos para estos filtros" y el botón de cargar se deshabilita.
+- `estudiantes.estu_numerodoc` puede ser `NULL` en datos reales: todo listado nuevo debe tolerarlo.
+
+### Pruebas
+- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+
+---
+
+## Grupos: filtros de período y programa, eliminar grupo semestre vacío y bloqueo al quitar un módulo (commits `c77d458`, `8268fea`, `ebb756e`, `23d207b`, `a3ca174`) — 2026-10-07
+
+### Contexto
+Con dos períodos cargados, la pestaña "Grupos Semestre" y el select de "Asignación Estudiantes" mezclaban grupos de períodos cerrados con los vigentes. Un grupo semestre creado por error solo se podía borrar desde la base. Y quitar un módulo de un grupo borraba en silencio su roster, porque `fk_grmo_estu_grmo` es `ON DELETE CASCADE`.
+
+### Cambio
+- `c77d458` (`grupos_ctrl.js`, `grupos_view.php`): filtros Período y Programa sobre `#tbl_grupos` (`#bloque_filtros_grupos`), período activo por defecto. Funciones `repoblarFiltroGrupos()`, `repoblarFiltroGruposProgramas()`, `mostrarGrupoNuevoEnFiltros()`. `cargarPeriodosSelector()` devuelve el jqXHR y la tabla se crea con `cargarPeriodosSelector().always(cargarTablaGrupos)`. La columna "#" se renumera en cada `draw` según filtro y orden.
+- `8268fea`: los mismos filtros, con selects y estado propios, sobre la lista de grupos de "Asignación Estudiantes" (`#bloque_filtros_asignacion`). Funciones `aplicarFiltrosAsignacion()`, `limpiarAsignacion()`, `repoblarFiltroAsigProgramas()`.
+- `ebb756e`: la columna "#" queda fuera de la búsqueda (`searchable: false`).
+- `23d207b` (`grupos_mdl.php`, `grupos_ctrl.js`, `grupos_view.php`): `case 'eliminar_grupo'` (roles 1 y 2), botón `#btn_eliminar_grupo` en el modal de edición y modal `#mdl_confirmar_eliminar_grupo`. Bootstrap Icons agregado a `grupos_view.php`.
+- `a3ca174` (`grupos_mdl.php`): `eliminar_modulo_grupo` verifica `grmoestudiantes` y `actividadesn3` antes del `DELETE`.
+
+### Decisión
+- `eliminar_grupo` procede solo con el grupo vacío: sin `gruposmodulos` (activos o inactivos) y sin `horariosgrupo`. Mensaje: "Este grupo tiene módulos asignados, no puede eliminarse. Quite primero los módulos." El botón aparece solo en edición y con la lista de módulos vacía; el servidor vuelve a validar.
+- `eliminar_modulo_grupo` rechaza con "Este módulo tiene N estudiante(s) asignado(s), no puede quitarse del grupo. Retírelos primero en la pestaña Asignación Estudiantes." y con "Este módulo tiene actividades de Nota 3 registradas, no puede quitarse del grupo."
+- Los filtros se aplican en el cliente con `$.fn.dataTable.ext.search`, acotado a `#tbl_grupos` con `settings.nTable.id` (en la página conviven cinco DataTables), y sobreviven a `ajax.reload()`.
+- El filtro de período se fija en el activo la primera vez que llega el catálogo; activar otro período lo deja igual hasta recargar la página.
+- Al guardar un grupo nuevo, los filtros se ajustan para que quede visible.
+
+### Pruebas
+- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+
+---
+
+## Dashboard del coordinador: columna "Actualizado", filtros y base compartida de fechas y filtros (commits `ee74988`, `6169f5f`, `41075d4`, `03d005c`, `77d2dea`, `77dab7f`, `852fd4c`, `13ec80f`, `f5821b0`) — 2026-10-05
+
+### Contexto
+La tabla "Estado de notas" del dashboard (`07_coordinador`) mostraba todos los grupos sin fecha de última actividad y sin filtros. El proyecto tampoco tenía una forma común de mostrar y ordenar fechas en DataTables: cada columna mostraba el texto crudo de MySQL.
+
+### Cambio
+- `ee74988` (`coordinador_mdl.php`, `resumen_dashboard`): agrega `peri_id`, `peri_codigo`, `peri_activo`, `prog_id`, `prog_sigla`, `doce_id` y `ultima_actualizacion` (la más reciente entre `calificaciones.fechaactualizacion` y `notasn3.fechaactualizacion` del grupo módulo).
+- `6169f5f` (`app/00_files/helpers.js`): `renderFecha()`, `compararFechaAsc()`, `compararFechaDesc()` y registro del tipo de orden `fecha-emdb`.
+- `41075d4` (`coordinador_ctrl.js`, `coordinador_view.php`): columna "Actualizado" con orden por defecto de más reciente a más antigua; la tabla se inicializa una sola vez con `data:`; `ESTADOS_NOTAS`, `renderTexto()`; se elimina `construirFilaEstado()`.
+- `03d005c`: filtros Período, Programa y Docente (`#bloque_filtros_estado_notas`), período activo por defecto.
+- `77d2dea`: docente como "APELLIDOS, NOMBRES", igual que en calificaciones.
+- `77dab7f`: "Ver Notas" abre la planilla en una pestaña nueva (`target="_blank" rel="noopener"`).
+- `852fd4c` (`grupos_mdl.php`, `listar_grupos`): agrega `prog_id`, `peri_id`, `peri_activo`.
+- `13ec80f` (`reportes_mdl.php`, `grupos_para_reporte`): agrega `doce_id`, `peri_id`, `peri_codigo`, `peri_activo`, `prog_id`, `prog_sigla`.
+- `f5821b0`: `poblarFiltro()` pasa de `coordinador_ctrl.js` a `helpers.js`.
+
+### Decisión
+- Columna de fecha en DataTables: `{ data: 'campo', type: 'fecha-emdb', render: renderFecha }`. El servidor entrega la fecha cruda (`Y-m-d H:i:s`, `Y-m-d` o `null`); se muestra `d/m/Y H:i` (o `d/m/Y`) y se ordena por el texto ISO. Las fechas vacías quedan siempre al final, en ascendente y en descendente.
+- `renderFecha()` separa la fecha con una expresión regular, sin `new Date()`.
+- `fecha-emdb-pre` queda sin definir: con un `-pre`, DataTables 1.13 compara los valores directamente y deja de usar los comparadores asc/desc.
+- `ultima_actualizacion` usa dos subconsultas escalares y `NULLIF(GREATEST(COALESCE(..., ''), COALESCE(..., '')), '')`, porque `GREATEST` devuelve `NULL` si un argumento es `NULL`.
+- Los selects de filtro se arman con `poblarFiltro()` a partir de las filas del propio listado (una opción por valor distinto), sin endpoint de catálogo y sin peticiones nuevas al cambiar un filtro.
+
+### Estado de la fase B2
+- **B2 (llevar `renderFecha`/`fecha-emdb` a las demás tablas con fechas) queda apenas iniciada:** el único consumidor es la columna "Actualizado" de `#tbl_estado_notas`. Siguen con texto crudo o formato propio las fechas de `04_grupos` (`fechainicio`, `fechafin`, `prog_fechaaprobacion`, `prog_fechavencimiento`), `08_admin` (`fechacreacion`, `ultimo_acceso_fmt`), `02_estudiantes` (`fechacreacion`, `ultimo_acceso_fmt`, `fechanacimiento`) y `03_docentes` (`ultimo_acceso_fmt`, `doce_fechanacimiento`). Las columnas `ultimo_acceso_fmt` llegan ya formateadas desde PHP (`formatearUltimoAcceso()`): migrarlas exige que el backend entregue la fecha cruda.
+
+### Pruebas
+- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+
+---
+
+## Calificaciones: cards con contexto completo, jornada con tilde, filtro por período activo y color por familia de programa (commits `f7b0e92`, `9d04f99`, `318baa0`, `5e8f6d8`, `ff5a5e7`) — 2026-10-03
+
+### Contexto
+Primer bloque de trabajo después de la ventana de validación TRL5 (19 sep - 2 oct 2026). Las cards de grupo de `05_calificaciones` mostraban cohorte, semestre y período en una sola línea, sin grupo semestre ni jornada; "Sabados" aparecía sin tilde en PDF y Excel; y el listado de Coordinador/Admin arrancaba con los grupos de todos los períodos.
+
+### Cambio
+- `f7b0e92` (`calificaciones_ctrl.js`, `calificaciones_mdl.php`): cards y encabezado de la planilla con grupo semestre, cohorte, semestre, período y jornada. Funciones `tituloGrupo()` y `lineasGrupo()`; `listar_grupos` agrega `grse_jornada`.
+- `9d04f99`: **archivo nuevo `app/00_files/helpers.js`** (funciones JS compartidas, equivalente de `helpers.php`) con `etiquetaJornada()`; la misma función se agrega a `helpers.php`. La usan `calificaciones_ctrl.js`, `reportes_ctrl.js` y `pdf_grupo.php`. `helpers.js` se carga en `calificaciones_view.php` y `reportes_view.php`.
+- `318baa0`: el filtro Período de Coordinador/Admin arranca en el período activo; con `?grmo_id` en la URL (enlace "Ver Notas" del dashboard) se ajusta al período de ese grupo. Nuevo `case 'obtener_periodo_grupo'` (roles 1 y 2); `listar_periodos_filtro` agrega `peri_activo`. Funciones `iniciarListadoGrupos()`, `abrirCardInicial()`; `cargarGrupos(alTerminar)` acepta un callback.
+- `5e8f6d8`: al cambiar un filtro, si el grupo abierto ya salió de la lista la planilla vuelve a su estado inicial. Funciones `sincronizarPlanillaConCards()`, `limpiarPlanilla()`.
+- `ff5a5e7` (`grupos_ctrl.js`, `grupos_view.php`): color de relleno por familia de programa en `#tbl_grupos` — constante `FAMILIAS_PROGRAMA`, `claseFamiliaPrograma()`, `createdRow`; clases `.fila-familia-aso` (azul) y `.fila-familia-md` (verde).
+
+### Decisión
+- El valor guardado en `gruposemestres.grse_jornada` sigue siendo `'Sabados'` (sin tilde): lo usan los selects y la fórmula de `grse_codigo`. `etiquetaJornada()` cambia solo la presentación; una jornada vacía se muestra como "Semana".
+- Las cards se arman con `.text()`/`.attr()` de jQuery, y sus `data-*` son la única fuente del encabezado de la planilla.
+- `grmo_id` de la URL se valida con `/^\d+$/` y se usa una sola vez, en la carga inicial.
+- El período del filtro se resuelve antes de la única petición inicial de `listar_grupos` (mismo patrón "DataTable con `ajax.data` dependiente de un valor async...", aquí con cards). Si el catálogo de períodos falla, el listado carga igual con "Todos".
+- Una respuesta de un grupo que ya dejó de ser el abierto se descarta.
+- `FAMILIAS_PROGRAMA` lista las siglas en el JS (`ASO`, `ASO2016`, `MD`, `AMD2016`): un programa nuevo queda sin color hasta agregar su sigla.
+
+### Pruebas
+- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+
+---
+
 ## Endurecimiento de la raíz web de staging y registro de errores de PHP (sin commit de código) — 2026-09-20
 
 ### Contexto

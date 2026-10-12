@@ -223,6 +223,8 @@ Usuario interactúa con la vista
 - Contraseñas hasheadas con bcrypt (`password_hash` / `password_verify`)
 - La nota definitiva se recalcula en el servidor antes de persistir — el cliente no define calificaciones
 - Operaciones destructivas (ej. eliminar aspirante en `02_estudiantes`) verifican en el servidor las condiciones de negocio antes de ejecutar el DELETE — no dependen de que el frontend oculte el botón
+- Los textos que vienen de la base de datos se escapan antes de mostrarse en pantalla, para evitar la inyección de código (XSS)
+- Los datos de ejemplo incluidos (seed) son un conjunto anonimizado, y los scripts de datos identifican a una persona con valores que se completan al ejecutar y nunca se guardan en el repositorio
 
 ---
 
@@ -280,6 +282,16 @@ La institución gestionaba 80 planillas individuales de Google Sheets por semest
 > **Gestión de claves de acceso:** desde el menú de acciones del listado de Matriculados, el coordinador o administrador ahora puede crear el acceso al sistema de un estudiante que fue matriculado sin clave, o cambiar la clave de uno que ya tiene acceso, sin pasar por el modal de matrícula ni por la ficha completa de edición del estudiante — un atajo directo para esta única operación, con la misma opción de generar una clave automática o asignar una manual que ya existía en esos otros dos flujos.
 
 > **Backup estandarizado para el hosting:** `scripts/export_para_hosting.sh` genera con un solo comando (`./scripts/export_para_hosting.sh`, sin argumentos) un backup de la base de datos listo para importar directamente en phpMyAdmin del hosting (pruebas o producción) — corrige automáticamente una diferencia de colación entre MySQL 8 (el motor del entorno local) y MariaDB (el motor real del hosting) que antes hacía fallar la importación. El repositorio del proyecto es público, así que este backup con datos reales de estudiantes nunca se sube a GitHub — se guarda localmente en `database/hosting_deploy/`, separado por completo del script de estructura de base de datos que sí está versionado (`database/emdb_academica.sql`, sin datos reales).
+
+> **Retirar, aplazar y reincorporar estudiantes:** el coordinador puede registrar, desde el listado de Matriculados, que un estudiante aplaza o se retira definitivamente, indicando el motivo y la fecha. Una nueva pestaña "Retirados" reúne a esos estudiantes. Quien aplazó puede reincorporarse más adelante: el sistema le crea una matrícula nueva en el período vigente, en el mismo programa o en otro, y deja enlazadas ambas matrículas para que el recorrido quede a la vista. Un retiro registrado por error se puede anular. Mientras un estudiante está retirado, deja de aparecer en las planillas de notas del período y el sistema impide registrarle calificaciones; en los reportes del grupo aparece marcado. Cada matrícula conserva el historial de lo que le ha ocurrido.
+
+> **Filtros por período, programa y docente:** el tablero del coordinador, las calificaciones, los grupos y los reportes por grupo permiten filtrar por período, programa y docente, y abren mostrando el período vigente, sin mezclar grupos de semestres anteriores. El tablero del coordinador muestra además cuándo se registró la última nota de cada grupo.
+
+> **Eliminar un grupo semestre vacío:** un grupo semestre creado por error se puede eliminar desde su propia ventana de edición, siempre que todavía no tenga módulos. El sistema también impide quitar un módulo de un grupo cuando ya tiene estudiantes asignados o actividades de nota registradas, para que esa información no se pierda por accidente.
+
+> **Protección contra inyección de código en la interfaz:** todos los textos que el sistema muestra en pantalla (nombres, direcciones, observaciones) se tratan como texto simple antes de mostrarse. Un dato con símbolos especiales, escrito por error o con mala intención en cualquier formulario, incluidos los públicos, se muestra tal cual y no altera el funcionamiento de las pantallas.
+
+> **Jornada con tilde:** la jornada "Sábados" aparece escrita correctamente en las pantallas, los reportes PDF y los archivos de Excel. Las tarjetas de cada grupo en Calificaciones muestran también el grupo semestre, la cohorte, el período y la jornada.
 
 Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
 
