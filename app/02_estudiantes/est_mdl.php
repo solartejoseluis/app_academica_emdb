@@ -614,12 +614,6 @@ switch ($accion) {
                 break;
             }
 
-            $stmtCheck = $pdo->prepare(
-                "SELECT matr_id FROM matriculas WHERE estu_id = ? AND prog_id = ? AND peri_id = ?"
-            );
-            $stmtCheck->execute([$estu_id, $prog_id, $peri_id]);
-            $existingMatr = $stmtCheck->fetch();
-
             // Determine clave before transaction
             $clave_generada = null;
             $crear_acceso = ($tipo_acceso !== 'no' && $estudiante['usua_id'] === null);
@@ -645,6 +639,34 @@ switch ($accion) {
             }
 
             $pdo->beginTransaction();
+
+            // Matrícula ya existente del mismo estudiante+programa+período,
+            // leída dentro de la transacción y bloqueada (FOR UPDATE): su
+            // estado decide si se puede reactivar.
+            $stmtCheck = $pdo->prepare(
+                "SELECT matr_id, matr_estado FROM matriculas
+                 WHERE estu_id = ? AND prog_id = ? AND peri_id = ?
+                 FOR UPDATE"
+            );
+            $stmtCheck->execute([$estu_id, $prog_id, $peri_id]);
+            $existingMatr = $stmtCheck->fetch();
+
+            // Solo una matrícula 'aspirante' se reactiva desde aquí. Una
+            // 'retirado' vuelve por anular_retiro/reincorporar (con sus
+            // reglas y su nota en matr_observacion); 'matriculado', 'cursado'
+            // y 'graduado' no se reabren ni se sobrescriben.
+            if ($existingMatr && $existingMatr['matr_estado'] !== 'aspirante') {
+                $pdo->rollBack();
+                if ($existingMatr['matr_estado'] === 'matriculado') {
+                    $mensajeEstado = 'El estudiante ya está matriculado en este programa y período.';
+                } elseif ($existingMatr['matr_estado'] === 'retirado') {
+                    $mensajeEstado = 'El estudiante tiene un retiro o aplazamiento registrado en este período. Use Anular retiro o Reincorporar desde la pestaña Retirados.';
+                } else {
+                    $mensajeEstado = 'El estudiante ya tiene una matrícula cerrada en este programa y período.';
+                }
+                echo json_encode(['status' => 'error', 'message' => $mensajeEstado]);
+                break;
+            }
 
             if ($existingMatr) {
                 // matr_observacion guarda el historial de la matrícula (notas
