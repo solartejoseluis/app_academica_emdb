@@ -646,7 +646,8 @@ switch ($accion) {
             if ($existingMatr) {
                 $stmtM = $pdo->prepare(
                     "UPDATE matriculas
-                     SET matr_estado = 'matriculado', coho_id = ?, matr_semestre = ?, matr_folio = ?,
+                     SET matr_estado = 'matriculado', matr_estado_academico = 'Activo',
+                         coho_id = ?, matr_semestre = ?, matr_folio = ?,
                          fechamatricula = ?, matr_observacion = ?
                      WHERE matr_id = ?"
                 );
@@ -1381,6 +1382,266 @@ switch ($accion) {
                 ? 'La matrícula ya fue reincorporada o ya existe una matrícula igual, intente nuevamente'
                 : 'Error al reincorporar';
             echo json_encode(['status' => 'error', 'message' => $mensaje]);
+        } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    // ── RETIRAR / APLAZAR MATRÍCULA ──────────────────────────────────────
+    // Pasa una matrícula 'matriculado' a 'retirado', con condición académica
+    // 'Aplazamiento' (podrá reincorporarse) o 'Retirado' (retiro definitivo),
+    // y deja una nota al final de matr_observacion con quién, cuándo y por
+    // qué. Es el único escritor de matr_estado = 'retirado'. No toca
+    // grmoestudiantes, calificaciones, notasn3, usuarios ni requisitos: las
+    // asignaciones y notas del período se conservan como historial.
+    // Las validaciones de estado corren dentro de la transacción, con las
+    // filas de la matrícula y del estudiante bloqueadas (FOR UPDATE), para
+    // que dos envíos simultáneos sobre la misma matrícula no pasen ambos.
+
+    case 'retirar_matricula':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $matr_id = (int)($_POST['matr_id'] ?? 0);
+        $tipo    = trim($_POST['tipo'] ?? '');
+        $motivo  = trim($_POST['motivo'] ?? '');
+        $fecha   = trim($_POST['fecha'] ?? '');
+        if ($matr_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'La matrícula es requerida']);
+            break;
+        }
+        if (!in_array($tipo, ['Aplazamiento', 'Retirado'], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Seleccione el tipo: Aplazamiento o Retirado definitivo']);
+            break;
+        }
+        if ($motivo === '') {
+            echo json_encode(['status' => 'error', 'message' => 'El motivo es requerido']);
+            break;
+        }
+        if (mb_strlen($motivo) > 300) {
+            echo json_encode(['status' => 'error', 'message' => 'El motivo no puede superar 300 caracteres']);
+            break;
+        }
+        if ($fecha === '') {
+            echo json_encode(['status' => 'error', 'message' => 'La fecha efectiva es requerida']);
+            break;
+        }
+        $fechaValidada = DateTime::createFromFormat('Y-m-d', $fecha);
+        if (!$fechaValidada || $fechaValidada->format('Y-m-d') !== $fecha) {
+            echo json_encode(['status' => 'error', 'message' => 'La fecha efectiva no es válida']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+
+            // Fecha del servidor de BD (America/Bogota), igual que 'reincorporar'
+            $hoy = $pdo->query("SELECT CURDATE()")->fetchColumn();
+            if ($fecha > $hoy) {
+                echo json_encode(['status' => 'error', 'message' => 'La fecha efectiva no puede ser futura']);
+                break;
+            }
+
+            $pdo->beginTransaction();
+
+            $stmtMatr = $pdo->prepare(
+                "SELECT m.matr_id, m.estu_id, m.prog_id, m.peri_id, m.matr_estado, e.estu_activo
+                 FROM matriculas m
+                 INNER JOIN estudiantes e ON e.estu_id = m.estu_id
+                 WHERE m.matr_id = ?
+                 FOR UPDATE"
+            );
+            $stmtMatr->execute([$matr_id]);
+            $matricula = $stmtMatr->fetch();
+            if (!$matricula) {
+                throw new Exception('Matrícula no encontrada');
+            }
+            if ($matricula['matr_estado'] === 'retirado') {
+                throw new Exception('Esta matrícula ya está retirada');
+            }
+            if ($matricula['matr_estado'] !== 'matriculado') {
+                throw new Exception('Solo se puede retirar o aplazar una matrícula en estado "matriculado"');
+            }
+            if ((int)$matricula['estu_activo'] !== 1) {
+                throw new Exception('El estudiante está inactivo, no se puede retirar la matrícula');
+            }
+
+            // Nombre de quien registra: el de la sesión; si faltara, el de usuarios
+            $registradoPor = trim($_SESSION['usua_nombre'] ?? '');
+            if ($registradoPor === '') {
+                $stmtUsua = $pdo->prepare("SELECT usua_nombre, usua_email FROM usuarios WHERE usua_id = ?");
+                $stmtUsua->execute([(int)$_SESSION['usua_id']]);
+                $usua = $stmtUsua->fetch();
+                $registradoPor = trim($usua['usua_nombre'] ?? '') ?: trim($usua['usua_email'] ?? '') ?: 'usuario ' . (int)$_SESSION['usua_id'];
+            }
+
+            $nota = '[' . $hoy . '] '
+                . ($tipo === 'Aplazamiento' ? 'Aplazamiento registrado por ' : 'Retiro definitivo registrado por ')
+                . $registradoPor . '. Fecha efectiva: ' . $fecha . '. Motivo: ' . $motivo . '.';
+
+            $stmtUpd = $pdo->prepare(
+                "UPDATE matriculas
+                 SET matr_estado = 'retirado', matr_estado_academico = ?,
+                     matr_observacion = CASE
+                        WHEN matr_observacion IS NULL OR matr_observacion = '' THEN ?
+                        ELSE CONCAT(matr_observacion, ' | ', ?)
+                     END
+                 WHERE matr_id = ? AND matr_estado = 'matriculado'"
+            );
+            $stmtUpd->execute([$tipo, $nota, $nota, $matr_id]);
+
+            // Solo informativo: asignaciones a módulos del programa+período de
+            // esta matrícula. Se conservan; el número se devuelve para avisarlo.
+            $stmtMod = $pdo->prepare(
+                "SELECT COUNT(*)
+                 FROM grmoestudiantes ge
+                 JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
+                 JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
+                 WHERE ge.estu_id = ? AND gs.prog_id = ? AND gs.peri_id = ?"
+            );
+            $stmtMod->execute([$matricula['estu_id'], $matricula['prog_id'], $matricula['peri_id']]);
+            $modulos_ocultos = (int)$stmtMod->fetchColumn();
+
+            $pdo->commit();
+            echo json_encode([
+                'status'          => 'ok',
+                'message'         => ($tipo === 'Aplazamiento')
+                    ? 'Aplazamiento registrado correctamente.'
+                    : 'Retiro definitivo registrado correctamente.',
+                'matr_id'         => $matr_id,
+                'tipo'            => $tipo,
+                'modulos_ocultos' => $modulos_ocultos
+            ]);
+
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al retirar la matrícula']);
+        } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    // ── ANULAR RETIRO ────────────────────────────────────────────────────
+    // Deshace un retiro o aplazamiento registrado por error: la matrícula
+    // vuelve a 'matriculado' + 'Activo', con una nota al final de
+    // matr_observacion. Solo si todavía no fue origen de una reincorporación
+    // y si el estudiante no tiene otra matrícula vigente del mismo programa.
+    // Como 'retirar_matricula' no borra asignaciones ni notas, no hay nada
+    // más que restaurar. Mismo bloqueo (FOR UPDATE) que 'retirar_matricula'.
+
+    case 'anular_retiro':
+        if (!isset($_SESSION['usua_id'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida']);
+            break;
+        }
+        $role_id = (int)($_SESSION['role_id'] ?? 0);
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Sin autorización']);
+            break;
+        }
+        $matr_id = (int)($_POST['matr_id'] ?? 0);
+        $motivo  = trim($_POST['motivo'] ?? '');
+        if ($matr_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'La matrícula es requerida']);
+            break;
+        }
+        if ($motivo === '') {
+            echo json_encode(['status' => 'error', 'message' => 'El motivo es requerido']);
+            break;
+        }
+        if (mb_strlen($motivo) > 300) {
+            echo json_encode(['status' => 'error', 'message' => 'El motivo no puede superar 300 caracteres']);
+            break;
+        }
+
+        try {
+            $pdo = getConexion();
+            $pdo->beginTransaction();
+
+            $stmtMatr = $pdo->prepare(
+                "SELECT m.matr_id, m.estu_id, m.prog_id, m.matr_estado, e.estu_activo
+                 FROM matriculas m
+                 INNER JOIN estudiantes e ON e.estu_id = m.estu_id
+                 WHERE m.matr_id = ?
+                 FOR UPDATE"
+            );
+            $stmtMatr->execute([$matr_id]);
+            $matricula = $stmtMatr->fetch();
+            if (!$matricula) {
+                throw new Exception('Matrícula no encontrada');
+            }
+            if ($matricula['matr_estado'] !== 'retirado') {
+                throw new Exception('Solo se puede anular el retiro de una matrícula en estado "retirado"');
+            }
+            if ((int)$matricula['estu_activo'] !== 1) {
+                throw new Exception('El estudiante está inactivo, no se puede anular el retiro');
+            }
+
+            $stmtYa = $pdo->prepare("SELECT matr_id FROM matriculas WHERE matr_origen_id = ?");
+            $stmtYa->execute([$matr_id]);
+            if ($stmtYa->fetch()) {
+                throw new Exception('Esta matrícula ya fue reincorporada, no se puede anular el retiro');
+            }
+
+            // Misma validación de programa duplicado de 'matricular' y 'editar_matricula'
+            $stmtProgCheck = $pdo->prepare(
+                "SELECT matr_id FROM matriculas
+                 WHERE estu_id = ? AND prog_id = ? AND matr_estado = 'matriculado' AND matr_id != ?"
+            );
+            $stmtProgCheck->execute([$matricula['estu_id'], $matricula['prog_id'], $matr_id]);
+            if ($stmtProgCheck->fetch()) {
+                throw new Exception('El estudiante ya tiene otra matrícula vigente en este programa, no se puede anular el retiro');
+            }
+
+            $hoy = $pdo->query("SELECT CURDATE()")->fetchColumn();
+
+            $registradoPor = trim($_SESSION['usua_nombre'] ?? '');
+            if ($registradoPor === '') {
+                $stmtUsua = $pdo->prepare("SELECT usua_nombre, usua_email FROM usuarios WHERE usua_id = ?");
+                $stmtUsua->execute([(int)$_SESSION['usua_id']]);
+                $usua = $stmtUsua->fetch();
+                $registradoPor = trim($usua['usua_nombre'] ?? '') ?: trim($usua['usua_email'] ?? '') ?: 'usuario ' . (int)$_SESSION['usua_id'];
+            }
+
+            $nota = '[' . $hoy . '] Retiro anulado por ' . $registradoPor . '. Motivo: ' . $motivo . '.';
+
+            $stmtUpd = $pdo->prepare(
+                "UPDATE matriculas
+                 SET matr_estado = 'matriculado', matr_estado_academico = 'Activo',
+                     matr_observacion = CASE
+                        WHEN matr_observacion IS NULL OR matr_observacion = '' THEN ?
+                        ELSE CONCAT(matr_observacion, ' | ', ?)
+                     END
+                 WHERE matr_id = ? AND matr_estado = 'retirado'"
+            );
+            $stmtUpd->execute([$nota, $nota, $matr_id]);
+
+            $pdo->commit();
+            echo json_encode([
+                'status'  => 'ok',
+                'message' => 'Retiro anulado. La matrícula vuelve a estar vigente.',
+                'matr_id' => $matr_id
+            ]);
+
+        } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => 'Error al anular el retiro']);
         } catch (Exception $e) {
             if (isset($pdo) && $pdo->inTransaction()) {
                 $pdo->rollBack();
