@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 
 $accion = $_GET['accion'] ?? '';
 
@@ -216,7 +217,8 @@ switch ($accion) {
                        (SELECT COUNT(DISTINCT ge.estu_id)
                         FROM grmoestudiantes ge
                         JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
-                        WHERE gm.grse_id = gs.grse_id AND gm.grmo_activo = 1) AS total_estudiantes
+                        WHERE gm.grse_id = gs.grse_id AND gm.grmo_activo = 1
+                          AND " . sqlNoRetiradoPeriodoActivo('ge') . ") AS total_estudiantes
                 FROM gruposemestres gs
                 INNER JOIN cohortes c ON gs.coho_id = c.coho_id
                 INNER JOIN programas p ON c.prog_id = p.prog_id
@@ -253,6 +255,7 @@ switch ($accion) {
                 JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id
                 JOIN estudiantes e ON ge.estu_id = e.estu_id
                 WHERE gm.grse_id = ? AND gm.grmo_activo = 1
+                  AND " . sqlNoRetiradoPeriodoActivo('ge') . "
                 ORDER BY e.estu_apellidos, e.estu_nombres
             ");
             $stmt->execute([$grse_id]);

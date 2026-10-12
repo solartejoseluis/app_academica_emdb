@@ -57,3 +57,46 @@ function backfillRequisitoAMatriculasActivas(PDO $pdo, int $prog_id, int $reqp_i
     ");
     $stmt->execute([$reqp_id, $prog_id, $reqp_id]);
 }
+
+// ── Matrículas retiradas en las listas de un grupo módulo ────────────────────
+// Regla única del proyecto: una fila de grmoestudiantes queda FUERA de las
+// listas operativas (planilla, roster de N3, conteos) cuando el grupo es del
+// período activo y el estudiante tiene, para el programa y el período de ese
+// grupo, una matrícula en matr_estado = 'retirado' (Aplazamiento o Retirado).
+// La condición es "está retirado", nunca "no está matriculado": las
+// matrículas 'cursado' siguen apareciendo. Los grupos de períodos cerrados no
+// se filtran: conservan su historial completo. No borra ni modifica nada:
+// asignaciones, calificaciones y notas se conservan.
+// Ambas funciones devuelven SQL fijo (sin datos del usuario) correlacionado
+// con el alias de grmoestudiantes de la consulta que las usa ($ge); no
+// necesitan ningún otro JOIN en esa consulta. La matrícula se resuelve por
+// uq_matr_estu_peri_prog (estu_id, peri_id, prog_id): a lo sumo una fila.
+
+// Condición para WHERE / ON / AND: verdadera si la fila NO está retirada.
+function sqlNoRetiradoPeriodoActivo(string $ge = 'ge'): string {
+    return "NOT EXISTS (
+                SELECT 1
+                FROM gruposmodulos rt_gm
+                INNER JOIN gruposemestres rt_gs ON rt_gs.grse_id = rt_gm.grse_id
+                INNER JOIN periodos rt_pe ON rt_pe.peri_id = rt_gs.peri_id AND rt_pe.peri_activo = 1
+                INNER JOIN matriculas rt_mt ON rt_mt.estu_id = {$ge}.estu_id
+                       AND rt_mt.peri_id = rt_gs.peri_id AND rt_mt.prog_id = rt_gs.prog_id
+                       AND rt_mt.matr_estado = 'retirado'
+                WHERE rt_gm.grmo_id = {$ge}.grmo_id
+            )";
+}
+
+// Columna para SELECT: matr_estado_academico ('Aplazamiento' | 'Retirado') de
+// esa misma matrícula retirada, o NULL si la fila no está retirada. Para los
+// listados que SÍ muestran al retirado, marcado (reporte y PDF de grupo).
+function sqlTipoRetiroPeriodoActivo(string $ge = 'ge'): string {
+    return "(SELECT rt_mt.matr_estado_academico
+                FROM gruposmodulos rt_gm
+                INNER JOIN gruposemestres rt_gs ON rt_gs.grse_id = rt_gm.grse_id
+                INNER JOIN periodos rt_pe ON rt_pe.peri_id = rt_gs.peri_id AND rt_pe.peri_activo = 1
+                INNER JOIN matriculas rt_mt ON rt_mt.estu_id = {$ge}.estu_id
+                       AND rt_mt.peri_id = rt_gs.peri_id AND rt_mt.prog_id = rt_gs.prog_id
+                       AND rt_mt.matr_estado = 'retirado'
+                WHERE rt_gm.grmo_id = {$ge}.grmo_id
+                LIMIT 1)";
+}

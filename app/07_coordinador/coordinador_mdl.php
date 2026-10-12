@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 
 $accion = $_GET['accion'] ?? '';
 
@@ -32,6 +33,10 @@ switch ($accion) {
             $conteos = $stmt1->fetch();
 
             // Query 2 — estado de notas por grupo
+            // total_estudiantes, con_notas, con_definitiva y estado_notas no
+            // cuentan las matrículas retiradas del período activo (ver
+            // sqlNoRetiradoPeriodoActivo() en helpers.php): un retirado sin
+            // definitiva no deja el grupo en 'parcial'.
             // ultima_actualizacion: la más reciente entre calificaciones (todas
             // las filas del grupo módulo, también de estudiantes retirados) y
             // notasn3 (vía actividadesn3). Dos subconsultas escalares y no JOINs
@@ -77,6 +82,7 @@ switch ($accion) {
                 JOIN programas p ON gs.prog_id = p.prog_id
                 JOIN docentes d ON gm.doce_id = d.doce_id
                 LEFT JOIN grmoestudiantes ge ON gm.grmo_id = ge.grmo_id
+                       AND " . sqlNoRetiradoPeriodoActivo('ge') . "
                 LEFT JOIN calificaciones c ON c.grmo_id = gm.grmo_id AND c.estu_id = ge.estu_id
                 WHERE gm.grmo_activo = 1
                 GROUP BY gm.grmo_id

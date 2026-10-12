@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 
 // Resuelve el estu_id objetivo del reporte: para role_id=4 siempre es el
 // propio estudiante en sesión (ignora cualquier estu_id que llegue por
@@ -117,12 +118,15 @@ switch ($accion) {
             $stmtGrupo->execute([$grmo_id]);
             $contexto = $stmtGrupo->fetch();
 
+            // Aquí el retirado del período activo NO se oculta: retiro_tipo
+            // ('Aplazamiento' | 'Retirado' | NULL) lo marca en la tabla.
             $stmt = $pdo->prepare("
                 SELECT e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
                        c.cali_n1, c.cali_sup_n1, c.cali_n2, c.cali_sup_n2,
                        c.cali_n3, c.cali_n4, c.cali_sup_n4,
                        c.cali_nota_final, c.cali_habilitacion, c.cali_definitiva,
-                       c.cali_observacion
+                       c.cali_observacion,
+                       " . sqlTipoRetiroPeriodoActivo('ge') . " AS retiro_tipo
                 FROM grmoestudiantes ge
                 JOIN estudiantes e ON ge.estu_id = e.estu_id
                 LEFT JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = ge.estu_id

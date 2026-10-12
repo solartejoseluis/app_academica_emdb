@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 
 // Fórmula oficial de Nota Final/Definitiva — extraída de 'guardar_nota'
 // (Fase 2.14.D) para que 'guardar_nota_n3' la reutilice sin duplicarla.
@@ -91,6 +92,8 @@ function recalcularN3(PDO $pdo, int $grmo_id, int $estu_id): ?float {
 
 // Recalcula cali_n3 (y Nota Final/Definitiva) de todo el roster vigente de un
 // grupo módulo tras cambiar su conjunto de actividades (crear/eliminar).
+// Roster vigente: sin las matrículas retiradas del período activo (ver
+// sqlNoRetiradoPeriodoActivo() en helpers.php) — sus notas no se tocan.
 // Solo toca estudiantes que YA tienen fila en calificaciones (nunca la crea) y
 // solo si el cali_n3 guardado difiere del recalculado. No abre transacciones:
 // la maneja quien lo llama. GUARDA: quien lo llama NO debe invocarlo en grupos
@@ -102,6 +105,7 @@ function recalcularGrupoModuloN3(PDO $pdo, int $grmo_id): int {
         FROM grmoestudiantes ge
         INNER JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = ge.estu_id
         WHERE ge.grmo_id = ?
+          AND " . sqlNoRetiradoPeriodoActivo('ge') . "
     ");
     $roster->execute([$grmo_id]);
 
@@ -154,7 +158,8 @@ switch ($accion) {
                            gs.grse_codigo, gs.grse_semestre, gs.grse_jornada,
                            c.coho_codigo, p.prog_sigla,
                            pe.peri_codigo,
-                           (SELECT COUNT(*) FROM grmoestudiantes ge WHERE ge.grmo_id = gm.grmo_id) AS total_estudiantes
+                           (SELECT COUNT(*) FROM grmoestudiantes ge WHERE ge.grmo_id = gm.grmo_id
+                               AND " . sqlNoRetiradoPeriodoActivo('ge') . ") AS total_estudiantes
                     FROM gruposmodulos gm
                     INNER JOIN modulos m ON gm.modu_id = m.modu_id
                     INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
@@ -198,7 +203,8 @@ switch ($accion) {
                            c.coho_codigo, p.prog_sigla,
                            pe.peri_codigo,
                            d.doce_id, d.doce_nombres, d.doce_apellidos,
-                           (SELECT COUNT(*) FROM grmoestudiantes ge WHERE ge.grmo_id = gm.grmo_id) AS total_estudiantes
+                           (SELECT COUNT(*) FROM grmoestudiantes ge WHERE ge.grmo_id = gm.grmo_id
+                               AND " . sqlNoRetiradoPeriodoActivo('ge') . ") AS total_estudiantes
                     FROM gruposmodulos gm
                     INNER JOIN modulos m ON gm.modu_id = m.modu_id
                     INNER JOIN gruposemestres gs ON gm.grse_id = gs.grse_id
@@ -359,6 +365,8 @@ switch ($accion) {
                 break;
             }
 
+            // Planilla (y roster del modal de N3, que usa este mismo case):
+            // sin las matrículas retiradas del período activo.
             $stmt = $pdo->prepare("
                 SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
                        c.cali_id,
@@ -370,6 +378,7 @@ switch ($accion) {
                 INNER JOIN estudiantes e ON ge.estu_id = e.estu_id
                 LEFT JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = e.estu_id
                 WHERE ge.grmo_id = ?
+                  AND " . sqlNoRetiradoPeriodoActivo('ge') . "
                 ORDER BY e.estu_apellidos ASC, e.estu_nombres ASC
             ");
             $stmt->execute([$grmo_id]);

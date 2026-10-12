@@ -556,10 +556,20 @@ $(document).ready(function () {
         $('#info_reporte_grupo').show();
     }
 
+    // Marca de una matrícula retirada del período activo (retiro_tipo de
+    // reporte_grupo): mismos colores que la segunda insignia de la columna
+    // Estado en 02_estudiantes. Lista blanca: otro valor no pinta nada. El
+    // espacio inicial separa el texto del apellido también en el Excel.
+    function badgeRetiro(tipo) {
+        if (tipo === 'Aplazamiento') return ' <span class="badge bg-warning text-dark">Aplazamiento</span>';
+        if (tipo === 'Retirado')     return ' <span class="badge bg-secondary">Retirado</span>';
+        return '';
+    }
+
     function construirFilaReporte(e, num) {
         return `<tr>
             <td>${num}</td>
-            <td>${escaparHtml(e.estu_apellidos)}</td>
+            <td>${escaparHtml(e.estu_apellidos)}${badgeRetiro(e.retiro_tipo)}</td>
             <td>${escaparHtml(e.estu_nombres)}</td>
             <td>${escaparHtml(e.estu_numerodoc || '—')}</td>
             <td class="text-center">${n(e.cali_n1)}</td>

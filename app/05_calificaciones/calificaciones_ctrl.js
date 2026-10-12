@@ -275,10 +275,16 @@ $(document).ready(function () {
     }
     // Los textos de la base van por escaparHtml() (helpers.js): la fila se
     // inserta como HTML en #tbody_export_grupo. Las notas son DECIMAL.
+    // retiro_tipo (reporte_grupo): matrícula retirada del período activo. No
+    // sale en la planilla, pero sí en este export, marcada junto al apellido
+    // (lista blanca, igual que badgeRetiro() en reportes_ctrl.js).
+    function textoRetiroExp(tipo) {
+        return (tipo === 'Aplazamiento' || tipo === 'Retirado') ? ' (' + tipo + ')' : '';
+    }
     function construirFilaExport(e, num) {
         return '<tr>' +
             '<td>' + num + '</td>' +
-            '<td>' + escaparHtml(e.estu_apellidos) + '</td>' +
+            '<td>' + escaparHtml(e.estu_apellidos) + textoRetiroExp(e.retiro_tipo) + '</td>' +
             '<td>' + escaparHtml(e.estu_nombres) + '</td>' +
             '<td>' + escaparHtml(e.estu_numerodoc || '—') + '</td>' +
             '<td>' + nExp(e.cali_n1) + '</td>' +

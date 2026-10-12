@@ -68,11 +68,14 @@ if (!$grupo) {
 }
 
 // ── Calificaciones de todos los estudiantes del grupo ────────────────────────
+// El retirado del período activo NO se oculta: retiro_tipo ('Aplazamiento' |
+// 'Retirado' | NULL) lo marca junto al apellido (mismo dato que reporte_grupo).
 $stmtNotas = $pdo->prepare("
     SELECT e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
            c.cali_n1, c.cali_sup_n1, c.cali_n2, c.cali_sup_n2,
            c.cali_n3, c.cali_n4, c.cali_sup_n4,
-           c.cali_nota_final, c.cali_habilitacion, c.cali_definitiva
+           c.cali_nota_final, c.cali_habilitacion, c.cali_definitiva,
+           " . sqlTipoRetiroPeriodoActivo('ge') . " AS retiro_tipo
     FROM grmoestudiantes ge
     JOIN estudiantes e ON ge.estu_id = e.estu_id
     LEFT JOIN calificaciones c ON c.grmo_id = ge.grmo_id AND c.estu_id = ge.estu_id
@@ -92,6 +95,18 @@ function fmtNota($valor) {
     return $valor !== null ? number_format((float)$valor, 1) : '—';
 }
 
+// Marca de retiro junto al apellido. Lista blanca: cualquier otro valor no
+// pinta nada. <span> con fondo (no emoji, no display:table-cell en un <td>).
+function marcaRetiro($tipo) {
+    if ($tipo === 'Aplazamiento') {
+        return ' <span class="marca-retiro" style="background-color:#ffc107; color:#212529;">Aplazamiento</span>';
+    }
+    if ($tipo === 'Retirado') {
+        return ' <span class="marca-retiro" style="background-color:#6c757d; color:#ffffff;">Retirado</span>';
+    }
+    return '';
+}
+
 function colorSemaforo($valor) {
     if ($valor === null) return '';
     return ((float)$valor >= 3.0) ? 'background-color:#d4edda;' : 'background-color:#f8d7da;';
@@ -109,7 +124,7 @@ if (!$estudiantes) {
     foreach ($estudiantes as $est) {
         $filasHtml .= '<tr>
             <td>' . $num++ . '</td>
-            <td>' . htmlspecialchars($est['estu_apellidos']) . '</td>
+            <td>' . htmlspecialchars($est['estu_apellidos']) . marcaRetiro($est['retiro_tipo'] ?? null) . '</td>
             <td>' . htmlspecialchars($est['estu_nombres']) . '</td>
             <td>' . (($est['estu_numerodoc'] ?? '') !== '' ? htmlspecialchars($est['estu_numerodoc']) : '—') . '</td>
             <td class="centro">' . fmtNota($est['cali_n1']) . '</td>
@@ -148,6 +163,7 @@ $html = '
     table.notas th, table.notas td { border: 1px solid #adb5bd; padding: 3px 4px; font-size: 9px; }
     table.notas th { background-color: #343a40; color: #fff; text-align: center; }
     table.notas td.centro { text-align: center; }
+    .marca-retiro { font-size: 7px; font-weight: bold; padding: 1px 3px; }
     .leyenda { margin-top: 10px; font-size: 9px; text-align: center; color: #495057; }
     .nota-supletorios {
         margin-top: 10px;
