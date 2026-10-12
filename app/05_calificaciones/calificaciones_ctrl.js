@@ -540,6 +540,26 @@ $(document).ready(function () {
             .addClass(colorSemaforo(definitivaTexto));
     }
 
+    // ── Nota rechazada por retiro o aplazamiento ─────────────────────────────
+    // guardar_nota y guardar_nota_n3 rechazan (codigo 'matricula_retirada')
+    // la nota de un estudiante cuya matrícula del período fue retirada o
+    // aplazada: pasa cuando la planilla quedó abierta desde antes del retiro.
+    // Se avisa con el mismo alert() del módulo (texto plano, no se inserta
+    // como HTML) y se recarga la planilla — y la tabla de N3 si su modal está
+    // abierto — para que el estudiante salga de la lista. Devuelve true si la
+    // respuesta era ese rechazo.
+    function manejarNotaRechazadaPorRetiro(r) {
+        if (!r || r.codigo !== 'matricula_retirada') return false;
+        alert(r.message);
+        if (grmo_id_activo !== null) {
+            cargarCalificaciones(grmo_id_activo);
+            if ($('#mdl_registro_n3').hasClass('show')) {
+                cargarTablaRegistroN3(grmo_id_activo);
+            }
+        }
+        return true;
+    }
+
     // ── Autosave on blur ─────────────────────────────────────────────────────
     $(document).on('blur', '.input-nota', function () {
         const input  = $(this);
@@ -595,6 +615,8 @@ $(document).ready(function () {
 
                     // Quitar clase guardado después de 2 segundos
                     setTimeout(() => input.removeClass('guardado'), 2000);
+                } else if (manejarNotaRechazadaPorRetiro(r)) {
+                    input.removeClass('guardando');
                 } else {
                     input.removeClass('guardando').addClass('error');
                     alert('Error al guardar: ' + r.message);
@@ -1045,6 +1067,8 @@ $(document).ready(function () {
                     actualizarCeldaN3EnTablaPrincipal(estuId, r.cali_n3, r.cali_nota_final, r.cali_definitiva);
 
                     setTimeout(() => input.removeClass('guardado'), 2000);
+                } else if (manejarNotaRechazadaPorRetiro(r)) {
+                    input.removeClass('guardando');
                 } else {
                     input.removeClass('guardando').addClass('error');
                     alert('Error al guardar: ' + r.message);

@@ -129,6 +129,51 @@ function recalcularGrupoModuloN3(PDO $pdo, int $grmo_id): int {
     return $cambiados;
 }
 
+// Bloqueo de escritura de notas para una matrícula retirada o aplazada del
+// período activo (la planilla ya no la muestra — ver
+// sqlNoRetiradoPeriodoActivo() en helpers.php —, pero una pestaña abierta
+// antes del retiro todavía podría enviar la nota).
+// Debe llamarse DENTRO de la transacción de quien escribe y antes de
+// escribir: deja bloqueada (FOR UPDATE) la fila de matriculas del estudiante
+// para el programa+período del grupo hasta el commit/rollback, de modo que
+// 'retirar_matricula' (02_estudiantes, que bloquea esa misma fila) y un
+// guardado de nota simultáneos corran uno después del otro, nunca a la vez.
+// Solo aplica si el grupo es del período activo: los períodos cerrados
+// siguen como estaban (no se consulta ni se bloquea nada). Si el estudiante
+// no tiene matrícula para ese programa+período, tampoco bloquea (igual que
+// antes de esta regla).
+// Retorna true si hay un retiro o aplazamiento registrado.
+const MSG_MATRICULA_RETIRADA = 'El estudiante tiene un retiro o aplazamiento registrado en este período. No se pueden guardar notas.';
+
+function matriculaRetiradaPeriodoActivo(PDO $pdo, int $grmo_id, int $estu_id): bool {
+    $grupo = $pdo->prepare("
+        SELECT gs.prog_id, gs.peri_id
+        FROM gruposmodulos gm
+        INNER JOIN gruposemestres gs ON gs.grse_id = gm.grse_id
+        INNER JOIN periodos pe ON pe.peri_id = gs.peri_id AND pe.peri_activo = 1
+        WHERE gm.grmo_id = ?
+    ");
+    $grupo->execute([$grmo_id]);
+    $g = $grupo->fetch();
+    if (!$g) {
+        return false; // grupo de un período cerrado (o inexistente): sin cambio
+    }
+
+    $matr = $pdo->prepare("
+        SELECT matr_estado, matr_estado_academico
+        FROM matriculas
+        WHERE estu_id = ? AND peri_id = ? AND prog_id = ?
+        FOR UPDATE
+    ");
+    $matr->execute([$estu_id, $g['peri_id'], $g['prog_id']]);
+    $m = $matr->fetch();
+    if (!$m) {
+        return false;
+    }
+    return $m['matr_estado'] === 'retirado'
+        || in_array($m['matr_estado_academico'], ['Aplazamiento', 'Retirado'], true);
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {
@@ -461,6 +506,16 @@ switch ($accion) {
                 }
             }
 
+            // Desde aquí todo va en una transacción: la verificación de retiro
+            // (que bloquea la fila de la matrícula) y la escritura de la nota
+            // son una sola unidad.
+            $pdo->beginTransaction();
+            if (matriculaRetiradaPeriodoActivo($pdo, $grmo_id, $estu_id)) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'codigo' => 'matricula_retirada', 'message' => MSG_MATRICULA_RETIRADA]);
+                break;
+            }
+
             // Verificar si ya existe registro
             $check = $pdo->prepare("
                 SELECT cali_id, cali_n1, cali_n2, cali_n3, cali_n4,
@@ -510,6 +565,8 @@ switch ($accion) {
             $notaFinal = $filaFinal['cali_nota_final'];
             $definitivaOficial = $filaFinal['cali_definitiva'];
 
+            $pdo->commit();
+
             echo json_encode([
                 'status'            => 'ok',
                 'cali_id'           => $cali_id,
@@ -525,6 +582,9 @@ switch ($accion) {
                 'cali_habilitacion' => $existing['cali_habilitacion'],
             ]);
         } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
         break;
@@ -957,6 +1017,17 @@ switch ($accion) {
                 }
             }
 
+            // Desde aquí todo va en una transacción: la verificación de retiro
+            // (que bloquea la fila de la matrícula) y la escritura de la nota
+            // con sus derivados (cali_n3, Nota Final, Definitiva) son una sola
+            // unidad.
+            $pdo->beginTransaction();
+            if (matriculaRetiradaPeriodoActivo($pdo, $grmo_id, $estu_id)) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'codigo' => 'matricula_retirada', 'message' => MSG_MATRICULA_RETIRADA]);
+                break;
+            }
+
             // Upsert: UPDATE si ya existe la fila (acn3_id, estu_id), INSERT si no
             $check = $pdo->prepare("SELECT non3_id FROM notasn3 WHERE acn3_id = ? AND estu_id = ?");
             $check->execute([$acn3_id, $estu_id]);
@@ -1008,6 +1079,8 @@ switch ($accion) {
             $finalStmt->execute([$grmo_id, $estu_id]);
             $filaFinal = $finalStmt->fetch();
 
+            $pdo->commit();
+
             echo json_encode([
                 'status'          => 'ok',
                 'acn3_id'         => $acn3_id,
@@ -1018,6 +1091,9 @@ switch ($accion) {
                 'cali_definitiva' => $filaFinal['cali_definitiva'],
             ]);
         } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
         break;
