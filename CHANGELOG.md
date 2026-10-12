@@ -131,7 +131,7 @@ Los controladores armaban HTML concatenando textos de la base (nombres, códigos
 - `helpers.js` se carga antes del `_ctrl.js` de la vista y antes de `ayuda_sidebar.js`.
 
 ### Pruebas
-- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+- Los mensajes de commit no registran pruebas. Según Jose Luis (2026-10-12), este bloque se probó en navegador en local, dev y producción; en producción las acciones de escritura no se ejecutaron sobre datos reales.
 
 ### Pendiente
 - `renderTextoEscapado()` quedó duplicada en 5 controladores (más `renderTexto()` en el coordinador); candidata a `helpers.js` (deuda técnica en CLAUDE.md).
@@ -155,7 +155,7 @@ El select de "Reporte por grupo" (`06_reportes`) listaba todos los grupos módul
 - `estudiantes.estu_numerodoc` puede ser `NULL` en datos reales: todo listado nuevo debe tolerarlo.
 
 ### Pruebas
-- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+- Los mensajes de commit no registran pruebas. Según Jose Luis (2026-10-12), este bloque se probó en navegador en local, dev y producción; en producción las acciones de escritura no se ejecutaron sobre datos reales.
 
 ---
 
@@ -179,7 +179,7 @@ Con dos períodos cargados, la pestaña "Grupos Semestre" y el select de "Asigna
 - Al guardar un grupo nuevo, los filtros se ajustan para que quede visible.
 
 ### Pruebas
-- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+- Los mensajes de commit no registran pruebas. Según Jose Luis (2026-10-12), este bloque se probó en navegador en local, dev y producción; en producción las acciones de escritura no se ejecutaron sobre datos reales.
 
 ---
 
@@ -210,7 +210,7 @@ La tabla "Estado de notas" del dashboard (`07_coordinador`) mostraba todos los g
 - **B2 (llevar `renderFecha`/`fecha-emdb` a las demás tablas con fechas) queda apenas iniciada:** el único consumidor es la columna "Actualizado" de `#tbl_estado_notas`. Siguen con texto crudo o formato propio las fechas de `04_grupos` (`fechainicio`, `fechafin`, `prog_fechaaprobacion`, `prog_fechavencimiento`), `08_admin` (`fechacreacion`, `ultimo_acceso_fmt`), `02_estudiantes` (`fechacreacion`, `ultimo_acceso_fmt`, `fechanacimiento`) y `03_docentes` (`ultimo_acceso_fmt`, `doce_fechanacimiento`). Las columnas `ultimo_acceso_fmt` llegan ya formateadas desde PHP (`formatearUltimoAcceso()`): migrarlas exige que el backend entregue la fecha cruda.
 
 ### Pruebas
-- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+- Los mensajes de commit no registran pruebas. Según Jose Luis (2026-10-12), este bloque se probó en navegador en local, dev y producción; en producción las acciones de escritura no se ejecutaron sobre datos reales.
 
 ---
 
@@ -235,7 +235,7 @@ Primer bloque de trabajo después de la ventana de validación TRL5 (19 sep - 2 
 - `FAMILIAS_PROGRAMA` lista las siglas en el JS (`ASO`, `ASO2016`, `MD`, `AMD2016`): un programa nuevo queda sin color hasta agregar su sigla.
 
 ### Pruebas
-- Los mensajes de commit no registran pruebas. [COMPLETAR POR JOSE LUIS].
+- Los mensajes de commit no registran pruebas. Según Jose Luis (2026-10-12), este bloque se probó en navegador en local, dev y producción; en producción las acciones de escritura no se ejecutaron sobre datos reales.
 
 ---
 
