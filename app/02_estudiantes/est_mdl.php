@@ -138,13 +138,16 @@ switch ($accion) {
             // 'retirado' o 'graduado'. El contexto lo declara explícitamente el
             // frontend (est_ctrl.js) en vez de inferirse comparando peri_id_filtro
             // contra el período activo — frágil si el select quedara desalineado.
-            // Pestaña "Retirados" (Fase D): matrícula retirada en condición de
-            // 'Aplazamiento' que todavía no fue origen de una reincorporación
-            // (ninguna otra matrícula la referencia vía matr_origen_id). Una
-            // vez reincorporada sale de aquí, pero sigue en "Anteriores".
+            // Pestaña "Retirados": matrícula retirada, en condición de
+            // 'Aplazamiento' o de 'Retirado' (retiro definitivo), que todavía
+            // no fue origen de una reincorporación (ninguna otra matrícula la
+            // referencia vía matr_origen_id). Abarca todos los períodos: es
+            // el único listado donde sale una retirada del período activo
+            // ("Anteriores" nunca filtra por el período activo). Una vez
+            // reincorporada sale de aquí, pero sigue en "Anteriores".
             if ($contexto === 'retirados') {
                 $where = "WHERE e.estu_activo = 1 AND m.matr_estado = 'retirado'
-                            AND m.matr_estado_academico = 'Aplazamiento'
+                            AND m.matr_estado_academico IN ('Aplazamiento', 'Retirado')
                             AND NOT EXISTS (SELECT 1 FROM matriculas r WHERE r.matr_origen_id = m.matr_id)";
             } elseif ($contexto === 'anteriores') {
                 $where = "WHERE e.estu_activo = 1 AND m.matr_estado IN ('cursado', 'retirado', 'graduado')";
@@ -1573,7 +1576,7 @@ switch ($accion) {
             $pdo->beginTransaction();
 
             $stmtMatr = $pdo->prepare(
-                "SELECT m.matr_id, m.estu_id, m.prog_id, m.matr_estado, e.estu_activo
+                "SELECT m.matr_id, m.estu_id, m.prog_id, m.peri_id, m.matr_estado, e.estu_activo
                  FROM matriculas m
                  INNER JOIN estudiantes e ON e.estu_id = m.estu_id
                  WHERE m.matr_id = ?
@@ -1586,6 +1589,22 @@ switch ($accion) {
             }
             if ($matricula['matr_estado'] !== 'retirado') {
                 throw new Exception('Solo se puede anular el retiro de una matrícula en estado "retirado"');
+            }
+
+            // Período activo: misma consulta y mismos mensajes que 'reincorporar'.
+            // Una matrícula 'matriculado' de un período que no es el activo no
+            // saldría en Per. Actual ni en Per. Anteriores.
+            $stmtPeri = $pdo->prepare("SELECT peri_id, peri_codigo FROM periodos WHERE peri_activo = 1");
+            $stmtPeri->execute();
+            $periodosActivos = $stmtPeri->fetchAll();
+            if (count($periodosActivos) === 0) {
+                throw new Exception('No hay un período activo. Active un período antes de reincorporar');
+            }
+            if (count($periodosActivos) > 1) {
+                throw new Exception('Hay más de un período activo. Deje un solo período activo antes de reincorporar');
+            }
+            if ((int)$matricula['peri_id'] !== (int)$periodosActivos[0]['peri_id']) {
+                throw new Exception('Solo se puede anular el retiro de una matrícula del período activo');
             }
             if ((int)$matricula['estu_activo'] !== 1) {
                 throw new Exception('El estudiante está inactivo, no se puede anular el retiro');
