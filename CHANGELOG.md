@@ -101,7 +101,7 @@ El script de corrección de datos de una reincorporación, agregado en `ff1a4db`
 
 ### Pruebas
 - `50cea23` y `da9ceb1` probados por Jose Luis en local, dev y producción el 2026-10-12 (entrada de cierre de las actividades 109-112).
-- Los mensajes de los demás commits no registran pruebas. Entornos donde se ejecutaron `migracion_matr_origen_id.sql` y el script de corrección de datos, y pruebas en navegador de los tres modales: [COMPLETAR POR JOSE LUIS].
+- Los mensajes de los demás commits no registran pruebas. Entornos donde se ejecutaron `migracion_matr_origen_id.sql` y el script de corrección de datos, y pruebas en navegador de los tres modales: `migracion_matr_origen_id.sql` y el script de corrección de datos de la reincorporación se ejecutaron en local, dev y producción. Los modales de retirar/aplazar, reincorporar y anular retiro se probaron en navegador en los tres entornos; en producción las pruebas no retiraron ni matricularon estudiantes reales, con excepción de la reincorporación real ya registrada.
 
 ### Pendiente
 - Diez puntos registrados en CLAUDE.md, sección "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)".

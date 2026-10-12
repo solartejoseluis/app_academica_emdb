@@ -1133,7 +1133,7 @@ Commits `08faa8e`, `ff1a4db`, `e8961f7`, `6d6d851`, `e74a089`, `7ca433a`, `cd92f
 - **Despliegue:** `50cea23` y `da9ceb1` (solo `est_mdl.php`, sin cambios de BD) probados en local, dev y producción el 2026-10-12 — cierre de las actividades 109-112.
 - **Script de datos:** el script de corrección de datos de una reincorporación quedó anonimizado en `32338a4` (variables `@est_nombres`/`@est_apellidos`). El historial anterior a ese commit todavía contiene el nombre.
 
-**Pendientes abiertos:** los 10 puntos de la sección de deuda técnica del 2026-10-12 en CLAUDE.md, y los entornos donde se ejecutó la migración [COMPLETAR POR JOSE LUIS].
+**Pendientes abiertos:** los 10 puntos de la sección de deuda técnica del 2026-10-12 en CLAUDE.md. La migración de `matr_origen_id` y el script de datos de la reincorporación ya se ejecutaron en local, dev y producción.
 
 ---
 
