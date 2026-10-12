@@ -668,6 +668,110 @@ $(document).ready(function () {
         });
     });
 
+    // --- Retirar / Aplazar (Per. Actual) ---
+    $('#slct_retiro_tipo').on('change', function () {
+        $('#npt_retiro_tipo').val($(this).val());
+        actualizarEstadoRetiro();
+    });
+
+    $('#npt_retiro_fecha, #npt_retiro_motivo').on('input change', function () {
+        actualizarEstadoRetiro();
+    });
+
+    $('#btn_confirmar_retirar_matricula').click(function () {
+        // retiroEnviando cubre el doble clic: una sola petición en curso.
+        if (retiroEnviando || !retiroFila || !retiroFormularioValido()) return false;
+
+        retiroEnviando = true;
+        $('#btn_confirmar_retirar_matricula').prop('disabled', true);
+        $('#bloque_retiro_error').addClass('d-none').text('');
+
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=retirar_matricula',
+            data: {
+                matr_id: retiroFila.matr_id,
+                tipo: $('#npt_retiro_tipo').val(),
+                motivo: $('#npt_retiro_motivo').val().trim(),
+                fecha: $('#npt_retiro_fecha').val()
+            },
+            dataType: 'json',
+            success: function (response) {
+                if (response && response.status === 'ok') {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_retirar_matricula')).hide();
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload();
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload();
+                    if (tablaRetirados) tablaRetirados.ajax.reload();
+                    const modulos = parseInt(response.modulos_ocultos, 10) || 0;
+                    alert((response.message || 'Retiro registrado correctamente.')
+                        + (modulos > 0 ? '\n\nAsignaciones conservadas en el período: ' + modulos + '.' : ''));
+                } else {
+                    // Sin cerrar el modal ni recargar nada: el motivo del
+                    // rechazo se muestra dentro del propio modal.
+                    $('#bloque_retiro_error')
+                        .text((response && response.message) || 'No se pudo retirar la matrícula.')
+                        .removeClass('d-none');
+                }
+            },
+            error: function () {
+                $('#bloque_retiro_error')
+                    .text('No se pudo comunicar con el servidor. Verifique la conexión e intente de nuevo.')
+                    .removeClass('d-none');
+            },
+            complete: function () {
+                retiroEnviando = false;
+                actualizarEstadoRetiro();
+            }
+        });
+    });
+
+    // --- Anular retiro (Retirados y Per. Anteriores) ---
+    $('#npt_anular_motivo').on('input change', function () {
+        actualizarEstadoAnularRetiro();
+    });
+
+    $('#btn_confirmar_anular_retiro').click(function () {
+        // anularEnviando cubre el doble clic: una sola petición en curso.
+        const motivo = $('#npt_anular_motivo').val().trim();
+        if (anularEnviando || !anularFila || motivo === '' || motivo.length > 300) return false;
+
+        anularEnviando = true;
+        $('#btn_confirmar_anular_retiro').prop('disabled', true);
+        $('#bloque_anular_error').addClass('d-none').text('');
+
+        $.ajax({
+            type: 'POST',
+            url: 'est_mdl.php?accion=anular_retiro',
+            data: {
+                matr_id: anularFila.matr_id,
+                motivo: motivo
+            },
+            dataType: 'json',
+            success: function (response) {
+                if (response && response.status === 'ok') {
+                    bootstrap.Modal.getInstance(document.getElementById('mdl_anular_retiro')).hide();
+                    if (tablaMatriculadosActual) tablaMatriculadosActual.ajax.reload();
+                    if (tablaMatriculadosAnteriores) tablaMatriculadosAnteriores.ajax.reload();
+                    if (tablaRetirados) tablaRetirados.ajax.reload();
+                    alert(response.message || 'Retiro anulado correctamente.');
+                } else {
+                    $('#bloque_anular_error')
+                        .text((response && response.message) || 'No se pudo anular el retiro.')
+                        .removeClass('d-none');
+                }
+            },
+            error: function () {
+                $('#bloque_anular_error')
+                    .text('No se pudo comunicar con el servidor. Verifique la conexión e intente de nuevo.')
+                    .removeClass('d-none');
+            },
+            complete: function () {
+                anularEnviando = false;
+                actualizarEstadoAnularRetiro();
+            }
+        });
+    });
+
     $('#btn_confirmar_avanzar_semestre').click(function () {
         const matr_id         = $('#npt_avanzar_matr_id').val();
         const peri_id_destino = $('#slct_avanzar_peri_id_destino').val();
@@ -975,8 +1079,9 @@ $(document).ready(function () {
             columns: crearColumnasMatriculados(false)
         });
 
-        // Pestaña "Retirados": matrículas retiradas en 'Aplazamiento' que aún
-        // no tienen reincorporación, de todos los períodos (sin peri_id). Se
+        // Pestaña "Retirados": matrículas retiradas ('Aplazamiento' o retiro
+        // definitivo) que aún no tienen reincorporación, de todos los
+        // períodos (sin peri_id). El contador cuenta ambos tipos. Se
         // construye aquí, una sola vez, junto a las otras dos. El contador de
         // la pestaña se actualiza con cada respuesta — el listener se
         // registra antes de construir la tabla para captar también la
@@ -1558,11 +1663,13 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                 // exige matr_estado 'matriculado') y "Matricular en otro
                 // programa" (crearía una matrícula sin enlace a la de
                 // origen; la vía prevista es la acción Reincorporar).
-                // "↩️ Reincorporar" existe solo aquí. Como el resto de acciones
+                // "↩️ Reincorporar" existe solo aquí y solo para una retirada
+                // en 'Aplazamiento' (un retiro definitivo no se reincorpora;
+                // el servidor también lo rechaza). Como el resto de acciones
                 // del menú, recibe únicamente el matr_id y toma lo demás de la
                 // fila ya cargada (ver filaMatriculado()): por un onclick no
                 // pasa ningún texto de la base.
-                const itemReincorporar = esRetirados ? `<li>
+                const itemReincorporar = (esRetirados && row.matr_estado_academico === 'Aplazamiento') ? `<li>
                                     <button class="dropdown-item" type="button" onclick="abrirReincorporar(${row.matr_id})" title="Crear la matrícula de reincorporación en el período activo">↩️ Reincorporar</button>
                                 </li>` : '';
                 const itemGestionarClaves = esRetirados ? '' : `<li>
@@ -1571,6 +1678,28 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                 const itemHojaMatricula = esRetirados ? '' : `<li>
                                     <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
                                 </li>`;
+
+                // "🚫 Retirar / Aplazar": solo en Per. Actual y solo sobre una
+                // matrícula vigente. "↩️ Anular retiro": en Retirados y Per.
+                // Anteriores, solo sobre una matrícula retirada del período
+                // activo que todavía no fue origen de una reincorporación (el
+                // servidor rechaza las de otros períodos: quedarían
+                // 'matriculado' fuera de Per. Actual y de Per. Anteriores).
+                // El período activo se lee del campo que llena
+                // cargarPeriodos() para el modal Reincorporar (peri_codigo es
+                // único); vacío = sin período activo o aún sin cargar, y el
+                // ítem no aparece. Ambos van al final del menú, tras un
+                // separador, apartados de las acciones habituales.
+                const periodoActivoCodigo = ($('#txt_reinc_peri_destino').val() || '').trim();
+                const esDelPeriodoActivo = periodoActivoCodigo !== '' && row.peri_codigo === periodoActivoCodigo;
+                const itemRetirarMatricula = (contexto === 'actual' && row.matr_estado === 'matriculado') ? `<li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item text-danger" type="button" onclick="abrirRetirarMatricula(${row.matr_id})" title="Registrar un aplazamiento o un retiro definitivo">🚫 Retirar / Aplazar</button>
+                                </li>` : '';
+                const itemAnularRetiro = (contexto !== 'actual' && row.matr_estado === 'retirado' && row.tiene_reincorporacion != 1 && esDelPeriodoActivo) ? `<li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item" type="button" onclick="abrirAnularRetiro(${row.matr_id})" title="Devolver la matrícula a matriculado y Activo">↩️ Anular retiro</button>
+                                </li>` : '';
 
                 return `<div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
@@ -1597,6 +1726,8 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                                     <button class="dropdown-item" type="button" onclick="irAlReporte(${row.matr_id})" title="Ver el informe de calificaciones de este período">📊 Ir al Reporte</button>
                                 </li>
                                 ${esRetirados ? '' : itemMatricularOtroPrograma}
+                                ${itemRetirarMatricula}
+                                ${itemAnularRetiro}
                             </ul>
                         </div>`;
             }
@@ -2554,6 +2685,102 @@ function actualizarResumenReincorporar() {
 
     const completo = !!prog_id && !!coho_id && !!semestre;
     $('#btn_confirmar_reincorporar').prop('disabled', !(completo && hayPeriodo) || reincEnviando);
+}
+
+// ── Retirar / Aplazar (Per. Actual) ─────────────────────────────────────
+// Estado del modal #mdl_retirar_matricula. Global por el mismo motivo que
+// el de Reincorporar. retiroFila: fila de listar_matriculados de la
+// matrícula que se retira. retiroEnviando: hay una petición en curso.
+let retiroFila = null;
+let retiroEnviando = false;
+
+// Fecha de hoy 'Y-m-d' en la zona horaria del navegador (sin toISOString(),
+// que la daría en UTC y de noche en Bogotá ya sería el día siguiente).
+function fechaLocalHoy() {
+    const hoy = new Date();
+    return hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+}
+
+// Solo recibe el matr_id; el resto sale de la fila ya cargada. Todo el
+// texto que viene de BD se escribe con .text().
+function abrirRetirarMatricula(matr_id) {
+    const fila = filaMatriculado(matr_id);
+    if (!fila) return;
+    retiroFila = fila;
+    retiroEnviando = false;
+
+    $('#npt_retiro_matr_id').val(fila.matr_id);
+    $('#txt_retiro_nombre').text((fila.estu_nombres || '') + ' ' + (fila.estu_apellidos || ''));
+    $('#txt_retiro_prog').text(fila.prog_sigla || '—');
+    $('#txt_retiro_coho').text(fila.coho_codigo || '—');
+    $('#txt_retiro_peri').text(fila.peri_codigo || '—');
+    $('#txt_retiro_sem').text(fila.matr_semestre != null ? fila.matr_semestre : '—');
+
+    const hoy = fechaLocalHoy();
+    $('#slct_retiro_tipo, #npt_retiro_tipo, #npt_retiro_motivo').val('');
+    $('#npt_retiro_fecha').attr('max', hoy).val(hoy);
+    $('#bloque_retiro_error').addClass('d-none').text('');
+
+    actualizarEstadoRetiro();
+    new bootstrap.Modal(document.getElementById('mdl_retirar_matricula')).show();
+}
+
+// Tipo de la lista, fecha 'Y-m-d' no futura y motivo de 1 a 300 caracteres
+// (ya recortado). El servidor vuelve a validar todo.
+function retiroFormularioValido() {
+    const tipo   = $('#npt_retiro_tipo').val();
+    const fecha  = $('#npt_retiro_fecha').val();
+    const motivo = $('#npt_retiro_motivo').val().trim();
+    return (tipo === 'Aplazamiento' || tipo === 'Retirado')
+        && /^\d{4}-\d{2}-\d{2}$/.test(fecha) && fecha <= fechaLocalHoy()
+        && motivo !== '' && motivo.length <= 300;
+}
+
+// Contador del motivo, aviso según el tipo y estado del botón de confirmar.
+function actualizarEstadoRetiro() {
+    const tipo = $('#npt_retiro_tipo').val();
+    $('#txt_retiro_motivo_contador').text($('#npt_retiro_motivo').val().length);
+
+    let avisoTipo = '';
+    if (tipo === 'Aplazamiento') {
+        avisoTipo = 'Podrá reincorporarse desde la pestaña Retirados.';
+    } else if (tipo === 'Retirado') {
+        avisoTipo = 'El retiro definitivo no ofrece Reincorporar; solo se puede revertir con Anular retiro.';
+    }
+    $('#txt_retiro_aviso_tipo').text(avisoTipo);
+
+    $('#btn_confirmar_retirar_matricula').prop('disabled', !retiroFormularioValido() || retiroEnviando);
+}
+
+// ── Anular retiro (Retirados y Per. Anteriores) ─────────────────────────
+// Estado del modal #mdl_anular_retiro, mismo esquema que el de Retirar.
+let anularFila = null;
+let anularEnviando = false;
+
+function abrirAnularRetiro(matr_id) {
+    const fila = filaMatriculado(matr_id);
+    if (!fila) return;
+    anularFila = fila;
+    anularEnviando = false;
+
+    $('#npt_anular_matr_id').val(fila.matr_id);
+    $('#txt_anular_nombre').text((fila.estu_nombres || '') + ' ' + (fila.estu_apellidos || ''));
+    $('#txt_anular_prog').text(fila.prog_sigla || '—');
+    $('#txt_anular_peri').text(fila.peri_codigo || '—');
+    $('#txt_anular_estado').text((fila.matr_estado || '—') + ' · ' + (fila.matr_estado_academico || '—'));
+
+    $('#npt_anular_motivo').val('');
+    $('#bloque_anular_error').addClass('d-none').text('');
+
+    actualizarEstadoAnularRetiro();
+    new bootstrap.Modal(document.getElementById('mdl_anular_retiro')).show();
+}
+
+function actualizarEstadoAnularRetiro() {
+    const valor  = $('#npt_anular_motivo').val();
+    const motivo = valor.trim();
+    $('#txt_anular_motivo_contador').text(valor.length);
+    $('#btn_confirmar_anular_retiro').prop('disabled', motivo === '' || motivo.length > 300 || anularEnviando);
 }
 
 // Reset a estado inicial + apertura inmediata (mismo criterio que

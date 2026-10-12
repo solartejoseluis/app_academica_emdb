@@ -1063,6 +1063,91 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </div>
 
+<!-- Modal Retirar / Aplazar (Per. Actual): pasa una matrícula 'matriculado' a 'retirado' (Aplazamiento o retiro definitivo) -->
+<div class="modal fade" id="mdl_retirar_matricula" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Retirar / Aplazar Matrícula</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="npt_retiro_matr_id" value="">
+                <p class="mb-1"><strong>Estudiante:</strong> <span id="txt_retiro_nombre"></span></p>
+                <p class="mb-3"><strong>Matrícula:</strong>
+                    <span id="txt_retiro_prog"></span> ·
+                    cohorte <span id="txt_retiro_coho"></span> ·
+                    período <span id="txt_retiro_peri"></span> ·
+                    semestre <span id="txt_retiro_sem"></span>
+                </p>
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                        <select class="form-select" id="slct_retiro_tipo">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="Aplazamiento">Aplazamiento (podrá reincorporarse)</option>
+                            <option value="Retirado">Retiro definitivo</option>
+                        </select>
+                        <input type="hidden" id="npt_retiro_tipo" value="">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Fecha efectiva <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="npt_retiro_fecha">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Motivo <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="npt_retiro_motivo" rows="3" maxlength="300"></textarea>
+                        <div class="form-text text-end"><span id="txt_retiro_motivo_contador">0</span> / 300</div>
+                    </div>
+                </div>
+                <div class="alert alert-warning mt-3 mb-0" id="bloque_retiro_aviso">
+                    La matrícula pasará a estado retirado. Las asignaciones a grupos, las calificaciones y las notas del período se conservan como historial.
+                    <span id="txt_retiro_aviso_tipo"></span>
+                </div>
+                <div class="alert alert-danger mt-3 mb-0 d-none" id="bloque_retiro_error"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btn_confirmar_retirar_matricula" disabled>Retirar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Anular retiro (Retirados y Per. Anteriores): devuelve una matrícula 'retirado' sin reincorporación a 'matriculado' + 'Activo' -->
+<div class="modal fade" id="mdl_anular_retiro" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Anular Retiro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="npt_anular_matr_id" value="">
+                <p class="mb-1"><strong>Estudiante:</strong> <span id="txt_anular_nombre"></span></p>
+                <p class="mb-1"><strong>Matrícula:</strong>
+                    <span id="txt_anular_prog"></span> ·
+                    período <span id="txt_anular_peri"></span>
+                </p>
+                <p class="mb-3"><strong>Estado actual:</strong> <span id="txt_anular_estado"></span></p>
+                <div>
+                    <label class="form-label">Motivo <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="npt_anular_motivo" rows="3" maxlength="300"></textarea>
+                    <div class="form-text text-end"><span id="txt_anular_motivo_contador">0</span> / 300</div>
+                </div>
+                <div class="alert alert-warning mt-3 mb-0">
+                    La matrícula volverá a estado matriculado y Activo.
+                </div>
+                <div class="alert alert-danger mt-3 mb-0 d-none" id="bloque_anular_error"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn_confirmar_anular_retiro" disabled>Anular retiro</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Agregar/Editar Requisito del Catálogo (Configurar Requisitos) -->
 <div class="modal fade" id="mdl_requisito_programa" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
