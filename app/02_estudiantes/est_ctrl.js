@@ -1755,14 +1755,6 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
     return columnas;
 }
 
-// render de DataTables para columnas de texto de la base: escapado al
-// mostrar, crudo para ordenar/filtrar. null/undefined pasan tal cual para
-// que DataTables aplique defaultContent o deje la celda vacía, como antes.
-function renderTextoEscapado(data, type) {
-    if (type !== 'display' || data === null || data === undefined) return data;
-    return escaparHtml(data);
-}
-
 // Fila de listar_matriculados de una matrícula, buscada en las tres tablas
 // ya cargadas (Per. Actual, Per. Anteriores, Retirados). Los onclick del
 // menú de Acciones y del botón de módulos pasan solo el matr_id; el nombre

@@ -15,6 +15,15 @@ function escaparHtml(valor) {
         .replace(/'/g, '&#39;');
 }
 
+// render de DataTables para columnas de texto de la base: escapa solo al
+// mostrar (type 'display') y devuelve el dato crudo para ordenar y filtrar.
+// null/undefined pasan tal cual, como en una columna sin render. Única
+// definición del proyecto: no declarar otra en un _ctrl.js.
+function renderTextoEscapado(data, type) {
+    if (type !== 'display' || data === null || data === undefined) return data;
+    return escaparHtml(data);
+}
+
 // Texto de presentación de gruposemestres.grse_jornada. El valor guardado
 // ('Sabados', sin tilde) no cambia: es el que usan los selects y la fórmula
 // de grse_codigo. Mismo criterio que etiquetaJornada() en helpers.php.

@@ -10,11 +10,6 @@ const ESTADOS_NOTAS = {
     sin_estudiantes: { texto: 'Sin estudiantes', clase: 'bg-secondary' }
 };
 
-// Columna de texto de la base: escapada al mostrar, cruda para ordenar/filtrar.
-function renderTexto(data, type) {
-    return type === 'display' ? escaparHtml(data) : data;
-}
-
 // Filtros Período/Programa/Docente: se aplican en el cliente y solo a
 // #tbl_estado_notas. Se registra una sola vez, al cargar este archivo; lee los
 // selects en cada draw(), así que la tabla nace ya filtrada.
@@ -80,14 +75,14 @@ function cargarDashboard() {
                 // Más reciente arriba; sin fecha al final (tipo fecha-emdb).
                 order: [[7, 'desc'], [0, 'asc']],
                 columns: [
-                    { data: 'grse_codigo', render: renderTexto },
+                    { data: 'grse_codigo', render: renderTextoEscapado },
                     {
                         data: null,
                         render: function (data, type, row) {
-                            return renderTexto(row.modu_sigla + ' — ' + row.modu_nombre, type);
+                            return renderTextoEscapado(row.modu_sigla + ' — ' + row.modu_nombre, type);
                         }
                     },
-                    { data: 'docente', render: renderTexto },
+                    { data: 'docente', render: renderTextoEscapado },
                     { data: 'total_estudiantes', className: 'text-center' },
                     { data: 'con_notas', className: 'text-center' },
                     { data: 'con_definitiva', className: 'text-center' },

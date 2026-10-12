@@ -3,14 +3,6 @@
 // que se invocan vía onclick inline desde el HTML renderizado por DataTables.
 let ayudaIdPendienteEliminar = null;
 
-// render de DataTables para columnas de texto de la base: escapado al
-// mostrar (escaparHtml() vive en 00_files/helpers.js), crudo para ordenar y
-// filtrar. null/undefined pasan tal cual, como en una columna sin render.
-function renderTextoEscapado(data, type) {
-    if (type !== 'display' || data === null || data === undefined) return data;
-    return escaparHtml(data);
-}
-
 $(document).ready(function () {
 
     let tablaAyudas;

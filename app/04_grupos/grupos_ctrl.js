@@ -10,14 +10,6 @@ let cacheProgramas = {};
 let programaIdPendienteEliminar = null;
 let periodoIdPendienteEliminar = null;
 
-// render de DataTables para columnas de texto de la base: escapado al
-// mostrar (escaparHtml() vive en 00_files/helpers.js), crudo para ordenar y
-// filtrar. null/undefined pasan tal cual, como en una columna sin render.
-function renderTextoEscapado(data, type) {
-    if (type !== 'display' || data === null || data === undefined) return data;
-    return escaparHtml(data);
-}
-
 // Fila ya cargada de una de las tablas, buscada por su id. Los onclick de las
 // tablas pasan solo ids numéricos; el texto que necesita cada acción (código
 // del grupo, de la cohorte, del período) sale de aquí, nunca del HTML del
