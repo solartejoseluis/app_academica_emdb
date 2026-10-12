@@ -647,18 +647,35 @@ switch ($accion) {
             $pdo->beginTransaction();
 
             if ($existingMatr) {
+                // matr_observacion guarda el historial de la matrícula (notas
+                // de Aplazamiento, Retiro definitivo, Retiro anulado,
+                // Reincorporación): al reactivar nunca se reemplaza. Una
+                // observación nueva se añade al final con ' | ' (mismo patrón
+                // que retirar_matricula/anular_retiro); si llega vacía, la
+                // columna ni siquiera entra al UPDATE.
+                $setObservacion    = '';
+                $paramsObservacion = [];
+                if ($matr_observacion !== null) {
+                    $setObservacion = ",
+                         matr_observacion = CASE
+                            WHEN matr_observacion IS NULL OR matr_observacion = '' THEN ?
+                            ELSE CONCAT(matr_observacion, ' | ', ?)
+                         END";
+                    $paramsObservacion = [$matr_observacion, $matr_observacion];
+                }
+
                 $stmtM = $pdo->prepare(
                     "UPDATE matriculas
                      SET matr_estado = 'matriculado', matr_estado_academico = 'Activo',
                          coho_id = ?, matr_semestre = ?, matr_folio = ?,
-                         fechamatricula = ?, matr_observacion = ?
+                         fechamatricula = ?" . $setObservacion . "
                      WHERE matr_id = ?"
                 );
-                $stmtM->execute([
-                    $coho_id, $matr_semestre,
-                    $matr_folio, $fechamatricula, $matr_observacion,
-                    $existingMatr['matr_id']
-                ]);
+                $stmtM->execute(array_merge(
+                    [$coho_id, $matr_semestre, $matr_folio, $fechamatricula],
+                    $paramsObservacion,
+                    [$existingMatr['matr_id']]
+                ));
             } else {
                 $stmtM = $pdo->prepare(
                     "INSERT INTO matriculas
