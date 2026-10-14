@@ -4,6 +4,40 @@
 
 ---
 
+## fix(estudiantes): conserva los datos del acudiente Otro al abrir un registro y al precargar la actualizacion de datos (commit `bd7f9ec`) — 2026-10-14
+
+### Contexto
+`abrirEditar()` llamaba a `manejarCambioAcudiente()` al cargar la ficha. Con `acud_es = 'otro'` esa función vaciaba el parentesco y los 8 campos del acudiente (nombres, apellidos, profesión, empresa, teléfono, dirección, barrio, ciudad), y el guardado quedaba bloqueado con "Por favor complete todos los campos antes de guardar". `actualizarSelectAcudiente()` también vaciaba los campos cuando el valor previo del select (de un registro abierto antes) ya no era una opción válida. El mismo defecto existía en la precarga de `actualizar_ctrl.js` y, en modo revisión, ocultaba los valores propuestos del acudiente; en ese modo el daño era solo visual, porque `aprobar_actualizacion` lee la solicitud de la base. Hallazgo confirmado en las pruebas de `13b51e3`.
+
+### Cambio
+- `app/02_estudiantes/est_ctrl.js` y `app/11_actualizacion_datos/actualizar_ctrl.js`, con el mismo cambio en las dos funciones:
+  - `actualizarSelectAcudiente(esCargaInicial)`: con `esCargaInicial === true`, si el valor previo ya no es una opción válida, solo pone el select en `''`, sin vaciar los campos.
+  - `manejarCambioAcudiente(esCargaInicial)`: la rama padre/madre no cambia. En la rama otro/vacío, con `esCargaInicial === true`, muestra el bloque de parentesco y quita el solo lectura del parentesco y de los 8 campos sin tocar sus valores. La llamada final a `marcarValidacion()` sobre el parentesco se mantiene.
+- Pasan `true`: `abrirEditar()` y `poblarModalRevision()` (`est_ctrl.js`) y la precarga de valores vigentes (`actualizar_ctrl.js`).
+- Las demás llamadas no cambian: checkboxes "¿Vive?", cambio manual del select y `limpiarFormularioFicha()`.
+- `insc_ctrl.js` no se tocó porque no precarga datos guardados.
+- Sin cambios de PHP ni de base de datos.
+
+### Decisión
+- La comparación es estricta (`=== true`) porque jQuery pasa el objeto evento como primer argumento al handler de `change`, y ese objeto cuenta como verdadero. El binding `.on('change', manejarCambioAcudiente)` queda igual.
+- El cambio manual del select se comporta igual que antes: a "Otro" vacía los campos; a "Padre" o "Madre" los copia.
+- Con acudiente padre o madre, los campos del acudiente siguen reemplazándose por los del padre o la madre al abrir.
+
+### Pruebas
+- Playwright headless sobre registros ficticios, 6 pruebas, todas correctas:
+  - a) Abrir un registro con acudiente "Otro": el parentesco y los 8 campos conservan sus valores; al guardar cambiando otro campo, el acudiente queda igual en la base.
+  - b) Cambio manual del select: a "Padre" copia y bloquea; de vuelta a "Otro" vacía y habilita.
+  - c) Registro con acudiente "padre": copia los datos del padre y los bloquea, igual que antes.
+  - d) Modo revisión: el acudiente muestra los valores propuestos, resaltados.
+  - e) Formulario público con token: la precarga conserva el parentesco y los 8 campos.
+  - f) Sin errores de consola propios (solo el CORS de `es-ES.json`, ya registrado).
+- `CHECKSUM TABLE` de las 24 tablas idéntico antes y después; `matriculas` = 122.
+- Pasada manual en local: correcta.
+- Desplegado a dev y a producción el 2026-10-14 (2 archivos, sin cambios de BD), con verificación de apertura del modal sin guardar.
+- Nota: el paréntesis de cierre de más en el conteo de caracteres de `est_ctrl.js` y `actualizar_ctrl.js` viene de antes del cambio.
+
+---
+
 ## feat(estudiantes): valida en el servidor estu_tipodoc y estu_telefono, agrega tipos PPT y RC (commit `13b51e3`) — 2026-10-14
 
 ### Contexto

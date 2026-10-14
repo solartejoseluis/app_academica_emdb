@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-10-14
-> Versión: 134 — Validación en el servidor de `estu_tipodoc` y `estu_telefono` (tipos PPT y RC; en edición se valida solo si el valor cambió); último commit `13b51e3`
+> Versión: 135 — Corrección del acudiente "Otro" al abrir un registro y al precargar la actualización de datos; último commit `bd7f9ec`
+> Versión anterior: 134 — Validación en el servidor de `estu_tipodoc` y `estu_telefono` (tipos PPT y RC; en edición se valida solo si el valor cambió); último commit `13b51e3`
 > Versión anterior: 133 — Etapa posterior a TRL5 (2026-10-03 a 2026-10-12): filtros por período/programa/docente, fechas en listados (B2 iniciada), escapado de HTML en toda la interfaz, y Retirar/Aplazar/Anular retiro/Reincorporar matrículas (`matr_origen_id`); último commit `32338a4`
 
 ---
@@ -27,7 +28,8 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | Fase F — módulo `12_configuracion` | Pendiente, sin iniciar | Análisis sin modificar código | CLAUDE.md, Phase 2.19 |
 | El nombre real de una estudiante sigue en el historial de git anterior a `32338a4` (commit `ff1a4db`: contenido, nombre de archivo y mensaje), ya publicado | Quitarlo exige reescribir el historial y forzar el push; GitHub puede conservar el commit antiguo en caché | Decisión de Jose Luis; si se hace, coordinar el re-clonado en cada equipo | CLAUDE.md, deuda técnica (2026-10-12) |
 | Deuda de Retirar/Aplazar/Reincorporar y pendientes del archivo de contexto (login sin `usua_activo`, seed de `docentes` roto, validaciones de `estu_tipodoc`/`estu_telefono` — **RESUELTO 2026-10-14, `13b51e3`** —, bugs del modal de estudiante, ids 111-114 con documentos pendientes) | Ninguno bloquea la operación diaria | Priorizar con Jose Luis | CLAUDE.md, "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)" |
-| Acudiente "Otro" se vacía al abrir "Datos Estudiante" (confirmado 2026-10-14) | `abrirEditar()` llama a `manejarCambioAcudiente()`, que vacía los 8 campos del acudiente y bloquea el guardado con "Por favor complete todos los campos antes de guardar". Afecta a todo estudiante con acudiente "Otro" | Análisis sin modificar código: no limpiar los campos cuando la función se llama al cargar un registro | CLAUDE.md, deuda técnica ("Acudiente "Otro" y `setSelectionRange`...") |
+| ~~Acudiente "Otro" se vacía al abrir "Datos Estudiante" (confirmado 2026-10-14)~~ **RESUELTO 2026-10-14, `bd7f9ec`** (al cargar un registro ya no se vacían los campos; ver CHANGELOG.md) | `abrirEditar()` llama a `manejarCambioAcudiente()`, que vacía los 8 campos del acudiente y bloquea el guardado con "Por favor complete todos los campos antes de guardar". Afecta a todo estudiante con acudiente "Otro" | Análisis sin modificar código: no limpiar los campos cuando la función se llama al cargar un registro | CLAUDE.md, deuda técnica ("Acudiente "Otro" y `setSelectionRange`...") |
+| `setSelectionRange` en el modal de estudiante (`est_ctrl.js`) | Reportado junto con el caso del acudiente "Otro"; sigue sin diagnóstico | Análisis sin modificar código: dónde se usa y en qué campo falla | CLAUDE.md, deuda técnica (fila "Acudiente "Otro"... y `setSelectionRange`...") |
 | Error de CORS al cargar `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json` desde una página `http` | Las tablas cargan con los textos de DataTables en inglés (una petición fallida por tabla); no bloquea la operación | Decidir entre servir el archivo localmente o usar `https://` explícito | CLAUDE.md, deuda técnica (2026-10-12, fila "Error de CORS...") |
 | Corregir los 54 registros de producción con `XXX` en tipo de documento y teléfono | La validación de `13b51e3` los tolera mientras no cambien; los corrige el coordinador desde "Datos Estudiante", sin script | Acordar con la coordinadora la corrección de los datos reales | CLAUDE.md, deuda técnica (fila "54 registros de producción con `XXX`...") |
 
@@ -647,6 +649,8 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `684c535` | refactor(frontend): unifica renderTextoEscapado en helpers.js y elimina las copias de seis controladores | 2026-10-12 |
 | `75fb726` | docs: registra la unificacion de renderTextoEscapado (684c535) y marca la deuda tecnica como resuelta | 2026-10-12 |
 | `13b51e3` | feat(estudiantes): valida en el servidor estu_tipodoc y estu_telefono, agrega tipos PPT y RC | 2026-10-14 |
+| `5c7796c` | docs: registra la validacion de estu_tipodoc y estu_telefono (13b51e3), nuevos hallazgos y commits pendientes de listar | 2026-10-14 |
+| `bd7f9ec` | fix(estudiantes): conserva los datos del acudiente Otro al abrir un registro y al precargar la actualizacion de datos | 2026-10-14 |
 
 ---
 
