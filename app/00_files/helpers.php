@@ -100,3 +100,22 @@ function sqlTipoRetiroPeriodoActivo(string $ge = 'ge'): string {
                 WHERE rt_gm.grmo_id = {$ge}.grmo_id
                 LIMIT 1)";
 }
+
+// Tipos de documento aceptados en estudiantes.estu_tipodoc. Única lista del
+// servidor: los selects de est_view.php e insc_view.php ofrecen estos mismos
+// valores; un tipo nuevo se agrega aquí y en los dos selects.
+const TIPOS_DOCUMENTO_VALIDOS = ['CC', 'TI', 'CE', 'PA', 'NIT', 'PPT', 'RC'];
+
+// Devuelve el tipo de documento si está en la lista (mayúsculas exactas) o
+// null si no lo está.
+function validarTipoDocumento(string $v): ?string {
+    $v = trim($v);
+    return in_array($v, TIPOS_DOCUMENTO_VALIDOS, true) ? $v : null;
+}
+
+// Quita espacios, guiones, puntos y paréntesis y devuelve el teléfono limpio
+// si quedan solo dígitos, entre 7 y 15 (tamaño de estu_telefono); null si no.
+function normalizarTelefono(string $v): ?string {
+    $limpio = preg_replace('/[\s.\-()]/u', '', $v);
+    return preg_match('/^[0-9]{7,15}$/', $limpio) ? $limpio : null;
+}

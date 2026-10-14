@@ -343,6 +343,8 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                             <option value="CE">CE</option>
                             <option value="PA">PA</option>
                             <option value="NIT">NIT</option>
+                            <option value="PPT">PPT</option>
+                            <option value="RC">RC</option>
                         </select>
                     </div>
                     <div class="col-md-4 mb-3">
@@ -384,7 +386,7 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Teléfono</label>
-                        <input type="text" class="form-control" id="npt_estu_telefono" autocomplete="off">
+                        <input type="text" class="form-control" id="npt_estu_telefono" maxlength="15" inputmode="tel" autocomplete="off">
                     </div>
                 </div>
                 <div class="row">

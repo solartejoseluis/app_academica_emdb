@@ -3,6 +3,7 @@
 // 09_inscripcion_publica/insc_mdl.php: accesible por cualquiera con el
 // token en la URL, sin cuenta ni sesión.
 require '../00_connect/pdo.php';
+require_once '../00_files/helpers.php';
 
 // Reutilizada por 'validar_token' y 'guardar_actualizacion' — local a este
 // archivo porque ningún otro módulo la necesita (mismo criterio que
@@ -131,6 +132,13 @@ switch ($_GET['accion'] ?? '') {
 
         if (!filter_var($estu_email, FILTER_VALIDATE_EMAIL)) {
             echo json_encode(['status' => 'error', 'message' => 'Correo electrónico inválido']);
+            break;
+        }
+
+        // Teléfono: validación estricta; se guarda ya limpio.
+        $estu_telefono = normalizarTelefono($estu_telefono);
+        if ($estu_telefono === null) {
+            echo json_encode(['status' => 'error', 'message' => 'El teléfono debe tener entre 7 y 15 dígitos, solo números.']);
             break;
         }
 

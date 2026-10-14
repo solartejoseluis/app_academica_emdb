@@ -97,7 +97,7 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Teléfono</label>
-                        <input type="text" class="form-control" id="npt_estu_telefono" autocomplete="off">
+                        <input type="text" class="form-control" id="npt_estu_telefono" maxlength="15" inputmode="tel" autocomplete="off">
                     </div>
                 </div>
                 <div class="row">

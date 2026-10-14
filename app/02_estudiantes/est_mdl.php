@@ -1927,6 +1927,18 @@ switch ($accion) {
                 break;
             }
 
+            // Teléfono propuesto: validación estricta antes de cualquier
+            // UPDATE; se aplica el valor ya limpio.
+            if ($solicitud['soac_estu_telefono'] !== null) {
+                $telefonoPropuesto = normalizarTelefono((string)$solicitud['soac_estu_telefono']);
+                if ($telefonoPropuesto === null) {
+                    $pdo->rollBack();
+                    echo json_encode(['status' => 'error', 'message' => 'El teléfono debe tener entre 7 y 15 dígitos, solo números.']);
+                    break;
+                }
+                $solicitud['soac_estu_telefono'] = $telefonoPropuesto;
+            }
+
             $stmtFicha = $pdo->prepare("SELECT * FROM fichas_inscripcion WHERE estu_id = ?");
             $stmtFicha->execute([$estu_id_int]);
             $fichaActual = $stmtFicha->fetch();
@@ -2380,6 +2392,18 @@ switch ($accion) {
 
             if ($estu_id === '') {
                 // ---- Crear aspirante nuevo ----
+                // Validación estricta de tipo de documento y teléfono; el
+                // teléfono se guarda ya limpio (sin espacios ni separadores).
+                if (validarTipoDocumento($estu_tipodoc) === null) {
+                    echo json_encode(['status' => 'error', 'message' => 'Seleccione un tipo de documento válido (CC, TI, CE, PA, NIT, PPT o RC).']);
+                    break;
+                }
+                $estu_telefono = normalizarTelefono($estu_telefono);
+                if ($estu_telefono === null) {
+                    echo json_encode(['status' => 'error', 'message' => 'El teléfono debe tener entre 7 y 15 dígitos, solo números.']);
+                    break;
+                }
+
                 $check = $pdo->prepare("SELECT estu_id FROM estudiantes WHERE estu_numerodoc = ?");
                 $check->execute([$estu_numerodoc]);
                 if ($check->fetch()) {
@@ -2442,11 +2466,32 @@ switch ($accion) {
                 // estu_email también se lee aquí (antes de este UPDATE) para
                 // poder comparar el valor VIGENTE contra el nuevo más abajo,
                 // sin depender de lo que ya se sobrescribió.
-                $stmtUsuaPropio = $pdo->prepare("SELECT usua_id, estu_email FROM estudiantes WHERE estu_id = ?");
+                // estu_tipodoc/estu_telefono se leen para la regla de edición:
+                // si el valor enviado es igual al guardado se conserva sin
+                // validar (registros antiguos con valores fuera de la regla
+                // siguen pudiendo guardarse); si cambia, validación estricta.
+                $stmtUsuaPropio = $pdo->prepare("SELECT usua_id, estu_email, estu_tipodoc, estu_telefono FROM estudiantes WHERE estu_id = ?");
                 $stmtUsuaPropio->execute([$estu_id_int]);
                 $rowPropio = $stmtUsuaPropio->fetch();
+                if (!$rowPropio) {
+                    echo json_encode(['status' => 'error', 'message' => 'Estudiante no encontrado']);
+                    break;
+                }
                 $usua_id_propio = $rowPropio['usua_id'];
                 $estu_email_anterior = $rowPropio['estu_email'];
+
+                if ($estu_tipodoc !== trim((string)$rowPropio['estu_tipodoc'])
+                    && validarTipoDocumento($estu_tipodoc) === null) {
+                    echo json_encode(['status' => 'error', 'message' => 'Seleccione un tipo de documento válido (CC, TI, CE, PA, NIT, PPT o RC).']);
+                    break;
+                }
+                if ($estu_telefono !== trim((string)$rowPropio['estu_telefono'])) {
+                    $estu_telefono = normalizarTelefono($estu_telefono);
+                    if ($estu_telefono === null) {
+                        echo json_encode(['status' => 'error', 'message' => 'El teléfono debe tener entre 7 y 15 dígitos, solo números.']);
+                        break;
+                    }
+                }
 
                 if ($usua_id_propio) {
                     $checkEmailUsua = $pdo->prepare("SELECT usua_id FROM usuarios WHERE usua_email = ? AND usua_id != ?");

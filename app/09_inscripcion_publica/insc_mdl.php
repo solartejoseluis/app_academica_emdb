@@ -1,6 +1,7 @@
 <?php
 require '../00_connect/pdo.php';
 require '../00_connect/recaptcha_config.php';
+require_once '../00_files/helpers.php';
 
 function verificarRecaptcha(string $token, string $remoteip): array {
     if ($token === '') {
@@ -77,6 +78,18 @@ switch ($_GET['accion'] ?? '') {
 
         if (!filter_var($estu_email, FILTER_VALIDATE_EMAIL)) {
             echo json_encode(['status' => 'error', 'message' => 'Correo electrónico inválido']);
+            break;
+        }
+
+        if (validarTipoDocumento($estu_tipodoc) === null) {
+            echo json_encode(['status' => 'error', 'message' => 'Seleccione un tipo de documento válido (CC, TI, CE, PA, NIT, PPT o RC).']);
+            break;
+        }
+
+        // Teléfono: validación estricta; se guarda ya limpio.
+        $estu_telefono = normalizarTelefono($estu_telefono);
+        if ($estu_telefono === null) {
+            echo json_encode(['status' => 'error', 'message' => 'El teléfono debe tener entre 7 y 15 dígitos, solo números.']);
             break;
         }
 

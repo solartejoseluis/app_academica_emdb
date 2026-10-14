@@ -19,6 +19,48 @@ function marcarValidacion($campo) {
     $campo.addClass(valor === '' ? 'is-invalid' : 'is-valid');
 }
 
+// Teléfono del estudiante: vacío es inválido; el valor guardado sin cambios
+// se acepta tal cual (el servidor lo conserva por ser igual al guardado);
+// un valor nuevo debe tener 7 a 15 dígitos tras quitar espacios, guiones,
+// puntos y paréntesis — misma regla que normalizarTelefono() en helpers.php.
+function validarTelefonoEstudiante($campo) {
+    const valor = ($campo.val() || '').trim();
+    const original = $campo.data('original');
+    let valido;
+    if (valor === '') {
+        valido = false;
+    } else if (original !== undefined && valor === String(original)) {
+        valido = true;
+    } else {
+        valido = /^[0-9]{7,15}$/.test(valor.replace(/[\s.\-()]/g, ''));
+    }
+    $campo.removeClass('is-invalid is-valid').addClass(valido ? 'is-valid' : 'is-invalid');
+}
+
+// Carga tipo de documento y teléfono de un estudiante existente y guarda
+// los valores originales en data-original. Si el tipo guardado no está
+// entre las opciones del select (ej. un texto de relleno de registros
+// antiguos), se agrega una opción temporal con ese valor para que el
+// estudiante pueda guardarse sin tocar el campo; el servidor lo acepta por
+// ser igual al guardado. Cualquier valor nuevo sale de la lista del select.
+function cargarTipoDocTelefonoOriginal(tipodoc, telefono) {
+    const $tipo = $('#slct_estu_tipodoc');
+    $tipo.find('option.opcion-tipodoc-guardada').remove();
+    const valorTipo = (tipodoc || '').toString();
+    if (valorTipo !== '' && $tipo.find('option').filter(function () { return this.value === valorTipo; }).length === 0) {
+        $tipo.append($('<option>').addClass('opcion-tipodoc-guardada').val(valorTipo).text(valorTipo + ' (valor guardado)'));
+    }
+    $tipo.val(valorTipo);
+    $('#npt_estu_telefono').val(telefono || '').data('original', (telefono || '').toString().trim());
+}
+
+// Reverso de cargarTipoDocTelefonoOriginal(): sin opción temporal ni
+// valor original (modo creación).
+function limpiarTipoDocTelefonoOriginal() {
+    $('#slct_estu_tipodoc').find('option.opcion-tipodoc-guardada').remove();
+    $('#npt_estu_telefono').removeData('original');
+}
+
 function validarFormatoEmail($campo) {
     const valor = ($campo.val() || '').trim();
     $campo.removeClass('is-invalid is-valid');
@@ -146,6 +188,8 @@ $(document).ready(function () {
         $(selector).on('input change blur', function () {
             if (selector === '#npt_estu_email') {
                 validarFormatoEmail($(this));
+            } else if (selector === '#npt_estu_telefono') {
+                validarTelefonoEstudiante($(this));
             } else {
                 marcarValidacion($(this));
             }
@@ -199,6 +243,8 @@ $(document).ready(function () {
             let $campo = $(selector);
             if (selector === '#npt_estu_email') {
                 validarFormatoEmail($campo);
+            } else if (selector === '#npt_estu_telefono') {
+                validarTelefonoEstudiante($campo);
             } else {
                 marcarValidacion($campo);
             }
@@ -212,7 +258,11 @@ $(document).ready(function () {
 
         if (primerCampoVacio !== null) {
             primerCampoVacio.focus();
-            alert('Por favor complete todos los campos antes de guardar.');
+            if (primerCampoVacio.is('#npt_estu_telefono') && primerCampoVacio.val().trim() !== '') {
+                alert('El teléfono debe tener entre 7 y 15 dígitos, solo números.');
+            } else {
+                alert('Por favor complete todos los campos antes de guardar.');
+            }
             return;
         }
 
@@ -1369,6 +1419,7 @@ $(document).ready(function () {
         $('#npt_clave_manual_estudiante').val('');
         $('#bloque_clave_manual_estudiante').addClass('d-none');
         $('#bloque_cambiar_clave_estudiante').addClass('d-none');
+        limpiarTipoDocTelefonoOriginal();
         $('#slct_estu_tipodoc').val('');
         $('#npt_estu_numerodoc').val('');
         $('#npt_estu_nombres').val('');
@@ -2091,7 +2142,7 @@ function abrirRevisionActualizacion(estu_id, soac_id) {
 // Descartar en vez de Guardar.
 function poblarModalRevision(d, s) {
     $('#npt_estu_id').val(d.estu_id);
-    $('#slct_estu_tipodoc').val(d.estu_tipodoc);
+    cargarTipoDocTelefonoOriginal(d.estu_tipodoc, d.estu_telefono);
     $('#npt_estu_numerodoc').val(d.estu_numerodoc);
     $('#npt_estu_nombres').val(d.estu_nombres);
     $('#npt_estu_apellidos').val(d.estu_apellidos);
@@ -2251,7 +2302,7 @@ function abrirEditar(estu_id, esAspirante) {
                 $('#npt_clave_manual_estudiante').val('');
                 $('#bloque_clave_manual_estudiante').addClass('d-none');
                 $('#bloque_cambiar_clave_estudiante').toggleClass('d-none', !d.usua_id);
-                $('#slct_estu_tipodoc').val(d.estu_tipodoc);
+                cargarTipoDocTelefonoOriginal(d.estu_tipodoc, d.estu_telefono);
                 $('#npt_estu_numerodoc').val(d.estu_numerodoc);
                 $('#npt_estu_nombres').val(d.estu_nombres);
                 $('#npt_estu_apellidos').val(d.estu_apellidos);
