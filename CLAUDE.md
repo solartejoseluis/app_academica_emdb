@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-10-12 — último commit citado: a0e8d30
+> Última actualización: 2026-10-12 — último commit citado: 684c535
 
 ## Reglas de documentación
 
@@ -58,7 +58,7 @@ app_academica_emdb/
     00_connect/        — Conexión DB: pdo.php (local, versionado) / pdo_web.php (producción, solo en el servidor — nunca en git). También recaptcha_config.php: credenciales reCAPTCHA reales, fuera de git (mismo patrón que pdo_web.php) — preparación para la Fase 3 del formulario público de inscripción, todavía no integrado en ningún formulario
     00_selects/        — Consultas SELECT reutilizables que pueblan dropdowns
     00_img/            — Recursos estáticos: logo, iconos
-    00_files/          — Componentes PHP compartidos: navbar.php (roles 1 y 2), helpers.php (funciones PHP compartidas, ej. formatearUltimoAcceso()), favicon, robots.txt, .htaccess. Desde 2026-10-03 también helpers.js (funciones JS compartidas: escaparHtml, renderFecha y el tipo de orden fecha-emdb, poblarFiltro, etiquetaJornada — se carga en cada vista antes de su _ctrl.js); helpers.php suma sqlNoRetiradoPeriodoActivo, sqlTipoRetiroPeriodoActivo y etiquetaJornada
+    00_files/          — Componentes PHP compartidos: navbar.php (roles 1 y 2), helpers.php (funciones PHP compartidas, ej. formatearUltimoAcceso()), favicon, robots.txt, .htaccess. Desde 2026-10-03 también helpers.js (funciones JS compartidas: escaparHtml, renderTextoEscapado, renderFecha y el tipo de orden fecha-emdb, poblarFiltro, etiquetaJornada — se carga en cada vista antes de su _ctrl.js); helpers.php suma sqlNoRetiradoPeriodoActivo, sqlTipoRetiroPeriodoActivo y etiquetaJornada
     01_login/          — Autenticación por sesión y redirección por rol
     02_estudiantes/    — CRUD estudiantes + matrícula a programas + gestión de requisitos documentales configurables (catálogo por programa, checklist por matrícula) — roadmap en Phase 2.12
     03_docentes/       — CRUD docentes
@@ -677,12 +677,13 @@ Todo texto que viene de la base (nombres, códigos, observaciones, correos) pasa
 Reglas:
 1. **Una sola definición**, en `app/00_files/helpers.js`. Ningún `_ctrl.js` declara otra `escaparHtml` (ver Antipatrones).
 2. **Orden de carga:** `<script src="../00_files/helpers.js">` va antes del `_ctrl.js` de la vista y antes de `ayuda_sidebar.js`. Todas las vistas lo cargan, salvo `01_login`.
-3. **Columnas de texto en DataTables:** `render: renderTextoEscapado` — escapa en `display` y entrega el dato crudo para ordenar y filtrar.
+3. **Columnas de texto en DataTables:** `render: renderTextoEscapado` — escapa en `display` y entrega el dato crudo para ordenar y filtrar. Desde el commit `684c535` (2026-10-12) vive única en `helpers.js`, justo después de `escaparHtml`; ningún `_ctrl.js` la declara (ver Antipatrones).
 4. **`onclick` inline: solo ids numéricos.** El texto que la acción necesita (nombre del estudiante, código del grupo) se lee de la fila ya cargada en la tabla: `filaMatriculado(matr_id)` en `est_ctrl.js`, `filaDeTabla(selector, campoId, id)` en `grupos_ctrl.js`, `nombreDocenteEnTabla(doce_id)` en `doc_ctrl.js`. `escaparHtml()` protege contenido y atributos; un texto dentro de `onclick="f('...')"` queda fuera de su alcance.
 5. **Parámetros de URL:** siempre con `encodeURIComponent()`, también cuando el valor parece numérico.
 6. **Alternativa equivalente:** armar el nodo con jQuery (`$('<option>').val(v).text(t)`, `.text()`, `.attr()`), que escapa por sí mismo. Es el criterio de las cards de `05_calificaciones` y de `poblarFiltro()`.
 
 ```js
+// Definida en helpers.js — se muestra solo como referencia, no se copia en el _ctrl.js
 function renderTextoEscapado(data, type) {
     if (type !== 'display' || data === null || data === undefined) return data;
     return escaparHtml(data);
@@ -1085,11 +1086,12 @@ Equivalente en el cliente de `helpers.php`, creado en el commit `9d04f99` (2026-
 | Función | Uso |
 |---|---|
 | `escaparHtml(valor)` | Escapado de texto de la base antes de insertarlo en HTML (ver Convenciones HTML/JS) |
+| `renderTextoEscapado(data, type)` | Render de columnas de texto en DataTables: escapa en `display`, dato crudo en `sort`/`filter` (desde `684c535`) |
 | `etiquetaJornada(valor)` | Presentación de `grse_jornada` (gemela de la de `helpers.php`) |
 | `renderFecha(data, type)`, `compararFechaAsc`, `compararFechaDesc` | Fechas en DataTables y tipo de orden `fecha-emdb` |
 | `poblarFiltro(selector, filas, campoValor, campoTexto, comparar)` | Selects de filtro armados desde las filas de un listado |
 
-Antes de declarar una función utilitaria en un `_ctrl.js`, revisar si ya existe aquí. Una función que se repite en dos o más controladores pertenece a este archivo (caso abierto: `renderTextoEscapado()`, ver deuda técnica). El array `mesesAbrev` de "Formatear fechas en español..." tiene aquí su destino si aparece un tercer uso.
+Antes de declarar una función utilitaria en un `_ctrl.js`, revisar si ya existe aquí. Una función que se repite en dos o más controladores pertenece a este archivo (caso abierto: `renderTextoEscapado()`, ver deuda técnica — resuelto en `684c535`, 2026-10-12). El array `mesesAbrev` de "Formatear fechas en español..." tiene aquí su destino si aparece un tercer uso.
 
 ### Validación de unicidad server-side antes de UPDATE/INSERT (SELECT previo, no catch genérico)
 
@@ -1382,6 +1384,8 @@ function escaparHtml(texto) { /* versión local */ }
 ```
 
 El proyecto llegó a tener tres versiones distintas (`ayuda_sidebar.js`, `est_ctrl.js`, `coordinador_ctrl.js`), una de ellas sin escapar comillas — insuficiente dentro de un atributo. Unificadas en `helpers.js` en el commit `b2797f9` (2026-10-11). Lo mismo vale para cualquier función ya presente en `helpers.js`.
+
+Caso concreto: **declarar `renderTextoEscapado` en un `_ctrl.js`**. Llegó a estar copiada en cinco controladores (`est_ctrl.js`, `doc_ctrl.js`, `grupos_ctrl.js`, `admin_ctrl.js`, `ayud_ctrl.js`), más una variante `renderTexto()` en `coordinador_ctrl.js`. Unificada en `helpers.js` en el commit `684c535` (2026-10-12).
 
 ---
 
@@ -1738,7 +1742,7 @@ Hallazgos de la revisión de los commits `f7b0e92` a `32338a4`. Ninguno se imple
 | Un retiro definitivo, o un retiro de un período ya cerrado, queda en "Retirados" sin ninguna acción disponible | `reincorporar` exige `Aplazamiento` y `anular_retiro` exige el período activo. Esas filas permanecen en la pestaña de forma indefinida con el menú reducido. Pendiente de decisión: dejarlo así, ofrecer un cambio de `Retirado` a `Aplazamiento` desde la UI (hoy se hace con script), o sacar de la pestaña los retiros definitivos antiguos. |
 | El estudiante retirado conserva su acceso al sistema | `retirar_matricula` deja `usuarios` intacto: el estudiante sigue entrando a `06_reportes` y viendo sus notas. Pendiente de decisión: si un retiro definitivo debe desactivar el acceso (relacionado con el ítem de `usua_activo` en el login, más abajo). |
 | `reincorporar` crea la matrícula nueva sin módulos ni notas | La asignación a grupos módulo se hace después, a mano, en `04_grupos`. Las notas de la matrícula de origen quedan en sus grupos del período anterior. Comportamiento aceptado; pendiente decidir si conviene un aviso o un paso guiado. |
-| `renderTextoEscapado()` duplicada en 5 controladores | `est_ctrl.js`, `grupos_ctrl.js`, `doc_ctrl.js`, `admin_ctrl.js` y `ayud_ctrl.js` declaran la misma función; `coordinador_ctrl.js` tiene una equivalente llamada `renderTexto()`. `escaparHtml()` ya es única. Pendiente: moverla a `helpers.js` y borrar las copias. |
+| ~~`renderTextoEscapado()` duplicada en 5 controladores~~ (RESUELTO 2026-10-12, commit `684c535`) | **Resuelto:** `helpers.js` define la única `renderTextoEscapado(data, type)`; se borraron las cinco copias y `renderTexto()`, y los 3 usos del coordinador pasan a `renderTextoEscapado`. Detalle en CHANGELOG.md. Texto original del hallazgo, conservado: `est_ctrl.js`, `grupos_ctrl.js`, `doc_ctrl.js`, `admin_ctrl.js` y `ayud_ctrl.js` declaran la misma función; `coordinador_ctrl.js` tiene una equivalente llamada `renderTexto()`. `escaparHtml()` ya es única. Pendiente: moverla a `helpers.js` y borrar las copias. |
 | `FAMILIAS_PROGRAMA` con las siglas escritas en el JS | `grupos_ctrl.js` decide el color de fila de `#tbl_grupos` con una lista fija (`ASO`, `ASO2016`, `MD`, `AMD2016`). Un programa nuevo queda sin color hasta editar el archivo. Pendiente de decisión: columna de familia en `programas`, o dejarlo así. |
 | El filtro de período de `04_grupos` no sigue al período activo sin recargar | `filtroGruposPeriodoIniciado`/`filtroAsigPeriodoIniciado` fijan el filtro en el activo solo la primera vez. Si el coordinador activa otro período en la pestaña Períodos, los filtros de Grupos Semestre y Asignación siguen en el anterior hasta recargar la página. Comportamiento aceptado y comentado en el código. |
 | El nombre real de una estudiante sigue en el historial de git anterior a `32338a4` | El commit `ff1a4db` lo contiene en el archivo, en el nombre del archivo y en su mensaje, y ya está publicado. `32338a4` limpia el árbol de trabajo. Quitarlo del historial exige reescribirlo (`git filter-repo` o equivalente), forzar el push y volver a clonar en cada equipo; GitHub puede conservar el commit antiguo en caché. Decisión de Jose Luis. |

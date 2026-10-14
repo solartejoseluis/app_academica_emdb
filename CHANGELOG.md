@@ -4,6 +4,28 @@
 
 ---
 
+## refactor(frontend): unifica renderTextoEscapado en helpers.js y elimina las copias de seis controladores (commit `684c535`) — 2026-10-12
+
+### Contexto
+`renderTextoEscapado` estaba duplicada, con cuerpo idéntico, en `est_ctrl.js`, `doc_ctrl.js`, `grupos_ctrl.js`, `admin_ctrl.js` y `ayud_ctrl.js`. `coordinador_ctrl.js` tenía `renderTexto`, una variante que solo difería al recibir `null` o `undefined` en `display`: devolvía `''` en vez del dato. Hallazgo registrado en la deuda técnica del 2026-10-12 de CLAUDE.md.
+
+### Cambio
+- `app/00_files/helpers.js` define la única `renderTextoEscapado(data, type)`, justo después de `escaparHtml`.
+- Se borran las cinco copias de `renderTextoEscapado` y la función `renderTexto` de `coordinador_ctrl.js`.
+- Los 3 usos de `renderTexto` en `coordinador_ctrl.js` pasan a `renderTextoEscapado`.
+- Sin cambios de PHP ni de base de datos.
+
+### Decisión
+- El diagnóstico confirmó que las columnas del coordinador no reciben `null`; por eso la diferencia de comportamiento de `renderTexto` no tiene efecto con los datos actuales.
+- Los `<script>` no llevan versión en la URL, así que el despliegue se hizo en dos pasos por entorno: primero `helpers.js` y después los seis controladores. Así un navegador con `helpers.js` en caché nunca recibe un controlador nuevo sin la función, y no falla con "renderTextoEscapado is not defined".
+
+### Pruebas
+- Local: las tablas de Estudiantes (4 pestañas), Docentes, Grupos, Usuarios, Ayudas y el dashboard del coordinador cargaron sin errores de consola. Esta carga valida la sintaxis de los siete archivos (Node no está disponible en el entorno).
+- Desplegado a dev y a producción en dos pasos, con la misma verificación y sin acciones de escritura sobre datos reales.
+- Nota: `est_ctrl.js` tiene un paréntesis de cierre de más en el conteo de caracteres. Viene de antes de este cambio y probablemente está dentro de cadenas o comentarios.
+
+---
+
 ## fix(estudiantes): corrige los mensajes de anular_retiro y los comentarios que mencionaban Per. Anteriores (commit `a0e8d30`) — 2026-10-12
 
 ### Contexto
