@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-10-12 — último commit citado: 684c535
+> Última actualización: 2026-10-14 — último commit citado: 13b51e3
 
 ## Reglas de documentación
 
@@ -860,6 +860,14 @@ $sql = "SELECT * FROM estudiantes WHERE estu_id = $_POST[estu_id]";
 1. **Cliente** (`_ctrl.js`): validación inmediata para UX — campos vacíos, formatos.
 2. **Servidor** (`_mdl.php`): validación de negocio antes de ejecutar la query. El servidor nunca confía en los datos del cliente.
 
+### En edición se valida solo si el valor cambió, para tolerar datos heredados
+
+Cuando una regla de formato nueva llega después de que ya existen datos que no la cumplen, la edición de un registro existente valida cada campo solo si el valor enviado difiere del guardado. El servidor lee el valor guardado (con un `SELECT` previo o dentro de la misma transacción) y lo compara tras `trim`: si es igual, lo conserva sin validar; si cambió, aplica la validación estricta. La creación de registros y los formularios públicos validan siempre de forma estricta.
+
+En el cliente, el valor original se guarda al abrir el modal (`data-original`) y se acepta sin validar mientras el usuario no lo toque. Si un `<select>` recibe un valor guardado que no está entre sus opciones, se agrega una opción temporal con ese valor y la marca "(valor guardado)", que se quita al volver a abrir el modal o al crear un registro nuevo.
+
+Primer uso: `estu_tipodoc` y `estu_telefono` en `guardar_completo` (`est_mdl.php`) y `cargarTipoDocTelefonoOriginal()`/`validarTelefonoEstudiante()` en `est_ctrl.js` (commit `13b51e3`, 2026-10-14), para los registros con el texto `XXX` cargados en septiembre.
+
 ### Lógica de negocio en el servidor
 
 Los cálculos críticos (nota definitiva, estado de aprobación, acumulados con supletorios) se realizan en PHP, no en JavaScript. El cliente recibe resultados calculados, no datos crudos para calcular.
@@ -1078,6 +1086,12 @@ Segunda función: `sincronizarEmailUsuario(PDO $pdo, ?int $usua_id, string $nuev
 Funciones agregadas entre 2026-10-03 y 2026-10-11:
 - `etiquetaJornada(?string $valor): string` (commit `9d04f99`) — texto de presentación de `gruposemestres.grse_jornada`: `'Sabados'` → "Sábados", vacío → "Semana". El valor guardado se mantiene sin tilde (lo usan los selects y la fórmula de `grse_codigo`). Tiene una gemela con el mismo nombre en `helpers.js`.
 - `sqlNoRetiradoPeriodoActivo(string $ge = 'ge'): string` y `sqlTipoRetiroPeriodoActivo(string $ge = 'ge'): string` (commit `ede88cd`) — devuelven un fragmento de SQL fijo, correlacionado con el alias de `grmoestudiantes` de la consulta que las usa. La primera es una condición para `WHERE`/`ON` (verdadera si la fila sigue en el roster); la segunda es una columna con `'Aplazamiento'`, `'Retirado'` o `NULL`. Regla completa en "Retirar, Aplazar, Anular retiro y Reincorporar" (Decisiones arquitectónicas activas). Toda consulta nueva que liste o cuente estudiantes de un grupo módulo usa una de las dos.
+
+Agregadas el 2026-10-14 (commit `13b51e3`):
+- Constante `TIPOS_DOCUMENTO_VALIDOS` (`CC`, `TI`, `CE`, `PA`, `NIT`, `PPT`, `RC`) — única lista del servidor para `estudiantes.estu_tipodoc`. Un tipo de documento nuevo se agrega en esta lista y en los dos selects `#slct_estu_tipodoc` (`est_view.php` e `insc_view.php`).
+- `validarTipoDocumento(string $v): ?string` — devuelve el tipo si está en la lista (mayúsculas exactas) o `null`.
+- `normalizarTelefono(string $v): ?string` — quita espacios, guiones, puntos y paréntesis y devuelve el teléfono limpio si quedan de 7 a 15 dígitos, o `null`. El valor que se guarda es el limpio.
+- Las usan `guardar_completo` y `aprobar_actualizacion` (`est_mdl.php`), `crear_aspirante` (`insc_mdl.php`) y `guardar_actualizacion` (`actualizar_mdl.php`). En edición se aplican solo si el valor cambió (ver "En edición se valida solo si el valor cambió..." en esta misma sección).
 
 ### 00_files/helpers.js — funciones JS compartidas del proyecto
 
@@ -1751,9 +1765,11 @@ Hallazgos de la revisión de los commits `f7b0e92` a `32338a4`. Ninguno se imple
 
 | Ítem | Detalle |
 |---|---|
-| Validación de backend de `estu_tipodoc` y `estu_telefono` | `est_mdl.php` recibe ambos campos y comprueba que lleguen con valor; falta validar el tipo de documento contra la lista permitida y el formato del teléfono. |
+| ~~Validación de backend de `estu_tipodoc` y `estu_telefono`~~ (RESUELTO 2026-10-14, commit `13b51e3`) | **Resuelto:** `helpers.php` define `TIPOS_DOCUMENTO_VALIDOS`, `validarTipoDocumento()` y `normalizarTelefono()`, usadas en `guardar_completo`, `crear_aspirante`, `guardar_actualizacion` y `aprobar_actualizacion`; en edición se valida solo si el valor cambió. Detalle en CHANGELOG.md. Texto original del hallazgo, conservado: `est_mdl.php` recibe ambos campos y comprueba que lleguen con valor; falta validar el tipo de documento contra la lista permitida y el formato del teléfono. |
 | Selectores de multiculturalidad en `est_ctrl.js` | Reportado como defecto en los selectores de la sección Multiculturalidad del modal de estudiante. Pendiente de diagnóstico. |
-| Acudiente "Otro" y `setSelectionRange` en `est_ctrl.js` | Dos bugs reportados en el modal de estudiante: el caso de acudiente "Otro" y un uso de `setSelectionRange`. Pendiente de diagnóstico. |
+| Acudiente "Otro" y `setSelectionRange` en `est_ctrl.js` | Dos bugs reportados en el modal de estudiante: el caso de acudiente "Otro" y un uso de `setSelectionRange`. Pendiente de diagnóstico. **Actualización (2026-10-14, confirmado en navegador headless durante las pruebas de `13b51e3`):** causa del caso "Otro" identificada — `abrirEditar()` llama a `manejarCambioAcudiente()` después de cargar la ficha; con `acud_es = 'otro'` esa función ejecuta `limpiarYHabilitarCamposAcudiente()`, que vacía los 8 campos del acudiente (nombres, apellidos, profesión, empresa, teléfono, dirección, barrio, ciudad). El guardado queda bloqueado con "Por favor complete todos los campos antes de guardar" hasta volver a escribirlos. Afecta a todo estudiante con acudiente "Otro". El caso de `setSelectionRange` sigue pendiente de diagnóstico. |
+| 54 registros de producción con `XXX` en tipo de documento y teléfono | Aspirantes cargados en septiembre con el texto `XXX` en `estu_tipodoc` y `estu_telefono` (en local, 76 de 80). La validación de `13b51e3` los tolera mientras no cambien: se pueden editar otros campos sin tocarlos. Pendientes de corrección por el coordinador desde "Datos Estudiante"; no hay script de corrección. |
+| Error de CORS al cargar la traducción de DataTables | `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json`, pedido desde una página `http`, queda bloqueado por CORS (una petición fallida por tabla, visible en consola). Las tablas cargan con los textos de DataTables en inglés. Detectado en las pruebas de `13b51e3` (2026-10-14). Pendiente de decisión: servir el archivo localmente, usar `https://` explícito o dejarlo así. |
 | Seed `database/emdb_academica.sql` roto en `docentes` (confirmado) | El `INSERT INTO docentes` entrega 7 valores para una tabla de 9 columnas (`doce_fechanacimiento` y `doce_telefono` se agregaron en `fb33d3e` sin actualizar el `INSERT`). Un `docker compose down -v && up` falla al importar esa tabla. Corrección: lista de columnas explícita en el `INSERT`, como ya tiene `matriculas` desde `08faa8e`. |
 | Estudiantes con ids 111 a 114 con documentos pendientes | Cuatro registros sin número de documento definitivo. Pendiente de completar con la coordinadora. |
 | El login no verifica `usua_activo` (confirmado) | `01_login` no consulta `usuarios.usua_activo`: un usuario desactivado desde `08_admin` o `03_docentes` sigue pudiendo entrar. |

@@ -4,6 +4,53 @@
 
 ---
 
+## feat(estudiantes): valida en el servidor estu_tipodoc y estu_telefono, agrega tipos PPT y RC (commit `13b51e3`) — 2026-10-14
+
+### Contexto
+El servidor solo comprobaba que `estu_tipodoc` y `estu_telefono` llegaran con valor. `estu_tipodoc` es un `VARCHAR(20)` de texto libre y `estu_telefono` un `VARCHAR(15)`, sin restricciones en la base. En producción, 54 estudiantes (los aspirantes cargados en septiembre) tienen el texto `XXX` en tipo de documento y teléfono; en local, 76 de 80. Hallazgo registrado en la deuda técnica del 2026-10-12 de CLAUDE.md.
+
+### Cambio
+- `app/00_files/helpers.php` define la constante `TIPOS_DOCUMENTO_VALIDOS` (`CC`, `TI`, `CE`, `PA`, `NIT`, `PPT`, `RC`) y dos funciones que devuelven el valor limpio o `null`:
+  - `validarTipoDocumento(string $v): ?string` — acepta solo un valor de la lista, en mayúsculas exactas.
+  - `normalizarTelefono(string $v): ?string` — quita espacios, guiones, puntos y paréntesis y exige de 7 a 15 dígitos. El teléfono se guarda ya limpio.
+- Las funciones se usan en:
+  - `guardar_completo` (`est_mdl.php`): tipo de documento y teléfono.
+  - `crear_aspirante` (`insc_mdl.php`): tipo de documento y teléfono.
+  - `guardar_actualizacion` (`actualizar_mdl.php`): teléfono (el tipo de documento no se edita por ese medio).
+  - `aprobar_actualizacion` (`est_mdl.php`): teléfono propuesto, antes del `UPDATE`; se aplica el valor limpio.
+- `insc_mdl.php` y `actualizar_mdl.php` agregan `require_once '../00_files/helpers.php'`, sin abrir sesión.
+- Los selects de tipo de documento de `est_view.php` e `insc_view.php` ganan `PPT` y `RC`. El teléfono gana `maxlength="15"` e `inputmode="tel"` en `est_view.php`, `insc_view.php` y `actualizar_view.php`.
+- `guardar_completo` al editar responde "Estudiante no encontrado" si el `estu_id` no existe (antes seguía con datos vacíos).
+- Sin cambios de base de datos.
+
+### Decisión
+- Al editar un estudiante existente, el servidor valida cada campo solo si el valor cambió respecto al guardado (comparado tras un `SELECT` previo, con `trim`). Un valor igual al guardado, por ejemplo `XXX`, se conserva sin validar.
+- `est_ctrl.js`:
+  - `cargarTipoDocTelefonoOriginal()` (llamada desde `abrirEditar()` y `poblarModalRevision()`) agrega una opción temporal "XXX (valor guardado)" al select cuando el tipo guardado no está entre las opciones, y guarda el teléfono original en `data-original`.
+  - `validarTelefonoEstudiante()` acepta el teléfono original y valida los nuevos con la misma regla del servidor; si el teléfono es lo único que falla, el alert muestra su mensaje propio.
+  - `limpiarTipoDocTelefonoOriginal()` (desde `limpiarFormulario()`) quita la opción temporal y el valor original al crear un aspirante.
+- La creación (`guardar_completo` sin `estu_id`, `crear_aspirante`) y las solicitudes de actualización (`guardar_actualizacion`, `aprobar_actualizacion`) siempre validan de forma estricta.
+- Los datos `XXX` se mantienen hasta que el coordinador los corrija; no se hizo script de corrección.
+
+### Mensajes
+- "Seleccione un tipo de documento válido (CC, TI, CE, PA, NIT, PPT o RC)."
+- "El teléfono debe tener entre 7 y 15 dígitos, solo números."
+
+### Pruebas
+- `php -l` sin errores en los 7 archivos PHP modificados.
+- 8 casos con `curl` contra el servidor local (crear con tipo inválido, crear con "300 123 4567" → `3001234567`, editar un registro `XXX` sin tocar los campos, editar con tipo inválido, editar a `CC`, editar con teléfono nuevo inválido, `guardar_actualizacion` y `aprobar_actualizacion` con teléfono inválido): todos con el resultado esperado.
+- 7 pruebas en navegador headless (Playwright) sobre `est_view.php`: carga de las 4 tablas, opción temporal "XXX (valor guardado)", guardado de un registro `XXX` cambiando otro campo, cambio a `CC`, alert con teléfono `12ab` sin petición al servidor, guardado de "300 123 4567" limpio, modal de nuevo aspirante con `PPT`/`RC`, `maxlength`/`inputmode` y apertura del modo revisión. Todas correctas.
+- En ambas tandas, el estudiante de prueba era ficticio y se borró al final; `CHECKSUM TABLE` de las 24 tablas quedó idéntico antes y después y `matriculas` = 122.
+- Pasada manual en local del registro con `XXX`: correcta.
+- Desplegado a dev y a producción el 2026-10-14 (8 archivos, sin cambios de BD), con verificación de que los registros `XXX` se abren con la opción temporal.
+- No probado: `crear_aspirante` del formulario público con `curl` (exige reCAPTCHA); usa las mismas funciones de `helpers.php`.
+
+### Hallazgos de las pruebas (sin corregir, registrados en CLAUDE.md)
+- Acudiente "Otro": al abrir "Datos Estudiante", `abrirEditar()` llama a `manejarCambioAcudiente()`, que vacía los 8 campos del acudiente; el guardado queda bloqueado con "Por favor complete todos los campos antes de guardar".
+- Error de CORS al cargar `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json` desde una página `http`: las tablas cargan con textos en inglés (una petición fallida por tabla).
+
+---
+
 ## refactor(frontend): unifica renderTextoEscapado en helpers.js y elimina las copias de seis controladores (commit `684c535`) — 2026-10-12
 
 ### Contexto

@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-10-12
-> Versión: 133 — Etapa posterior a TRL5 (2026-10-03 a 2026-10-12): filtros por período/programa/docente, fechas en listados (B2 iniciada), escapado de HTML en toda la interfaz, y Retirar/Aplazar/Anular retiro/Reincorporar matrículas (`matr_origen_id`); último commit `32338a4`
+> Última actualización: 2026-10-14
+> Versión: 134 — Validación en el servidor de `estu_tipodoc` y `estu_telefono` (tipos PPT y RC; en edición se valida solo si el valor cambió); último commit `13b51e3`
+> Versión anterior: 133 — Etapa posterior a TRL5 (2026-10-03 a 2026-10-12): filtros por período/programa/docente, fechas en listados (B2 iniciada), escapado de HTML en toda la interfaz, y Retirar/Aplazar/Anular retiro/Reincorporar matrículas (`matr_origen_id`); último commit `32338a4`
 
 ---
 
@@ -25,7 +26,10 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | Fase E — fechas por nota | Pendiente, sin iniciar | Análisis sin modificar código | CLAUDE.md, Phase 2.19 |
 | Fase F — módulo `12_configuracion` | Pendiente, sin iniciar | Análisis sin modificar código | CLAUDE.md, Phase 2.19 |
 | El nombre real de una estudiante sigue en el historial de git anterior a `32338a4` (commit `ff1a4db`: contenido, nombre de archivo y mensaje), ya publicado | Quitarlo exige reescribir el historial y forzar el push; GitHub puede conservar el commit antiguo en caché | Decisión de Jose Luis; si se hace, coordinar el re-clonado en cada equipo | CLAUDE.md, deuda técnica (2026-10-12) |
-| Deuda de Retirar/Aplazar/Reincorporar y pendientes del archivo de contexto (login sin `usua_activo`, seed de `docentes` roto, validaciones de `estu_tipodoc`/`estu_telefono`, bugs del modal de estudiante, ids 111-114 con documentos pendientes) | Ninguno bloquea la operación diaria | Priorizar con Jose Luis | CLAUDE.md, "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)" |
+| Deuda de Retirar/Aplazar/Reincorporar y pendientes del archivo de contexto (login sin `usua_activo`, seed de `docentes` roto, validaciones de `estu_tipodoc`/`estu_telefono` — **RESUELTO 2026-10-14, `13b51e3`** —, bugs del modal de estudiante, ids 111-114 con documentos pendientes) | Ninguno bloquea la operación diaria | Priorizar con Jose Luis | CLAUDE.md, "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)" |
+| Acudiente "Otro" se vacía al abrir "Datos Estudiante" (confirmado 2026-10-14) | `abrirEditar()` llama a `manejarCambioAcudiente()`, que vacía los 8 campos del acudiente y bloquea el guardado con "Por favor complete todos los campos antes de guardar". Afecta a todo estudiante con acudiente "Otro" | Análisis sin modificar código: no limpiar los campos cuando la función se llama al cargar un registro | CLAUDE.md, deuda técnica ("Acudiente "Otro" y `setSelectionRange`...") |
+| Error de CORS al cargar `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json` desde una página `http` | Las tablas cargan con los textos de DataTables en inglés (una petición fallida por tabla); no bloquea la operación | Decidir entre servir el archivo localmente o usar `https://` explícito | CLAUDE.md, deuda técnica (2026-10-12, fila "Error de CORS...") |
+| Corregir los 54 registros de producción con `XXX` en tipo de documento y teléfono | La validación de `13b51e3` los tolera mientras no cambien; los corrige el coordinador desde "Datos Estudiante", sin script | Acordar con la coordinadora la corrección de los datos reales | CLAUDE.md, deuda técnica (fila "54 registros de producción con `XXX`...") |
 
 **Nota de vocabulario (2026-10-12):** la fila "Notas de estudiantes retirados que reaparecen al reincorporarlos al mismo grupo módulo" de esta tabla habla del retiro de roster (`retirar_estudiante`, `04_grupos`). Desde el 2026-10-11 existe además el retiro de matrícula (`retirar_matricula`, `02_estudiantes`), que conserva el roster y las notas; ver CLAUDE.md, "Retirar, Aplazar, Anular retiro y Reincorporar matrículas".
 
@@ -638,6 +642,11 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `50cea23` | Matricular: conservar el historial de matr_observacion al reactivar | 2026-10-12 |
 | `da9ceb1` | Matricular: solo reactivar matrículas en estado aspirante | 2026-10-12 |
 | `32338a4` | chore(datos): anonimiza script de aplazamiento de una reincorporacion (nombre y apellidos pasan a variables de sesion) | 2026-10-12 |
+| `a0e8d30` | fix(estudiantes): corrige los mensajes de anular_retiro y los comentarios que mencionaban Per. Anteriores | 2026-10-12 |
+| `23d169d` | docs: registra la correccion de los mensajes de anular_retiro (a0e8d30) y marca la deuda tecnica como resuelta | 2026-10-12 |
+| `684c535` | refactor(frontend): unifica renderTextoEscapado en helpers.js y elimina las copias de seis controladores | 2026-10-12 |
+| `75fb726` | docs: registra la unificacion de renderTextoEscapado (684c535) y marca la deuda tecnica como resuelta | 2026-10-12 |
+| `13b51e3` | feat(estudiantes): valida en el servidor estu_tipodoc y estu_telefono, agrega tipos PPT y RC | 2026-10-14 |
 
 ---
 
@@ -679,6 +688,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | Filtros de listado en el cliente, con el período activo por defecto | Los selects de filtro se arman desde las filas del propio listado (`poblarFiltro()`), sin endpoint de catálogo ni peticiones nuevas al filtrar. |
 | Fechas en DataTables con `renderFecha` y el tipo `fecha-emdb` | El servidor entrega la fecha cruda; se muestra `d/m/Y H:i`, se ordena por el texto ISO y las vacías van siempre al final. Sin `new Date()` y sin `fecha-emdb-pre`. |
 | Nunca versionar nombres ni datos reales de personas (`32338a4`) | Aplica a archivos, nombres de archivo, mensajes de commit y documentación. Los scripts de datos identifican a la persona con variables `@...` que se completan al ejecutar. |
+| En edición se valida solo si el valor cambió, para tolerar datos heredados (`13b51e3`) | Al editar un estudiante, `estu_tipodoc` y `estu_telefono` se validan solo si el valor enviado difiere del guardado; un valor igual (por ejemplo `XXX`) se conserva. La creación y las solicitudes de actualización validan siempre de forma estricta. Tipos válidos: CC, TI, CE, PA, NIT, PPT y RC (lista única en `helpers.php` más los dos selects). El teléfono se guarda limpio, con 7 a 15 dígitos. |
 
 ---
 
@@ -1127,7 +1137,7 @@ Commits `b2797f9`, `51af4c7`, `e4ca92f`, `e40723d`, `9b86388`, `5e9a982`, `96f41
 Commits `08faa8e`, `ff1a4db`, `e8961f7`, `6d6d851`, `e74a089`, `7ca433a`, `cd92f65`, `cef29d0`, `97b5a68`, `9aea146`, `ede88cd`, `19b7f8b`, `50cea23`, `da9ceb1`, más `32338a4` (anonimización del script de datos).
 
 - **Esquema:** `matriculas.matr_origen_id` con `uq_matr_origen` y `fk_matr_origen` (`ON DELETE SET NULL`). Scripts idempotentes `migracion_matr_origen_id.sql` y `rollback_matr_origen_id.sql`. La migración va antes del código en cada entorno.
-- **Pantallas (`02_estudiantes`):** pestaña "Retirados"; acciones "Retirar / Aplazar" (Per. Actual), "Anular retiro" (Retirados y Per. Anteriores, período activo) y "Reincorporar" (Retirados, solo Aplazamiento); insignias de estado y columna Observación.
+- **Pantallas (`02_estudiantes`):** pestaña "Retirados"; acciones "Retirar / Aplazar" (Per. Actual), "Anular retiro" (solo en Retirados, matrículas del período activo; corregido el 2026-10-14, ver `a0e8d30`) y "Reincorporar" (Retirados, solo Aplazamiento); insignias de estado y columna Observación.
 - **Efecto en el resto del sistema:** los retirados del período activo salen de la planilla, del roster y de los conteos; aparecen marcados en el reporte de grupo, su PDF y su Excel; el servidor rechaza guardar sus notas.
 - **Correcciones incluidas:** `editar_matricula` retira asignaciones solo si cambia programa o período; `matricular` conserva el historial de observaciones y solo reactiva aspirantes.
 - **Despliegue:** `50cea23` y `da9ceb1` (solo `est_mdl.php`, sin cambios de BD) probados en local, dev y producción el 2026-10-12 — cierre de las actividades 109-112.
