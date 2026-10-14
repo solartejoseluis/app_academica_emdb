@@ -98,7 +98,11 @@ function actualizarVisibilidadPadreMadre() {
     $('#bloque_madre_campos').toggle($('#npt_madr_vive').is(':checked'));
 }
 
-function actualizarSelectAcudiente() {
+// esCargaInicial === true al poblar el modal con un registro guardado: si
+// el valor previo del select (de un registro abierto antes) ya no es una
+// opción válida, solo se pone en '' sin vaciar los campos del acudiente
+// que se acaban de cargar.
+function actualizarSelectAcudiente(esCargaInicial) {
     const valorActual = $('#slct_acud_es').val();
     let opciones = '<option value="">-- Seleccionar --</option>';
     if ($('#npt_padr_vive').is(':checked')) {
@@ -115,7 +119,9 @@ function actualizarSelectAcudiente() {
         $('#slct_acud_es').val(valorActual);
     } else {
         $('#slct_acud_es').val('');
-        limpiarYHabilitarCamposAcudiente();
+        if (esCargaInicial !== true) {
+            limpiarYHabilitarCamposAcudiente();
+        }
     }
 }
 
@@ -127,7 +133,11 @@ function limpiarYHabilitarCamposAcudiente() {
     });
 }
 
-function manejarCambioAcudiente() {
+// esCargaInicial === true al poblar el modal con un registro guardado: con
+// acudiente "otro" o vacío se habilitan los campos sin tocar sus valores
+// (antes se vaciaban y bloqueaban el guardado). Comparación estricta: el
+// handler de change recibe el objeto evento como primer argumento.
+function manejarCambioAcudiente(esCargaInicial) {
     const seleccion = $('#slct_acud_es').val();
     if (seleccion === 'padre' || seleccion === 'madre') {
         const prefijo = seleccion === 'padre' ? 'padr' : 'madr';
@@ -138,6 +148,12 @@ function manejarCambioAcudiente() {
         MAPEO_ACUDIENTE.forEach(function (campo) {
             const valor = $('#npt_' + prefijo + '_' + campo).val();
             $('#npt_acud_' + campo).val(valor).prop('readonly', true);
+        });
+    } else if (esCargaInicial === true) {
+        $('#bloque_acud_parentesco').show();
+        $('#npt_acud_parentesco').prop('readonly', false);
+        MAPEO_ACUDIENTE.forEach(function (campo) {
+            $('#npt_acud_' + campo).prop('readonly', false);
         });
     } else {
         $('#bloque_acud_parentesco').show();
@@ -2246,9 +2262,9 @@ function poblarModalRevision(d, s) {
     // Recalcula visibilidad Padre/Madre/Acudiente con los valores ya
     // (potencialmente) sobrescritos — mismo patrón que abrirEditar().
     actualizarVisibilidadPadreMadre();
-    actualizarSelectAcudiente();
+    actualizarSelectAcudiente(true);
     $('#slct_acud_es').val(s.soac_ficha_acud_es !== null && s.soac_ficha_acud_es !== undefined ? s.soac_ficha_acud_es : d.acud_es);
-    manejarCambioAcudiente();
+    manejarCambioAcudiente(true);
 
     // Modo revisión: formulario deshabilitado, Guardar oculto, Aprobar/Descartar visibles.
     $('#npt_revision_soac_id').val(s.soac_id);
@@ -2380,9 +2396,9 @@ function abrirEditar(estu_id, esAspirante) {
                 $('#npt_estudio_aniofin').val(d.estudio_aniofin);
 
                 actualizarVisibilidadPadreMadre();
-                actualizarSelectAcudiente();
+                actualizarSelectAcudiente(true);
                 $('#slct_acud_es').val(d.acud_es);
-                manejarCambioAcudiente();
+                manejarCambioAcudiente(true);
 
                 // Marca validación de los campos de ficha ya cargados — el chequeo
                 // :visible solo es correcto una vez el modal ya está mostrado
