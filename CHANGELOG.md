@@ -4,6 +4,43 @@
 
 ---
 
+## feat(seguridad): bloquea el acceso de usuarios con usua_activo=0 en login y en cada peticion autenticada (commit `a6c8f2e`) — 2026-10-16
+
+### Contexto
+Ni el login ni ningún punto de entrada consultaban `usuarios.usua_activo`. Un usuario desactivado desde `08_admin` o `03_docentes` podía iniciar sesión y seguir operando con una sesión ya abierta. Antes de desplegar se verificó que en producción los 45 usuarios (3 administradores, 2 coordinadores, 13 docentes y 27 estudiantes) y en dev los 25 estaban activos, y que ningún docente tenía `doce_activo` distinto de `usua_activo`.
+
+### Cambio
+- `app/01_login/login_mdl.php`: agrega `u.usua_activo` al `SELECT` y rechaza al usuario inactivo después de `password_verify`, con el mismo `?error=1`. Cuando el correo no existe, verifica la clave contra un hash bcrypt ficticio de costo 12 para igualar los tiempos de respuesta.
+- `app/00_files/helpers.php`: nueva `exigirUsuarioActivo(PDO $pdo, bool $esAjax)`. Hace un `SELECT` por clave primaria en cada petición, sin caché. Si el usuario no existe o está inactivo, destruye la sesión y responde con redirección al login (vistas y PDF) o con HTTP 200 y `{status:'error', codigo:'sesion_invalida'}` (AJAX).
+- `app/01_login/check_session.php`: carga `pdo.php` y `helpers.php` con `__DIR__` y `require_once` y llama a `exigirUsuarioActivo(..., false)`. Si la base no responde, devuelve 503.
+- Los 8 `_mdl.php` autenticados (`est_mdl.php`, `doc_mdl.php`, `grupos_mdl.php`, `calificaciones_mdl.php`, `reportes_mdl.php`, `coordinador_mdl.php`, `admin_mdl.php`, `ayud_mdl.php`) llaman a `exigirUsuarioActivo(getConexion(), true)` una vez antes del `switch`. `ayud_mdl.php` suma el `require_once` de `helpers.php`.
+- `app/00_files/helpers.js`: atiende `sesion_invalida` con un `$.ajaxPrefilter` que envuelve el `success` de cada `$.ajax` y un `ajaxSuccess` de respaldo, con una bandera para mostrar un solo aviso y redirigir al login.
+- `app/08_admin/admin_mdl.php`, `case 'editar'`: corre en transacción con `SELECT ... FOR UPDATE` y rechaza desactivar el propio usuario, cambiar el propio rol y dejar cero administradores activos.
+- `app/03_docentes/doc_mdl.php`, `case 'guardar'` en edición: escribe `doce_activo = usua_activo` en la misma transacción, como ya hacía `toggle_estado_docente`.
+- Sin cambios de base de datos. No se tocaron `insc_mdl.php`, `actualizar_mdl.php`, `health.php`, `metrics_prepend.php` ni `pdo.php`.
+
+### Decisiones
+- Bloqueo inmediato con una consulta por petición (menos de 1 ms por clave primaria), sin caché.
+- El mismo mensaje genérico para usuario inactivo, correo inexistente y clave incorrecta.
+- Las peticiones con sesión invalidada quedan registradas en `metricasdesempeno` con `metr_usua_id` en `NULL`.
+- Retirar una matrícula no toca `usuarios`: un estudiante retirado conserva el acceso a sus notas.
+
+### Pruebas
+- `curl` con sesiones reales: login de un usuario activo y de uno inactivo, sesión abierta que se desactiva, PDF, `editar` de administrador, editar docente y endpoints públicos.
+- Caso de cero administradores probado sobre una base clonada.
+- Playwright headless: 4 DataTables recargadas a la vez dan un solo aviso y la redirección al login.
+- Métricas verificadas por CLI.
+- `CHECKSUM TABLE` de las 24 tablas idéntico antes y después; `matriculas` = 122.
+- Pasada manual en local correcta.
+
+### Despliegue
+Desplegado a dev y a producción el 2026-10-16 (12 archivos, sin cambios de BD), con verificación de login, navegación, rechazo de la autodesactivación y métricas. En dev se probó además la sesión invalidada con un usuario de prueba.
+
+### Nota
+Durante las pruebas se usó `git stash` y `git stash pop` para comparar versiones; el árbol quedó igual.
+
+---
+
 ## fix(db): agrega lista de columnas al INSERT de docentes del seed para que importe tras fb33d3e (commit `7f97820`) — 2026-10-16
 
 ### Contexto

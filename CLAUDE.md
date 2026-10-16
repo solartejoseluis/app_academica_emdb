@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-10-16 — último commit citado: 7f97820
+> Última actualización: 2026-10-16 — último commit citado: a6c8f2e
 
 ## Reglas de documentación
 
@@ -1075,6 +1075,27 @@ Dos casos de uso conocidos, mismo patrón exacto:
 - `admin_mdl.php`, case `editar` (`08_admin`) — primer uso del patrón en el proyecto. Placeholder del input: "Dejar vacío para no cambiar".
 - `doc_mdl.php`, case `guardar` rama edición (`03_docentes`, commit `35c312a`, 2026-08-25) — el campo (`#bloque_password` en `#mdl_docente`) estaba oculto por completo en modo edición hasta este commit; ahora se muestra condicionado a que el docente tenga `usua_id` (ver deuda técnica del `INNER JOIN` en `case 'obtener'`, más abajo en "Deuda técnica / pendiente antes de producción"), con el mismo placeholder "Dejar vacío para no cambiar" y el mismo `if ($usua_password !== '')` combinado en el mismo `UPDATE` que ya actualizaba `usua_activo`.
 
+### Toda petición autenticada verifica `usua_activo`
+
+Una sesión abierta no garantiza que el usuario siga activo: un administrador puede desactivarlo mientras está conectado. Por eso cada petición autenticada consulta `usuarios.usua_activo` con `exigirUsuarioActivo()` (`00_files/helpers.php`), un `SELECT` por clave primaria, sin caché:
+
+- Vistas y PDF: lo hace `check_session.php` (`exigirUsuarioActivo($pdo, false)`, redirección al login).
+- `_mdl.php` autenticados: llaman `exigirUsuarioActivo($pdo, true)` una vez, antes del `switch`; responden `{status:'error', codigo:'sesion_invalida'}` y `helpers.js` muestra un solo aviso y redirige al login.
+- Todo `_mdl.php` autenticado nuevo debe incluir esa llamada.
+- Los endpoints públicos (`insc_mdl.php`, `actualizar_mdl.php`, `health.php`) no la llevan.
+
+```php
+try {
+    exigirUsuarioActivo(getConexion(), true);
+} catch (PDOException $e) {
+    echo json_encode(['status' => 'error', 'message' => 'Error de conexión con la base de datos']);
+    exit;
+}
+$accion = $_GET['accion'] ?? '';
+```
+
+Primer uso: commit `a6c8f2e` (2026-10-16).
+
 ### Registro de "último acceso": guardar el valor anterior en sesión antes de sobreescribir
 
 Cuando una columna de auditoría tipo timestamp (ej. `usua_ultimo_acceso`) se actualiza en cada ocurrencia de una operación (ej. cada login) y ese mismo valor debe mostrarse al usuario como referencia histórica ("tu acceso anterior fue..."), el orden de las operaciones importa: hay que leer y guardar el valor ANTES de ejecutar el `UPDATE` que lo sobreescribe. Si se lee después (o si el `UPDATE` corre primero), el dato mostrado durante toda la sesión sería siempre el de la operación actual — un valor que no tiene ninguna utilidad como referencia, porque coincidiría con el momento presente en vez de reflejar el acceso previo.
@@ -1691,6 +1712,7 @@ manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
 | Después de subir, generar tráfico y confirmar filas nuevas en `metricasdesempeno` del entorno | ⬜ |
 | Si el cambio incluye una migración de esquema: `mysqldump` del entorno y ejecutar el script de migración ANTES de subir el código que usa la columna, en cada entorno (local, dev, producción) | ⬜ |
 | Ningún script, nombre de archivo ni mensaje de commit contiene nombres, documentos u otros datos reales de personas | ⬜ |
+| Si el cambio puede bloquear el acceso: consultar `SELECT role_id, usua_activo, COUNT(*) FROM usuarios GROUP BY 1,2` en el entorno y desplegar con una segunda sesión de administrador abierta como respaldo | ⬜ |
 
 - Para generar un backup de la BD listo para importar en phpMyAdmin del hosting (pruebas o producción), usar `scripts/export_para_hosting.sh` (commit `40b28c8`, 2026-09-06) — ejecuta `mysqldump` dentro del contenedor Docker del servicio `db` y corrige automáticamente la colación `utf8mb4_0900_ai_ci` (exclusiva de MySQL 8, entorno local) a `utf8mb4_unicode_ci` (compatible con MariaDB, el motor real del hosting de pruebas en `aurusmind.com`, confirmado 2026-09-06). El archivo generado queda en `database/hosting_deploy/`, fuera de git — nunca reemplaza ni sincroniza `database/emdb_academica.sql` (ver "Decisiones arquitectónicas activas"). **Nota (a 2026-09-20):** el staging usado es `dev.escuelamdb.com`, misma cuenta que producción — el texto de `aurusmind.com` de esta línea se conserva como registro de lo confirmado el 2026-09-06.
 - Nunca subir la carpeta completa — solo los archivos modificados.
@@ -1710,6 +1732,7 @@ manual independiente. Detalle completo en PROJECT_CONTEXT.md, sección
 - **Migración de esquema antes del código, por entorno:** un cambio que agrega una columna, índice o constraint se despliega en este orden en local, dev y producción: (1) `mysqldump` de esa base, (2) ejecutar el script de migración y revisar su comprobación final, (3) subir el código. El código nuevo falla con "Unknown column" si la columna falta; el código anterior sigue funcionando con la columna ya creada. Los scripts de migración son idempotentes (consultan `information_schema`), sin `USE`, y van acompañados de su script de reversión. Ejemplo: `scripts/migracion_matr_origen_id.sql` / `rollback_matr_origen_id.sql` (commit `08faa8e`, 2026-10-11).
 - **Scripts de datos con identificadores personales:** se versionan con variables `@...` y valores de ejemplo; los valores reales se completan al ejecutar y nunca se suben a git (ver "Scripts de datos que identifican a una persona..." en Decisiones arquitectónicas activas).
 - **Nunca versionar nombres reales:** ni en archivos, ni en nombres de archivo, ni en mensajes de commit, ni en estos cuatro documentos. El repositorio es público. Para referirse a un caso se usa una descripción genérica ("una estudiante reincorporada") o el id interno.
+- **Cambio que bloquea el acceso:** antes de subirlo, consultar `SELECT role_id, usua_activo, COUNT(*) FROM usuarios GROUP BY 1,2` en cada entorno (los usuarios con 0 pierden el acceso de inmediato) y mantener abierta una segunda sesión de administrador como respaldo durante el despliegue. Aplicado con `a6c8f2e` (2026-10-16).
 - **Despliegue de un solo archivo sin cambios de BD:** `50cea23` y `da9ceb1` se desplegaron subiendo solo `app/02_estudiantes/est_mdl.php` a dev y producción el 2026-10-12, probados en los tres entornos (ver CHANGELOG.md).
 
 ---
@@ -1778,9 +1801,12 @@ Hallazgos de la revisión de los commits `f7b0e92` a `32338a4`. Ninguno se imple
 | Error de CORS al cargar la traducción de DataTables | `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json`, pedido desde una página `http`, queda bloqueado por CORS (una petición fallida por tabla, visible en consola). Las tablas cargan con los textos de DataTables en inglés. Detectado en las pruebas de `13b51e3` (2026-10-14). Pendiente de decisión: servir el archivo localmente, usar `https://` explícito o dejarlo así. |
 | ~~Seed `database/emdb_academica.sql` roto en `docentes` (confirmado)~~ (RESUELTO 2026-10-16, commit `7f97820`) | **Resuelto:** el `INSERT INTO docentes` lleva lista explícita de 7 columnas; `doce_fechanacimiento` y `doce_telefono` quedan en `NULL`. Importación completa del seed sin errores en una base temporal. Detalle en CHANGELOG.md. Texto original del hallazgo, conservado: El `INSERT INTO docentes` entrega 7 valores para una tabla de 9 columnas (`doce_fechanacimiento` y `doce_telefono` se agregaron en `fb33d3e` sin actualizar el `INSERT`). Un `docker compose down -v && up` falla al importar esa tabla. Corrección: lista de columnas explícita en el `INSERT`, como ya tiene `matriculas` desde `08faa8e`. |
 | Estudiantes con ids 111 a 114 con documentos pendientes | Cuatro registros sin número de documento definitivo. Pendiente de completar con la coordinadora. |
-| El login no verifica `usua_activo` (confirmado) | `01_login` no consulta `usuarios.usua_activo`: un usuario desactivado desde `08_admin` o `03_docentes` sigue pudiendo entrar. |
+| ~~El login no verifica `usua_activo` (confirmado)~~ (RESUELTO 2026-10-16, commit `a6c8f2e`) | **Resuelto:** el login rechaza al usuario inactivo y cada petición autenticada verifica `usua_activo` con `exigirUsuarioActivo()` (ver "Toda petición autenticada verifica `usua_activo`" en Patrones de ingeniería). Detalle en CHANGELOG.md. Texto original del hallazgo, conservado: `01_login` no consulta `usuarios.usua_activo`: un usuario desactivado desde `08_admin` o `03_docentes` sigue pudiendo entrar. |
 | Creación de login con documento nulo | `matricular`/`gestionar_clave` usan `estu_numerodoc` como `usua_login`; con un documento `NULL` o vacío el acceso se crearía sin login válido. Pendiente: rechazar la creación de acceso sin documento. |
 | `estu_numerodoc` puede ser `NULL` en datos reales | Los listados y PDF lo toleran desde `bdcc6e2`/`26055f3` (muestran "—"). Todo código nuevo que lea esa columna contempla el `NULL`. |
+| El rol de la sesión no se refresca | `role_id` se lee de `$_SESSION`. Si otro administrador cambia el rol de un usuario conectado, ese usuario conserva el rol anterior hasta volver a iniciar sesión. Solución posible: que `exigirUsuarioActivo()` también lea `role_id` en la misma consulta. Hallado al trabajar `a6c8f2e` (2026-10-16). |
+| Llamadas `.then`/`.done` y la respuesta `sesion_invalida` | Las 6 llamadas en estilo promesa (`doc_ctrl.js`, `grupos_ctrl.js`, `calificaciones_ctrl.js`) reciben igual la respuesta `sesion_invalida`, porque el `$.ajaxPrefilter` de `helpers.js` solo envuelve `success`. Podrían mostrar su propio mensaje de error antes de la redirección. Sin reproducir. |
+| `estu_activo` sin escritor | Ningún `case` de la aplicación escribe `estudiantes.estu_activo`; siempre vale 1. `retirar_matricula` tampoco lo toca. |
 
 ---
 

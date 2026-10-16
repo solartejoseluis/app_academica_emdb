@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-10-16
-> Versión: 136 — Lista de columnas explícita en el `INSERT INTO docentes` del seed, que vuelve a importar completo; último commit `7f97820`
+> Versión: 137 — Bloqueo de usuarios con `usua_activo = 0` en el login y en cada petición autenticada; último commit `a6c8f2e`
+> Versión anterior: 136 — Lista de columnas explícita en el `INSERT INTO docentes` del seed, que vuelve a importar completo; último commit `7f97820`
 > Versión anterior: 135 — Corrección del acudiente "Otro" al abrir un registro y al precargar la actualización de datos; último commit `bd7f9ec`
 > Versión anterior: 134 — Validación en el servidor de `estu_tipodoc` y `estu_telefono` (tipos PPT y RC; en edición se valida solo si el valor cambió); último commit `13b51e3`
 > Versión anterior: 133 — Etapa posterior a TRL5 (2026-10-03 a 2026-10-12): filtros por período/programa/docente, fechas en listados (B2 iniciada), escapado de HTML en toda la interfaz, y Retirar/Aplazar/Anular retiro/Reincorporar matrículas (`matr_origen_id`); último commit `32338a4`
@@ -28,11 +29,14 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | Fase E — fechas por nota | Pendiente, sin iniciar | Análisis sin modificar código | CLAUDE.md, Phase 2.19 |
 | Fase F — módulo `12_configuracion` | Pendiente, sin iniciar | Análisis sin modificar código | CLAUDE.md, Phase 2.19 |
 | El nombre real de una estudiante sigue en el historial de git anterior a `32338a4` (commit `ff1a4db`: contenido, nombre de archivo y mensaje), ya publicado | Quitarlo exige reescribir el historial y forzar el push; GitHub puede conservar el commit antiguo en caché | Decisión de Jose Luis; si se hace, coordinar el re-clonado en cada equipo | CLAUDE.md, deuda técnica (2026-10-12) |
-| Deuda de Retirar/Aplazar/Reincorporar y pendientes del archivo de contexto (login sin `usua_activo`, seed de `docentes` roto — **RESUELTO 2026-10-16, `7f97820`** —, validaciones de `estu_tipodoc`/`estu_telefono` — **RESUELTO 2026-10-14, `13b51e3`** —, bugs del modal de estudiante, ids 111-114 con documentos pendientes) | Ninguno bloquea la operación diaria | Priorizar con Jose Luis | CLAUDE.md, "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)" |
+| Deuda de Retirar/Aplazar/Reincorporar y pendientes del archivo de contexto (login sin `usua_activo` — **RESUELTO 2026-10-16, `a6c8f2e`** —, seed de `docentes` roto — **RESUELTO 2026-10-16, `7f97820`** —, validaciones de `estu_tipodoc`/`estu_telefono` — **RESUELTO 2026-10-14, `13b51e3`** —, bugs del modal de estudiante, ids 111-114 con documentos pendientes) | Ninguno bloquea la operación diaria | Priorizar con Jose Luis | CLAUDE.md, "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)" |
 | ~~Acudiente "Otro" se vacía al abrir "Datos Estudiante" (confirmado 2026-10-14)~~ **RESUELTO 2026-10-14, `bd7f9ec`** (al cargar un registro ya no se vacían los campos; ver CHANGELOG.md) | `abrirEditar()` llama a `manejarCambioAcudiente()`, que vacía los 8 campos del acudiente y bloquea el guardado con "Por favor complete todos los campos antes de guardar". Afecta a todo estudiante con acudiente "Otro" | Análisis sin modificar código: no limpiar los campos cuando la función se llama al cargar un registro | CLAUDE.md, deuda técnica ("Acudiente "Otro" y `setSelectionRange`...") |
 | `setSelectionRange` en el modal de estudiante (`est_ctrl.js`) | Reportado junto con el caso del acudiente "Otro"; sigue sin diagnóstico | Análisis sin modificar código: dónde se usa y en qué campo falla | CLAUDE.md, deuda técnica (fila "Acudiente "Otro"... y `setSelectionRange`...") |
 | Error de CORS al cargar `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json` desde una página `http` | Las tablas cargan con los textos de DataTables en inglés (una petición fallida por tabla); no bloquea la operación | Decidir entre servir el archivo localmente o usar `https://` explícito | CLAUDE.md, deuda técnica (2026-10-12, fila "Error de CORS...") |
 | Corregir los 54 registros de producción con `XXX` en tipo de documento y teléfono | La validación de `13b51e3` los tolera mientras no cambien; los corrige el coordinador desde "Datos Estudiante", sin script | Acordar con la coordinadora la corrección de los datos reales | CLAUDE.md, deuda técnica (fila "54 registros de producción con `XXX`...") |
+| El rol de la sesión no se refresca: si otro administrador cambia el rol de un usuario conectado, conserva el rol anterior hasta volver a iniciar sesión | Hallado al trabajar `a6c8f2e`; no bloquea la operación | Análisis: que `exigirUsuarioActivo()` también lea `role_id` | CLAUDE.md, deuda técnica (fila "El rol de la sesión no se refresca") |
+| Las 6 llamadas `.then`/`.done` (`doc_ctrl.js`, `grupos_ctrl.js`, `calificaciones_ctrl.js`) reciben igual la respuesta `sesion_invalida` | Podrían mostrar su propio mensaje de error antes de la redirección; sin reproducir | Reproducir en navegador con una sesión desactivada | CLAUDE.md, deuda técnica (fila "Llamadas `.then`/`.done`...") |
+| `estu_activo` no tiene ningún escritor en la aplicación y siempre vale 1 | Falta decidir si se usa o se retira | Decisión de Jose Luis | CLAUDE.md, deuda técnica (fila "`estu_activo` sin escritor") |
 
 **Nota de vocabulario (2026-10-12):** la fila "Notas de estudiantes retirados que reaparecen al reincorporarlos al mismo grupo módulo" de esta tabla habla del retiro de roster (`retirar_estudiante`, `04_grupos`). Desde el 2026-10-11 existe además el retiro de matrícula (`retirar_matricula`, `02_estudiantes`), que conserva el roster y las notas; ver CLAUDE.md, "Retirar, Aplazar, Anular retiro y Reincorporar matrículas".
 
@@ -654,6 +658,8 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `bd7f9ec` | fix(estudiantes): conserva los datos del acudiente Otro al abrir un registro y al precargar la actualizacion de datos | 2026-10-14 |
 | `6b1ff52` | docs: registra la correccion del acudiente Otro y la regla del parametro opcional en handlers de jQuery | 2026-10-14 |
 | `7f97820` | fix(db): agrega lista de columnas al INSERT de docentes del seed | 2026-10-16 |
+| `66ade44` | docs: registra la correccion del seed de docentes | 2026-10-16 |
+| `a6c8f2e` | feat(seguridad): bloquea el acceso de usuarios con usua_activo=0 | 2026-10-16 |
 
 ---
 
@@ -696,6 +702,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | Fechas en DataTables con `renderFecha` y el tipo `fecha-emdb` | El servidor entrega la fecha cruda; se muestra `d/m/Y H:i`, se ordena por el texto ISO y las vacías van siempre al final. Sin `new Date()` y sin `fecha-emdb-pre`. |
 | Nunca versionar nombres ni datos reales de personas (`32338a4`) | Aplica a archivos, nombres de archivo, mensajes de commit y documentación. Los scripts de datos identifican a la persona con variables `@...` que se completan al ejecutar. |
 | En edición se valida solo si el valor cambió, para tolerar datos heredados (`13b51e3`) | Al editar un estudiante, `estu_tipodoc` y `estu_telefono` se validan solo si el valor enviado difiere del guardado; un valor igual (por ejemplo `XXX`) se conserva. La creación y las solicitudes de actualización validan siempre de forma estricta. Tipos válidos: CC, TI, CE, PA, NIT, PPT y RC (lista única en `helpers.php` más los dos selects). El teléfono se guarda limpio, con 7 a 15 dígitos. |
+| Verificación de `usua_activo` en cada petición, sin caché (`a6c8f2e`) | `check_session.php` y los 8 `_mdl.php` autenticados llaman a `exigirUsuarioActivo()`: un `SELECT` por clave primaria (menos de 1 ms) que bloquea de inmediato al usuario desactivado y destruye su sesión. Mismo mensaje genérico en el login para usuario inactivo, inexistente y clave incorrecta. Los endpoints públicos no la llevan. |
 
 ---
 
