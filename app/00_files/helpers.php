@@ -119,3 +119,35 @@ function normalizarTelefono(string $v): ?string {
     $limpio = preg_replace('/[\s.\-()]/u', '', $v);
     return preg_match('/^[0-9]{7,15}$/', $limpio) ? $limpio : null;
 }
+
+// Corta la sesión de un usuario desactivado (usuarios.usua_activo = 0) o
+// eliminado. Una consulta por petición, por clave primaria, sin caché: el
+// bloqueo aplica en la petición siguiente a la desactivación. Sin
+// $_SESSION['usua_id'] no hace nada (cada endpoint responde su propio
+// "Sesión no válida"). Para AJAX responde HTTP 200 con el envelope de error y
+// codigo 'sesion_invalida', que helpers.js atiende de forma global; para
+// vistas y PDF redirige al login.
+function exigirUsuarioActivo(PDO $pdo, bool $esAjax): void {
+    if (!isset($_SESSION['usua_id'])) {
+        return;
+    }
+    $stmt = $pdo->prepare("SELECT usua_activo FROM usuarios WHERE usua_id = ?");
+    $stmt->execute([(int)$_SESSION['usua_id']]);
+    $fila = $stmt->fetch();
+    if ($fila && (int)$fila['usua_activo'] === 1) {
+        return;
+    }
+    session_unset();
+    session_destroy();
+    if ($esAjax) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'status'  => 'error',
+            'codigo'  => 'sesion_invalida',
+            'message' => 'Su sesión ya no es válida. Inicie sesión de nuevo.',
+        ]);
+        exit;
+    }
+    header('Location: /app_academica_emdb/app/01_login/login_view.php');
+    exit;
+}

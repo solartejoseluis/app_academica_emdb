@@ -3,6 +3,15 @@ session_start();
 require_once '../00_connect/pdo.php';
 require_once '../00_files/helpers.php';
 
+// Usuario desactivado (usua_activo = 0) con sesión abierta: responde
+// codigo 'sesion_invalida' (ver exigirUsuarioActivo() en helpers.php).
+try {
+    exigirUsuarioActivo(getConexion(), true);
+} catch (PDOException $e) {
+    echo json_encode(['status' => 'error', 'message' => 'Error de conexión con la base de datos']);
+    exit;
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {

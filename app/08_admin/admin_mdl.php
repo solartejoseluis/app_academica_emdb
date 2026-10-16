@@ -3,6 +3,15 @@ session_start();
 require_once '../00_connect/pdo.php';
 require_once '../00_files/helpers.php';
 
+// Usuario desactivado (usua_activo = 0) con sesión abierta: responde
+// codigo 'sesion_invalida' (ver exigirUsuarioActivo() en helpers.php).
+try {
+    exigirUsuarioActivo(getConexion(), true);
+} catch (PDOException $e) {
+    echo json_encode(['status' => 'error', 'message' => 'Error de conexión con la base de datos']);
+    exit;
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {
@@ -124,6 +133,33 @@ switch ($accion) {
 
         try {
             $pdo = getConexion();
+            $pdo->beginTransaction();
+
+            // Reglas sobre el estado resultante, con las filas bloqueadas para
+            // que dos ediciones simultáneas no dejen el sistema sin
+            // administradores activos.
+            $stmtAct = $pdo->prepare("SELECT role_id FROM usuarios WHERE usua_id = ? FOR UPDATE");
+            $stmtAct->execute([$usua_id]);
+            $actual = $stmtAct->fetch();
+            if (!$actual) {
+                throw new Exception('Usuario no encontrado');
+            }
+            if ($usua_id === (int)$_SESSION['usua_id']) {
+                if ($usua_activo !== 1) {
+                    throw new Exception('No puede desactivar su propio usuario. Pida a otro administrador que lo haga.');
+                }
+                if ($role_id !== (int)$actual['role_id']) {
+                    throw new Exception('No puede cambiar el rol de su propio usuario. Pida a otro administrador que lo haga.');
+                }
+            }
+            $stmtAdm = $pdo->prepare(
+                "SELECT COUNT(*) FROM usuarios WHERE role_id = 1 AND usua_activo = 1 AND usua_id <> ? FOR UPDATE"
+            );
+            $stmtAdm->execute([$usua_id]);
+            $adminsResultantes = (int)$stmtAdm->fetchColumn() + (($role_id === 1 && $usua_activo === 1) ? 1 : 0);
+            if ($adminsResultantes === 0) {
+                throw new Exception('El sistema debe conservar al menos un administrador activo.');
+            }
 
             if ($password !== '') {
                 $hash = password_hash($password, PASSWORD_BCRYPT);
@@ -142,9 +178,18 @@ switch ($accion) {
                 $stmt->execute([$role_id, $email, $nombre, $usua_activo, $usua_id]);
             }
 
+            $pdo->commit();
             echo json_encode(['status' => 'ok']);
         } catch (PDOException $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             echo json_encode(['status' => 'error', 'message' => 'Error al actualizar usuario']);
+        } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
         break;
 

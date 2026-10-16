@@ -53,6 +53,15 @@ function validarSemestrePrograma(PDO $pdo, int $prog_id, int $matr_semestre): ?s
     return null;
 }
 
+// Usuario desactivado (usua_activo = 0) con sesión abierta: responde
+// codigo 'sesion_invalida' (ver exigirUsuarioActivo() en helpers.php).
+try {
+    exigirUsuarioActivo(getConexion(), true);
+} catch (PDOException $e) {
+    echo json_encode(['status' => 'error', 'message' => 'Error de conexión con la base de datos']);
+    exit;
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {

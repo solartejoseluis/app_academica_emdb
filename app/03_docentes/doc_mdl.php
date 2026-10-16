@@ -3,6 +3,15 @@ session_start();
 require_once '../00_connect/pdo.php';
 require_once '../00_files/helpers.php';
 
+// Usuario desactivado (usua_activo = 0) con sesión abierta: responde
+// codigo 'sesion_invalida' (ver exigirUsuarioActivo() en helpers.php).
+try {
+    exigirUsuarioActivo(getConexion(), true);
+} catch (PDOException $e) {
+    echo json_encode(['status' => 'error', 'message' => 'Error de conexión con la base de datos']);
+    exit;
+}
+
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {
@@ -356,12 +365,15 @@ switch ($accion) {
                 }
 
                 $pdo->beginTransaction();
+                // doce_activo sigue al usua_activo del formulario, igual que
+                // toggle_estado_docente: los dos campos de estado se escriben
+                // juntos en la misma transacción.
                 $stmtD = $pdo->prepare(
                     "UPDATE docentes
-                     SET doce_nombres = ?, doce_apellidos = ?, doce_cedula = ?, doce_fechanacimiento = ?, doce_telefono = ?, doce_sigla = ?
+                     SET doce_nombres = ?, doce_apellidos = ?, doce_cedula = ?, doce_fechanacimiento = ?, doce_telefono = ?, doce_sigla = ?, doce_activo = ?
                      WHERE doce_id = ?"
                 );
-                $stmtD->execute([$doce_nombres, $doce_apellidos, $doce_cedula !== '' ? $doce_cedula : null, $doce_fechanacimiento, $doce_telefono, $doce_sigla, $doce_id_int]);
+                $stmtD->execute([$doce_nombres, $doce_apellidos, $doce_cedula !== '' ? $doce_cedula : null, $doce_fechanacimiento, $doce_telefono, $doce_sigla, $usua_activo, $doce_id_int]);
 
                 if ($rowDoc['usua_id'] !== null && $usua_password !== '') {
                     $hash = password_hash($usua_password, PASSWORD_BCRYPT);

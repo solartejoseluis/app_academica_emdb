@@ -19,7 +19,7 @@ try {
     $pdo = getConexion();
 
     $sql = "SELECT u.usua_id, u.usua_email, u.usua_nombre, u.usua_passwordhash, u.role_id, r.role_nombre,
-                   u.usua_ultimo_acceso, u.fechacreacion
+                   u.usua_ultimo_acceso, u.fechacreacion, u.usua_activo
             FROM usuarios u
             JOIN roles r ON u.role_id = r.role_id
             WHERE u.usua_email = ?";
@@ -27,7 +27,20 @@ try {
     $stmt->execute([$email]);
     $usuario = $stmt->fetch();
 
-    if (!$usuario || !password_verify($password, $usuario['usua_passwordhash'])) {
+    // Sin usuario se verifica contra un hash bcrypt fijo para que la respuesta
+    // tarde lo mismo que con un correo existente.
+    $hashVerificar = $usuario ? $usuario['usua_passwordhash']
+                              : '$2y$12$MXwrx95acxHWNQYcoF3B7.bmLTYMcteteN6dlP70sPy0xHpHJdQv2';
+    $claveValida = password_verify($password, $hashVerificar);
+
+    if (!$usuario || !$claveValida) {
+        header('Location: login_view.php?error=1');
+        exit;
+    }
+
+    // Usuario desactivado: mismo mensaje genérico, evaluado después de la
+    // clave, para no revelar si la cuenta existe.
+    if ((int)$usuario['usua_activo'] !== 1) {
         header('Location: login_view.php?error=1');
         exit;
     }

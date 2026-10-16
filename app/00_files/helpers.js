@@ -99,3 +99,46 @@ function poblarFiltro(selector, filas, campoValor, campoTexto, comparar) {
         slct.append(jQuery('<option>').val(o.valor).text(o.texto));
     });
 }
+
+// Sesión invalidada en el servidor (usuario desactivado): exigirUsuarioActivo()
+// en helpers.php responde { status: 'error', codigo: 'sesion_invalida' }.
+// El prefiltro envuelve el success de cada $.ajax (incluidas las DataTables)
+// para que esa respuesta no llegue al callback original; ajaxSuccess cubre las
+// llamadas sin success propio. La bandera evita un alert por cada AJAX
+// simultáneo.
+let sesionInvalidaAtendida = false;
+
+function esRespuestaSesionInvalida(data) {
+    if (typeof data === 'string') {
+        if (data.indexOf('sesion_invalida') === -1) return false;
+        try { data = JSON.parse(data); } catch (e) { return false; }
+    }
+    return !!data && typeof data === 'object' && data.codigo === 'sesion_invalida';
+}
+
+function atenderSesionInvalida(data) {
+    if (sesionInvalidaAtendida) return;
+    sesionInvalidaAtendida = true;
+    const respuesta = typeof data === 'string' ? JSON.parse(data) : data;
+    alert(respuesta.message);
+    window.location.href = '/app_academica_emdb/app/01_login/login_view.php';
+}
+
+if (typeof jQuery !== 'undefined') {
+    jQuery.ajaxPrefilter(function (options) {
+        const successOriginal = options.success;
+        if (typeof successOriginal !== 'function') return;
+        options.success = function (data) {
+            if (esRespuestaSesionInvalida(data)) {
+                atenderSesionInvalida(data);
+                return;
+            }
+            return successOriginal.apply(this, arguments);
+        };
+    });
+    jQuery(document).ajaxSuccess(function (event, jqXHR, settings, data) {
+        if (esRespuestaSesionInvalida(data)) {
+            atenderSesionInvalida(data);
+        }
+    });
+}
