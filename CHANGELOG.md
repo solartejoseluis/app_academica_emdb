@@ -4,6 +4,27 @@
 
 ---
 
+## fix(db): agrega lista de columnas al INSERT de docentes del seed para que importe tras fb33d3e (commit `7f97820`) — 2026-10-16
+
+### Contexto
+Desde `fb33d3e`, `docentes` tiene 9 columnas (`doce_fechanacimiento` y `doce_telefono` nuevas). El `INSERT INTO docentes` de `database/emdb_academica.sql` traía 7 valores por fila sin lista de columnas. Un `docker compose down -v && up` fallaba al importar esa tabla (ERROR 1136, "Column count doesn't match value count") y dejaba sin datos las tablas posteriores del archivo.
+
+### Cambio
+- `database/emdb_academica.sql`, línea 217: el `INSERT INTO docentes` lleva ahora lista explícita de 7 columnas (`doce_id`, `usua_id`, `doce_nombres`, `doce_apellidos`, `doce_cedula`, `doce_sigla`, `doce_activo`). `doce_fechanacimiento` y `doce_telefono` quedan en `NULL`.
+- Las 5 filas de datos no cambian.
+- Sin cambios en dev ni producción: el seed solo se usa al reconstruir el entorno local.
+
+### Pruebas
+- Diagnóstico sobre una base temporal `_test_seed`: se revisaron los 22 `INSERT` del seed. Solo `docentes` no coincidía con su tabla; los demás coinciden, y `matriculas` ya tenía lista explícita desde `08faa8e`.
+- Tras el cambio: importación completa en `_test_seed`, sin `--force` y con `--default-character-set=utf8mb4`, terminada sin errores. 24 tablas creadas, `docentes` con 5 filas y las dos columnas nuevas en `NULL` en las 5.
+- `_test_seed` eliminada; `SHOW DATABASES` igual que antes.
+- `CHECKSUM TABLE` de las 24 tablas de la base local `emdb_academica` idéntico antes y después.
+
+### Nota
+El comentario "Tablas creadas: N" que mencionaba CLAUDE.md no existe en el `.sql`, que es un mysqldump. El archivo tiene 24 `CREATE TABLE`.
+
+---
+
 ## fix(estudiantes): conserva los datos del acudiente Otro al abrir un registro y al precargar la actualizacion de datos (commit `bd7f9ec`) — 2026-10-14
 
 ### Contexto
