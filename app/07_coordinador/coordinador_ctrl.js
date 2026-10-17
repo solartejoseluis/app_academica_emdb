@@ -68,7 +68,7 @@ function cargarDashboard() {
                     });
                 },
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
+                    url: URL_IDIOMA_DATATABLES,
                     emptyTable: 'Sin grupos activos'
                 },
                 pageLength: 25,

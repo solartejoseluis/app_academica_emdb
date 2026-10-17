@@ -33,6 +33,11 @@ function etiquetaJornada(valor) {
     return valor;
 }
 
+// Traducción de DataTables: language: { url: URL_IDIOMA_DATATABLES }. Con
+// https explícito porque la URL sin protocolo, desde una página http, recibe
+// una redirección 301 sin cabecera CORS y el navegador la bloquea.
+const URL_IDIOMA_DATATABLES = 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json';
+
 // ── Fechas en DataTables ─────────────────────────────────────────────────────
 // El servidor entrega la fecha cruda ('Y-m-d H:i:s', 'Y-m-d' o null) y cada
 // columna de fecha se declara así:

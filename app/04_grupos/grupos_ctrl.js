@@ -155,7 +155,7 @@ $(document).ready(function () {
                     return botones;
                 }}
             ],
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            language: { url: URL_IDIOMA_DATATABLES },
             responsive: true
         });
     }
@@ -218,7 +218,7 @@ $(document).ready(function () {
                         onclick="abrirEditarGrupo(${id})">Ver/Editar</button>`
                 }
             ],
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            language: { url: URL_IDIOMA_DATATABLES },
             responsive: true
         });
 
@@ -279,7 +279,7 @@ $(document).ready(function () {
                     return botones;
                 }}
             ],
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            language: { url: URL_IDIOMA_DATATABLES },
             responsive: true
         });
     }
@@ -323,7 +323,7 @@ $(document).ready(function () {
                     return botones;
                 }}
             ],
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            language: { url: URL_IDIOMA_DATATABLES },
             responsive: true
         });
     }
@@ -374,7 +374,7 @@ $(document).ready(function () {
                     return botones;
                 }}
             ],
-            language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json' },
+            language: { url: URL_IDIOMA_DATATABLES },
             responsive: true
         });
     }
