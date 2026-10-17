@@ -4,6 +4,34 @@
 
 ---
 
+## fix(frontend): unifica la URL de traducción de DataTables en helpers.js y usa https explícito (commit `5da6d82`) — 2026-10-17
+
+### Contexto
+Las DataTables pedían la traducción `es-ES.json` con la URL escrita en cada controlador: 9 con `//cdn.datatables.net/...` (sin protocolo) y 5 con `https://` (`04_grupos`). Desde una página `http` (entorno local) la URL sin protocolo se resolvía como `http://`, el CDN respondía con una redirección 301 a `https://` sin cabecera `Access-Control-Allow-Origin` y el navegador bloqueaba la respuesta: esas tablas cargaban con los textos en inglés y un error de CORS en consola. La URL `https://` responde 200 con `access-control-allow-origin: *`. En dev y producción, servidos por `https`, ya funcionaba; allí el beneficio es tener un único punto de cambio.
+
+### Cambio
+- `app/00_files/helpers.js`: nueva constante `URL_IDIOMA_DATATABLES = 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'`, con un comentario que explica por qué lleva `https://` explícito.
+- Las 14 tablas la usan en `language: { url: URL_IDIOMA_DATATABLES }`: `est_ctrl.js` (4), `doc_ctrl.js` (1), `grupos_ctrl.js` (5), `reportes_ctrl.js` (1), `coordinador_ctrl.js` (1, conserva `emptyTable`), `admin_ctrl.js` (1) y `ayud_ctrl.js` (1).
+- `#tbl_export_grupo` (tabla oculta de `calificaciones_ctrl.js`, solo para generar el Excel) queda sin `language`, a propósito: su texto nunca se muestra.
+- Las 7 vistas involucradas ya cargaban `helpers.js` antes de su `_ctrl.js`; en `06_reportes` también lo carga el rol estudiante, que no usa DataTables (la constante no afecta nada allí).
+- Sin cambios de base de datos.
+
+### Decisión
+Se eligió `https://` explícito en vez de servir el archivo desde `app/00_files/`: no depende del `.htaccess` de la raíz de producción (no versionado, con `FilesMatch` por extensiones que podría bloquear un `.json`) y no agrega un archivo de terceros que mantener. El resto de DataTables ya se carga desde el mismo CDN.
+
+### Pruebas
+- Playwright headless en 8 páginas/roles (02_estudiantes, 03_docentes, 04_grupos, 06_reportes con un grupo cargado y 07_coordinador como coordinador; 08_admin y 10_ayudas como administrador; 06_reportes como estudiante): `es-ES.json` responde 200 por `https`, textos en español ("Buscar:", "Mostrando ...") y ningún error de consola, de CORS ni de constante no definida.
+- `CHECKSUM TABLE` de las 24 tablas idéntico antes y después; `matriculas` = 122.
+- Pasada manual en local, dev y producción correcta.
+
+### Despliegue
+Solo los 8 archivos JS, `helpers.js` primero; sin cambios de BD. Desplegado en dev y producción el 2026-10-17.
+
+### Hallazgo anotado
+jQuery mezcla 3.7.0 (`grupos`, `calificaciones`, `reportes`, `coordinador`) y 3.7.1 (`est`, `doc`, `admin`, `ayudas`, `insc`, `actualizar`). Queda como deuda de la Ola 6 (ver CLAUDE.md, deuda técnica).
+
+---
+
 ## feat(seguridad): bloquea el acceso de usuarios con usua_activo=0 en login y en cada peticion autenticada (commit `a6c8f2e`) — 2026-10-16
 
 ### Contexto

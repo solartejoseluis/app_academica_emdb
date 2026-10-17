@@ -1,11 +1,27 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-10-16
-> Versión: 137 — Bloqueo de usuarios con `usua_activo = 0` en el login y en cada petición autenticada; último commit `a6c8f2e`
+> Última actualización: 2026-10-17
+> Versión: 138 — URL de traducción de DataTables unificada en `helpers.js` con `https://` explícito (corrige el error de CORS en local); último commit `5da6d82`
+> Versión anterior: 137 — Bloqueo de usuarios con `usua_activo = 0` en el login y en cada petición autenticada; último commit `a6c8f2e`
 > Versión anterior: 136 — Lista de columnas explícita en el `INSERT INTO docentes` del seed, que vuelve a importar completo; último commit `7f97820`
 > Versión anterior: 135 — Corrección del acudiente "Otro" al abrir un registro y al precargar la actualización de datos; último commit `bd7f9ec`
 > Versión anterior: 134 — Validación en el servidor de `estu_tipodoc` y `estu_telefono` (tipos PPT y RC; en edición se valida solo si el valor cambió); último commit `13b51e3`
 > Versión anterior: 133 — Etapa posterior a TRL5 (2026-10-03 a 2026-10-12): filtros por período/programa/docente, fechas en listados (B2 iniciada), escapado de HTML en toda la interfaz, y Retirar/Aplazar/Anular retiro/Reincorporar matrículas (`matr_origen_id`); último commit `32338a4`
+
+---
+
+## Ruta de trabajo aprobada (2026-10-17)
+
+Ruta de trabajo aprobada el 2026-10-17, solo software:
+- **Ola 1 — higiene y seguridad:** 1.1 CORS (hecho, `5da6d82`); 1.2 rol desactualizado en sesión; 1.3 `setSelectionRange`; 1.4 `.then`/`.done` ante `sesion_invalida`.
+- **Ola 2 — decisiones sobre retirados.**
+- **Ola 3 — continuidad académica.**
+- **Ola 4 — módulo `12_configuracion`** con sidebar del administrador.
+- **Ola 5 — cambios de esquema y datos:** Fase E, whitelist de `cali_n3`, N3 históricos, 54 registros con `XXX`.
+- **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery.
+- **Ola 7 — cierre documental y congelamiento de versión.**
+
+La validación TRL5 y el documento académico se tratan en otro chat; la entrega se movió a noviembre o diciembre de 2026.
 
 ---
 
@@ -30,9 +46,8 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | Fase F — módulo `12_configuracion` | Pendiente, sin iniciar | Análisis sin modificar código | CLAUDE.md, Phase 2.19 |
 | El nombre real de una estudiante sigue en el historial de git anterior a `32338a4` (commit `ff1a4db`: contenido, nombre de archivo y mensaje), ya publicado | Quitarlo exige reescribir el historial y forzar el push; GitHub puede conservar el commit antiguo en caché | Decisión de Jose Luis; si se hace, coordinar el re-clonado en cada equipo | CLAUDE.md, deuda técnica (2026-10-12) |
 | Deuda de Retirar/Aplazar/Reincorporar y pendientes del archivo de contexto (login sin `usua_activo` — **RESUELTO 2026-10-16, `a6c8f2e`** —, seed de `docentes` roto — **RESUELTO 2026-10-16, `7f97820`** —, validaciones de `estu_tipodoc`/`estu_telefono` — **RESUELTO 2026-10-14, `13b51e3`** —, bugs del modal de estudiante, ids 111-114 con documentos pendientes) | Ninguno bloquea la operación diaria | Priorizar con Jose Luis | CLAUDE.md, "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)" |
-| ~~Acudiente "Otro" se vacía al abrir "Datos Estudiante" (confirmado 2026-10-14)~~ **RESUELTO 2026-10-14, `bd7f9ec`** (al cargar un registro ya no se vacían los campos; ver CHANGELOG.md) | `abrirEditar()` llama a `manejarCambioAcudiente()`, que vacía los 8 campos del acudiente y bloquea el guardado con "Por favor complete todos los campos antes de guardar". Afecta a todo estudiante con acudiente "Otro" | Análisis sin modificar código: no limpiar los campos cuando la función se llama al cargar un registro | CLAUDE.md, deuda técnica ("Acudiente "Otro" y `setSelectionRange`...") |
-| `setSelectionRange` en el modal de estudiante (`est_ctrl.js`) | Reportado junto con el caso del acudiente "Otro"; sigue sin diagnóstico | Análisis sin modificar código: dónde se usa y en qué campo falla | CLAUDE.md, deuda técnica (fila "Acudiente "Otro"... y `setSelectionRange`...") |
-| Error de CORS al cargar `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json` desde una página `http` | Las tablas cargan con los textos de DataTables en inglés (una petición fallida por tabla); no bloquea la operación | Decidir entre servir el archivo localmente o usar `https://` explícito | CLAUDE.md, deuda técnica (2026-10-12, fila "Error de CORS...") |
+| Acudiente "Otro" y `setSelectionRange` en el modal de estudiante (`est_ctrl.js`): acudiente "Otro" **RESUELTO 2026-10-14, `bd7f9ec`**; `setSelectionRange` pendiente de diagnóstico | Reportados juntos; el acudiente "Otro" ya no vacía los campos al cargar un registro (ver CHANGELOG.md). `setSelectionRange` sigue sin diagnóstico | Análisis sin modificar código: dónde se usa `setSelectionRange` y en qué campo falla (Ola 1.3) | CLAUDE.md, deuda técnica (fila "Acudiente "Otro"... y `setSelectionRange`...") |
+| ~~Error de CORS al cargar `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json` desde una página `http`~~ **RESUELTO 2026-10-17, `5da6d82`** (constante `URL_IDIOMA_DATATABLES` en `helpers.js` con `https://` explícito; ver CHANGELOG.md) | Las tablas cargan con los textos de DataTables en inglés (una petición fallida por tabla); no bloquea la operación | Decidir entre servir el archivo localmente o usar `https://` explícito | CLAUDE.md, deuda técnica (2026-10-12, fila "Error de CORS...") |
 | Corregir los 54 registros de producción con `XXX` en tipo de documento y teléfono | La validación de `13b51e3` los tolera mientras no cambien; los corrige el coordinador desde "Datos Estudiante", sin script | Acordar con la coordinadora la corrección de los datos reales | CLAUDE.md, deuda técnica (fila "54 registros de producción con `XXX`...") |
 | El rol de la sesión no se refresca: si otro administrador cambia el rol de un usuario conectado, conserva el rol anterior hasta volver a iniciar sesión | Hallado al trabajar `a6c8f2e`; no bloquea la operación | Análisis: que `exigirUsuarioActivo()` también lea `role_id` | CLAUDE.md, deuda técnica (fila "El rol de la sesión no se refresca") |
 | Las 6 llamadas `.then`/`.done` (`doc_ctrl.js`, `grupos_ctrl.js`, `calificaciones_ctrl.js`) reciben igual la respuesta `sesion_invalida` | Podrían mostrar su propio mensaje de error antes de la redirección; sin reproducir | Reproducir en navegador con una sesión desactivada | CLAUDE.md, deuda técnica (fila "Llamadas `.then`/`.done`...") |
@@ -660,6 +675,9 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `7f97820` | fix(db): agrega lista de columnas al INSERT de docentes del seed | 2026-10-16 |
 | `66ade44` | docs: registra la correccion del seed de docentes | 2026-10-16 |
 | `a6c8f2e` | feat(seguridad): bloquea el acceso de usuarios con usua_activo=0 | 2026-10-16 |
+| `101b489` | docs: bloqueo de usuarios inactivos (a6c8f2e), nuevos pendientes y regla de verificación por petición | 2026-10-16 |
+| `14e5c17` | docs: franja horaria de las pruebas de verificación del 19 y 20 de septiembre | 2026-10-16 |
+| `5da6d82` | fix(frontend): unifica la URL de traducción de DataTables en helpers.js y usa https explícito | 2026-10-17 |
 
 ---
 
@@ -716,7 +734,8 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | ~~UI de segunda matrícula / multi-programa~~ (RESUELTO 2026-08-30, commit `f5c21e5`; indicador visual RESUELTO 2026-08-31, commit `1529832`) | El esquema ya permitía que un estudiante tuviera más de una fila en `matriculas` desde `3e551e5`, pero no existía ninguna UI para que el coordinador matriculara deliberadamente a un estudiante ya matriculado en un segundo programa. Implementado en `f5c21e5`: botón "➕ Matricular en otro programa" en `tablaMatriculados` (reutiliza `abrirMatricular()`/`#mdl_matricular`), contexto de matrículas previas en ese modal, sección "Programas matriculados" en el modal Datos Estudiante, validaciones que bloquean duplicar el mismo programa en `matricular`/`editar_matricula`, y fix del bug real de `total_modulos` que mezclaba módulos entre programas (ver CHANGELOG.md). El indicador visual tipo "2 programas" en las filas de Matriculados, evaluado y descartado en `f5c21e5`, se retomó a pedido explícito de Jose Luis y **sí se implementó finalmente** en el commit `1529832` (2026-08-31): badge "🎓 N programas" junto al apellido en `tablaMatriculados`, visible solo cuando el estudiante tiene 2+ matrículas, con el detalle (`"SIGLA — Estado"` por cada una) en el `title` — `tablaAspirantes` queda sin cambios por diseño, ese caso nunca aplica ahí. Ítem cerrado por completo, sin pendientes conocidos. |
 | `matr_estado_academico` se muestra en la UI pero sigue sin ningún mecanismo de edición (commit `3e551e5`, 2026-08-30 → actualizado en `b3a0296`, 2026-08-30) | La columna se agregó con su default `'Activo'` como preparación de esquema para la funcionalidad de multi-programa. Desde `b3a0296` (case `mis_programas` de `reportes_mdl.php`) **sí se lee y se muestra** — visible como "Estado actual" (badge de solo lectura) en la pestaña "Reporte por Estudiante" de `06_reportes`, tanto para el propio estudiante como para el coordinador consultando a otro. Lo que sigue pendiente es la escritura: ningún `case` de `est_mdl.php` ni de ningún otro `_mdl.php` permite todavía cambiar su valor (`SELECT` sí, `UPDATE` no en ningún lado). Pendiente: diseñar dónde y cómo se edita — la futura pestaña "Novedades" (Activo/Aplazamiento/Retirado por período) es el candidato natural. No implementar sin decisión explícita de Jose Luis. **Actualización 2026-10-11 (RESUELTO, commits `cef29d0`, `e74a089`, `9aea146`):** `matr_estado_academico` ya tiene mecanismo de edición — "🚫 Retirar / Aplazar" lo pone en `'Aplazamiento'` o `'Retirado'`; "↩️ Anular retiro", "↩️ Reincorporar" y la reactivación de un aspirante lo dejan en `'Activo'`. Se edita solo a través de esas acciones, sin campo libre. |
 | `mis_modulos` y `mis_notas` de `reportes_mdl.php` quedan sin llamador desde el frontend actual (commit `8d479a1`, 2026-08-30) | Estos 2 `case` alimentaban la interfaz "Mis Notas" del estudiante (un módulo a la vez, sin noción de período) que existía antes del rediseño de `06_reportes` — reemplazada por completo por "Reporte por Estudiante" (`mis_programas`/`mis_periodos`/`detalle_periodo`). `grupos_para_reporte` y `reporte_grupo` sí siguen con llamador activo (alimentan la pestaña "Reporte por Grupo", recuperada intacta en el mismo commit). Limpieza de código muerto diferida a una fase futura aparte — mismo criterio ya aplicado en otros ciclos del proyecto (ver `5de9a9e`). No implementar sin decisión explícita de Jose Luis. |
-| Nombre institucional sin centralizar en 3 de los 4 PDF del proyecto (commit `ef429bd`, 2026-08-30) | `pdf_boletin.php` ya lee `configuracion.institucion_nombre` en vez de hardcodear el nombre — pero `pdf_grupo.php`, `pdf_ficha.php` y `pdf_hoja_matricula.php` siguen con `"Escuela de Mecánica Dental Bolaños (EMDB)"` hardcodeado inline, cada uno por separado. Deliberadamente fuera de alcance de la Fase 2 de `06_reportes` (que solo tocó `pdf_boletin.php`). Pendiente de decisión futura: ¿vale la pena unificar los 4 archivos para que lean todos de `configuracion`? No implementar sin decisión explícita de Jose Luis. |
+
+**Nota (2026-10-17):** se quitó de esta tabla la fila "Nombre institucional sin centralizar en 3 de los 4 PDF del proyecto": los 4 PDF de `06_reportes` leen `configuracion.institucion_nombre` (resuelta en `6abbdae`).
 
 ---
 
