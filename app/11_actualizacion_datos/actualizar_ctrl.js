@@ -302,11 +302,20 @@ $(document).ready(function () {
     });
 
     // --- Minúsculas forzadas en vivo: correo electrónico ---
+    // En type="email" Chrome no expone la selección: selectionStart es null
+    // y setSelectionRange lanza InvalidStateError. Solo se reescribe el valor
+    // si cambia, y el cursor se restaura únicamente si el navegador lo expone.
     $('#npt_estu_email').on('input', function () {
-        const inicio = this.selectionStart;
-        const fin = this.selectionEnd;
-        $(this).val($(this).val().toLowerCase());
-        this.setSelectionRange(inicio, fin);
+        const original = this.value;
+        const minus = original.toLowerCase();
+        if (minus !== original) {
+            let inicio = null, fin = null;
+            try { inicio = this.selectionStart; fin = this.selectionEnd; } catch (e) {}
+            this.value = minus;
+            if (inicio !== null && fin !== null) {
+                try { this.setSelectionRange(inicio, fin); } catch (e) {}
+            }
+        }
     });
 
     // --- Multiculturalidad: exclusión mutua "No aplica" vs. el resto ---
