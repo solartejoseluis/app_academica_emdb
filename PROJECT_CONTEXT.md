@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-10-17
-> Versión: 138 — URL de traducción de DataTables unificada en `helpers.js` con `https://` explícito (corrige el error de CORS en local); último commit `5da6d82`
+> Última actualización: 2026-10-19
+> Versión: 139 — La sesión se cierra si el rol del usuario cambia en la BD; `08_admin` crea y edita solo roles 1 y 2; último commit `690e663`
+> Versión anterior: 138 — URL de traducción de DataTables unificada en `helpers.js` con `https://` explícito (corrige el error de CORS en local); último commit `5da6d82`
 > Versión anterior: 137 — Bloqueo de usuarios con `usua_activo = 0` en el login y en cada petición autenticada; último commit `a6c8f2e`
 > Versión anterior: 136 — Lista de columnas explícita en el `INSERT INTO docentes` del seed, que vuelve a importar completo; último commit `7f97820`
 > Versión anterior: 135 — Corrección del acudiente "Otro" al abrir un registro y al precargar la actualización de datos; último commit `bd7f9ec`
@@ -13,7 +14,7 @@
 ## Ruta de trabajo aprobada (2026-10-17)
 
 Ruta de trabajo aprobada el 2026-10-17, solo software:
-- **Ola 1 — higiene y seguridad:** 1.1 CORS (hecho, `5da6d82`); 1.2 rol desactualizado en sesión; 1.3 `setSelectionRange`; 1.4 `.then`/`.done` ante `sesion_invalida`.
+- **Ola 1 — higiene y seguridad:** 1.1 CORS (hecho, `5da6d82`); 1.2 rol desactualizado en sesión (hecho, `690e663`); quedan 1.3 `setSelectionRange` y 1.4 `.then`/`.done` ante `sesion_invalida`.
 - **Ola 2 — decisiones sobre retirados.**
 - **Ola 3 — continuidad académica.**
 - **Ola 4 — módulo `12_configuracion`** con sidebar del administrador.
@@ -49,9 +50,10 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | Acudiente "Otro" y `setSelectionRange` en el modal de estudiante (`est_ctrl.js`): acudiente "Otro" **RESUELTO 2026-10-14, `bd7f9ec`**; `setSelectionRange` pendiente de diagnóstico | Reportados juntos; el acudiente "Otro" ya no vacía los campos al cargar un registro (ver CHANGELOG.md). `setSelectionRange` sigue sin diagnóstico | Análisis sin modificar código: dónde se usa `setSelectionRange` y en qué campo falla (Ola 1.3) | CLAUDE.md, deuda técnica (fila "Acudiente "Otro"... y `setSelectionRange`...") |
 | ~~Error de CORS al cargar `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json` desde una página `http`~~ **RESUELTO 2026-10-17, `5da6d82`** (constante `URL_IDIOMA_DATATABLES` en `helpers.js` con `https://` explícito; ver CHANGELOG.md) | Las tablas cargan con los textos de DataTables en inglés (una petición fallida por tabla); no bloquea la operación | Decidir entre servir el archivo localmente o usar `https://` explícito | CLAUDE.md, deuda técnica (2026-10-12, fila "Error de CORS...") |
 | Corregir los 54 registros de producción con `XXX` en tipo de documento y teléfono | La validación de `13b51e3` los tolera mientras no cambien; los corrige el coordinador desde "Datos Estudiante", sin script | Acordar con la coordinadora la corrección de los datos reales | CLAUDE.md, deuda técnica (fila "54 registros de producción con `XXX`...") |
-| El rol de la sesión no se refresca: si otro administrador cambia el rol de un usuario conectado, conserva el rol anterior hasta volver a iniciar sesión | Hallado al trabajar `a6c8f2e`; no bloquea la operación | Análisis: que `exigirUsuarioActivo()` también lea `role_id` | CLAUDE.md, deuda técnica (fila "El rol de la sesión no se refresca") |
+| ~~El rol de la sesión no se refresca: si otro administrador cambia el rol de un usuario conectado, conserva el rol anterior hasta volver a iniciar sesión~~ **RESUELTO 2026-10-19, `690e663`** (`exigirUsuarioActivo()` compara `role_id` con el de la sesión y la cierra si difiere; ver CHANGELOG.md) | Hallado al trabajar `a6c8f2e`; no bloquea la operación | Análisis: que `exigirUsuarioActivo()` también lea `role_id` | CLAUDE.md, deuda técnica (fila "El rol de la sesión no se refresca") |
 | Las 6 llamadas `.then`/`.done` (`doc_ctrl.js`, `grupos_ctrl.js`, `calificaciones_ctrl.js`) reciben igual la respuesta `sesion_invalida` | Podrían mostrar su propio mensaje de error antes de la redirección; sin reproducir | Reproducir en navegador con una sesión desactivada | CLAUDE.md, deuda técnica (fila "Llamadas `.then`/`.done`...") |
 | `estu_activo` no tiene ningún escritor en la aplicación y siempre vale 1 | Falta decidir si se usa o se retira | Decisión de Jose Luis | CLAUDE.md, deuda técnica (fila "`estu_activo` sin escritor") |
+| Producción tiene 34 usuarios con rol estudiante (eran 27 al cierre de `a6c8f2e`, 2026-10-16) | Aumento atribuido a accesos creados al matricular, sin verificar | Consultar en producción las fechas de creación de esos 7 usuarios y cruzarlas con las matrículas del período | CHANGELOG.md, entrada de `690e663`, sección "Despliegue" |
 
 **Nota de vocabulario (2026-10-12):** la fila "Notas de estudiantes retirados que reaparecen al reincorporarlos al mismo grupo módulo" de esta tabla habla del retiro de roster (`retirar_estudiante`, `04_grupos`). Desde el 2026-10-11 existe además el retiro de matrícula (`retirar_matricula`, `02_estudiantes`), que conserva el roster y las notas; ver CLAUDE.md, "Retirar, Aplazar, Anular retiro y Reincorporar matrículas".
 
@@ -678,6 +680,8 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `101b489` | docs: bloqueo de usuarios inactivos (a6c8f2e), nuevos pendientes y regla de verificación por petición | 2026-10-16 |
 | `14e5c17` | docs: franja horaria de las pruebas de verificación del 19 y 20 de septiembre | 2026-10-16 |
 | `5da6d82` | fix(frontend): unifica la URL de traducción de DataTables en helpers.js y usa https explícito | 2026-10-17 |
+| `35cd703` | docs: registra la unificación de la URL de traducción de DataTables (5da6d82), la ruta de trabajo aprobada y nuevos pendientes | 2026-10-17 |
+| `690e663` | fix(seguridad): cierra la sesión si el rol cambia en la BD y limita crear/editar de Administración a roles 1 y 2 | 2026-10-19 |
 
 ---
 

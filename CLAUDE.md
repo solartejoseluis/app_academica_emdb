@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-10-17 — último commit citado: 5da6d82
+> Última actualización: 2026-10-19 — último commit citado: 690e663
 
 ## Reglas de documentación
 
@@ -1026,6 +1026,8 @@ Cuando un módulo nuevo es exclusivo de un solo rol (ej. role_id === 1), replica
 
 Ejemplo: 10_ayudas (commit `f801bdb`, 2026-08-16), replicando 08_admin.
 
+**Roles que gestiona 08_admin (commit `690e663`, 2026-10-19):** `crear` y `editar` de `admin_mdl.php` aceptan solo `role_id` 1 o 2, y `editar` exige además que el usuario objetivo ya tenga rol 1 o 2. Docentes y estudiantes se gestionan desde `03_docentes` y `02_estudiantes`.
+
 ### Endpoint de lectura abierto a todos los roles autenticados (sin chequeo de role_id)
 
 Cuando un dato debe ser legible por cualquier rol pero editable solo por uno (ej. contenido de ayuda: todos lo leen, solo Admin lo edita), el endpoint de lectura usa únicamente isset($_SESSION['usua_id']) como guard, sin chequeo de role_id — distinto de los patrones habituales del proyecto (in_array($role_id, [1,2]) o role_id !== 1). No aplicar este patrón por descuido: documentarlo inline en el código como decisión deliberada, no como guard olvidado.
@@ -1097,6 +1099,8 @@ $accion = $_GET['accion'] ?? '';
 ```
 
 Primer uso: commit `a6c8f2e` (2026-10-16).
+
+Desde el commit `690e663` (2026-10-19), `exigirUsuarioActivo()` compara además `usuarios.role_id` con `$_SESSION['role_id']` y cierra la sesión si difiere (o si la sesión no tiene `role_id`), con el mismo mensaje genérico. Un cambio de rol exige volver a iniciar sesión: el login arma de nuevo `role_id`, `doce_id`, `doce_sigla` y `estu_id`.
 
 ### Registro de "último acceso": guardar el valor anterior en sesión antes de sobreescribir
 
@@ -1807,7 +1811,7 @@ Hallazgos de la revisión de los commits `f7b0e92` a `32338a4`. Ninguno se imple
 | ~~El login no verifica `usua_activo` (confirmado)~~ (RESUELTO 2026-10-16, commit `a6c8f2e`) | **Resuelto:** el login rechaza al usuario inactivo y cada petición autenticada verifica `usua_activo` con `exigirUsuarioActivo()` (ver "Toda petición autenticada verifica `usua_activo`" en Patrones de ingeniería). Detalle en CHANGELOG.md. Texto original del hallazgo, conservado: `01_login` no consulta `usuarios.usua_activo`: un usuario desactivado desde `08_admin` o `03_docentes` sigue pudiendo entrar. |
 | Creación de login con documento nulo | `matricular`/`gestionar_clave` usan `estu_numerodoc` como `usua_login`; con un documento `NULL` o vacío el acceso se crearía sin login válido. Pendiente: rechazar la creación de acceso sin documento. |
 | `estu_numerodoc` puede ser `NULL` en datos reales | Los listados y PDF lo toleran desde `bdcc6e2`/`26055f3` (muestran "—"). Todo código nuevo que lea esa columna contempla el `NULL`. |
-| El rol de la sesión no se refresca | `role_id` se lee de `$_SESSION`. Si otro administrador cambia el rol de un usuario conectado, ese usuario conserva el rol anterior hasta volver a iniciar sesión. Solución posible: que `exigirUsuarioActivo()` también lea `role_id` en la misma consulta. Hallado al trabajar `a6c8f2e` (2026-10-16). |
+| ~~El rol de la sesión no se refresca~~ (RESUELTO 2026-10-19, commit `690e663`) | **Resuelto:** `exigirUsuarioActivo()` lee `usua_activo` y `role_id` en la misma consulta y cierra la sesión si el usuario no existe, está inactivo, la sesión no tiene `role_id` o el rol de la BD difiere del de la sesión; el usuario vuelve a iniciar sesión con su rol nuevo. El mismo commit limita `crear`/`editar` de `08_admin` a los roles 1 y 2. Detalle en CHANGELOG.md. Texto original del hallazgo, conservado: ~~`role_id` se lee de `$_SESSION`. Si otro administrador cambia el rol de un usuario conectado, ese usuario conserva el rol anterior hasta volver a iniciar sesión. Solución posible: que `exigirUsuarioActivo()` también lea `role_id` en la misma consulta. Hallado al trabajar `a6c8f2e` (2026-10-16).~~ |
 | Llamadas `.then`/`.done` y la respuesta `sesion_invalida` | Las 6 llamadas en estilo promesa (`doc_ctrl.js`, `grupos_ctrl.js`, `calificaciones_ctrl.js`) reciben igual la respuesta `sesion_invalida`, porque el `$.ajaxPrefilter` de `helpers.js` solo envuelve `success`. Podrían mostrar su propio mensaje de error antes de la redirección. Sin reproducir. |
 | `estu_activo` sin escritor | Ningún `case` de la aplicación escribe `estudiantes.estu_activo`; siempre vale 1. `retirar_matricula` tampoco lo toca. |
 | jQuery con dos versiones (3.7.0 y 3.7.1) entre vistas | 3.7.0 en `grupos_view.php`, `calificaciones_view.php`, `reportes_view.php` y `coordinador_view.php`; 3.7.1 en `est_view.php`, `doc_view.php`, `admin_view.php`, `ayud_view.php`, `insc_view.php` y `actualizar_view.php`. Sin fallas conocidas. Hallado en el diagnóstico de `5da6d82` (2026-10-17). No unificar sin decisión de Jose Luis. |

@@ -4,6 +4,35 @@
 
 ---
 
+## fix(seguridad): cierra la sesión si el rol cambia en la BD y limita crear/editar de Administración a roles 1 y 2 (commit `690e663`) — 2026-10-19
+
+### Contexto
+`role_id` se leía de `$_SESSION` en 128 lugares (110 en `_mdl.php`, 19 en vistas, 5 en PDF y 1 en `navbar.php`) y no se refrescaba: si un administrador cambiaba el rol de un usuario conectado, ese usuario conservaba el rol anterior hasta cerrar sesión. Hallado al trabajar `a6c8f2e`.
+
+### Cambio
+- `app/00_files/helpers.php`: `exigirUsuarioActivo()` consulta `SELECT usua_activo, role_id` y cierra la sesión (mismo mecanismo y mismo mensaje genérico de `sesion_invalida`) cuando el usuario no existe, está inactivo, la sesión no tiene `role_id` o el `role_id` de la BD difiere del de la sesión.
+- No se tocaron `check_session.php`, los `_mdl.php` ni las 128 lecturas de `role_id`.
+- `app/08_admin/admin_mdl.php`: `crear` y `editar` aceptan solo `role_id` 1 o 2 (comparación estricta); `editar` exige además que el rol actual del usuario objetivo sea 1 o 2, dentro de la transacción, tras el `SELECT ... FOR UPDATE`. Se conservan las protecciones existentes (no cambiar el propio rol, no desactivarse, no dejar cero administradores activos).
+- Sin cambios de base de datos.
+
+### Decisión
+- Se eligió cerrar la sesión (el login arma de nuevo `role_id`, `doce_id`, `doce_sigla` y `estu_id`) en vez de actualizar `role_id` en la sesión, que habría exigido recalcular `doce_id`/`estu_id` y dejado combinaciones inconsistentes.
+- Hallazgo: `crear` no limitaba el rol y `editar` no limitaba ni el usuario objetivo ni el rol recibido; con una petición armada a mano un administrador podía convertir un docente o un estudiante en otro rol (riesgo bajo, requería sesión de administrador).
+
+### Pruebas
+- `curl` con sesiones PHP reales en los 4 roles: vista, AJAX y PDF sin cambios.
+- Rol cambiado en la BD con sesión abierta (coordinador a rol 1, docente a rol 4): redirección al login en vista y PDF, y `sesion_invalida` en AJAX. Una sesión sin `role_id` queda invalidada.
+- `editar`/`crear` con roles 3 y 99: rechazados.
+- Playwright con 4 DataTables: un solo aviso y la redirección al login.
+- Métricas verificadas por CLI: `metr_usua_id` en `NULL` en las peticiones invalidadas.
+- `CHECKSUM TABLE` de las 24 tablas idéntico; `matriculas` = 122.
+- Pasada manual en local correcta.
+
+### Despliegue
+2 archivos (`helpers.php` y `admin_mdl.php`), sin cambios de BD, a dev y producción el 2026-10-19, con una segunda sesión de administrador abierta. Línea base: dev con 25 usuarios (1 administrador inactivo desde antes); producción con 52 usuarios, todos activos (3 administradores, 2 coordinadores, 13 docentes y 34 estudiantes). Nadie fue expulsado.
+
+---
+
 ## fix(frontend): unifica la URL de traducción de DataTables en helpers.js y usa https explícito (commit `5da6d82`) — 2026-10-17
 
 ### Contexto
