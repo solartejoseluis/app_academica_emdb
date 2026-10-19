@@ -4,6 +4,30 @@
 
 ---
 
+## Diagnóstico — llamadas .then/.done ante sesion_invalida (sin commit de código) — 2026-10-19
+
+### Contexto
+La deuda registrada el 2026-10-16 temía que 6 llamadas en estilo promesa (`doc_ctrl.js`, `grupos_ctrl.js`, `calificaciones_ctrl.js`) mostraran su propio mensaje antes de la redirección, porque el `$.ajaxPrefilter` de `helpers.js` solo envuelve `success`.
+
+### Hallazgos
+- El prefiltro envuelve solo `success`. El evento global `ajaxSuccess` cubre las llamadas sin `success` (ninguna usa `global: false`) y dispara un solo aviso y la redirección (bandera `sesionInvalidaAtendida`), pero no impide que sus `.done`/`.then`/`.always` corran.
+- Son 5 llamadas `$.ajax` sin `success`, con 6 consumidores:
+  - `doc_ctrl.js:35` (`listar_periodos`): la DataTable queda en "Cargando...".
+  - `grupos_ctrl.js:1330` (`listar_modulos_por_programa`): los consumidores de las líneas 904 y 1355 abren `#mdl_modulo_grupo` vacío.
+  - `calificaciones_ctrl.js:924/930/939`, con `$.when(...).done` en la línea 946: pinta "Configura al menos una actividad para comenzar.".
+- Ninguna tiene `alert` en su rama de error.
+- Playwright con un coordinador ficticio, en 4 escenarios: un solo aviso ("Su sesión ya no es válida. Inicie sesión de nuevo.") y redirección al login en todos; lo que corre después solo es visible un instante.
+- Hallazgo adicional: solo la primera petición recibe `sesion_invalida`, porque la sesión se destruye al responderla. Las siguientes llegan como `{status:'error', message:'Sesión no válida'}` sin `codigo`, el prefiltro no las reconoce y DataTables deja un `TypeError` en consola. Sin efecto visible; afecta también a llamadas con `success`.
+
+### Decisión
+Opción C: cerrar sin cambios de código. El temor de la deuda no se cumple y los efectos son cosméticos. Descartadas: A (`dataFilter` global en `helpers.js`, que toca todas las peticiones AJAX) y B (ajustar las 5 llamadas), que queda como mejora opcional de la Ola 6.
+
+### Pruebas
+- Usuario ficticio y sesión de prueba borrados.
+- `CHECKSUM TABLE` de las 24 tablas idéntico; `matriculas` = 122.
+
+---
+
 ## fix(frontend): corrige el listener de minúsculas del correo (setSelectionRange en type=email) y conserva el cursor en el separador de miles del documento (commit `5d9f8c4`) — 2026-10-19
 
 ### Contexto

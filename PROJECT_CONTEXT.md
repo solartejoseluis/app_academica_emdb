@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-10-19
-> Versión: 140 — Listener de minúsculas del correo sin `setSelectionRange` sobre `type="email"` y cursor conservado en el separador de miles del documento; corrección de datos de una matrícula sucesora de ASO; último commit `5d9f8c4`
+> Versión: 141 — Diagnóstico de las llamadas `.then`/`.done` ante `sesion_invalida`, cerrado sin cambios de código (Ola 1 completa); último commit `5d9f8c4` (más `4436a85` de documentación)
+> Versión anterior: 140 — Listener de minúsculas del correo sin `setSelectionRange` sobre `type="email"` y cursor conservado en el separador de miles del documento; corrección de datos de una matrícula sucesora de ASO; último commit `5d9f8c4`
 > Versión anterior: 139 — La sesión se cierra si el rol del usuario cambia en la BD; `08_admin` crea y edita solo roles 1 y 2; último commit `690e663`
 > Versión anterior: 138 — URL de traducción de DataTables unificada en `helpers.js` con `https://` explícito (corrige el error de CORS en local); último commit `5da6d82`
 > Versión anterior: 137 — Bloqueo de usuarios con `usua_activo = 0` en el login y en cada petición autenticada; último commit `a6c8f2e`
@@ -15,12 +16,12 @@
 ## Ruta de trabajo aprobada (2026-10-17)
 
 Ruta de trabajo aprobada el 2026-10-17, solo software:
-- **Ola 1 — higiene y seguridad:** 1.1 CORS (hecho, `5da6d82`); 1.2 rol desactualizado en sesión (hecho, `690e663`); 1.3 `setSelectionRange` (hecho, `5d9f8c4`); queda 1.4 `.then`/`.done` ante `sesion_invalida`.
-- **Ola 2 — decisiones sobre retirados.**
+- **Ola 1 — higiene y seguridad:** 1.1 CORS (hecho, `5da6d82`); 1.2 rol desactualizado en sesión (hecho, `690e663`); 1.3 `setSelectionRange` (hecho, `5d9f8c4`); 1.4 `.then`/`.done` ante `sesion_invalida` (cerrado por análisis, sin cambios de código). **Ola 1 completa.**
+- **Ola 2 — decisiones sobre retirados (siguiente):** sesión de decisiones sobre el acceso del estudiante retirado, el criterio único de "retirado", la pestaña Retirados sin acciones, los listados sin filtro de retirados y la reincorporación sin módulos.
 - **Ola 3 — continuidad académica:** incluye la opción A: avanzar matrículas `cursado` desde Per. Anteriores (ver CLAUDE.md, deuda técnica).
 - **Ola 4 — módulo `12_configuracion`** con sidebar del administrador.
 - **Ola 5 — cambios de esquema y datos:** Fase E, whitelist de `cali_n3`, N3 históricos, 54 registros con `XXX`.
-- **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery.
+- **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery, opción B de `.then`/`.done` (modales vacíos ante errores del servidor).
 - **Ola 7 — cierre documental y congelamiento de versión.**
 
 La validación TRL5 y el documento académico se tratan en otro chat; la entrega se movió a noviembre o diciembre de 2026.
@@ -52,7 +53,7 @@ Nada de esto se implementa durante la ventana de validación (19 sep - 2 oct 202
 | ~~Error de CORS al cargar `//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json` desde una página `http`~~ **RESUELTO 2026-10-17, `5da6d82`** (constante `URL_IDIOMA_DATATABLES` en `helpers.js` con `https://` explícito; ver CHANGELOG.md) | Las tablas cargan con los textos de DataTables en inglés (una petición fallida por tabla); no bloquea la operación | Decidir entre servir el archivo localmente o usar `https://` explícito | CLAUDE.md, deuda técnica (2026-10-12, fila "Error de CORS...") |
 | Corregir los 54 registros de producción con `XXX` en tipo de documento y teléfono | La validación de `13b51e3` los tolera mientras no cambien; los corrige el coordinador desde "Datos Estudiante", sin script | Acordar con la coordinadora la corrección de los datos reales | CLAUDE.md, deuda técnica (fila "54 registros de producción con `XXX`...") |
 | ~~El rol de la sesión no se refresca: si otro administrador cambia el rol de un usuario conectado, conserva el rol anterior hasta volver a iniciar sesión~~ **RESUELTO 2026-10-19, `690e663`** (`exigirUsuarioActivo()` compara `role_id` con el de la sesión y la cierra si difiere; ver CHANGELOG.md) | Hallado al trabajar `a6c8f2e`; no bloquea la operación | Análisis: que `exigirUsuarioActivo()` también lea `role_id` | CLAUDE.md, deuda técnica (fila "El rol de la sesión no se refresca") |
-| Las 6 llamadas `.then`/`.done` (`doc_ctrl.js`, `grupos_ctrl.js`, `calificaciones_ctrl.js`) reciben igual la respuesta `sesion_invalida` | Podrían mostrar su propio mensaje de error antes de la redirección; sin reproducir | Reproducir en navegador con una sesión desactivada | CLAUDE.md, deuda técnica (fila "Llamadas `.then`/`.done`...") |
+| ~~Las 6 llamadas `.then`/`.done` (`doc_ctrl.js`, `grupos_ctrl.js`, `calificaciones_ctrl.js`) reciben igual la respuesta `sesion_invalida`~~ **RESUELTO por análisis 2026-10-19, sin commit de código** (un solo aviso y redirección en los 4 escenarios; ninguna muestra mensaje propio; ver CHANGELOG.md) | Podrían mostrar su propio mensaje de error antes de la redirección; sin reproducir | — | CLAUDE.md, deuda técnica (fila "Llamadas `.then`/`.done`...") |
 | `estu_activo` no tiene ningún escritor en la aplicación y siempre vale 1 | Falta decidir si se usa o se retira | Decisión de Jose Luis | CLAUDE.md, deuda técnica (fila "`estu_activo` sin escritor") |
 | Producción tiene 34 usuarios con rol estudiante (eran 27 al cierre de `a6c8f2e`, 2026-10-16) | Aumento atribuido a accesos creados al matricular, sin verificar | Consultar en producción las fechas de creación de esos 7 usuarios y cruzarlas con las matrículas del período | CHANGELOG.md, entrada de `690e663`, sección "Despliegue" |
 
@@ -687,6 +688,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `690e663` | fix(seguridad): cierra la sesión si el rol cambia en la BD y limita crear/editar de Administración a roles 1 y 2 | 2026-10-19 |
 | `16350ce` | docs: registra el cierre de sesión por cambio de rol y la lista blanca de roles en Administración (690e663) | 2026-10-19 |
 | `5d9f8c4` | fix(frontend): corrige el listener de minúsculas del correo (setSelectionRange en type=email) y conserva el cursor en el separador de miles del documento | 2026-10-19 |
+| `4436a85` | docs: registra la corrección del listener del correo y del cursor del documento | 2026-10-19 |
 
 ---
 
