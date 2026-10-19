@@ -4,6 +4,49 @@
 
 ---
 
+## fix(frontend): corrige el listener de minúsculas del correo (setSelectionRange en type=email) y conserva el cursor en el separador de miles del documento (commit `5d9f8c4`) — 2026-10-19
+
+### Contexto
+En `est_ctrl.js`, `insc_ctrl.js` y `actualizar_ctrl.js`, el listener de `#npt_estu_email` llamaba a `setSelectionRange` sobre un input `type="email"`, que en Chrome no admite selección: `selectionStart` devuelve `null` y `setSelectionRange` lanza `InvalidStateError`. Resultado: un `pageerror` por cada tecla (39 en la prueba), también en las páginas públicas. Además, el listener del número de documento (separador de miles) reescribía el valor sin conservar el cursor, que saltaba al final al editar un dígito intermedio.
+
+### Cambio
+- Listener del correo (los 3 controladores): pone las minúsculas solo si el valor cambia, lee la selección dentro de `try/catch` y restaura el cursor solo si `selectionStart` no es `null`. Se conserva `type="email"`.
+- Listener del documento (`est_ctrl.js` e `insc_ctrl.js`; `actualizar_view.php` no lo tiene): cuenta los dígitos a la izquierda del cursor y, tras reformatear, lo deja después del mismo número de dígitos. El formato y el valor enviado (sin puntos) no cambian.
+- Sin cambios de PHP ni de base de datos.
+
+### Decisión
+- Se corrigieron los tres controladores a la vez, por la regla de formularios duplicados sincronizados.
+- Limitación: en `type="email"` Chrome no expone el cursor, así que al escribir una mayúscula en medio del texto el cursor puede saltar al final. La alternativa (`type="text"` con `inputmode="email"`, que pierde la validación nativa) queda para la Ola 6.
+
+### Pruebas
+- Playwright headless en las tres páginas (`actualizar_view.php` con un token de prueba): 0 `pageerror` (antes 39).
+- Documento `1.234.567` con "9" y "8" tras "1.2": `129.834.567` (antes `129.345.678`). Pegado y Backspace en un dígito intermedio sin salto del cursor.
+- `validarFormatoEmail`, `campo-lleno` y el payload (documento sin puntos) intactos, verificados interceptando el envío sin guardar.
+- Estudiante ficticio, solicitud y sesiones de prueba borrados.
+- `CHECKSUM TABLE` de las 24 tablas idéntico; `matriculas` = 122.
+- Pasada manual en local correcta.
+
+### Despliegue
+3 archivos JS, sin cambios de BD, a dev y producción el 2026-10-19.
+
+---
+
+## Corrección de datos — matrícula sucesora de una estudiante de ASO que aprobó 2026-1 (sin commit de código) — 2026-10-19
+
+### Contexto
+Una estudiante de ASO con su matrícula en `cursado` (migración histórica de 2026-1, semestre 1 de 4) no aparecía en Matriculados (Per. Actual) y no podía asignarse al grupo `ASO_2026-2_S2_SAB`. En producción tenía las 5 definitivas pobladas (habilitación en 2 módulos) y un promedio de 3.18; el diagnóstico local estaba desactualizado. "Matricular al sgte. sem." solo existe en Per. Actual, y el servidor exige `matr_estado = 'matriculado'`.
+
+### Acción
+Respaldo previo de la BD de producción y script puntual idempotente (vista previa, aplicación, verificación) que replica el `INSERT` de `avanzar_semestre`: semestre 2, misma cohorte, `matriculado` + `Activo`, período activo. 1 fila insertada y verificada. La matrícula original no se tocó. El script no está en el repositorio.
+
+### Lección operativa
+En phpMyAdmin cada consulta puede correr en una conexión distinta: las variables de usuario (`SET @doc`) se pierden entre bloques, así que el valor va escrito dentro de cada consulta.
+
+### Pendiente
+Sus requisitos documentales no se asignaron (deuda conocida de `avanzar_semestre`). La asignación al grupo se completó desde la aplicación.
+
+---
+
 ## fix(seguridad): cierra la sesión si el rol cambia en la BD y limita crear/editar de Administración a roles 1 y 2 (commit `690e663`) — 2026-10-19
 
 ### Contexto
