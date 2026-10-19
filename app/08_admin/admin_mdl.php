@@ -87,6 +87,12 @@ switch ($accion) {
             echo json_encode(['status' => 'error', 'message' => 'Todos los campos son requeridos']);
             break;
         }
+        // Administración solo crea administradores y coordinadores; docentes
+        // y estudiantes se crean desde 03_docentes y 02_estudiantes.
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Este rol no se gestiona desde Administración.']);
+            break;
+        }
 
         try {
             $pdo = getConexion();
@@ -130,6 +136,13 @@ switch ($accion) {
             echo json_encode(['status' => 'error', 'message' => 'Datos incompletos']);
             break;
         }
+        // Solo administradores y coordinadores, antes y después de editar:
+        // docentes y estudiantes tienen fila en docentes/estudiantes y se
+        // gestionan desde sus módulos.
+        if (!in_array($role_id, [1, 2], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'Este usuario no se gestiona desde Administración.']);
+            break;
+        }
 
         try {
             $pdo = getConexion();
@@ -143,6 +156,9 @@ switch ($accion) {
             $actual = $stmtAct->fetch();
             if (!$actual) {
                 throw new Exception('Usuario no encontrado');
+            }
+            if (!in_array((int)$actual['role_id'], [1, 2], true)) {
+                throw new Exception('Este usuario no se gestiona desde Administración.');
             }
             if ($usua_id === (int)$_SESSION['usua_id']) {
                 if ($usua_activo !== 1) {

@@ -120,9 +120,12 @@ function normalizarTelefono(string $v): ?string {
     return preg_match('/^[0-9]{7,15}$/', $limpio) ? $limpio : null;
 }
 
-// Corta la sesión de un usuario desactivado (usuarios.usua_activo = 0) o
-// eliminado. Una consulta por petición, por clave primaria, sin caché: el
-// bloqueo aplica en la petición siguiente a la desactivación. Sin
+// Corta la sesión de un usuario desactivado (usuarios.usua_activo = 0),
+// eliminado, o cuyo role_id en la BD ya no coincide con el de la sesión (o
+// la sesión no tiene role_id): al volver a entrar, el login arma la sesión
+// del rol nuevo (doce_id, estu_id). Una consulta por petición, por clave
+// primaria, sin caché: el bloqueo aplica en la petición siguiente al
+// cambio. El mensaje no dice el motivo. Sin
 // $_SESSION['usua_id'] no hace nada (cada endpoint responde su propio
 // "Sesión no válida"). Para AJAX responde HTTP 200 con el envelope de error y
 // codigo 'sesion_invalida', que helpers.js atiende de forma global; para
@@ -131,10 +134,13 @@ function exigirUsuarioActivo(PDO $pdo, bool $esAjax): void {
     if (!isset($_SESSION['usua_id'])) {
         return;
     }
-    $stmt = $pdo->prepare("SELECT usua_activo FROM usuarios WHERE usua_id = ?");
+    $stmt = $pdo->prepare("SELECT usua_activo, role_id FROM usuarios WHERE usua_id = ?");
     $stmt->execute([(int)$_SESSION['usua_id']]);
     $fila = $stmt->fetch();
-    if ($fila && (int)$fila['usua_activo'] === 1) {
+    if ($fila
+        && (int)$fila['usua_activo'] === 1
+        && isset($_SESSION['role_id'])
+        && (int)$fila['role_id'] === (int)$_SESSION['role_id']) {
         return;
     }
     session_unset();
