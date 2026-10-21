@@ -53,6 +53,12 @@ switch ($accion) {
                 break;
             }
             $pdo = getConexion();
+            // total_estudiantes cuenta solo a los estudiantes vigentes: el
+            // retirado del período activo se excluye con la misma regla que
+            // la planilla (sqlNoRetiradoPeriodoActivo() en helpers.php). El
+            // reporte del grupo sí lo muestra, marcado (reporte_grupo). La
+            // condición va en el ON del LEFT JOIN para no perder los grupos
+            // sin estudiantes, que siguen apareciendo con 0.
             $stmt = $pdo->prepare("
                 SELECT gm.grmo_id, m.modu_nombre, m.modu_sigla,
                        gs.grse_codigo, d.doce_id, d.doce_nombres, d.doce_apellidos,
@@ -66,6 +72,7 @@ switch ($accion) {
                 JOIN programas p ON gs.prog_id = p.prog_id
                 JOIN docentes d ON gm.doce_id = d.doce_id
                 LEFT JOIN grmoestudiantes ge ON gm.grmo_id = ge.grmo_id
+                    AND " . sqlNoRetiradoPeriodoActivo('ge') . "
                 WHERE gm.grmo_activo = 1
                 GROUP BY gm.grmo_id
                 ORDER BY gs.grse_codigo, m.modu_orden

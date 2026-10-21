@@ -467,12 +467,19 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $grse_id = (int)($_POST['grse_id'] ?? 0);
+            // total_estudiantes es un conteo operativo: excluye al retirado
+            // del período activo con la misma regla que listar_grupos
+            // (sqlNoRetiradoPeriodoActivo() en helpers.php), para que este
+            // modal y la columna "# Estud" de Grupos Semestre den el mismo
+            // número. Los grupos de períodos cerrados conservan su conteo.
             $stmt = $pdo->prepare("
                 SELECT gm.grmo_id, gm.grmo_horario, gm.fechainicio, gm.fechafin, gm.grmo_activo,
                        gm.modu_id, gm.doce_id,
                        m.modu_nombre, m.modu_sigla,
                        d.doce_nombres, d.doce_apellidos, d.doce_sigla,
-                       (SELECT COUNT(*) FROM grmoestudiantes ge WHERE ge.grmo_id = gm.grmo_id) AS total_estudiantes
+                       (SELECT COUNT(*) FROM grmoestudiantes ge
+                        WHERE ge.grmo_id = gm.grmo_id
+                          AND " . sqlNoRetiradoPeriodoActivo('ge') . ") AS total_estudiantes
                 FROM gruposmodulos gm
                 INNER JOIN modulos m ON gm.modu_id = m.modu_id
                 INNER JOIN docentes d ON gm.doce_id = d.doce_id
@@ -642,9 +649,14 @@ switch ($accion) {
         try {
             $pdo = getConexion();
             $grmo_id = (int)($_POST['grmo_id'] ?? 0);
+            // Panel "Asignados": el retirado del período activo SÍ aparece,
+            // porque es el único lugar desde donde se lo quita del roster.
+            // retiro_tipo ('Aplazamiento' | 'Retirado' | NULL, ver
+            // sqlTipoRetiroPeriodoActivo() en helpers.php) permite marcarlo.
             $stmt = $pdo->prepare("
                 SELECT e.estu_id, e.estu_nombres, e.estu_apellidos, e.estu_numerodoc,
-                       c.coho_codigo, mt.matr_semestre, p.prog_duracion_semestres
+                       c.coho_codigo, mt.matr_semestre, p.prog_duracion_semestres,
+                       " . sqlTipoRetiroPeriodoActivo('ge') . " AS retiro_tipo
                 FROM grmoestudiantes ge
                 INNER JOIN estudiantes e ON ge.estu_id = e.estu_id
                 INNER JOIN gruposmodulos gm ON ge.grmo_id = gm.grmo_id

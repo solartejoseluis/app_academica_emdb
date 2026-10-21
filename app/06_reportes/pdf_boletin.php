@@ -77,7 +77,9 @@ $config = $stmtConf->fetch();
 $institucionNombre = $config['institucion_nombre'] ?? 'Escuela de Mecánica Dental Bolaños (EMDB)';
 
 // Módulos del programa+período para el estudiante — misma ruta SQL que
-// reportes_mdl.php/detalle_periodo (Fase 1).
+// reportes_mdl.php/detalle_periodo (Fase 1). Sin filtro de retirados
+// (sqlNoRetiradoPeriodoActivo): el boletín es el registro académico del
+// propio estudiante y conserva sus módulos aunque la matrícula esté retirada.
 $stmtModulos = $pdo->prepare("
     SELECT gm.grmo_id, m.modu_sigla, m.modu_nombre, gs.grse_codigo,
            d.doce_nombres, d.doce_apellidos,

@@ -1766,6 +1766,12 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                 const itemGestionarClaves = esRetirados ? '' : `<li>
                                     <button class="dropdown-item" type="button" onclick="abrirGestionarClaves(${row.matr_id})">🔑 Gestionar claves</button>
                                 </li>`;
+                // "✏️ Matrícula" solo sobre una matrícula vigente: el servidor
+                // (editar_matricula) rechaza retirado/cursado/graduado, así
+                // que en Retirados y Per. Anteriores no se ofrece.
+                const itemEditarMatricula = (row.matr_estado === 'matriculado') ? `<li>
+                                    <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
+                                </li>` : '';
                 const itemHojaMatricula = esRetirados ? '' : `<li>
                                     <button class="dropdown-item" type="button" onclick="window.open('../06_reportes/pdf_hoja_matricula.php?estu_id=' + ${row.estu_id}, '_blank')" title="Descargar Hoja de Matrícula (AC-FO-09)">🖨️ Hoja de Matrícula</button>
                                 </li>`;
@@ -1808,9 +1814,7 @@ function crearColumnasMatriculados(esPeriodoActual, contexto) {
                                     <button class="dropdown-item" type="button" onclick="abrirRequisitosMatricula(${row.matr_id})">📋 Requisitos</button>
                                 </li>
                                 ${itemActualizacionDatos}
-                                <li>
-                                    <button class="dropdown-item" type="button" onclick="abrirEditarMatricula(${row.matr_id})" title="Editar programa, cohorte o período">✏️ Matrícula</button>
-                                </li>
+                                ${itemEditarMatricula}
                                 ${itemAvanzarSemestre}
                                 ${itemHojaMatricula}
                                 <li>

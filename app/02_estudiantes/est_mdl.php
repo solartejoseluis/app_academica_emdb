@@ -193,6 +193,9 @@ switch ($accion) {
                            e.estu_tipodoc, e.estu_numerodoc, e.estu_email, e.estu_foto,
                            e.fechanacimiento,
                            co.coho_codigo,
+                           -- Sin filtro de retirados (sqlNoRetiradoPeriodoActivo): cuenta
+                           -- los módulos del PROPIO estudiante, que son su historial y
+                           -- deben verse también en Anteriores y Retirados.
                            (SELECT COUNT(*) FROM grmoestudiantes ge3
                             JOIN gruposmodulos gm3 ON ge3.grmo_id = gm3.grmo_id
                             JOIN gruposemestres gs3 ON gm3.grse_id = gs3.grse_id
@@ -229,6 +232,9 @@ switch ($accion) {
                            -- grmo_activo — detalle_periodo tampoco lo aplica. Duplicación
                            -- consciente del umbral 3.0 (ya repetido en ~15 lugares del
                            -- proyecto), no extraída a función compartida entre módulos.
+                           -- Sin filtro de retirados, igual que estado_academico_periodo
+                           -- (abajo): son las notas del PROPIO estudiante; excluirlas
+                           -- dejaría el conteo en 0 y el período en 'En Curso'.
                            (SELECT CASE
                                 WHEN COUNT(*) = 0 THEN 0
                                 WHEN SUM(CASE WHEN c6.cali_definitiva IS NULL THEN 1 ELSE 0 END) > 0 THEN 0
@@ -980,13 +986,20 @@ switch ($accion) {
             // Se leen también el programa y el período que la matrícula tiene
             // ANTES de guardar (fila bloqueada): deciden más abajo si hay
             // asignaciones a módulos que retirar.
-            $stmtEstu = $pdo->prepare("SELECT estu_id, prog_id, peri_id FROM matriculas WHERE matr_id = ? FOR UPDATE");
+            $stmtEstu = $pdo->prepare("SELECT estu_id, prog_id, peri_id, matr_estado FROM matriculas WHERE matr_id = ? FOR UPDATE");
             $stmtEstu->execute([$matr_id]);
             $anterior = $stmtEstu->fetch();
             if (!$anterior) {
                 $pdo->rollBack();
                 echo json_encode(['status' => 'error', 'message' => 'Matrícula no encontrada']);
                 break;
+            }
+            // Solo matrículas abiertas: una 'retirado', 'cursado' o 'graduado'
+            // es historial cerrado (cambiarle programa o período retiraría sus
+            // asignaciones a módulos, ver más abajo). Retirados se gestionan
+            // con anular_retiro / reincorporar.
+            if (!in_array($anterior['matr_estado'], ['matriculado', 'aspirante'], true)) {
+                throw new Exception('Solo se puede editar una matrícula en estado matriculado o aspirante. Esta matrícula está en estado ' . $anterior['matr_estado'] . '.');
             }
             $estu_id          = $anterior['estu_id'];
             $prog_id_anterior = (int)$anterior['prog_id'];
@@ -1056,11 +1069,16 @@ switch ($accion) {
 
             $pdo->commit();
             echo json_encode(['status' => 'ok', 'modulos_retirados' => $modulos_retirados]);
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             if (isset($pdo) && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             echo json_encode(['status' => 'error', 'message' => 'Error al editar la matrícula']);
+        } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
         break;
 
@@ -1128,6 +1146,8 @@ switch ($accion) {
             // confiar en ningún valor recibido por POST ni en la columna
             // aprobado_periodo_actual de listar_matriculados (esa es solo
             // para decidir qué mostrar en el listado, no para autorizar).
+            // Sin filtro de retirados: son las notas del propio estudiante, y
+            // una matrícula retirada ya no llega aquí (se exige 'matriculado').
             $stmtModulos = $pdo->prepare(
                 "SELECT c.cali_definitiva
                  FROM grmoestudiantes ge

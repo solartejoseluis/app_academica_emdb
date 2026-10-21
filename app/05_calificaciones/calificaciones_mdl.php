@@ -142,6 +142,10 @@ function recalcularGrupoModuloN3(PDO $pdo, int $grmo_id): int {
 // siguen como estaban (no se consulta ni se bloquea nada). Si el estudiante
 // no tiene matrícula para ese programa+período, tampoco bloquea (igual que
 // antes de esta regla).
+// Criterio único del proyecto, igual que sqlNoRetiradoPeriodoActivo() de
+// helpers.php: la matrícula está retirada si matr_estado = 'retirado' (sea
+// Aplazamiento o Retirado). matr_estado_academico no se consulta, así que una
+// fila que la planilla muestra nunca queda con las notas bloqueadas.
 // Retorna true si hay un retiro o aplazamiento registrado.
 const MSG_MATRICULA_RETIRADA = 'El estudiante tiene un retiro o aplazamiento registrado en este período. No se pueden guardar notas.';
 
@@ -160,7 +164,7 @@ function matriculaRetiradaPeriodoActivo(PDO $pdo, int $grmo_id, int $estu_id): b
     }
 
     $matr = $pdo->prepare("
-        SELECT matr_estado, matr_estado_academico
+        SELECT matr_estado
         FROM matriculas
         WHERE estu_id = ? AND peri_id = ? AND prog_id = ?
         FOR UPDATE
@@ -170,8 +174,7 @@ function matriculaRetiradaPeriodoActivo(PDO $pdo, int $grmo_id, int $estu_id): b
     if (!$m) {
         return false;
     }
-    return $m['matr_estado'] === 'retirado'
-        || in_array($m['matr_estado_academico'], ['Aplazamiento', 'Retirado'], true);
+    return $m['matr_estado'] === 'retirado';
 }
 
 // Usuario desactivado (usua_activo = 0) con sesión abierta: responde

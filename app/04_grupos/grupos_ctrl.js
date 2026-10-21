@@ -565,6 +565,16 @@ $(document).ready(function () {
         return `(${doc}, ${cohorte}, ${semestre})`;
     }
 
+    // Marca del estudiante con matrícula retirada del período activo en la
+    // lista Asignados (retiro_tipo de listar_estudiantes_modulo). Mismos
+    // colores que badgeRetiro() de reportes_ctrl.js. Lista blanca: el texto
+    // de la insignia es fijo y otro valor no pinta nada.
+    function badgeRetiroAsignado(tipo) {
+        if (tipo === 'Aplazamiento') return ' <span class="badge bg-warning text-dark">Aplazamiento</span>';
+        if (tipo === 'Retirado')     return ' <span class="badge bg-secondary">Retirado</span>';
+        return '';
+    }
+
     function renderLista(selector, estudiantes, esAsignado) {
         const container = $(selector);
         container.empty();
@@ -580,7 +590,7 @@ $(document).ready(function () {
                            value="${escaparHtml(e.estu_id)}">
                     <label class="form-check-label small">
                         ${escaparHtml(e.estu_apellidos)}, ${escaparHtml(e.estu_nombres)}
-                        <span class="text-muted">${escaparHtml(formatearDetalleEstudiante(e))}</span>
+                        <span class="text-muted">${escaparHtml(formatearDetalleEstudiante(e))}</span>${esAsignado ? badgeRetiroAsignado(e.retiro_tipo) : ''}
                     </label>
                 </div>
             `);
