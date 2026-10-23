@@ -4,6 +4,46 @@
 
 ---
 
+## fix(retirados): criterio único de retirado, conteos sin retirados, insignia en Asignados y editar_matricula solo sobre matrículas abiertas (commit `794c72f`) — 2026-10-21
+
+### Contexto
+Ola 2. Quedaban dos criterios de "retirado": `sqlNoRetiradoPeriodoActivo()` (`helpers.php`) miraba `matr_estado`, y `matriculaRetiradaPeriodoActivo()` (`calificaciones_mdl.php`) miraba además `matr_estado_academico`. También había conteos sobre `grmoestudiantes` que incluían al retirado, y `editar_matricula` no validaba `matr_estado`.
+
+### Cambio
+1. `matriculaRetiradaPeriodoActivo()` (`calificaciones_mdl.php`) devuelve `true` solo si `matr_estado === 'retirado'`.
+2. `total_estudiantes` de `listar_modulos_grupo` (`grupos_mdl.php`) y de `grupos_para_reporte` (`reportes_mdl.php`) excluyen al retirado con `sqlNoRetiradoPeriodoActivo()`. En `grupos_para_reporte` la condición va en el `ON` del `LEFT JOIN`, y los grupos vacíos siguen mostrando 0.
+3. `listar_estudiantes_modulo` agrega `retiro_tipo` (`sqlTipoRetiroPeriodoActivo()`) y `grupos_ctrl.js` muestra la insignia Aplazamiento/Retirado en el panel Asignados (lista blanca, texto fijo). El retirado sigue apareciendo ahí porque es el único lugar desde donde se lo quita del roster.
+4. Comentarios con el motivo de no filtrar en `total_modulos`, `aprobado_periodo_actual` y `avanzar_semestre` (`est_mdl.php`) y en `pdf_boletin.php`: son el historial del propio estudiante.
+5. `editar_matricula` exige `matr_estado` `'matriculado'` o `'aspirante'` dentro de la transacción, después del `FOR UPDATE` (`catch` separados para `PDOException` y `Exception`, ambos con `rollBack()`). `est_ctrl.js` solo ofrece "✏️ Matrícula" cuando `matr_estado === 'matriculado'`.
+- Sin cambios de BD.
+
+### Decisión
+Sesión de decisiones del 2026-10-19:
+- **1A:** el estudiante retirado conserva el acceso (sin cambios).
+- **2A:** criterio único `matr_estado = 'retirado'`.
+- **3B:** "Cambiar a Aplazamiento" **pospuesta**. En producción hay 0 matrículas `retirado` + `Retirado` (y 3 `retirado` + `Aplazamiento`), así que la acción no tendría casos hoy.
+- **4A:** revisión uno por uno: 2 conteos corregidos, 1 listado marcado, 3 solo comentados.
+- **5A:** el aviso de asignar módulos tras reincorporar ya existía (alert de éxito y texto del modal); sin cambios.
+- Producción sin columnas desalineadas: 54 `matriculado` + `Activo`, 3 `retirado` + `Aplazamiento`, 66 `cursado` + `Activo`.
+
+### Pruebas
+- `curl` con sesiones reales y Playwright con datos ficticios:
+  - Criterio: una matrícula retirada rechaza notas; una `matriculado` con `Aplazamiento` desalineado las acepta.
+  - Conteos con 1 menos en los 4 grupos módulo con retirado; grupos vacíos con 0.
+  - Insignia visible en Asignados.
+  - `editar_matricula` rechaza `retirado` y `cursado` y acepta `matriculado`; el ítem de menú queda oculto en Retirados y Per. Anteriores.
+  - Sin regresión en planilla, reporte de grupo y PDF.
+- `php -l` limpio.
+- `CHECKSUM TABLE` de las 24 tablas idéntico; `matriculas` = 122. Datos de prueba borrados.
+
+### Despliegue
+7 archivos, sin cambios de BD, a dev y producción el 2026-10-21, con una segunda sesión de administrador abierta.
+
+### Nota
+El commit lo ejecutó Claude Code por error (la regla es que los commits los hace Jose Luis); sin daño.
+
+---
+
 ## Diagnóstico — llamadas .then/.done ante sesion_invalida (sin commit de código) — 2026-10-19
 
 ### Contexto

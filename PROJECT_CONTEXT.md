@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-10-19
-> Versión: 141 — Diagnóstico de las llamadas `.then`/`.done` ante `sesion_invalida`, cerrado sin cambios de código (Ola 1 completa); último commit `5d9f8c4` (más `4436a85` de documentación)
+> Última actualización: 2026-10-21
+> Versión: 142 — Ola 2 (retirados): criterio único `matr_estado = 'retirado'`, conteos de grupo módulo sin retirados, insignia en Asignados y `editar_matricula` solo sobre matrículas abiertas; "Cambiar a Aplazamiento" pospuesta; último commit `794c72f`
+> Versión anterior: 141 — Diagnóstico de las llamadas `.then`/`.done` ante `sesion_invalida`, cerrado sin cambios de código (Ola 1 completa); último commit `5d9f8c4` (más `4436a85` de documentación)
 > Versión anterior: 140 — Listener de minúsculas del correo sin `setSelectionRange` sobre `type="email"` y cursor conservado en el separador de miles del documento; corrección de datos de una matrícula sucesora de ASO; último commit `5d9f8c4`
 > Versión anterior: 139 — La sesión se cierra si el rol del usuario cambia en la BD; `08_admin` crea y edita solo roles 1 y 2; último commit `690e663`
 > Versión anterior: 138 — URL de traducción de DataTables unificada en `helpers.js` con `https://` explícito (corrige el error de CORS en local); último commit `5da6d82`
@@ -17,8 +18,8 @@
 
 Ruta de trabajo aprobada el 2026-10-17, solo software:
 - **Ola 1 — higiene y seguridad:** 1.1 CORS (hecho, `5da6d82`); 1.2 rol desactualizado en sesión (hecho, `690e663`); 1.3 `setSelectionRange` (hecho, `5d9f8c4`); 1.4 `.then`/`.done` ante `sesion_invalida` (cerrado por análisis, sin cambios de código). **Ola 1 completa.**
-- **Ola 2 — decisiones sobre retirados (siguiente):** sesión de decisiones sobre el acceso del estudiante retirado, el criterio único de "retirado", la pestaña Retirados sin acciones, los listados sin filtro de retirados y la reincorporación sin módulos.
-- **Ola 3 — continuidad académica:** incluye la opción A: avanzar matrículas `cursado` desde Per. Anteriores (ver CLAUDE.md, deuda técnica).
+- **Ola 2 — decisiones sobre retirados:** sesión de decisiones del 2026-10-19 e implementación en `794c72f` (2026-10-21): 1A el retirado conserva el acceso; 2A criterio único `matr_estado = 'retirado'`; 3B "Cambiar a Aplazamiento" **pospuesta** (0 retiros definitivos en producción); 4A listados revisados uno por uno; 5A el aviso de asignar módulos al reincorporar ya existía. **Ola 2 completa (3B pospuesta).**
+- **Ola 3 — continuidad académica (siguiente):** incluye la opción A: avanzar matrículas `cursado` desde Per. Anteriores (ver CLAUDE.md, deuda técnica).
 - **Ola 4 — módulo `12_configuracion`** con sidebar del administrador.
 - **Ola 5 — cambios de esquema y datos:** Fase E, whitelist de `cali_n3`, N3 históricos, 54 registros con `XXX`.
 - **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery, opción B de `.then`/`.done` (modales vacíos ante errores del servidor).
@@ -689,6 +690,8 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `16350ce` | docs: registra el cierre de sesión por cambio de rol y la lista blanca de roles en Administración (690e663) | 2026-10-19 |
 | `5d9f8c4` | fix(frontend): corrige el listener de minúsculas del correo (setSelectionRange en type=email) y conserva el cursor en el separador de miles del documento | 2026-10-19 |
 | `4436a85` | docs: registra la corrección del listener del correo y del cursor del documento | 2026-10-19 |
+| `be57ac3` | docs: registra el diagnóstico de las llamadas .then/.done ante sesion_invalida (cerrado sin cambios de código) y cierra la Ola 1 | 2026-10-19 |
+| `794c72f` | fix(retirados): criterio único de retirado, conteos sin retirados, insignia en Asignados y editar_matricula solo sobre matrículas abiertas | 2026-10-21 |
 
 ---
 
@@ -1187,7 +1190,7 @@ Commits `08faa8e`, `ff1a4db`, `e8961f7`, `6d6d851`, `e74a089`, `7ca433a`, `cd92f
 - **Despliegue:** `50cea23` y `da9ceb1` (solo `est_mdl.php`, sin cambios de BD) probados en local, dev y producción el 2026-10-12 — cierre de las actividades 109-112.
 - **Script de datos:** el script de corrección de datos de una reincorporación quedó anonimizado en `32338a4` (variables `@est_nombres`/`@est_apellidos`). El historial anterior a ese commit todavía contiene el nombre.
 
-**Pendientes abiertos:** los 10 puntos de la sección de deuda técnica del 2026-10-12 en CLAUDE.md. La migración de `matr_origen_id` y el script de datos de la reincorporación ya se ejecutaron en local, dev y producción.
+**Pendientes abiertos:** los puntos de la sección de deuda técnica del 2026-10-12 en CLAUDE.md. **Actualización 2026-10-21 (`794c72f`, Ola 2):** resueltos los dos criterios de "retirado" y los listados sin filtro; decididos "se deja así" el acceso del retirado, los retiros sin acciones en Retirados y la reincorporación sin módulos; "Cambiar a Aplazamiento" pospuesta hasta el primer retiro definitivo. La migración de `matr_origen_id` y el script de datos de la reincorporación ya se ejecutaron en local, dev y producción.
 
 ---
 
