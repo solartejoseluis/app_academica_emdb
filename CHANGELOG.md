@@ -4,6 +4,50 @@
 
 ---
 
+## feat(estudiantes): avanzar_semestre hereda los requisitos de la matrícula anterior, bloquea la fila con FOR UPDATE y agrega script de backfill de sucesoras (commit `3e3e560`) — 2026-10-28
+
+### Contexto
+`avanzar_semestre` creaba la matrícula sucesora sin filas en `requisitos_estudiante`, a diferencia de `matricular` y `reincorporar`. La columna Requisitos de `tablaMatriculados` mostraba "—" y la vista del estudiante (`06_reportes`) no le mostraba pendientes. Además, el `case` no bloqueaba la fila de la matrícula con `FOR UPDATE`.
+
+### Cambio
+- `est_mdl.php`, `case 'avanzar_semestre'`:
+  - Dentro de la transacción, después del `INSERT` de la matrícula nueva (`lastInsertId()`), un `INSERT ... SELECT` desde los `requisitos_programa` activos del programa con `LEFT JOIN` a las filas de la matrícula anterior. Si hay fila, copia `reqe_estado` y `reqe_fecha`; si no, deja `'pendiente'`. Los requisitos desactivados no se heredan.
+  - `beginTransaction()` al inicio y `SELECT ... FOR UPDATE` de la matrícula; todas las validaciones corren con la fila bloqueada.
+  - Los 8 rechazos pasan de `echo` + `break` a `throw new Exception(...)` con los mismos textos; nuevo `catch (Exception)` con `rollBack()`. El `catch (PDOException)` conserva su mensaje genérico.
+  - Corregido el comentario obsoleto que mencionaba las columnas `req_*`.
+- `scripts/backfill_requisitos_sucesoras.sql` (nuevo): idempotente (`NOT EXISTS`), sin `USE` ni variables de usuario. Bloques: vista previa (resumen por programa y lista de `matr_id` "sin_filas"/"parciales"), aplicación, verificación (`faltantes_restantes` debe dar 0) y reversa comentada (solo matrículas "sin_filas" y filas que conservan el estado y la fecha que puso el script).
+- Sin cambios de esquema ni de frontend. `reincorporar` sin cambios.
+
+### Decisión
+- Opción A (heredar). Las vacunas se renuevan agregando requisitos nuevos al catálogo (p. ej. "dosis 2"), así que lo ya entregado no cambia y se descarta un indicador "heredable/renovable".
+- Una dosis que ya no se pida se desactiva, no se borra.
+- Descartadas: B (todo `'pendiente'` en cada semestre) y C (requisitos una vez por estudiante-programa, cambio de esquema).
+
+### Pruebas
+- `curl` con sesiones reales y datos ficticios:
+  - Herencia de estado y fecha, más `'pendiente'` para un requisito activo nuevo.
+  - Requisito desactivado no heredado.
+  - Matrícula anterior sin filas: todo `'pendiente'`.
+  - Programa sin catálogo: el avance funciona y crea 0 filas.
+  - Rechazos con los mismos textos de antes, sin cambios en la BD.
+  - Doble clic simultáneo: una petición avanza y la otra se rechaza (`FOR UPDATE`).
+- Backfill: herencia, idempotencia (segunda ejecución 0 filas) y reversa (conserva la fila editada después del backfill).
+- `php -l` limpio.
+- `CHECKSUM TABLE` de las 24 tablas idéntico salvo `requisitos_estudiante`; `matriculas` = 122. Datos de prueba borrados.
+
+### Despliegue
+- `est_mdl.php` a dev y producción el 2026-10-28, con respaldo previo de la BD y una segunda sesión de administrador abierta.
+- Backfill:
+  - Local: 48 filas (6 sucesoras de MD).
+  - Dev: 48 filas (`matr_id` 117 a 122).
+  - Producción: 40 filas (5 sucesoras: 4 de MD y la `matr_id` 124 de ASO, la creada por la corrección de datos del 2026-10-19); `faltantes_restantes` = 0.
+
+### Nota
+- En AMD2016 hay una sucesora con filas de un catálogo ya inactivo; queda sin acción.
+- phpMyAdmin corre cada sentencia en una conexión distinta: `ROW_COUNT()` da 0 y `START TRANSACTION`/`COMMIT` no agrupan las sentencias. El dato válido es el mensaje de filas afectadas del propio `INSERT`.
+
+---
+
 ## Corrección de datos — 8 matrículas cursado de 2026-1 pasan a retirado + Retirado (sin commit de código) — 2026-10-26
 
 ### Contexto
