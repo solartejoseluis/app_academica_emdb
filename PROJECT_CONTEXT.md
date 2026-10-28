@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-10-21
-> Versión: 142 — Ola 2 (retirados): criterio único `matr_estado = 'retirado'`, conteos de grupo módulo sin retirados, insignia en Asignados y `editar_matricula` solo sobre matrículas abiertas; "Cambiar a Aplazamiento" pospuesta; último commit `794c72f`
+> Última actualización: 2026-10-26
+> Versión: 143 — Corrección de datos del 2026-10-26: 8 matrículas `cursado` de 2026-1 (grupos B y C) pasan a `retirado` + `Retirado`, sin commit de código; último commit `f67d220` (docs de la Ola 2)
+> Versión anterior: 142 — Ola 2 (retirados): criterio único `matr_estado = 'retirado'`, conteos de grupo módulo sin retirados, insignia en Asignados y `editar_matricula` solo sobre matrículas abiertas; "Cambiar a Aplazamiento" pospuesta; último commit `794c72f`
 > Versión anterior: 141 — Diagnóstico de las llamadas `.then`/`.done` ante `sesion_invalida`, cerrado sin cambios de código (Ola 1 completa); último commit `5d9f8c4` (más `4436a85` de documentación)
 > Versión anterior: 140 — Listener de minúsculas del correo sin `setSelectionRange` sobre `type="email"` y cursor conservado en el separador de miles del documento; corrección de datos de una matrícula sucesora de ASO; último commit `5d9f8c4`
 > Versión anterior: 139 — La sesión se cierra si el rol del usuario cambia en la BD; `08_admin` crea y edita solo roles 1 y 2; último commit `690e663`
@@ -19,7 +20,7 @@
 Ruta de trabajo aprobada el 2026-10-17, solo software:
 - **Ola 1 — higiene y seguridad:** 1.1 CORS (hecho, `5da6d82`); 1.2 rol desactualizado en sesión (hecho, `690e663`); 1.3 `setSelectionRange` (hecho, `5d9f8c4`); 1.4 `.then`/`.done` ante `sesion_invalida` (cerrado por análisis, sin cambios de código). **Ola 1 completa.**
 - **Ola 2 — decisiones sobre retirados:** sesión de decisiones del 2026-10-19 e implementación en `794c72f` (2026-10-21): 1A el retirado conserva el acceso; 2A criterio único `matr_estado = 'retirado'`; 3B "Cambiar a Aplazamiento" **pospuesta** (0 retiros definitivos en producción); 4A listados revisados uno por uno; 5A el aviso de asignar módulos al reincorporar ya existía. **Ola 2 completa (3B pospuesta).**
-- **Ola 3 — continuidad académica (siguiente):** incluye la opción A: avanzar matrículas `cursado` desde Per. Anteriores (ver CLAUDE.md, deuda técnica).
+- **Ola 3 — continuidad académica (siguiente):** incluye la opción A: avanzar matrículas `cursado` desde Per. Anteriores (ver CLAUDE.md, deuda técnica). **Actualización 2026-10-26:** la opción A queda pospuesta, sin casos en producción; la corrección de datos del 2026-10-26 cerró los grupos B y C (8 matrículas a `retirado` + `Retirado`). Quedan el frente 1, requisitos en `avanzar_semestre` (siguiente), y el frente 2, vista de estudiantes sin matrícula en el período activo (baja urgencia).
 - **Ola 4 — módulo `12_configuracion`** con sidebar del administrador.
 - **Ola 5 — cambios de esquema y datos:** Fase E, whitelist de `cali_n3`, N3 históricos, 54 registros con `XXX`.
 - **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery, opción B de `.then`/`.done` (modales vacíos ante errores del servidor).
@@ -692,6 +693,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `4436a85` | docs: registra la corrección del listener del correo y del cursor del documento | 2026-10-19 |
 | `be57ac3` | docs: registra el diagnóstico de las llamadas .then/.done ante sesion_invalida (cerrado sin cambios de código) y cierra la Ola 1 | 2026-10-19 |
 | `794c72f` | fix(retirados): criterio único de retirado, conteos sin retirados, insignia en Asignados y editar_matricula solo sobre matrículas abiertas | 2026-10-21 |
+| `f67d220` | docs: registra la Ola 2 de retirados (794c72f), la decisión de posponer Cambiar a Aplazamiento y nuevos pendientes | 2026-10-23 |
 
 ---
 
@@ -1139,8 +1141,8 @@ Detalle completo en CHANGELOG.md.
 **Commit `cef939b`:** el docente ya no puede ver ni editar módulos de períodos cerrados — `listar_grupos` (rama docente) y las 10 consultas de ownership de `calificaciones_mdl.php`/`reportes_mdl.php`/`pdf_grupo.php` (11 ubicaciones) exigen ahora `peri_activo = 1` además de pertenencia al docente. Coordinador/administrador sin cambios. 7 pruebas con harness PHP + `ROLLBACK`, verificado en navegador en local, staging y producción. Detalle completo en CHANGELOG.md.
 
 **Pendientes que quedan abiertos tras esta corrección:**
-- Grupo B — 3 matrículas `'cursado'` de 2026-1 sin sucesora, con notas incompletas o promedio bajo, pendientes de averiguar con los docentes; desde `cef939b` el docente ya no puede cargarlas, corresponde a coordinadora/administrador.
-- Grupo C — 6 estudiantes con indicios de ser datos de prueba de la propia migración (documentos ficticios/`NULL`, creados 2026-09-16 a 2026-09-18), pendientes de decidir si se eliminan o se corrigen.
+- ~~Grupo B — 3 matrículas `'cursado'` de 2026-1 sin sucesora, con notas incompletas o promedio bajo, pendientes de averiguar con los docentes; desde `cef939b` el docente ya no puede cargarlas, corresponde a coordinadora/administrador.~~ **RESUELTO 2026-10-26** (corrección de datos, ver CHANGELOG.md).
+- ~~Grupo C — 6 estudiantes con indicios de ser datos de prueba de la propia migración (documentos ficticios/`NULL`, creados 2026-09-16 a 2026-09-18), pendientes de decidir si se eliminan o se corrigen.~~ **RESUELTO 2026-10-26:** no eran datos de prueba; matrículas a `retirado` + `Retirado` y fichas completadas por la coordinación.
 - `avanzar_semestre` no crea filas en `requisitos_estudiante` para la sucesora (21/32 sucesoras existentes sin requisitos) — pendiente de decisión sobre si los requisitos aplican por semestre.
 - No existe una vista de "estudiantes sin matrícula en el período activo" — el ítem "Matricular al sgte. sem." solo aparece en Per. Actual, sobre una matrícula ya existente.
 - Hallazgo sin resolver: "Matricular en otro programa" sí bloquea la matrícula duplicada (`matr_estado='matriculado'` en otro período), pero si la única fila del estudiante para ese programa está en `'cursado'` (ej. una migrada sin sucesora), `case 'matricular'` la acepta y crea una matrícula nueva desde cero para un programa ya cursado — uso no previsto por el nombre del ítem, sin heredar semestre/cohorte ni requisitos de la matrícula anterior.

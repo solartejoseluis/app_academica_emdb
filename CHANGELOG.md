@@ -4,6 +4,36 @@
 
 ---
 
+## Corrección de datos — 8 matrículas cursado de 2026-1 pasan a retirado + Retirado (sin commit de código) — 2026-10-26
+
+### Contexto
+Tras el diagnóstico del 2026-10-23, producción tenía 8 matrículas `cursado` sin sucesora en 2026-2 y fuera de su último semestre (`matr_id` 54, 57, 58, 74, 75, 87, 97, 105), de los grupos B y C de la migración histórica. Ninguna aprobaba: todas tenían al menos una definitiva en `NULL`. La coordinación confirmó que no regresaron y que no hay información de que vayan a hacerlo.
+
+### Acción
+- Respaldo previo de la BD de producción.
+- Script puntual e idempotente en phpMyAdmin (vista previa, aplicación, verificación y reversa), sin variables de usuario:
+  `UPDATE ... SET matr_estado = 'retirado', matr_estado_academico = 'Retirado' WHERE matr_id IN (...) AND matr_estado = 'cursado' AND matr_estado_academico = 'Activo'`. Al final de `matr_observacion` agrega la nota "[2026-10-26] Retiro registrado por corrección de estado de la migración histórica 2026-1, según la coordinación.", unida con `' | '`.
+- 8 filas afectadas. No se tocaron notas, roster, usuarios ni requisitos.
+- La `matr_id` 87 es el registro histórico de MD de una estudiante con doble matrícula. Su matrícula de ASO (`matr_id` 39) sigue `matriculado` + `Activo` y no se tocó. La 87 conserva su explicación original.
+- El script no está en el repositorio.
+
+### Decisión
+- Todas pasan a Retirado (ninguna a Aplazamiento), para no crear matrículas en 2026-2. Los períodos de 2026-1 están cerrados, así que no cambian planillas ni conteos.
+- La coordinación completó las fichas de estudiante de estos casos.
+
+### Verificación
+- Bloque 1 (vista previa): 8 filas `cursado` + `Activo`.
+- Bloque 3 (verificación): 8 filas `retirado` + `Retirado` con la nota; `matr_id` 39 intacta.
+- En la aplicación: la pestaña Retirados muestra las 8 con su insignia; Per. Actual sin cambios.
+
+### Lección
+phpMyAdmin recorta las celdas largas a unos 50 caracteres. Para leer un texto completo se parte con `SUBSTRING` en trozos de 40.
+
+### Pendiente
+Reactivar a alguna exige una matrícula nueva o un script que la pase a Aplazamiento y después Reincorporar (ver la decisión 3B).
+
+---
+
 ## fix(retirados): criterio único de retirado, conteos sin retirados, insignia en Asignados y editar_matricula solo sobre matrículas abiertas (commit `794c72f`) — 2026-10-21
 
 ### Contexto
