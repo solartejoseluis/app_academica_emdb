@@ -1107,36 +1107,39 @@ switch ($accion) {
         try {
             $pdo = getConexion();
 
+            // Validaciones con la fila de la matrícula ya bloqueada (FOR
+            // UPDATE), igual que 'retirar_matricula'/'reincorporar': un doble
+            // clic o un retiro simultáneo corren uno después del otro. Un
+            // rechazo se lanza como Exception con el mensaje para el usuario
+            // y el catch hace rollBack().
+            $pdo->beginTransaction();
+
             $stmtActual = $pdo->prepare(
                 "SELECT estu_id, prog_id, peri_id, coho_id, matr_semestre, matr_estado, matr_estado_academico
-                 FROM matriculas WHERE matr_id = ?"
+                 FROM matriculas WHERE matr_id = ?
+                 FOR UPDATE"
             );
             $stmtActual->execute([$matr_id]);
             $actual = $stmtActual->fetch();
             if (!$actual) {
-                echo json_encode(['status' => 'error', 'message' => 'Matrícula no encontrada']);
-                break;
+                throw new Exception('Matrícula no encontrada');
             }
 
             if ($actual['matr_estado'] !== 'matriculado') {
-                echo json_encode(['status' => 'error', 'message' => 'Solo se puede avanzar una matrícula en estado "matriculado".']);
-                break;
+                throw new Exception('Solo se puede avanzar una matrícula en estado "matriculado".');
             }
             if ($actual['matr_estado_academico'] !== 'Activo') {
-                echo json_encode(['status' => 'error', 'message' => 'El estudiante no está en condición académica Activa.']);
-                break;
+                throw new Exception('El estudiante no está en condición académica Activa.');
             }
 
             $siguienteSemestre = (int)$actual['matr_semestre'] + 1;
             $errorSemestre = validarSemestrePrograma($pdo, (int)$actual['prog_id'], $siguienteSemestre);
             if ($errorSemestre !== null) {
-                echo json_encode(['status' => 'error', 'message' => $errorSemestre]);
-                break;
+                throw new Exception($errorSemestre);
             }
 
             if ($peri_id_destino === (int)$actual['peri_id']) {
-                echo json_encode(['status' => 'error', 'message' => 'El período destino debe ser distinto del período actual.']);
-                break;
+                throw new Exception('El período destino debe ser distinto del período actual.');
             }
 
             // Aprobación del período actual — misma lógica que 'detalle_periodo'
@@ -1165,8 +1168,7 @@ switch ($accion) {
                 $aprobado = ($promedio >= 3.0);
             }
             if (!$aprobado) {
-                echo json_encode(['status' => 'error', 'message' => 'El estudiante no ha aprobado el período actual.']);
-                break;
+                throw new Exception('El estudiante no ha aprobado el período actual.');
             }
 
             // Mismo criterio que el UNIQUE KEY uq_matr_estu_peri_prog — caso
@@ -1176,22 +1178,20 @@ switch ($accion) {
             );
             $stmtDup->execute([$actual['estu_id'], $actual['prog_id'], $peri_id_destino]);
             if ($stmtDup->fetch()) {
-                echo json_encode(['status' => 'error', 'message' => 'Ya existe una matrícula de este estudiante en este programa para el período destino.']);
-                break;
+                throw new Exception('Ya existe una matrícula de este estudiante en este programa para el período destino.');
             }
-
-            $pdo->beginTransaction();
 
             $stmtCursado = $pdo->prepare("UPDATE matriculas SET matr_estado = 'cursado' WHERE matr_id = ?");
             $stmtCursado->execute([$matr_id]);
 
             // Campos no heredados (matr_folio, matr_numero, matr_matriculadopor,
-            // fechainscripcion, matr_observacion, req_*): se dejan en su
-            // NULL/DEFAULT 0 de columna, igual que una matrícula nueva creada
-            // por 'matricular' sin esos datos por POST — son datos propios del
-            // trámite de ESTE semestre, no algo que tenga sentido heredar de la
-            // matrícula anterior. coho_id sí se hereda (misma cohorte de
-            // ingreso del estudiante, no cambia entre semestres).
+            // fechainscripcion, matr_observacion): se dejan en su NULL/DEFAULT
+            // de columna, igual que una matrícula nueva creada por 'matricular'
+            // sin esos datos por POST — son datos propios del trámite de ESTE
+            // semestre, no algo que tenga sentido heredar de la matrícula
+            // anterior. coho_id sí se hereda (misma cohorte de ingreso del
+            // estudiante, no cambia entre semestres). Los requisitos
+            // documentales se heredan aparte, más abajo.
             $stmtNueva = $pdo->prepare(
                 "INSERT INTO matriculas
                     (estu_id, prog_id, peri_id, coho_id, matr_estado, matr_estado_academico,
@@ -1202,6 +1202,24 @@ switch ($accion) {
                 $actual['estu_id'], $actual['prog_id'], $peri_id_destino, $actual['coho_id'],
                 $siguienteSemestre,
             ]);
+            $matr_id_nueva = (int)$pdo->lastInsertId();
+
+            // Requisitos documentales: uno por cada requisito ACTIVO del
+            // programa (los desactivados no se heredan). Si la matrícula
+            // anterior tiene fila para ese requisito, se copian su estado y su
+            // fecha de entrega (un documento entregado no se vuelve a pedir);
+            // si no la tiene (requisito nuevo en el catálogo), nace
+            // 'pendiente', igual que en 'matricular'. Las filas de la
+            // matrícula anterior quedan intactas como historial.
+            $stmtReq = $pdo->prepare("
+                INSERT INTO requisitos_estudiante (matr_id, reqp_id, reqe_estado, reqe_fecha)
+                SELECT ?, rp.reqp_id, COALESCE(ant.reqe_estado, 'pendiente'), ant.reqe_fecha
+                FROM requisitos_programa rp
+                LEFT JOIN requisitos_estudiante ant
+                       ON ant.reqp_id = rp.reqp_id AND ant.matr_id = ?
+                WHERE rp.prog_id = ? AND rp.reqp_activo = 1
+            ");
+            $stmtReq->execute([$matr_id_nueva, $matr_id, $actual['prog_id']]);
 
             $pdo->commit();
             echo json_encode(['status' => 'ok', 'message' => 'Estudiante avanzado al semestre ' . $siguienteSemestre . ' correctamente.']);
@@ -1211,6 +1229,11 @@ switch ($accion) {
                 $pdo->rollBack();
             }
             echo json_encode(['status' => 'error', 'message' => 'Error al avanzar de semestre']);
+        } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
         break;
 
