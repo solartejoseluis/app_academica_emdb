@@ -101,18 +101,26 @@ $(document).ready(function () {
     // dependiente de un valor async..." en CLAUDE.md).
     // El select de grupos de Asignación espera lo mismo: se arma una sola vez,
     // ya filtrado por el período activo, cuando están el catálogo y sus filas.
+    const PESTANIAS_POR_HASH = {
+        '#programas': '#tabsGrupos [data-bs-target="#tab_programas"]',
+        '#modulos':   '#tabsGrupos [data-bs-target="#tab_modulos"]',
+        '#periodos':  '#tabsGrupos [data-bs-target="#tab_periodos"]',
+        '#cohortes':  '#tabsGrupos [data-bs-target="#tab_cohortes"]'
+    };
     cargarPeriodosSelector().always(cargarTablaGrupos).always(function () {
         filtroAsigPeriodoResuelto = true;
         aplicarFiltrosAsignacion();
         // Enlaces desde 12_configuracion: al final de la cadena, con los
         // filtros de período ya fijados por la primera carga.
-        activarPestaniaPorHash({
-            '#programas': '#tabsGrupos [data-bs-target="#tab_programas"]',
-            '#modulos':   '#tabsGrupos [data-bs-target="#tab_modulos"]',
-            '#periodos':  '#tabsGrupos [data-bs-target="#tab_periodos"]',
-            '#cohortes':  '#tabsGrupos [data-bs-target="#tab_cohortes"]'
-        });
+        activarPestaniaPorHash(PESTANIAS_POR_HASH);
     });
+    // En el iframe de 12_configuracion, pasar de una pestaña a otra de esta
+    // pantalla cambia solo el fragmento de la URL: el marco no recarga.
+    if (document.body.classList.contains('embed')) {
+        window.addEventListener('hashchange', function () {
+            activarPestaniaPorHash(PESTANIAS_POR_HASH);
+        });
+    }
     cargarDocentesSelector();
     cargarGruposAsignacion();
 

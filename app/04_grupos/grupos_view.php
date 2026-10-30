@@ -5,6 +5,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     header('Location: ../01_login/login_view.php');
     exit;
 }
+
+// Modo incrustado: 12_configuracion abre esta pantalla dentro de su iframe,
+// sin navbar ni ayuda. Solo administrador; con cualquier otro rol se ignora.
+$embed = ($_SESSION['role_id'] === 1 && ($_GET['embed'] ?? '') === '1');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -60,8 +64,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 }
 </style>
 </head>
-<body>
+<body<?= $embed ? ' class="embed"' : '' ?>>
 
+<?php if (!$embed): ?>
 <?php if (in_array((int)$_SESSION['role_id'], [1, 2])): ?>
 <?php require_once '../00_files/navbar.php'; ?>
 <?php else: ?>
@@ -73,9 +78,12 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </nav>
 <?php endif; ?>
+<?php endif; ?>
 
 <div class="container-fluid mt-4">
+<?php if (!$embed): ?>
     <h4 class="mb-3">Gestión de Grupos</h4>
+<?php endif; ?>
 
     <!-- Pestañas principales -->
     <ul class="nav nav-tabs mb-3" id="tabsGrupos">
@@ -864,7 +872,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="../00_files/helpers.js"></script>
 <script src="grupos_ctrl.js"></script>
+<?php if (!$embed): ?>
 <script>const MODULO_ACTUAL = '04_grupos';</script>
 <script src="../00_files/ayuda_sidebar.js"></script>
+<?php endif; ?>
 </body>
 </html>

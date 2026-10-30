@@ -6,6 +6,10 @@ if ($_SESSION['role_id'] !== 1) {
     header('Location: /app_academica_emdb/app/01_login/login_view.php');
     exit;
 }
+
+// Modo incrustado: 12_configuracion abre esta pantalla dentro de su iframe,
+// sin navbar ni ayuda. Solo administrador; con cualquier otro rol se ignora.
+$embed = ($_SESSION['role_id'] === 1 && ($_GET['embed'] ?? '') === '1');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -17,9 +21,11 @@ if ($_SESSION['role_id'] !== 1) {
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/app_academica_emdb/app/00_files/estilos.css">
 </head>
-<body class="bg-light">
+<body class="bg-light<?= $embed ? ' embed' : '' ?>">
 
+<?php if (!$embed): ?>
 <?php require_once '../00_files/navbar.php'; ?>
+<?php endif; ?>
 
 <div class="container-fluid mt-4 px-4">
 
@@ -141,7 +147,9 @@ if ($_SESSION['role_id'] !== 1) {
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="../00_files/helpers.js"></script>
 <script src="admin_ctrl.js"></script>
+<?php if (!$embed): ?>
 <script>const MODULO_ACTUAL = '08_admin';</script>
 <script src="../00_files/ayuda_sidebar.js"></script>
+<?php endif; ?>
 </body>
 </html>

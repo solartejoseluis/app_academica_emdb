@@ -6,6 +6,10 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     header('Location: ../01_login/login_view.php');
     exit;
 }
+
+// Modo incrustado: 12_configuracion abre esta pantalla dentro de su iframe,
+// sin navbar ni ayuda. Solo administrador; con cualquier otro rol se ignora.
+$embed = ($_SESSION['role_id'] === 1 && ($_GET['embed'] ?? '') === '1');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,8 +22,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 </head>
-<body class="bg-light">
+<body class="bg-light<?= $embed ? ' embed' : '' ?>">
 
+<?php if (!$embed): ?>
 <?php if (in_array((int)$_SESSION['role_id'], [1, 2])): ?>
 <?php require_once '../00_files/navbar.php'; ?>
 <?php else: ?>
@@ -31,13 +36,16 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
     </div>
 </nav>
 <?php endif; ?>
+<?php endif; ?>
 
 <div class="container-fluid mt-4 px-4">
 
+<?php if (!$embed): ?>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Gestión de Estudiantes</h5>
         <button class="btn btn-primary btn-sm" id="btn_nuevo_aspirante">+ Nuevo Aspirante</button>
     </div>
+<?php endif; ?>
 
     <ul class="nav nav-tabs mb-0" id="tabEstudiantes">
         <li class="nav-item">
@@ -1268,7 +1276,9 @@ if ($_SESSION['role_id'] !== 1 && $_SESSION['role_id'] !== 2) {
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="../00_files/helpers.js"></script>
 <script src="est_ctrl.js"></script>
+<?php if (!$embed): ?>
 <script>const MODULO_ACTUAL = '02_estudiantes';</script>
 <script src="../00_files/ayuda_sidebar.js"></script>
+<?php endif; ?>
 </body>
 </html>

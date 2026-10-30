@@ -109,12 +109,19 @@ function poblarFiltro(selector, filas, campoValor, campoTexto, comparar) {
 //   mapa — { '#hash': 'selector del botón o enlace de la pestaña' }
 // El hash solo se usa como clave del mapa, nunca como selector. Sin hash, con
 // un hash desconocido o si la pestaña no se dibujó para este rol, no hace nada.
+// La clase pestania-lista descubre el contenido en modo incrustado (estilos.css)
+// cuando la pestaña indicada ya está a la vista, sin mostrar antes la de defecto.
 function activarPestaniaPorHash(mapa) {
-    if (!Object.prototype.hasOwnProperty.call(mapa, location.hash)) return;
-    const pestania = document.querySelector(mapa[location.hash]);
-    if (pestania) {
+    const marcarLista = function () { document.body.classList.add('pestania-lista'); };
+    const pestania = Object.prototype.hasOwnProperty.call(mapa, location.hash)
+        ? document.querySelector(mapa[location.hash])
+        : null;
+    if (pestania && !pestania.classList.contains('active')) {
+        pestania.addEventListener('shown.bs.tab', marcarLista, { once: true });
         bootstrap.Tab.getOrCreateInstance(pestania).show();
+        return;
     }
+    marcarLista();
 }
 
 // Sesión invalidada en el servidor (usuario desactivado): exigirUsuarioActivo()
@@ -126,11 +133,30 @@ function activarPestaniaPorHash(mapa) {
 let sesionInvalidaAtendida = false;
 
 function esRespuestaSesionInvalida(data) {
+    // Dentro del iframe de 12_configuracion también cuenta la sesión que ya no
+    // existe en el servidor: los _mdl.php responden 'Sesión no válida' sin codigo,
+    // y sin esto el marco quedaría abierto con el aviso propio de cada pantalla.
+    const enMarco = window.top !== window.self;
     if (typeof data === 'string') {
-        if (data.indexOf('sesion_invalida') === -1) return false;
+        if (data.indexOf('sesion_invalida') === -1 && !enMarco) return false;
         try { data = JSON.parse(data); } catch (e) { return false; }
     }
-    return !!data && typeof data === 'object' && data.codigo === 'sesion_invalida';
+    if (!data || typeof data !== 'object') return false;
+    return data.codigo === 'sesion_invalida'
+        || (enMarco && data.status === 'error' && data.message === 'Sesión no válida');
+}
+
+// Dentro del iframe de 12_configuracion el login debe abrirse en la ventana
+// completa, no en el marco. Un marco de otro origen lanza al leer top.location.
+function ventanaParaRedirigir() {
+    try {
+        if (window.top !== window.self && window.top.location.origin === window.location.origin) {
+            return window.top;
+        }
+    } catch (e) {
+        return window;
+    }
+    return window;
 }
 
 function atenderSesionInvalida(data) {
@@ -138,7 +164,7 @@ function atenderSesionInvalida(data) {
     sesionInvalidaAtendida = true;
     const respuesta = typeof data === 'string' ? JSON.parse(data) : data;
     alert(respuesta.message);
-    window.location.href = '/app_academica_emdb/app/01_login/login_view.php';
+    ventanaParaRedirigir().location.href = '/app_academica_emdb/app/01_login/login_view.php';
 }
 
 if (typeof jQuery !== 'undefined') {
