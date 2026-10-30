@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-10-28 — último commit citado: 3e3e560
+> Última actualización: 2026-10-30 — último commit citado: af5e761
 
 ## Reglas de documentación
 
@@ -70,6 +70,7 @@ app_academica_emdb/
     09_inscripcion_publica/ — Formulario público de inscripción para aspirantes sin cuenta (sin sesión), verificación reCAPTCHA server-side, detección de duplicados por documento/correo
     10_ayudas/         — Contenido de ayuda mostrado en el sidebar de cada sección de la aplicación (CRUD en 08_admin)
     11_actualizacion_datos/ — Link público (sin sesión) para que un estudiante actualice su propia ficha (`estudiantes`+`fichas_inscripcion`) vía token de un solo uso, pendiente de aprobación del coordinador desde `tablaMatriculados` (`02_estudiantes`) — roadmap completo, ver Phase 2.11 en "Estado del roadmap"
+    12_configuracion/  — Panel del administrador: sidebar permanente, formulario institucional e iframe con las pantallas de configuración en modo incrustado (ver "Módulo 12_configuracion", debajo de este árbol)
   uploads/
     fotos_estudiantes/ — Fotos de estudiantes, fuera de app/, excluidas de git salvo .gitkeep
   scripts/
@@ -85,6 +86,25 @@ app_academica_emdb/
 ```
 
 > El prefijo `00_` identifica carpetas de utilidades compartidas. Los módulos funcionales inician en `01_`.
+
+### Módulo 12_configuracion
+
+Commits `424f859` y `af5e761` (2026-10-30).
+
+- **Guard:** `config_view.php` redirige si `role_id !== 1`. `config_mdl.php` llama a `exigirUsuarioActivo()` antes del `switch` y repite el guard de rol en cada `case`.
+- **Endpoints (`config_mdl.php`):** `obtener_configuracion` y `guardar_configuracion`. `institucion_nombre` es obligatorio, con `trim` y de 3 a 150 caracteres; `matr_numero_inicial`, `director_nombre` y `secretario_nombre` conservan sus validaciones.
+- **`08_admin` ya no gestiona la configuración institucional:** ese módulo queda solo con usuarios y ya no tiene esos dos `case`. El rol 1 sigue entrando por `08_admin` tras el login.
+- **Panel:** navbar arriba, sidebar permanente a la izquierda (colapsable en móvil) y a la derecha el formulario de Institución o un único iframe reutilizado. El navbar del rol 1 tiene un solo enlace "⚙️ Configuración", sin hash, que reemplaza "Usuarios" y "Ayudas".
+- **Modo incrustado:** solo rol 1, con `?embed=1` (ver "Modo incrustado (?embed=1)" en Patrones de ingeniería).
+- **Hashes de sección:** la sección activa vive en la URL (`config_view.php#periodos`). El hash solo es clave del mapa `SECCIONES` de `config_ctrl.js`, nunca selector ni URL directa; uno desconocido o vacío abre `#institucion`.
+
+| Hash | Contenido |
+|---|---|
+| `#institucion` | Formulario institucional, sin iframe |
+| `#usuarios` | `../08_admin/admin_view.php?embed=1` |
+| `#ayudas` | `../10_ayudas/ayud_view.php?embed=1` |
+| `#requisitos` | `../02_estudiantes/est_view.php?embed=1#config-requisitos` |
+| `#programas`, `#modulos`, `#periodos`, `#cohortes` | `../04_grupos/grupos_view.php?embed=1#<hash>` |
 
 ---
 
@@ -1085,6 +1105,19 @@ Dos casos de uso conocidos, mismo patrón exacto:
 - `admin_mdl.php`, case `editar` (`08_admin`) — primer uso del patrón en el proyecto. Placeholder del input: "Dejar vacío para no cambiar".
 - `doc_mdl.php`, case `guardar` rama edición (`03_docentes`, commit `35c312a`, 2026-08-25) — el campo (`#bloque_password` en `#mdl_docente`) estaba oculto por completo en modo edición hasta este commit; ahora se muestra condicionado a que el docente tenga `usua_id` (ver deuda técnica del `INNER JOIN` en `case 'obtener'`, más abajo en "Deuda técnica / pendiente antes de producción"), con el mismo placeholder "Dejar vacío para no cambiar" y el mismo `if ($usua_password !== '')` combinado en el mismo `UPDATE` que ya actualizaba `usua_activo`.
 
+### Modo incrustado (?embed=1)
+
+Una pantalla existente puede mostrarse dentro del iframe de `12_configuracion` sin duplicar su código. Reglas:
+
+- **Solo se respeta con rol 1:** `$embed = ($_SESSION['role_id'] === 1 && ($_GET['embed'] ?? '') === '1');`, después del guard de la vista, sin modificar el guard.
+- **Sin embed el HTML de la pantalla debe ser idéntico al anterior**, también con `?embed=1` y un rol distinto de 1. Se comprueba comparando el HTML renderizado antes y después (0 líneas de diff). Un `<?php if (...): ?>` en su propia línea no agrega salida, porque PHP consume el salto de línea que sigue a `?>`.
+- **Con embed:** sin `navbar.php` (y por tanto sin offcanvas de ayuda), sin `MODULO_ACTUAL` ni `ayuda_sidebar.js`, con la clase `embed` en `<body>` y sin barra de pestañas. Las pestañas siguen en el DOM, ocultas con CSS, porque `activarPestaniaPorHash()` las usa.
+- **Las redirecciones de sesión caducada dentro de un marco usan la ventana completa:** `atenderSesionInvalida()` redirige con `ventanaParaRedirigir()` (`helpers.js`), y `config_ctrl.js` saca a la ventana completa cualquier carga del marco que haya quedado sin `embed=1` (por ejemplo, el login al que redirige `check_session.php`).
+- **El marco se navega con `contentWindow.location.replace()`, no asignando `src`:** asignar `src` agrega entradas al historial y Atrás retrocedería dentro del marco.
+- **Cambiar solo el fragmento no recarga el marco:** una pantalla con varias secciones en el mapa debe escuchar `hashchange` cuando tiene `body.embed` (`grupos_ctrl.js`).
+
+Primer uso: `est_view.php`, `grupos_view.php`, `admin_view.php` y `ayud_view.php` (commit `af5e761`, 2026-10-30).
+
 ### Toda petición autenticada verifica `usua_activo`
 
 Una sesión abierta no garantiza que el usuario siga activo: un administrador puede desactivarlo mientras está conectado. Por eso cada petición autenticada consulta `usuarios.usua_activo` con `exigirUsuarioActivo()` (`00_files/helpers.php`), un `SELECT` por clave primaria, sin caché:
@@ -1834,6 +1867,21 @@ Hallazgos de la revisión de los commits `f7b0e92` a `32338a4`. Ninguno se imple
 
 ---
 
+## Deuda técnica / pendiente — 12_configuracion (2026-10-30)
+
+Hallazgos de la Ola 4 (commits `424f859` y `af5e761`), todos de prioridad baja. Ninguno se implementa sin decisión explícita de Jose Luis.
+
+| Ítem | Detalle |
+|---|---|
+| Formulario abierto que se pierde al cambiar de sección en el panel | El fondo oscuro de un modal cubre solo el iframe: el sidebar sigue activo, y un clic en otra sección descarta lo escrito sin aviso. Limitación aceptada en `af5e761`. |
+| La detección de sesión caducada en el marco depende del texto "Sesión no válida" | Los `_mdl.php` responden ese mensaje sin `codigo` cuando la sesión ya no existe. `esRespuestaSesionInvalida()` (`helpers.js`) lo compara literalmente, solo dentro de un marco; si el texto cambia, el marco deja de redirigir. Fuera de un marco no se reconoce (ver "Peticiones posteriores a `sesion_invalida` llegan sin `codigo`"). |
+| Ayuda `ayud_id` 49 desactualizada y ayuda de `12_configuracion` por escribir | La 49 dice que la configuración está debajo de la tabla de usuarios y sigue en la sección `08_admin`: corregirla y pasarla a `12_configuracion` desde `10_ayudas`, en cada entorno. La sección `12_configuracion` todavía no tiene contenido. |
+| `DEFAULT` mal codificado de `institucion_nombre` en el seed | `database/emdb_academica.sql` lo tiene como `MecÃ¡nica`. Solo afecta a una base nueva que use el valor por defecto. |
+| `CHECK` ausentes en la base local | `information_schema` no devuelve ninguno en local, aunque el seed los incluye y se restauraron el 2026-09-08 (ver PROJECT_CONTEXT.md). Verificar dev y producción con `information_schema`. |
+| Los tres `<nav>` fallback inalcanzables siguen pendientes de decisión (Ola 6) | `est_view.php`, `doc_view.php` y `grupos_view.php` (ver la fila correspondiente en "Deuda técnica / pendiente antes de producción"). La Ola 4 no los tocó. |
+
+---
+
 ## Estado del roadmap
 
 Ver historial completo en CHANGELOG.md.
@@ -2134,7 +2182,7 @@ abierto de este roadmap específico.
 | 2.19.C | Grupos: filtros en Grupos Semestre y Asignación, eliminar grupo semestre vacío, bloqueo al quitar un módulo con estudiantes o actividades N3 | ✅ 2026-10-07 (commits `c77d458`, `8268fea`, `ebb756e`, `23d207b`, `a3ca174`) |
 | 2.19.D | Reporte por grupo con filtros; tolerancia a estudiantes sin número de documento | ✅ 2026-10-09 (commits `9d4aead`, `bdcc6e2`, `26055f3`) |
 | 2.19.E | Fechas por nota | ⬜ Pendiente |
-| 2.19.F | Módulo `12_configuracion` | ⬜ Pendiente |
+| 2.19.F | Módulo `12_configuracion` | ✅ 2026-10-30 (commits `424f859`, `af5e761`) |
 
 ### Phase 3 — Validación TRL5
 

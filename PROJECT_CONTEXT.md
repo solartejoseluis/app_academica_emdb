@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
-> Última actualización: 2026-10-28
-> Versión: 144 — `avanzar_semestre` hereda los requisitos documentales de la matrícula anterior y bloquea la fila con `FOR UPDATE`; script de backfill de sucesoras aplicado en local (48), dev (48) y producción (40); último commit `3e3e560`
+> Última actualización: 2026-10-30
+> Versión: 145 — Ola 4 completa: módulo `12_configuracion` para el administrador, con sidebar permanente, nombre institucional editable y las pantallas existentes en modo incrustado (`?embed=1`, solo rol 1); último commit `af5e761` (más `7416fd2` de documentación)
+> Versión anterior: 144 — `avanzar_semestre` hereda los requisitos documentales de la matrícula anterior y bloquea la fila con `FOR UPDATE`; script de backfill de sucesoras aplicado en local (48), dev (48) y producción (40); último commit `3e3e560`
 > Versión anterior: 143 — Corrección de datos del 2026-10-26: 8 matrículas `cursado` de 2026-1 (grupos B y C) pasan a `retirado` + `Retirado`, sin commit de código; último commit `f67d220` (docs de la Ola 2)
 > Versión anterior: 142 — Ola 2 (retirados): criterio único `matr_estado = 'retirado'`, conteos de grupo módulo sin retirados, insignia en Asignados y `editar_matricula` solo sobre matrículas abiertas; "Cambiar a Aplazamiento" pospuesta; último commit `794c72f`
 > Versión anterior: 141 — Diagnóstico de las llamadas `.then`/`.done` ante `sesion_invalida`, cerrado sin cambios de código (Ola 1 completa); último commit `5d9f8c4` (más `4436a85` de documentación)
@@ -21,9 +22,9 @@
 Ruta de trabajo aprobada el 2026-10-17, solo software:
 - **Ola 1 — higiene y seguridad:** 1.1 CORS (hecho, `5da6d82`); 1.2 rol desactualizado en sesión (hecho, `690e663`); 1.3 `setSelectionRange` (hecho, `5d9f8c4`); 1.4 `.then`/`.done` ante `sesion_invalida` (cerrado por análisis, sin cambios de código). **Ola 1 completa.**
 - **Ola 2 — decisiones sobre retirados:** sesión de decisiones del 2026-10-19 e implementación en `794c72f` (2026-10-21): 1A el retirado conserva el acceso; 2A criterio único `matr_estado = 'retirado'`; 3B "Cambiar a Aplazamiento" **pospuesta** (0 retiros definitivos en producción); 4A listados revisados uno por uno; 5A el aviso de asignar módulos al reincorporar ya existía. **Ola 2 completa (3B pospuesta).**
-- **Ola 3 — continuidad académica (siguiente):** incluye la opción A: avanzar matrículas `cursado` desde Per. Anteriores (ver CLAUDE.md, deuda técnica). **Actualización 2026-10-26:** la opción A queda pospuesta, sin casos en producción; la corrección de datos del 2026-10-26 cerró los grupos B y C (8 matrículas a `retirado` + `Retirado`). ~~Quedan el frente 1, requisitos en `avanzar_semestre` (siguiente), y el frente 2, vista de estudiantes sin matrícula en el período activo (baja urgencia).~~ **Actualización 2026-10-28:** frente 1 hecho (`3e3e560`, requisitos heredados y backfill en los tres entornos). Queda el frente 2, vista de estudiantes sin matrícula en el período activo (baja urgencia), y la opción A sigue pospuesta.
-- **Ola 4 — módulo `12_configuracion`** con sidebar del administrador.
-- **Ola 5 — cambios de esquema y datos:** Fase E, whitelist de `cali_n3`, N3 históricos, 54 registros con `XXX`.
+- **Ola 3 — continuidad académica:** incluye la opción A: avanzar matrículas `cursado` desde Per. Anteriores (ver CLAUDE.md, deuda técnica). **Actualización 2026-10-26:** la opción A queda pospuesta, sin casos en producción; la corrección de datos del 2026-10-26 cerró los grupos B y C (8 matrículas a `retirado` + `Retirado`). ~~Quedan el frente 1, requisitos en `avanzar_semestre` (siguiente), y el frente 2, vista de estudiantes sin matrícula en el período activo (baja urgencia).~~ **Actualización 2026-10-28:** frente 1 hecho (`3e3e560`, requisitos heredados y backfill en los tres entornos). Queda el frente 2, vista de estudiantes sin matrícula en el período activo (baja urgencia), y la opción A sigue pospuesta.
+- **Ola 4 — módulo `12_configuracion`** con sidebar del administrador (`424f859` y `af5e761`, 2026-10-30). **Ola 4 completa.**
+- **Ola 5 — cambios de esquema y datos (siguiente):** Fase E, whitelist de `cali_n3`, N3 históricos, 54 registros con `XXX`.
 - **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery, opción B de `.then`/`.done` (modales vacíos ante errores del servidor).
 - **Ola 7 — cierre documental y congelamiento de versión.**
 
@@ -697,6 +698,9 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `f67d220` | docs: registra la Ola 2 de retirados (794c72f), la decisión de posponer Cambiar a Aplazamiento y nuevos pendientes | 2026-10-23 |
 | `540324d` | docs: registra la corrección de datos del 2026-10-26 (8 matrículas cursado a retirado) y el cierre de los grupos B y C | 2026-10-28 |
 | `3e3e560` | feat(estudiantes): avanzar_semestre hereda los requisitos de la matrícula anterior, bloquea la fila con FOR UPDATE y agrega script de backfill de sucesoras | 2026-10-28 |
+| `7416fd2` | docs: registra la herencia de requisitos en avanzar_semestre | 2026-10-28 |
+| `424f859` | feat(configuracion): módulo 12_configuracion para el administrador con menú lateral, nombre institucional editable y apertura de pestañas por hash | 2026-10-30 |
+| `af5e761` | feat(configuracion): sidebar permanente en 12_configuracion con las pantallas existentes en modo incrustado (embed=1) solo para el administrador | 2026-10-30 |
 
 ---
 

@@ -4,6 +4,79 @@
 
 ---
 
+## feat(configuracion): sidebar permanente en 12_configuracion con las pantallas existentes en modo incrustado (embed=1) solo para el administrador (commit `af5e761`) — 2026-10-30
+
+### Contexto
+El primer diseño (`424f859`) enlazaba desde un menú lateral a las pantallas existentes; al volver se perdía la secuencia de configuración.
+
+### Cambio
+- `config_view.php` pasa a ser un panel con navbar superior fija, sidebar permanente a la izquierda y un único iframe reutilizado a la derecha:
+  - Configuración: Institución, Usuarios, Ayudas.
+  - Catálogos académicos: Requisitos por programa, Programas, Módulos, Períodos, Cohortes.
+  - El sidebar es colapsable en móvil.
+- Institución se muestra sin marco; las demás secciones cargan las pantallas existentes con `?embed=1`.
+- Modo incrustado solo con rol 1 (`$embed` en `est_view.php`, `grupos_view.php`, `admin_view.php` y `ayud_view.php`): sin navbar ni offcanvas de ayuda, sin barra de pestañas, solo la pestaña pedida, sin títulos ni "+ Nuevo Aspirante".
+- La sección activa vive en el hash (`config_view.php#periodos`). `config_ctrl.js` usa `location.replace()` en el marco para no ensuciar el historial; `grupos_ctrl.js` escucha `hashchange` solo con `body.embed`.
+- `helpers.js`: `ventanaParaRedirigir()`, redirección de sesión caducada a la ventana completa, y "Sesión no válida" tratado como sesión inválida solo dentro de un marco.
+- `estilos.css`: reglas de `body.embed` y del panel.
+- Sin cambios de BD. Sin cambios para los roles 2, 3 y 4.
+
+### Decisión
+- 1A contenedor con iframe, frente a repetir el sidebar en cada pantalla (tocaba pantallas del coordinador).
+- 2A sección activa en la URL.
+- 3A el login del rol 1 sigue yendo a `08_admin` y las pantallas abiertas directo se ven completas.
+- Limitaciones aceptadas:
+  - Cambiar de sección con un modal abierto pierde lo escrito.
+  - El botón Ayuda dentro del panel muestra siempre la ayuda de `12_configuracion`.
+  - La detección de sesión caducada dentro del marco depende del texto exacto "Sesión no válida".
+
+### Pruebas
+- `curl` con sesiones por rol y Playwright (77 comprobaciones):
+  - Sidebar y navbar fijos en las 8 entradas; recarga con hash, Atrás y Adelante.
+  - Crear y editar dentro del marco en cada pantalla.
+  - Rol 2 con HTML idéntico con y sin `embed`.
+  - Sesión caducada con un solo aviso y login en ventana completa.
+  - Móvil de 390 px.
+- `CHECKSUM TABLE` idéntico; `matriculas` = 122.
+
+### Despliegue
+- 9 archivos a dev y producción el 2026-10-30, con segunda sesión de administrador.
+- Cabeceras comprobadas con `curl -I`: sin `X-Frame-Options` ni `frame-ancestors` (dev con Basic Auth).
+
+---
+
+## feat(configuracion): módulo 12_configuracion para el administrador con menú lateral, nombre institucional editable y apertura de pestañas por hash (commit `424f859`) — 2026-10-30
+
+### Contexto
+La configuración del administrador estaba dispersa (usuarios, configuración institucional y ayudas en páginas distintas) y `institucion_nombre` se leía en 5 pantallas y PDF pero no se podía editar.
+
+### Cambio
+- `app/12_configuracion/` (`config_view.php`, `config_mdl.php` con `exigirUsuarioActivo()` y guard `role_id !== 1` en cada `case`, `config_ctrl.js`), con formulario de `institucion_nombre` (3 a 150 caracteres), `matr_numero_inicial`, `director_nombre` y `secretario_nombre`.
+- La configuración institucional sale de `08_admin`: se retiran los `case` `obtener_configuracion` y `guardar_configuracion`, tras comprobar con `grep` que nadie más los llamaba.
+- `navbar.php`: un solo enlace "⚙️ Configuración" para el rol 1, que reemplaza "Usuarios" y "Ayudas".
+- `helpers.js`: `activarPestaniaPorHash(mapa)` (el hash solo es clave de un mapa); `est_ctrl.js` y `grupos_ctrl.js` abren la pestaña indicada.
+- `ayud_view.php`: secciones `10_ayudas` y `12_configuracion` en el select, y carga `ayuda_sidebar.js` (era la única vista con navbar sin él).
+
+### Decisión
+- Sidebar con enlaces sin mover pantallas (A), porque programas, módulos, períodos, cohortes y grupos los usa también el coordinador.
+- No se tocan los `<nav>` fallback inalcanzables de `est_view.php`, `doc_view.php` y `grupos_view.php`.
+
+### Pruebas
+- `curl` y Playwright por rol (45 comprobaciones).
+- Rol 2 con HTML idéntico.
+- `CHECKSUM TABLE` idéntico; `matriculas` = 122.
+
+### Despliegue
+- 3 archivos nuevos y 8 modificados, sin cambios de BD, a dev y producción el 2026-10-30.
+
+### Pendientes
+- La ayuda `ayud_id` 49 dice que la configuración está debajo de la tabla de usuarios y sigue en la sección `08_admin`: corregirla y pasarla a `12_configuracion` desde `10_ayudas` en cada entorno.
+- Escribir la ayuda de `12_configuracion`.
+- El seed tiene mal codificado el `DEFAULT` de `institucion_nombre` (`MecÃ¡nica`).
+- La base local no tiene ningún `CHECK` aunque el seed los incluye: verificar dev y producción con `information_schema`.
+
+---
+
 ## feat(estudiantes): avanzar_semestre hereda los requisitos de la matrícula anterior, bloquea la fila con FOR UPDATE y agrega script de backfill de sucesoras (commit `3e3e560`) — 2026-10-28
 
 ### Contexto
