@@ -1506,6 +1506,10 @@ $(document).ready(function () {
     }
 
     cargarProgramasConfigRequisitos();
+
+    // Enlace desde 12_configuracion. La pestaña solo se dibuja con rol 1;
+    // con otro rol el selector no encuentra nada y el hash se ignora.
+    activarPestaniaPorHash({ '#config-requisitos': '#tab-config-requisitos' });
 });
 
 // Fuera de ready — usada por tablaMatriculadosActual y tablaMatriculadosAnteriores

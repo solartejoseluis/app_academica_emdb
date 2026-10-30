@@ -105,6 +105,18 @@ function poblarFiltro(selector, filas, campoValor, campoTexto, comparar) {
     });
 }
 
+// Abre la pestaña de Bootstrap que corresponde a location.hash.
+//   mapa — { '#hash': 'selector del botón o enlace de la pestaña' }
+// El hash solo se usa como clave del mapa, nunca como selector. Sin hash, con
+// un hash desconocido o si la pestaña no se dibujó para este rol, no hace nada.
+function activarPestaniaPorHash(mapa) {
+    if (!Object.prototype.hasOwnProperty.call(mapa, location.hash)) return;
+    const pestania = document.querySelector(mapa[location.hash]);
+    if (pestania) {
+        bootstrap.Tab.getOrCreateInstance(pestania).show();
+    }
+}
+
 // Sesión invalidada en el servidor (usuario desactivado): exigirUsuarioActivo()
 // en helpers.php responde { status: 'error', codigo: 'sesion_invalida' }.
 // El prefiltro envuelve el success de cada $.ajax (incluidas las DataTables)

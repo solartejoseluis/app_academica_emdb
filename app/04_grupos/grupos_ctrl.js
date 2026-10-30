@@ -104,6 +104,14 @@ $(document).ready(function () {
     cargarPeriodosSelector().always(cargarTablaGrupos).always(function () {
         filtroAsigPeriodoResuelto = true;
         aplicarFiltrosAsignacion();
+        // Enlaces desde 12_configuracion: al final de la cadena, con los
+        // filtros de período ya fijados por la primera carga.
+        activarPestaniaPorHash({
+            '#programas': '#tabsGrupos [data-bs-target="#tab_programas"]',
+            '#modulos':   '#tabsGrupos [data-bs-target="#tab_modulos"]',
+            '#periodos':  '#tabsGrupos [data-bs-target="#tab_periodos"]',
+            '#cohortes':  '#tabsGrupos [data-bs-target="#tab_cohortes"]'
+        });
     });
     cargarDocentesSelector();
     cargarGruposAsignacion();

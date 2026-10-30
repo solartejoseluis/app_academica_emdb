@@ -71,6 +71,8 @@ if ($_SESSION['role_id'] !== 1) {
                         <option value="06_reportes">06_reportes — Reportes</option>
                         <option value="07_coordinador">07_coordinador — Dashboard</option>
                         <option value="08_admin">08_admin — Usuarios</option>
+                        <option value="10_ayudas">10_ayudas — Ayudas</option>
+                        <option value="12_configuracion">12_configuracion — Configuración</option>
                     </select>
                 </div>
                 <div class="mb-3">
@@ -126,5 +128,7 @@ if ($_SESSION['role_id'] !== 1) {
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="../00_files/helpers.js"></script>
 <script src="ayud_ctrl.js"></script>
+<script>const MODULO_ACTUAL = '10_ayudas';</script>
+<script src="../00_files/ayuda_sidebar.js"></script>
 </body>
 </html>

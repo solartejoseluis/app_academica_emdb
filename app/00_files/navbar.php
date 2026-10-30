@@ -43,13 +43,8 @@ $role_id = (int)($_SESSION['role_id'] ?? 0);
             </li>
             <?php if ($role_id === 1): ?>
             <li class="nav-item">
-                <a class="nav-link" href="/app_academica_emdb/app/08_admin/admin_view.php">
-                    ⚙️ Usuarios
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/app_academica_emdb/app/10_ayudas/ayud_view.php">
-                    ❓ Ayudas
+                <a class="nav-link<?= basename(dirname($_SERVER['SCRIPT_NAME'])) === '12_configuracion' ? ' active' : '' ?>" href="/app_academica_emdb/app/12_configuracion/config_view.php">
+                    ⚙️ Configuración
                 </a>
             </li>
             <?php endif; ?>
