@@ -485,6 +485,23 @@ switch ($accion) {
                 break;
             }
 
+            // cali_n3 es derivado de las actividades N3 (guardar_nota_n3 y
+            // recalcularGrupoModuloN3): este endpoint no lo escribe. Si llega,
+            // se ignora sin error, sin escribir ni recalcular Nota Final ni
+            // Definitiva, y se responde con lo que ya está guardado.
+            if ($campo === 'cali_n3') {
+                $actual = $pdo->prepare("
+                    SELECT cali_id, cali_nota_final, cali_definitiva,
+                           cali_n1, cali_n2, cali_n3, cali_n4,
+                           cali_sup_n1, cali_sup_n2, cali_sup_n4,
+                           cali_habilitacion
+                    FROM calificaciones WHERE grmo_id = ? AND estu_id = ?
+                ");
+                $actual->execute([$grmo_id, $estu_id]);
+                echo json_encode(array_merge(['status' => 'ok'], $actual->fetch() ?: []));
+                break;
+            }
+
             // Normalizar coma por punto (teclados numéricos)
             if ($campo !== 'cali_observacion') {
                 $valor = str_replace(',', '.', $valor);
@@ -492,7 +509,7 @@ switch ($accion) {
 
             // Whitelist de campos permitidos
             $campos_permitidos = [
-                'cali_n1', 'cali_n2', 'cali_n3', 'cali_n4',
+                'cali_n1', 'cali_n2', 'cali_n4',
                 'cali_sup_n1', 'cali_sup_n2', 'cali_sup_n4',
                 'cali_habilitacion',
                 'cali_observacion'
@@ -525,6 +542,16 @@ switch ($accion) {
             if (matriculaRetiradaPeriodoActivo($pdo, $grmo_id, $estu_id)) {
                 $pdo->rollBack();
                 echo json_encode(['status' => 'error', 'codigo' => 'matricula_retirada', 'message' => MSG_MATRICULA_RETIRADA]);
+                break;
+            }
+
+            // El estudiante debe pertenecer al grupo módulo (mismo criterio
+            // que guardar_nota_n3)
+            $miembro = $pdo->prepare("SELECT COUNT(*) AS total FROM grmoestudiantes WHERE grmo_id = ? AND estu_id = ?");
+            $miembro->execute([$grmo_id, $estu_id]);
+            if ((int)$miembro->fetch()['total'] === 0) {
+                $pdo->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'El estudiante no pertenece a este grupo.']);
                 break;
             }
 
