@@ -4,6 +4,39 @@
 
 ---
 
+## fix(calificaciones): guardar_nota ya no acepta cali_n3 y exige que el estudiante pertenezca al grupo (commit `edb485b`) — 2026-10-30
+
+### Contexto
+El diagnóstico de la Ola 5 (2026-10-30) halló dos huecos en `guardar_nota`:
+- Aceptaba `cali_n3` por POST y recalculaba Nota Final y Definitiva en el acto, aunque la interfaz no lo envía (el input N3 es de solo lectura). En un grupo histórico el cambio era permanente y sin autoría.
+- No comprobaba que el estudiante perteneciera al grupo (`guardar_nota_n3` sí).
+
+### Cambio
+- `cali_n3` sale de la lista blanca de `guardar_nota`; quedan N1, N2, N4, supletorios, habilitación y observación.
+- Si `cali_n3` llega, se ignora sin error, sin escribir ni recalcular, y se responde con lo ya guardado.
+- Antes de escribir se comprueba que (`grmo_id`, `estu_id`) exista en `grmoestudiantes`; si no, responde "El estudiante no pertenece a este grupo." sin escribir.
+- Sin cambios de esquema ni de frontend.
+
+### Decisión
+- Opción B: lista blanca más pertenencia.
+- Quedan fuera, aparte, las reglas de supletorio (nota 0.0) y de habilitación (Nota Final menor de 3.0), por riesgo de rechazar flujos actuales.
+
+### Pruebas
+- `curl` con sesiones por rol y Playwright: 84 casos comparados con la línea base (65 iguales, 19 con el cambio esperado).
+- `grep`: nadie envía `cali_n3` a `guardar_nota`.
+- `php -l` sin errores.
+- `CHECKSUM TABLE` idéntico; `matriculas` = 122.
+
+### Despliegue
+- 1 archivo (`calificaciones_mdl.php`) a dev y producción, sin cambios de BD.
+- Consulta previa en producción: 12 calificaciones sin pareja en `grmoestudiantes`, todas de 2026-1 (período cerrado), mismo grupo y módulo, con Nota Final y Definitiva en `NULL`. Son filas vacías de estudiantes quitados del roster y quedan sin tratamiento.
+
+### Notas
+- `campo=cali_n3` con un valor inválido ahora responde `ok` sin escribir.
+- Las filas `cali_id` 110 y 192 (N1 = 0.0 sin supletorio, valor guardado distinto de la fórmula) siguen expuestas a un guardado de otro campo. Pendiente decidir el valor correcto y revisar si hay casos así en producción.
+
+---
+
 ## feat(configuracion): sidebar permanente en 12_configuracion con las pantallas existentes en modo incrustado (embed=1) solo para el administrador (commit `af5e761`) — 2026-10-30
 
 ### Contexto
