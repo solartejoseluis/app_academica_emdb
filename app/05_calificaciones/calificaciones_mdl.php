@@ -3,6 +3,52 @@ session_start();
 require_once '../00_connect/pdo.php';
 require_once '../00_files/helpers.php';
 
+// Columna de fecha de cada nota: guarda la última vez que su valor cambió, sin
+// historial. Se escribe aquí y no se muestra en ninguna pantalla, reporte ni PDF.
+const COLUMNAS_FECHA_NOTA = [
+    'cali_n1'           => 'fecha_n1',
+    'cali_n2'           => 'fecha_n2',
+    'cali_n3'           => 'fecha_n3',
+    'cali_n4'           => 'fecha_n4',
+    'cali_sup_n1'       => 'fecha_sup_n1',
+    'cali_sup_n2'       => 'fecha_sup_n2',
+    'cali_sup_n4'       => 'fecha_sup_n4',
+    'cali_habilitacion' => 'fecha_habilitacion',
+];
+
+// Escribe una nota y su fecha en un solo UPDATE. La comparación la hace la BD
+// contra el valor ya convertido a DECIMAL(3,1) (4 y 4.0 son iguales, y 3.33
+// iguala a un 3.3 guardado): si no cambió, la fecha se conserva. Sin nota, la
+// fecha queda en NULL. $campo debe ser una clave de COLUMNAS_FECHA_NOTA.
+function actualizarNotaConFecha(PDO $pdo, int $cali_id, string $campo, ?float $valor): void {
+    $colFecha = COLUMNAS_FECHA_NOTA[$campo];
+    if ($valor === null) {
+        $stmt = $pdo->prepare("UPDATE calificaciones SET {$colFecha} = NULL, {$campo} = NULL WHERE cali_id = ?");
+        $stmt->execute([$cali_id]);
+        return;
+    }
+    // La fecha va antes que la nota en el SET: debe compararse con el valor anterior.
+    $stmt = $pdo->prepare("
+        UPDATE calificaciones
+        SET {$colFecha} = IF({$campo} <=> CAST(? AS DECIMAL(3,1)), {$colFecha}, CURRENT_TIMESTAMP),
+            {$campo} = ?
+        WHERE cali_id = ?
+    ");
+    $stmt->execute([$valor, $valor, $cali_id]);
+}
+
+// Crea la fila de calificaciones con una nota y su fecha (NULL si no hay nota).
+// $campo debe ser una clave de COLUMNAS_FECHA_NOTA.
+function insertarNotaConFecha(PDO $pdo, int $grmo_id, int $estu_id, string $campo, ?float $valor): void {
+    $colFecha = COLUMNAS_FECHA_NOTA[$campo];
+    $fecha    = $valor === null ? 'NULL' : 'CURRENT_TIMESTAMP';
+    $stmt = $pdo->prepare("
+        INSERT INTO calificaciones (grmo_id, estu_id, {$campo}, {$colFecha})
+        VALUES (?, ?, ?, {$fecha})
+    ");
+    $stmt->execute([$grmo_id, $estu_id, $valor]);
+}
+
 // Fórmula oficial de Nota Final/Definitiva — extraída de 'guardar_nota'
 // (Fase 2.14.D) para que 'guardar_nota_n3' la reutilice sin duplicarla.
 // A diferencia del bloque inline original, aquí SIEMPRE se persiste
@@ -109,7 +155,6 @@ function recalcularGrupoModuloN3(PDO $pdo, int $grmo_id): int {
     ");
     $roster->execute([$grmo_id]);
 
-    $upd = $pdo->prepare("UPDATE calificaciones SET cali_n3 = ? WHERE cali_id = ?");
     $cambiados = 0;
     foreach ($roster->fetchAll() as $fila) {
         $estu_id = (int)$fila['estu_id'];
@@ -122,7 +167,7 @@ function recalcularGrupoModuloN3(PDO $pdo, int $grmo_id): int {
             continue;
         }
 
-        $upd->execute([$nuevo, $fila['cali_id']]);
+        actualizarNotaConFecha($pdo, (int)$fila['cali_id'], 'cali_n3', $nuevo);
         recalcularNotaFinalYDefinitiva($pdo, $grmo_id, $estu_id);
         $cambiados++;
     }
@@ -566,22 +611,30 @@ switch ($accion) {
             $existing = $check->fetch();
 
             if ($existing) {
-                // UPDATE campo específico
-                $stmt = $pdo->prepare("
-                    UPDATE calificaciones SET {$campo} = ?
-                    WHERE grmo_id = ? AND estu_id = ?
-                ");
-                $stmt->execute([$valor, $grmo_id, $estu_id]);
+                // UPDATE campo específico (la observación no lleva fecha)
+                if (isset(COLUMNAS_FECHA_NOTA[$campo])) {
+                    actualizarNotaConFecha($pdo, (int)$existing['cali_id'], $campo, $valor);
+                } else {
+                    $stmt = $pdo->prepare("
+                        UPDATE calificaciones SET {$campo} = ?
+                        WHERE grmo_id = ? AND estu_id = ?
+                    ");
+                    $stmt->execute([$valor, $grmo_id, $estu_id]);
+                }
                 $cali_id = $existing['cali_id'];
                 // Actualizar fila existente con el nuevo valor
                 $existing[$campo] = $valor;
             } else {
-                // INSERT
-                $stmt = $pdo->prepare("
-                    INSERT INTO calificaciones (grmo_id, estu_id, {$campo})
-                    VALUES (?, ?, ?)
-                ");
-                $stmt->execute([$grmo_id, $estu_id, $valor]);
+                // INSERT (la observación no lleva fecha)
+                if (isset(COLUMNAS_FECHA_NOTA[$campo])) {
+                    insertarNotaConFecha($pdo, $grmo_id, $estu_id, $campo, $valor);
+                } else {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO calificaciones (grmo_id, estu_id, {$campo})
+                        VALUES (?, ?, ?)
+                    ");
+                    $stmt->execute([$grmo_id, $estu_id, $valor]);
+                }
                 $cali_id = $pdo->lastInsertId();
                 // Leer fila recién insertada
                 $r2 = $pdo->prepare("
@@ -1102,11 +1155,9 @@ switch ($accion) {
             $filaCalif = $existeCalif->fetch();
 
             if ($filaCalif) {
-                $updN3 = $pdo->prepare("UPDATE calificaciones SET cali_n3 = ? WHERE cali_id = ?");
-                $updN3->execute([$n3, $filaCalif['cali_id']]);
+                actualizarNotaConFecha($pdo, (int)$filaCalif['cali_id'], 'cali_n3', $n3);
             } else {
-                $insN3 = $pdo->prepare("INSERT INTO calificaciones (grmo_id, estu_id, cali_n3) VALUES (?, ?, ?)");
-                $insN3->execute([$grmo_id, $estu_id, $n3]);
+                insertarNotaConFecha($pdo, $grmo_id, $estu_id, 'cali_n3', $n3);
             }
 
             recalcularNotaFinalYDefinitiva($pdo, $grmo_id, $estu_id);

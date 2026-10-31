@@ -99,6 +99,14 @@ CREATE TABLE `calificaciones` (
   `cali_observacion` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `fecharegistro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `fechaactualizacion` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `fecha_n1` timestamp NULL DEFAULT NULL,
+  `fecha_n2` timestamp NULL DEFAULT NULL,
+  `fecha_n3` timestamp NULL DEFAULT NULL,
+  `fecha_n4` timestamp NULL DEFAULT NULL,
+  `fecha_sup_n1` timestamp NULL DEFAULT NULL,
+  `fecha_sup_n2` timestamp NULL DEFAULT NULL,
+  `fecha_sup_n4` timestamp NULL DEFAULT NULL,
+  `fecha_habilitacion` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`cali_id`),
   UNIQUE KEY `uq_cali_grmo_estu` (`grmo_id`,`estu_id`),
   KEY `fk_cali_estu` (`estu_id`),
@@ -121,7 +129,7 @@ CREATE TABLE `calificaciones` (
 
 LOCK TABLES `calificaciones` WRITE;
 /*!40000 ALTER TABLE `calificaciones` DISABLE KEYS */;
-INSERT INTO `calificaciones` VALUES (4,3,79,4.5,2.8,3.8,0.0,NULL,NULL,3.0,3.4,NULL,3.4,NULL,'2026-09-06 04:27:03','2026-09-06 04:28:27'),(5,3,66,NULL,NULL,2.9,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-09-06 04:27:25','2026-09-06 04:27:33'),(6,3,77,NULL,NULL,3.3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-09-06 04:27:37','2026-09-06 04:27:48');
+INSERT INTO `calificaciones` (`cali_id`, `grmo_id`, `estu_id`, `cali_n1`, `cali_n2`, `cali_n3`, `cali_n4`, `cali_sup_n1`, `cali_sup_n2`, `cali_sup_n4`, `cali_definitiva`, `cali_habilitacion`, `cali_nota_final`, `cali_observacion`, `fecharegistro`, `fechaactualizacion`) VALUES (4,3,79,4.5,2.8,3.8,0.0,NULL,NULL,3.0,3.4,NULL,3.4,NULL,'2026-09-06 04:27:03','2026-09-06 04:28:27'),(5,3,66,NULL,NULL,2.9,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-09-06 04:27:25','2026-09-06 04:27:33'),(6,3,77,NULL,NULL,3.3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-09-06 04:27:37','2026-09-06 04:27:48');
 /*!40000 ALTER TABLE `calificaciones` ENABLE KEYS */;
 UNLOCK TABLES;
 
