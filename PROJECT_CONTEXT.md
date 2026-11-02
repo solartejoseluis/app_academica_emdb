@@ -1,9 +1,10 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
-> **Sistema de Gestión Académica — Escuela de Mecánica Dental Bolaños**\
-> Versión de la aplicación: 1.0 (congelada; la etiqueta git `v1.0` se crea al cerrar la Ola 7)\
-> Estado: en producción; validación TRL5 realizada del 2026-09-19 al 2026-10-02\
-> Documentos: [README.md](README.md) · [CLAUDE.md](CLAUDE.md) · [CHANGELOG.md](CHANGELOG.md) · [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)\
-> Rol: estado de avance, ruta de trabajo y commits (se pega al inicio de cada chat de trabajo).
+> **Sistema de Gestión Académica — Escuela de Mecánica Dental Bolaños**
+>
+> - Versión de la aplicación: 1.0 (congelada; la etiqueta git `v1.0` se crea al cerrar la Ola 7)
+> - Estado: en producción; validación TRL5 realizada del 2026-09-19 al 2026-10-02
+> - Documentos: [README.md](README.md) · [CLAUDE.md](CLAUDE.md) · [CHANGELOG.md](CHANGELOG.md) · [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
+> - Rol: estado de avance, ruta de trabajo y commits (se pega al inicio de cada chat de trabajo).
 
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-11-02
