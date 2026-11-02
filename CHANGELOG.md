@@ -4,6 +4,54 @@
 
 ---
 
+## feat(calificaciones): fecha por nota en calificaciones (8 columnas, solo la última fecha, no visibles) con script de migración (commit `fbe8722`) — 2026-10-31
+
+### Contexto
+`calificaciones` solo tenía `fecharegistro` y `fechaactualizacion`, ambas de fila. `fechaactualizacion` cambia con los recálculos automáticos de N3 aunque nadie edite esa nota, y no cambia si el valor guardado es idéntico, así que no sirve como fecha de una nota.
+
+### Cambio
+- 8 columnas `TIMESTAMP NULL DEFAULT NULL`: `fecha_n1`, `fecha_n2`, `fecha_n3`, `fecha_n4`, `fecha_sup_n1`, `fecha_sup_n2`, `fecha_sup_n4`, `fecha_habilitacion`. Se declaran así de forma explícita para que MariaDB no les ponga un `ON UPDATE` automático.
+- `calificaciones_mdl.php`: mapa fijo `COLUMNAS_FECHA_NOTA` y funciones `actualizarNotaConFecha()` e `insertarNotaConFecha()`. La comparación la hace la BD dentro del mismo `UPDATE`, contra el valor convertido a `DECIMAL(3,1)` (4 y 4.0 son iguales): si la nota no cambió, la fecha se conserva; si la nota se borra, la fecha queda en `NULL`. Se usan en `guardar_nota`, `guardar_nota_n3` y `recalcularGrupoModuloN3`.
+- Las lecturas no muestran las fechas en ninguna pantalla, reporte ni PDF.
+- `database/emdb_academica.sql`: columnas nuevas y lista explícita de columnas en el `INSERT INTO calificaciones`, que era posicional.
+- `scripts/migracion_fechas_por_nota.sql`: la idempotencia la da la vista previa (MySQL 8.0 no admite `ADD COLUMN IF NOT EXISTS`). Orden de despliegue: respaldo, script, después el código.
+
+### Decisión
+- Fecha automática del servidor, solo cuando el valor cambia.
+- Ocho columnas, incluidos los supletorios y la habilitación.
+- Solo la última fecha, sin historial ni autor.
+- No se muestra en ninguna pantalla por ahora.
+- Una nota borrada deja su fecha en `NULL`.
+- Los históricos quedan en `NULL`, sin inventar fechas.
+- Excepción de nomenclatura: los nombres llevan guion bajo (`fecha_n1`), aunque la convención del proyecto escribe las fechas sin él (`fecharegistro`).
+
+### Zona horaria
+Confirmada, sin cambios de código.
+- Producción: `@@global.time_zone = SYSTEM`, `@@system_time_zone = -05`, `NOW()` de 09:58 frente a 14:58 UTC, y `health.php` devuelve la hora con `-05:00`.
+- Local: `-05:00` por el `SET time_zone` de `pdo.php`.
+- La deuda "`pdo_web.php` sin `SET time_zone`" queda cerrada como confirmada: el `-05:00` viene del sistema del hosting.
+
+### Pruebas
+- `curl` con sesiones por rol y Playwright: 101 comprobaciones de API.
+- Reenviar el mismo valor no cambia la fecha; N3 probado con recálculo.
+- 35 respuestas JSON, HTML y PDF idénticas antes y después.
+- Script probado en MySQL 8.0 y MariaDB 10.11.
+- El seed importa completo.
+- `CHECKSUM TABLE` idéntico en las otras 23 tablas; `matriculas` = 122.
+
+### Despliegue
+- En cada entorno, en este orden: respaldo, script en la base, después `calificaciones_mdl.php`.
+- Dev el 2026-11-02 y producción el 2026-11-02, con una segunda sesión de administrador abierta.
+- Verificado con `SHOW COLUMNS`: las 8 columnas existen, `timestamp`, nulas, sin `on update`.
+- En dev y producción se comprobó que cada fecha se mueve de forma independiente (cambiar solo N1 no toca `fecha_n2`). Datos de prueba devueltos a su valor original.
+
+### Notas
+1. `information_schema.COLUMNS` devuelve 0 filas en el hosting aun para columnas existentes, así que los bloques 1 y 3 originales del script no servían allí; se corrigieron con `SHOW COLUMNS`.
+2. Una nota histórica editada después del despliegue tendrá fecha solo en la nota que cambió.
+3. Corregir una nota y devolverla a su valor original deja la fecha de la corrección, no la original (efecto normal; la fecha no se muestra).
+
+---
+
 ## fix(calificaciones): guardar_nota ya no acepta cali_n3 y exige que el estudiante pertenezca al grupo (commit `edb485b`) — 2026-10-30
 
 ### Contexto

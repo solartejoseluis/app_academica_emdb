@@ -13,11 +13,17 @@
 --
 -- CÓMO EJECUTARLO: seleccione primero la base en phpMyAdmin (el script no lleva
 -- USE) y ejecute bloque por bloque, en orden:
---   Bloque 1: debe devolver 0 filas. Si devuelve alguna, NO ejecute el bloque 2.
+--   Bloque 1: ninguna de las 8 columnas fecha_* debe aparecer en la lista. Si
+--             aparece alguna, NO ejecute el bloque 2.
 --   Bloque 2: agrega las 8 columnas.
---   Bloque 3: todas las filas deben decir 'ok' y el total debe ser 8.
+--   Bloque 3: las 8 columnas deben aparecer al final de la lista, tipo
+--             timestamp, Null YES, Default NULL y sin "on update" en Extra.
 --   Bloque 4: reversa, comentada. Solo si hay que deshacer, y con el código
 --             anterior ya restaurado.
+--
+-- VERIFICACIÓN CON SHOW COLUMNS: information_schema.COLUMNS devuelve 0 filas
+-- en el hosting (dev y producción), aun para columnas existentes; verificar con
+-- SHOW COLUMNS. Por eso los bloques 1 y 3 no usan information_schema.
 --
 -- IDEMPOTENCIA: la da el bloque 1. MySQL 8.0 (local) no admite
 -- ADD COLUMN IF NOT EXISTS. Si el bloque 2 se ejecuta dos veces falla con
@@ -32,15 +38,11 @@
 
 
 -- ----------------------------------------------------------------------------
--- BLOQUE 1: vista previa. Cuáles de las 8 columnas ya existen. Esperado: 0 filas.
+-- BLOQUE 1: vista previa. Esperado: ninguna de las 8 columnas fecha_n1,
+-- fecha_n2, fecha_n3, fecha_n4, fecha_sup_n1, fecha_sup_n2, fecha_sup_n4,
+-- fecha_habilitacion aparece en la lista.
 -- ----------------------------------------------------------------------------
-SELECT COLUMN_NAME
-FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME = 'calificaciones'
-  AND COLUMN_NAME IN ('fecha_n1', 'fecha_n2', 'fecha_n3', 'fecha_n4',
-                      'fecha_sup_n1', 'fecha_sup_n2', 'fecha_sup_n4',
-                      'fecha_habilitacion');
+SHOW COLUMNS FROM calificaciones;
 
 
 -- ----------------------------------------------------------------------------
@@ -58,34 +60,10 @@ ALTER TABLE calificaciones
 
 
 -- ----------------------------------------------------------------------------
--- BLOQUE 3: verificación. Esperado: 8 filas con estado 'ok'.
--- MariaDB informa el default nulo como el texto 'NULL'; MySQL, como NULL.
+-- BLOQUE 3: verificación. Esperado: las 8 columnas al final de la lista, con
+-- Type timestamp, Null YES, Default NULL y sin "on update" en Extra.
 -- ----------------------------------------------------------------------------
-SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA,
-       IF(DATA_TYPE = 'timestamp'
-          AND IS_NULLABLE = 'YES'
-          AND (COLUMN_DEFAULT IS NULL OR COLUMN_DEFAULT = 'NULL')
-          AND EXTRA NOT LIKE '%on update%', 'ok', 'REVISAR') AS estado
-FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME = 'calificaciones'
-  AND COLUMN_NAME IN ('fecha_n1', 'fecha_n2', 'fecha_n3', 'fecha_n4',
-                      'fecha_sup_n1', 'fecha_sup_n2', 'fecha_sup_n4',
-                      'fecha_habilitacion')
-ORDER BY ORDINAL_POSITION;
-
--- Esperado: columnas_correctas = 8.
-SELECT COUNT(*) AS columnas_correctas
-FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME = 'calificaciones'
-  AND COLUMN_NAME IN ('fecha_n1', 'fecha_n2', 'fecha_n3', 'fecha_n4',
-                      'fecha_sup_n1', 'fecha_sup_n2', 'fecha_sup_n4',
-                      'fecha_habilitacion')
-  AND DATA_TYPE = 'timestamp'
-  AND IS_NULLABLE = 'YES'
-  AND (COLUMN_DEFAULT IS NULL OR COLUMN_DEFAULT = 'NULL')
-  AND EXTRA NOT LIKE '%on update%';
+SHOW COLUMNS FROM calificaciones;
 
 
 -- ----------------------------------------------------------------------------
