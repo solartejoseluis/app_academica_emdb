@@ -8,7 +8,8 @@
 
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-11-02
-> Versión: 149 — 2026-11-02. Ola 6 reducida: ayuda `ayud_id` 49 movida a `12_configuracion` en los tres entornos y comprobación de los `CHECK` (dev no los tiene; producción sin comprobar), sin commit de código; el resto de la Ola 6 queda como deuda; último commit `d16f23a` (documentación)
+> Versión: 150 — 2026-11-02. Ola 7 en curso: README reescrito, cabecera común en los cuatro documentos, scripts restaurar_check_* descritos como históricos; último commit `e41352d`
+> Versión anterior: 149 — 2026-11-02. Ola 6 reducida: ayuda `ayud_id` 49 movida a `12_configuracion` en los tres entornos y comprobación de los `CHECK` (dev no los tiene; producción sin comprobar), sin commit de código; el resto de la Ola 6 queda como deuda; último commit `d16f23a` (documentación)
 > Versión anterior: 148 — 2026-11-02. Ola 5 completa: frente 2, bloqueo de la primera actividad N3 en un grupo con N3 histórico (`b19a859`), e incidente del 2026-11-02 en el grupo `grmo_id` 71 restaurado desde respaldo; último commit `b19a859` (más `74a639d` de documentación)
 > Versión anterior: 147 — 2026-11-02. Ola 5, frente 3 (Fase E): fecha por nota en `calificaciones` (8 columnas `fecha_*`, solo la última fecha, no visibles), desplegada en dev y producción; frente 4 (`XXX`) cerrado sin código; último commit `fbe8722` (más `0a579d4` de documentación)
 > Versión anterior: 146 — Ola 5, frente 1: `guardar_nota` ya no acepta `cali_n3` y exige que el estudiante pertenezca al grupo; último commit `edb485b` (más `115ada8` de documentación)
@@ -42,6 +43,7 @@ Ruta de trabajo aprobada el 2026-10-17, solo software:
   **Actualización 2026-11-02 — CHECK:** se leyeron los scripts `restaurar_check_*` (sin ejecutarlos): son históricos, y los `CHECK` faltan en local y en dev (producción sin comprobar). El README los describe como históricos y el script corregido queda en la deuda (ver CHANGELOG.md). Sin commit nuevo; la versión sigue en 149.
   **Actualización 2026-11-02 — Ola 6 reducida hecha:** ayuda de `12_configuracion` (`ayud_id` 49) y comprobación de los `CHECK` (ver CHANGELOG.md). El resto de la Ola 6 queda como deuda registrada en CLAUDE.md ("Deuda técnica / pendiente — resto de la Ola 6"). Siguiente: Ola 7 (cierre documental y congelamiento de versión: README completo, cabeceras, etiqueta git v1.0, respaldos), más el frente 2 de la Ola 3 y la opción A, pospuestos.
 - **Ola 7 — cierre documental y congelamiento de versión.**
+  **Actualización 2026-11-02 — Ola 7 en curso:** hechos el README reescrito (`dfb25df`), la cabecera común en los cuatro documentos (`af662f5`, `e41352d`) y la lectura de los scripts de `CHECK`, descritos como históricos (`1ac20bb`). Quedan los respaldos finales y la etiqueta `v1.0`, más las tareas locales: renombrar dos respaldos con nombre propio y decidir la licencia con el tutor.
 
 La validación TRL5 y el documento académico se tratan en otro chat; la entrega se movió a noviembre o diciembre de 2026.
 
@@ -725,6 +727,11 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `74a639d` | docs: registra la Fase E | 2026-11-02 |
 | `b19a859` | fix(calificaciones): bloquea la creación de la primera actividad N3 en un grupo con N3 histórico sin actividades | 2026-11-02 |
 | `d16f23a` | docs: registra el frente 2 de la Ola 5 y el cierre de la Ola 5 | 2026-11-02 |
+| `6bd84b1` | docs: registra la Ola 6 reducida (ayuda de 12_configuracion y comprobación de los CHECK) | 2026-11-02 |
+| `dfb25df` | docs: reescribe el README para la versión congelada | 2026-11-02 |
+| `1ac20bb` | docs: describe como históricos los scripts restaurar_check_* y registra el estado real de los CHECK | 2026-11-02 |
+| `af662f5` | docs: cabecera común en los cuatro documentos | 2026-11-02 |
+| `e41352d` | docs: la cabecera común pasa de barras invertidas a una lista | 2026-11-02 |
 
 ---
 

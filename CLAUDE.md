@@ -6,7 +6,7 @@
 > - Documentos: [README.md](README.md) · [CLAUDE.md](CLAUDE.md) · [CHANGELOG.md](CHANGELOG.md) · [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
 > - Rol: fuente de verdad para el desarrollo (convenciones, arquitectura, reglas de negocio, deuda técnica, checklist de despliegue).
 
-> Última actualización: 2026-11-02 — último commit citado: d16f23a
+> Última actualización: 2026-11-02 — último commit citado: e41352d
 
 ## Reglas de documentación
 
