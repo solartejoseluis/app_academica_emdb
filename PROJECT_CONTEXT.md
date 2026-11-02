@@ -1,7 +1,8 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-11-02
-> Versión: 148 — 2026-11-02. Ola 5 completa: frente 2, bloqueo de la primera actividad N3 en un grupo con N3 histórico (`b19a859`), e incidente del 2026-11-02 en el grupo `grmo_id` 71 restaurado desde respaldo; último commit `b19a859` (más `74a639d` de documentación)
+> Versión: 149 — 2026-11-02. Ola 6 reducida: ayuda `ayud_id` 49 movida a `12_configuracion` en los tres entornos y comprobación de los `CHECK` (dev no los tiene; producción sin comprobar), sin commit de código; el resto de la Ola 6 queda como deuda; último commit `d16f23a` (documentación)
+> Versión anterior: 148 — 2026-11-02. Ola 5 completa: frente 2, bloqueo de la primera actividad N3 en un grupo con N3 histórico (`b19a859`), e incidente del 2026-11-02 en el grupo `grmo_id` 71 restaurado desde respaldo; último commit `b19a859` (más `74a639d` de documentación)
 > Versión anterior: 147 — 2026-11-02. Ola 5, frente 3 (Fase E): fecha por nota en `calificaciones` (8 columnas `fecha_*`, solo la última fecha, no visibles), desplegada en dev y producción; frente 4 (`XXX`) cerrado sin código; último commit `fbe8722` (más `0a579d4` de documentación)
 > Versión anterior: 146 — Ola 5, frente 1: `guardar_nota` ya no acepta `cali_n3` y exige que el estudiante pertenezca al grupo; último commit `edb485b` (más `115ada8` de documentación)
 > Versión anterior: 145 — Ola 4 completa: módulo `12_configuracion` para el administrador, con sidebar permanente, nombre institucional editable y las pantallas existentes en modo incrustado (`?embed=1`, solo rol 1); último commit `af5e761` (más `7416fd2` de documentación)
@@ -31,6 +32,7 @@ Ruta de trabajo aprobada el 2026-10-17, solo software:
   **Actualización 2026-11-02:** frente 4 (`XXX`) cerrado sin código: en producción hay 30 estudiantes con `XXX` en algún campo (10 matriculados en 2026-2, 28 cursados en 2026-1, 2 retirados en 2026-2 y 1 en 2026-1, 1 aspirante; unos 12 aparecen dos veces); la coordinadora corrige a mano a los 10 vigentes y los demás son historial. Las cifras del diagnóstico (42 columnas, 76 de 80) eran de la base local. Frente 3 (Fase E, fechas por nota) hecho (`fbe8722`, desplegado en dev y producción el 2026-11-02). Queda el frente 2 (N3 históricos: solo bloquear la creación de la primera actividad en un grupo con N3 histórico). Sigue pendiente decidir las filas `cali_id` 110 y 192 y revisar si existen en producción.
   **Actualización 2026-11-02 — Ola 5 completa:** frente 1 `edb485b`; frente 4 cerrado sin código; frente 3 `fbe8722`; frente 2 `b19a859`, con el incidente del 2026-11-02 en el grupo `grmo_id` 71 recuperado desde respaldo (ver CHANGELOG.md). Siguiente: Ola 6 (interfaz y consistencia). Quedan de la Ola 3 el frente 2 (vista de estudiantes sin matrícula en el período activo, baja urgencia) y la opción A, pospuesta.
 - **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery, opción B de `.then`/`.done` (modales vacíos ante errores del servidor).
+  **Actualización 2026-11-02 — Ola 6 reducida hecha:** ayuda de `12_configuracion` (`ayud_id` 49) y comprobación de los `CHECK` (ver CHANGELOG.md). El resto de la Ola 6 queda como deuda registrada en CLAUDE.md ("Deuda técnica / pendiente — resto de la Ola 6"). Siguiente: Ola 7 (cierre documental y congelamiento de versión: README completo, cabeceras, etiqueta git v1.0, respaldos), más el frente 2 de la Ola 3 y la opción A, pospuestos.
 - **Ola 7 — cierre documental y congelamiento de versión.**
 
 La validación TRL5 y el documento académico se tratan en otro chat; la entrega se movió a noviembre o diciembre de 2026.
@@ -714,6 +716,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `fbe8722` | feat(calificaciones): fecha por nota en calificaciones (8 columnas, solo la última fecha, no visibles) con script de migración | 2026-10-31 |
 | `74a639d` | docs: registra la Fase E | 2026-11-02 |
 | `b19a859` | fix(calificaciones): bloquea la creación de la primera actividad N3 en un grupo con N3 histórico sin actividades | 2026-11-02 |
+| `d16f23a` | docs: registra el frente 2 de la Ola 5 y el cierre de la Ola 5 | 2026-11-02 |
 
 ---
 

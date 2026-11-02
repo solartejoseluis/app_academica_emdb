@@ -1,5 +1,5 @@
 # CLAUDE.md — app_academica_emdb
-> Última actualización: 2026-11-02 — último commit citado: b19a859
+> Última actualización: 2026-11-02 — último commit citado: d16f23a
 
 ## Reglas de documentación
 
@@ -1900,9 +1900,9 @@ Hallazgos de la Ola 4 (commits `424f859` y `af5e761`), todos de prioridad baja. 
 |---|---|
 | Formulario abierto que se pierde al cambiar de sección en el panel | El fondo oscuro de un modal cubre solo el iframe: el sidebar sigue activo, y un clic en otra sección descarta lo escrito sin aviso. Limitación aceptada en `af5e761`. |
 | La detección de sesión caducada en el marco depende del texto "Sesión no válida" | Los `_mdl.php` responden ese mensaje sin `codigo` cuando la sesión ya no existe. `esRespuestaSesionInvalida()` (`helpers.js`) lo compara literalmente, solo dentro de un marco; si el texto cambia, el marco deja de redirigir. Fuera de un marco no se reconoce (ver "Peticiones posteriores a `sesion_invalida` llegan sin `codigo`"). |
-| Ayuda `ayud_id` 49 desactualizada y ayuda de `12_configuracion` por escribir | La 49 dice que la configuración está debajo de la tabla de usuarios y sigue en la sección `08_admin`: corregirla y pasarla a `12_configuracion` desde `10_ayudas`, en cada entorno. La sección `12_configuracion` todavía no tiene contenido. |
+| ~~Ayuda `ayud_id` 49 desactualizada y ayuda de `12_configuracion` por escribir~~ (RESUELTA 2026-11-02, sin commit de código) | **Resuelta:** la `ayud_id` 49 pasó a la sección `12_configuracion` con el título "¿Cómo funciona la Configuración?" y contenido nuevo, en local, dev y producción; la ayuda de `12_configuracion` ya existe. Detalle en CHANGELOG.md (Ola 6 reducida). Texto original, conservado: ~~La 49 dice que la configuración está debajo de la tabla de usuarios y sigue en la sección `08_admin`: corregirla y pasarla a `12_configuracion` desde `10_ayudas`, en cada entorno. La sección `12_configuracion` todavía no tiene contenido.~~ |
 | `DEFAULT` mal codificado de `institucion_nombre` en el seed | `database/emdb_academica.sql` lo tiene como `MecÃ¡nica`. Solo afecta a una base nueva que use el valor por defecto. |
-| `CHECK` ausentes en la base local | `information_schema` no devuelve ninguno en local, aunque el seed los incluye y se restauraron el 2026-09-08 (ver PROJECT_CONTEXT.md). Verificar dev y producción con `information_schema`. |
+| `CHECK` ausentes en la base local | `information_schema` no devuelve ninguno en local, aunque el seed los incluye y se restauraron el 2026-09-08 (ver PROJECT_CONTEXT.md). ~~Verificar dev y producción con `information_schema`.~~ **Actualización 2026-11-02:** dev tampoco los tiene (probado funcionalmente con `cali_n1 = 9.9` sobre `cali_id` 349, restaurado a 3.0); producción sin comprobar. Solución futura: agregar los `CHECK` por script idempotente con vista previa, reversa y verificación por prueba funcional (no por `information_schema`), en los tres entornos. Prioridad baja: la aplicación valida el rango. |
 | Los tres `<nav>` fallback inalcanzables siguen pendientes de decisión (Ola 6) | `est_view.php`, `doc_view.php` y `grupos_view.php` (ver la fila correspondiente en "Deuda técnica / pendiente antes de producción"). La Ola 4 no los tocó. |
 
 ---
@@ -1925,6 +1925,22 @@ Hallazgo de la Fase E (commit `fbe8722`). No se implementa sin decisión explíc
 | Ítem | Detalle |
 |---|---|
 | Mostrar las fechas por nota (prioridad baja) | Las 8 columnas `fecha_*` se registran pero no se muestran. Opciones: tooltip en la planilla de `05_calificaciones`, o columnas en el reporte de grupo, el Excel y el PDF. Los históricos tienen `NULL`. |
+
+---
+
+## Deuda técnica / pendiente — resto de la Ola 6 (2026-11-02)
+
+La Ola 6 se redujo el 2026-11-02 a la ayuda de `12_configuracion` y la comprobación de los `CHECK` (ver CHANGELOG.md). El resto queda registrado aquí, sin hacer. Ninguno se implementa sin decisión explícita de Jose Luis.
+
+| Ítem | Detalle |
+|---|---|
+| Fase B2 — formato de fechas en los demás listados | `renderFecha`/`fecha-emdb` en `04_grupos`, `08_admin`, `02_estudiantes` y `03_docentes` (ver Phase 2.19, ítem 2.19.B2). |
+| Tooltips táctiles de los candados de "Configurar actividades" | Ver la fila "Los tooltips (`title`) de los candados..." en "Deuda técnica / pendiente antes de producción". |
+| `FAMILIAS_PROGRAMA` con las siglas escritas en el JS | Ver la fila correspondiente en "Deuda técnica / pendiente — Retirar/Aplazar/Reincorporar, escapado y filtros (2026-10-12)". |
+| `estu_activo` sin escritor | Ver la fila correspondiente en la misma sección del 2026-10-12. |
+| jQuery 3.7.0 frente a 3.7.1 entre vistas | Ver la fila correspondiente en la misma sección del 2026-10-12. |
+| Modales que se pintan vacíos ante errores del servidor (opción B de `.then`/`.done`) | Ver la fila "Modales y estados que se pintan vacíos..." en la misma sección del 2026-10-12. |
+| Los tres `<nav>` fallback inalcanzables | `est_view.php`, `doc_view.php` y `grupos_view.php` (ver la fila correspondiente en "Deuda técnica / pendiente antes de producción"). |
 
 ---
 
@@ -2260,4 +2276,6 @@ Cada tarea sigue este ciclo obligatorio de 6 fases:
 Si el diagnóstico no revela problemas, Claude IA lo indica explícitamente antes de pasar a Fase 3.
 
 **Regla operativa (desde el 2026-11-02):** en producción solo se mira. Toda prueba que escriba datos se hace en local o en dev. Ante un daño, no tocar nada por la aplicación hasta tener un respaldo del estado dañado y un script de restauración con vista previa y reversa. Incidente de referencia: `grmo_id` 71, 2026-11-02 (ver CHANGELOG.md).
+
+**Regla operativa — base de datos de destino en phpMyAdmin (desde el 2026-11-02):** antes de ejecutar cualquier sentencia que escriba, comprobar en la cabecera "Base de datos: <nombre>" que corresponde al entorno previsto (dev = `escuelamdb_app_test`, producción = `escuelamdb_emdb_academica`). Evidencia: Ola 6 reducida, 2026-11-02 (ver CHANGELOG.md).
 

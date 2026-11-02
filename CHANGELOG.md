@@ -4,6 +4,34 @@
 
 ---
 
+## Ola 6 reducida — ayuda de 12_configuracion y comprobación de los CHECK (sin commit de código) — 2026-11-02
+
+### Contexto
+Decisión del 2026-11-02: la Ola 6 se reduce a dos tareas de bajo riesgo (la ayuda de `12_configuracion` y la verificación de los `CHECK`) y se pasa a la Ola 7. El resto de la Ola 6 queda como deuda registrada.
+
+### Acción
+1. **Ayuda.**
+   - La ayuda `ayud_id` 49 ("¿Qué es la Configuración Institucional?", sección `08_admin`, creada el 2026-08-24) decía que la configuración estaba debajo de la tabla de usuarios.
+   - Se movió a la sección `12_configuracion` con el título "¿Cómo funciona la Configuración?" y contenido nuevo: panel solo para administradores, sidebar permanente, Institución, Usuarios y Ayudas, Catálogos académicos, y que cambiar de sección con un formulario abierto descarta lo no guardado.
+   - Las otras cinco ayudas de `08_admin` (`ayud_id` 39 a 43) hablan solo de usuarios y se dejaron.
+   - Hecho desde la pantalla Ayudas de Configuración en local, dev y producción; verificado con `SELECT` por `ayud_id = 49` en los tres.
+2. **`CHECK`.**
+   - En local no hay ningún `CHECK`, aunque el seed los incluye.
+   - En el hosting no se pudieron leer: `information_schema.CHECK_CONSTRAINTS` devuelve 0 filas y `SHOW CREATE TABLE` llega recortada en phpMyAdmin.
+   - Prueba funcional en dev: un `UPDATE` de `cali_n1 = 9.9` en la fila `cali_id` 349 respondió "1 fila afectada", es decir, dev **no** rechaza una nota fuera del rango 0 a 5. Se restauró a 3.0 y se verificó. `fecha_n1` y `fecha_n2` no cambiaron, porque solo las escribe la aplicación.
+   - Producción queda **sin comprobar** (no se prueba escribiendo en producción), con la sospecha razonable de que tampoco los tiene.
+
+### Verificación
+- `ayud_id` 49 en `12_configuracion`, con el título nuevo, en local, dev y producción.
+- `cali_id` 349 de dev restaurado a 3.0.
+
+### Notas
+1. La aplicación valida el rango de las notas en `guardar_nota`, así que el uso normal no genera valores fuera de rango. La falta de `CHECK` solo deja sin red una escritura directa por SQL.
+2. Un intento de ver la estructura con una subconsulta de `SHOW CREATE TABLE` falló con el error #1054: `SHOW CREATE TABLE` no se puede usar como subconsulta.
+3. Una consulta de la sesión llegó por error a la base de producción cuando se quería dev (visible en la cabecera de phpMyAdmin). Antes de ejecutar cualquier `UPDATE`, comprobar el nombre de la base en la cabecera. No se ejecutó ningún `UPDATE` en producción.
+
+---
+
 ## fix(calificaciones): bloquea la creación de la primera actividad N3 en un grupo con N3 histórico sin actividades (commit `b19a859`) — 2026-11-02
 
 ### Contexto
