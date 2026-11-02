@@ -11,6 +11,37 @@
 
 ---
 
+## Corrección de datos — Nota Final y Definitiva de la fila cali_id 192 (sin commit de código) — 2026-11-02
+
+### Contexto
+- La fila `cali_id` 192 (`grmo_id` 60; módulo MD-PSSAT del grupo MD_2026-1_S1_SEM, período 2026-1) tenía N1 = 0.0, N2 = 4.7, N3 = 4.0 y N4 = 0.0, sin supletorios ni habilitación, con una Nota Final y una Definitiva guardadas en 3.5.
+- La fórmula (N1 20 %, N2 20 %, N3 20 %, N4 40 %) da 1.74 (1.7), bajo 3.0.
+- La fila se creó el 2026-09-18 en la carga de la migración histórica y no cambió desde entonces: el 3.5 venía de la migración, no de la fórmula.
+- Si alguien guardaba cualquier campo en esa fila, el recálculo dejaba la Definitiva en `NULL`.
+
+### Decisión de la coordinación
+- La estudiante no presentó la habilitación en 2026-1, así que el módulo no está aprobado.
+- Retoma el semestre 1 de MD en 2026-2 y todavía no ingresa a MD-PSSAT, que debe volver a cursar.
+- Su resultado nuevo se registrará en una fila nueva del grupo de 2026-2.
+
+### Acción
+- Respaldo previo de producción (`2026-11-02_v1.0_produccion.sql`, de las 12:58).
+- `UPDATE` puntual con guardas (`cali_id`, `grmo_id`, `estu_id`, y que Nota Final y Definitiva siguieran en 3.5): `cali_nota_final = 1.7`, `cali_definitiva = NULL`. 1 fila afectada.
+- N1 a N4, supletorios, habilitación y las ocho fechas por nota no se tocaron.
+- Reversa preparada (no usada). El script no está en el repositorio.
+
+### Verificación
+- `SELECT` en producción: Nota Final 1.7, Definitiva `NULL`, `fechaactualizacion` 2026-11-02 13:26:22 (por el `ON UPDATE`).
+- En la aplicación: estado "Reprobado — pendiente habilitación", con la habilitación disponible.
+
+### Notas
+1. La aplicación muestra la Definitiva como 1.7 mientras en la BD está en `NULL`: presenta la Nota Final como referencia mientras no hay habilitación, y el estado indica que está pendiente.
+2. Período cerrado: no se guarda nada en esa fila desde la pantalla de 2026-1.
+3. La fila `cali_id` 110 solo existe en la base local (datos de prueba) y no se toca.
+4. Otras filas de la migración con ceros que no cuadran con la fórmula no se han revisado: ver la deuda en CLAUDE.md.
+
+---
+
 ## Congelamiento de la versión 1.0 (Ola 7) — 2026-11-02
 
 ### Contexto
