@@ -210,8 +210,7 @@ El checklist completo está en [CLAUDE.md](CLAUDE.md), sección "Checklist de de
 | `migracion_fechas_por_nota.sql` | Agrega las 8 columnas de fecha por nota a `calificaciones`; incluye su reversa comentada. |
 | `backfill_requisitos_sucesoras.sql` | Completa los requisitos de las matrículas creadas al avanzar de semestre antes de que se heredaran. |
 | `aplazamiento_reincorporacion_caso1.sql` | Corrección de datos de una reincorporación; la persona se indica con variables al ejecutar. |
-| `restaurar_check_staging.sql` | Restaura los `CHECK` de la base en el hosting de pruebas. |
-| `restaurar_check_produccion.sql` | Restaura los `CHECK` de la base de producción. |
+| `restaurar_check_staging.sql` / `restaurar_check_produccion.sql` | Históricos (2026-09-08): agregaron los 11 `CHECK` de rango en el hosting. Ya no reflejan el estado de las bases y no se deben volver a ejecutar sin revisarlos (ver la deuda de los `CHECK` en [CLAUDE.md](CLAUDE.md)). |
 
 ---
 

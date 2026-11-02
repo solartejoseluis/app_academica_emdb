@@ -32,6 +32,7 @@ Ruta de trabajo aprobada el 2026-10-17, solo software:
   **Actualización 2026-11-02:** frente 4 (`XXX`) cerrado sin código: en producción hay 30 estudiantes con `XXX` en algún campo (10 matriculados en 2026-2, 28 cursados en 2026-1, 2 retirados en 2026-2 y 1 en 2026-1, 1 aspirante; unos 12 aparecen dos veces); la coordinadora corrige a mano a los 10 vigentes y los demás son historial. Las cifras del diagnóstico (42 columnas, 76 de 80) eran de la base local. Frente 3 (Fase E, fechas por nota) hecho (`fbe8722`, desplegado en dev y producción el 2026-11-02). Queda el frente 2 (N3 históricos: solo bloquear la creación de la primera actividad en un grupo con N3 histórico). Sigue pendiente decidir las filas `cali_id` 110 y 192 y revisar si existen en producción.
   **Actualización 2026-11-02 — Ola 5 completa:** frente 1 `edb485b`; frente 4 cerrado sin código; frente 3 `fbe8722`; frente 2 `b19a859`, con el incidente del 2026-11-02 en el grupo `grmo_id` 71 recuperado desde respaldo (ver CHANGELOG.md). Siguiente: Ola 6 (interfaz y consistencia). Quedan de la Ola 3 el frente 2 (vista de estudiantes sin matrícula en el período activo, baja urgencia) y la opción A, pospuesta.
 - **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery, opción B de `.then`/`.done` (modales vacíos ante errores del servidor).
+  **Actualización 2026-11-02 — CHECK:** se leyeron los scripts `restaurar_check_*` (sin ejecutarlos): son históricos, y los `CHECK` faltan en local y en dev (producción sin comprobar). El README los describe como históricos y el script corregido queda en la deuda (ver CHANGELOG.md). Sin commit nuevo; la versión sigue en 149.
   **Actualización 2026-11-02 — Ola 6 reducida hecha:** ayuda de `12_configuracion` (`ayud_id` 49) y comprobación de los `CHECK` (ver CHANGELOG.md). El resto de la Ola 6 queda como deuda registrada en CLAUDE.md ("Deuda técnica / pendiente — resto de la Ola 6"). Siguiente: Ola 7 (cierre documental y congelamiento de versión: README completo, cabeceras, etiqueta git v1.0, respaldos), más el frente 2 de la Ola 3 y la opción A, pospuestos.
 - **Ola 7 — cierre documental y congelamiento de versión.**
 
@@ -1022,6 +1023,17 @@ sin error, precedidos de `mysqldump` de respaldo en cada uno.
 quedan con las 12 CHECK completas (11 restauradas + `notasn3_chk_1`,
 que nunca se perdió), alineados entre sí y con el esquema versionado.
 Detalle completo en CHANGELOG.md.
+
+**Actualización 2026-11-02 — el resultado anterior ya no se cumple:**
+en local faltan los 12 `CHECK`; dev no los tiene (aceptó `cali_n1 = 9.9`
+en una prueba funcional, restaurada); producción no se pudo comprobar.
+Los 15 respaldos de `database/hosting_deploy/` desde el 2026-09-18 no
+muestran ningún `CHECK` (hasta el 2026-09-08 tenían 1). Hipótesis sin
+confirmar: el 2026-09-18 staging y producción se restauraron desde un
+dump de la base local, que ya no los tenía. Los scripts
+`restaurar_check_*` no se deben volver a ejecutar tal como están. Ver
+CHANGELOG.md, "Lectura de los scripts de restauración de CHECK"
+(2026-11-02), y la deuda de los `CHECK` en CLAUDE.md.
 
 ---
 

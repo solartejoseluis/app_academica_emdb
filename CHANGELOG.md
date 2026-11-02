@@ -4,6 +4,38 @@
 
 ---
 
+## Lectura de los scripts de restauración de CHECK (sin commit de código) — 2026-11-02
+
+### Contexto
+El README describía `scripts/restaurar_check_staging.sql` y `scripts/restaurar_check_produccion.sql` como si restauraran los `CHECK`, pero dev aceptó `cali_n1 = 9.9` (ver la entrada "Ola 6 reducida"). Se leyeron los dos scripts sin ejecutarlos.
+
+### Hallazgos
+- Los dos scripts tienen el mismo SQL; solo difieren en los comentarios de cabecera. Entraron al repositorio en `991d685`.
+- Agregan 11 `CHECK` con `ALTER TABLE`: 8 `BETWEEN 0.0 AND 5.0` en `calificaciones` (`cali_n1` a `cali_n4`, `cali_sup_n1`, `cali_sup_n2`, `cali_sup_n4`, `cali_habilitacion`), `chk_peri_semestre` `IN (1, 2)`, `chk_hora_diasemana` `BETWEEN 1 AND 7` y `chk_configuracion_fila_unica` `config_id = 1`.
+- El seed declara 12, porque incluye `notasn3_chk_1` (`non3_valor BETWEEN 0.0 AND 5.0`), que los scripts no agregan.
+- No son idempotentes: si un `CHECK` ya existe, su `ALTER` falla por nombre duplicado.
+- No tienen reversa.
+- Su Paso 3 consulta `information_schema`, que devuelve 0 filas en el hosting: daría un falso negativo.
+- Su Paso 1 cuenta las filas que violarían cada condición y sí es fiable.
+
+### Estado real
+- Los 15 respaldos de `database/hosting_deploy/` desde el 2026-09-18 no muestran ningún `CHECK`, incluidos los de producción del 11 y el 19 de octubre, y del 28 de octubre y el 2 de noviembre. Hasta el 2026-09-08 tenían 1 (`notasn3_chk_1`).
+- Hipótesis, sin confirmar: la base local perdió los 12 `CHECK` entre el 8 y el 18 de septiembre, y el 2026-09-18 staging y producción se restauraron desde un dump de esa base, perdiendo los que había agregado el script.
+- No se confirmó si phpMyAdmin incluye los `CHECK` al exportar desde MariaDB, así que el 0 de esos respaldos no es una prueba.
+
+### Datos
+El respaldo de producción del 2026-11-02 no tiene filas que violen los 12 rangos.
+
+### Decisión
+- No ejecutar los scripts tal como están.
+- El README los describe como históricos.
+- El script corregido es trabajo de la deuda de los `CHECK`, de baja prioridad, porque la aplicación valida los rangos en el servidor.
+
+### Corrección
+La frase "los tres entornos quedan con las 12 CHECK completas" de las entradas del 2026-09-08 fue cierta ese día y ya no lo es.
+
+---
+
 ## Ola 6 reducida — ayuda de 12_configuracion y comprobación de los CHECK (sin commit de código) — 2026-11-02
 
 ### Contexto
