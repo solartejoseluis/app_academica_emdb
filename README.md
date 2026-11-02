@@ -1,8 +1,12 @@
 # Sistema de Gestión Académica — Escuela de Mecánica Dental Bolaños
+> **Sistema de Gestión Académica — Escuela de Mecánica Dental Bolaños**\
+> Versión de la aplicación: 1.0 (congelada; la etiqueta git `v1.0` se crea al cerrar la Ola 7)\
+> Estado: en producción; validación TRL5 realizada del 2026-09-19 al 2026-10-02\
+> Documentos: [README.md](README.md) · [CLAUDE.md](CLAUDE.md) · [CHANGELOG.md](CHANGELOG.md) · [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
 
 Sistema web de inscripción, matrícula y registro de calificaciones con acceso por roles.
 
-> **Estado:** en producción. La validación TRL5 se realizó del 19 de septiembre al 2 de octubre de 2026. Versión congelada para la entrega del trabajo de grado.
+> Versión congelada para la entrega del trabajo de grado.
 
 ---
 
