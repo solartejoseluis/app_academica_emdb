@@ -11,6 +11,26 @@
 
 ---
 
+## Medición de filas con Nota Final distinta de la fórmula y renombrado de respaldos (sin commit de código) — 2026-11-02
+
+### Medición
+- Consulta de solo lectura en producción que recalcula la Nota Final y la Definitiva con la fórmula exacta de `recalcularNotaFinalYDefinitiva()`:
+  - los supletorios solo reemplazan una nota original de 0.0;
+  - sin N1, N2, N3 o N4, todo queda en `NULL`;
+  - Definitiva = Nota Final si es 3.0 o más; si no, la habilitación; si no, `NULL`;
+  - redondeo a 1 decimal.
+- Validada en local:
+  - contra la función de PHP sobre las 344 filas: marcó exactamente las mismas 2 (`cali_id` 110 y 192);
+  - con 10 filas al azar que cuadran y tres cálculos a mano;
+  - con filas literales para las ramas sin datos locales (supletorios, habilitación, notas incompletas).
+- El redondeo de PHP 8.5.9 coincide con el `ROUND` decimal en las 6.765.201 combinaciones posibles de N1 a N4.
+- **En producción devolvió 0 filas:** ninguna fila descuadrada. La 192 ya estaba corregida.
+
+### Renombrado
+Dos respaldos del 2026-10-11 de `database/hosting_deploy/` que llevaban un nombre propio en el nombre del archivo pasaron a "_estudiante". La carpeta está fuera de git. Su contenido sigue siendo un volcado de la base de esa fecha.
+
+---
+
 ## Corrección de datos — Nota Final y Definitiva de la fila cali_id 192 (sin commit de código) — 2026-11-02
 
 ### Contexto
