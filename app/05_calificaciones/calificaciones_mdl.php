@@ -800,6 +800,26 @@ switch ($accion) {
 
             $pdo->beginTransaction();
             try {
+                // Grupo con N3 histórico: sin actividades y con algún cali_n3
+                // no nulo (N3 cargado por la migración). La primera actividad
+                // no se crea: dejaría el N3 sin respaldo y el siguiente
+                // recálculo lo reemplazaría. Solo bloquea la creación de la
+                // primera actividad; va después de los permisos para no
+                // revelar el estado del grupo a quien no tiene acceso.
+                if ($totalPrevio === 0) {
+                    $hist = $pdo->prepare("
+                        SELECT 1 FROM calificaciones
+                        WHERE grmo_id = ? AND cali_n3 IS NOT NULL
+                        LIMIT 1
+                    ");
+                    $hist->execute([$grmo_id]);
+                    if ($hist->fetch()) {
+                        $pdo->rollBack();
+                        echo json_encode(['status' => 'error', 'message' => 'Este grupo tiene notas N3 históricas sin actividades que las respalden. Crear una actividad las reemplazaría. Consulte con el administrador.']);
+                        break;
+                    }
+                }
+
                 $stmt = $pdo->prepare("
                     INSERT INTO actividadesn3 (grmo_id, acn3_nombre, acn3_comentario, acn3_orden)
                     VALUES (?, ?, ?, ?)
