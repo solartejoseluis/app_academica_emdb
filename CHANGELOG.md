@@ -4,6 +4,71 @@
 
 ---
 
+## fix(calificaciones): bloquea la creación de la primera actividad N3 en un grupo con N3 histórico sin actividades (commit `b19a859`) — 2026-11-02
+
+### Contexto
+En los grupos de 2026-1 el N3 viene de la migración histórica, sin actividades que lo respalden: 45 grupos y 301 filas, en local y en producción; ninguno en 2026-2. Crear la primera actividad dispara `recalcularGrupoModuloN3()`, que deja `cali_n3`, Nota Final y Definitiva en `NULL` para todo el grupo, porque nadie tiene nota en la actividad nueva.
+
+### Cambio
+- En `guardar_actividad_n3`, antes del `INSERT` y después de los permisos, el nombre obligatorio y el límite de 15: si el grupo no tiene actividades y alguna fila de `calificaciones` trae `cali_n3 IS NOT NULL`, se rechaza sin escribir con "Este grupo tiene notas N3 históricas sin actividades que las respalden. Crear una actividad las reemplazaría. Consulte con el administrador."
+- Solo bloquea la primera actividad. Un grupo con actividades, y los demás casos, siguen como antes.
+- Sin `FOR UPDATE`: el N3 histórico solo lo escribió la migración.
+- Sin cambios de JS: el modal "Configurar actividades" ya muestra el mensaje del servidor y queda abierto.
+- Es el único `INSERT INTO actividadesn3` del proyecto.
+
+### Decisión
+- Opción A (bloquear), frente a B (advertir y confirmar) y C (aceptar el riesgo).
+- Se descarta migrar los N3 históricos a una actividad sintética por grupo: cambio masivo de datos reales, con el riesgo de que una segunda actividad deje el N3 en `NULL`. El bloqueo hace innecesaria la migración.
+
+### Pruebas
+- `curl` con sesiones por rol y Playwright, con datos ficticios:
+  - grupo con N3 histórico: rechazado para los roles 1, 2 y 3;
+  - grupo sin N3 previo: crea la actividad y calcula N3, Nota Final y Definitiva;
+  - grupo con actividad previa: crea, edita y elimina;
+  - rechazos de permisos intactos (grupo ajeno, período cerrado, rol 4, sin sesión);
+  - grupo real de 2026-1 (`grmo_id` 54): rechazado y sin cambios.
+- `php -l` sin errores. `CHECKSUM TABLE` idéntico en las 24 tablas; `matriculas` = 122.
+- Pasada manual en local correcta.
+
+### Despliegue
+- 1 archivo (`calificaciones_mdl.php`) a dev y producción el 2026-11-02, sin cambios de BD.
+- En producción solo se miró, sin crear actividades en 2026-1.
+
+---
+
+## Incidente — N3, Nota Final y Definitiva de un grupo de 2026-1 en NULL tras crear una actividad N3 de prueba en producción; restaurado desde respaldo (sin commit de código) — 2026-11-02
+
+### Contexto
+El 2026-11-02, con el código todavía sin el bloqueo de `b19a859` en producción, se creó una actividad N3 de prueba en el grupo módulo `grmo_id` = 71 (período 2026-1). El recálculo dejó en `NULL` `cali_n3`, `cali_nota_final` y `cali_definitiva` de sus 8 filas (`cali_id` 252 a 259); N1, N2 y N4 quedaron intactos. Se detectó al recargar la pantalla.
+
+### Acción
+- Se dejó de tocar el grupo: tampoco se borró la actividad desde la aplicación, porque habría recalculado de nuevo.
+- Respaldo del estado dañado.
+- Los valores originales de N3, Nota Final y Definitiva se tomaron del respaldo previo de las 10:09, tras validar que N1, N2 y N4 del respaldo coincidían con producción en las 8 filas y que los valores cuadraban con la fórmula (calculada a mano en una fila).
+- Script de restauración fuera del repositorio, con:
+  - vista previa;
+  - 8 `UPDATE` idempotentes, solo sobre `cali_n3`, `cali_nota_final` y `cali_definitiva`, con la guarda de que las tres estuvieran en `NULL`;
+  - borrado de la actividad por SQL directo, sin pasar por la aplicación;
+  - verificación.
+- `fecha_n3` quedó en `NULL`, como en los históricos.
+- Conteo de control: 429 filas con `cali_n3` en producción (437 del respaldo menos las 8), lo que confirmó que no se afectó ningún otro grupo.
+- La actividad de prueba tenía 0 notas.
+
+### Verificación
+- Las 8 filas restauradas coinciden fila por fila con el respaldo.
+- El grupo quedó con 0 actividades.
+- La pantalla vuelve a mostrar N3, Nota Final y Definitiva.
+
+### Lección
+- Ninguna prueba que escriba datos se hace en producción. Cada cambio se prueba en local y en dev; en producción solo se mira.
+- Antes de cualquier recuperación: respaldo del estado dañado y script con vista previa, idempotente y con reversa.
+- phpMyAdmin no agrupa bloques: el dato válido es el mensaje de cada sentencia.
+
+### Nota
+El script de restauración no está en el repositorio. Contiene solo ids y números.
+
+---
+
 ## feat(calificaciones): fecha por nota en calificaciones (8 columnas, solo la última fecha, no visibles) con script de migración (commit `fbe8722`) — 2026-10-31
 
 ### Contexto
