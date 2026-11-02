@@ -1,13 +1,37 @@
 # CHANGELOG — app_academica_emdb
 > **Sistema de Gestión Académica — Escuela de Mecánica Dental Bolaños**
 >
-> - Versión de la aplicación: 1.0 (congelada; la etiqueta git `v1.0` se crea al cerrar la Ola 7)
+> - Versión de la aplicación: 1.0 (congelada; etiqueta git `v1.0` en el commit `c44583f`)
 > - Estado: en producción; validación TRL5 realizada del 2026-09-19 al 2026-10-02
 > - Documentos: [README.md](README.md) · [CLAUDE.md](CLAUDE.md) · [CHANGELOG.md](CHANGELOG.md) · [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
 > - Rol: historial de cambios, más reciente arriba.
 
 > Historial de cambios del Sistema de Gestión Académica EMDB
 > Formato: [Semver] — Fecha | Orden: más reciente arriba
+
+---
+
+## Congelamiento de la versión 1.0 (Ola 7) — 2026-11-02
+
+### Contexto
+Cierre del trabajo de software antes de la entrega del trabajo de grado.
+
+### Cambio
+- README reescrito en 235 líneas, para quien clona y evalúa el proyecto, sin historial y con enlaces a los otros tres documentos.
+- Cabecera común en los cuatro documentos (versión de la aplicación, estado y enlaces).
+- Los scripts `restaurar_check_*` quedan descritos como históricos.
+- Tabla de commits de PROJECT_CONTEXT.md al día; PROJECT_CONTEXT.md en la versión 150.
+
+### Respaldos
+Tres respaldos de la versión 1.0, de local, dev y producción, guardados fuera del repositorio en `database/hosting_deploy/`, que git ignora.
+
+### Etiqueta
+- `v1.0`, anotada, en el commit `c44583f`, publicada en `origin`.
+- El código desplegado en producción corresponde a `b19a859`; todos los commits posteriores son de documentación.
+
+### Pendientes fuera del código
+- Renombrar dos respaldos antiguos que llevan un nombre propio en el nombre del archivo.
+- Decidir la licencia con el tutor: la declaración de propiedad intelectual de la propuesta remite al Acuerdo 06 de 2008 de la UNAD.
 
 ---
 

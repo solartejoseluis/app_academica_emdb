@@ -1,14 +1,15 @@
 # PROJECT_CONTEXT.md — app_academica_emdb
 > **Sistema de Gestión Académica — Escuela de Mecánica Dental Bolaños**
 >
-> - Versión de la aplicación: 1.0 (congelada; la etiqueta git `v1.0` se crea al cerrar la Ola 7)
+> - Versión de la aplicación: 1.0 (congelada; etiqueta git `v1.0` en el commit `c44583f`)
 > - Estado: en producción; validación TRL5 realizada del 2026-09-19 al 2026-10-02
 > - Documentos: [README.md](README.md) · [CLAUDE.md](CLAUDE.md) · [CHANGELOG.md](CHANGELOG.md) · [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
 > - Rol: estado de avance, ruta de trabajo y commits (se pega al inicio de cada chat de trabajo).
 
 > Archivo de contexto para Claude IA. Pegar al inicio de cada nuevo chat.
 > Última actualización: 2026-11-02
-> Versión: 150 — 2026-11-02. Ola 7 en curso: README reescrito, cabecera común en los cuatro documentos, scripts restaurar_check_* descritos como históricos; último commit `e41352d`
+> Versión: 151 — 2026-11-02. Ola 7 completa: versión 1.0 congelada y etiquetada (`v1.0` en `c44583f`)
+> Versión anterior: 150 — 2026-11-02. Ola 7 en curso: README reescrito, cabecera común en los cuatro documentos, scripts restaurar_check_* descritos como históricos; último commit `e41352d`
 > Versión anterior: 149 — 2026-11-02. Ola 6 reducida: ayuda `ayud_id` 49 movida a `12_configuracion` en los tres entornos y comprobación de los `CHECK` (dev no los tiene; producción sin comprobar), sin commit de código; el resto de la Ola 6 queda como deuda; último commit `d16f23a` (documentación)
 > Versión anterior: 148 — 2026-11-02. Ola 5 completa: frente 2, bloqueo de la primera actividad N3 en un grupo con N3 histórico (`b19a859`), e incidente del 2026-11-02 en el grupo `grmo_id` 71 restaurado desde respaldo; último commit `b19a859` (más `74a639d` de documentación)
 > Versión anterior: 147 — 2026-11-02. Ola 5, frente 3 (Fase E): fecha por nota en `calificaciones` (8 columnas `fecha_*`, solo la última fecha, no visibles), desplegada en dev y producción; frente 4 (`XXX`) cerrado sin código; último commit `fbe8722` (más `0a579d4` de documentación)
@@ -42,8 +43,9 @@ Ruta de trabajo aprobada el 2026-10-17, solo software:
 - **Ola 6 — interfaz y consistencia:** Fase B2, tooltips táctiles, `FAMILIAS_PROGRAMA`, `estu_activo`, jQuery, opción B de `.then`/`.done` (modales vacíos ante errores del servidor).
   **Actualización 2026-11-02 — CHECK:** se leyeron los scripts `restaurar_check_*` (sin ejecutarlos): son históricos, y los `CHECK` faltan en local y en dev (producción sin comprobar). El README los describe como históricos y el script corregido queda en la deuda (ver CHANGELOG.md). Sin commit nuevo; la versión sigue en 149.
   **Actualización 2026-11-02 — Ola 6 reducida hecha:** ayuda de `12_configuracion` (`ayud_id` 49) y comprobación de los `CHECK` (ver CHANGELOG.md). El resto de la Ola 6 queda como deuda registrada en CLAUDE.md ("Deuda técnica / pendiente — resto de la Ola 6"). Siguiente: Ola 7 (cierre documental y congelamiento de versión: README completo, cabeceras, etiqueta git v1.0, respaldos), más el frente 2 de la Ola 3 y la opción A, pospuestos.
-- **Ola 7 — cierre documental y congelamiento de versión.**
+- **Ola 7 — cierre documental y congelamiento de versión.** **Ola 7 completa.**
   **Actualización 2026-11-02 — Ola 7 en curso:** hechos el README reescrito (`dfb25df`), la cabecera común en los cuatro documentos (`af662f5`, `e41352d`) y la lectura de los scripts de `CHECK`, descritos como históricos (`1ac20bb`). Quedan los respaldos finales y la etiqueta `v1.0`, más las tareas locales: renombrar dos respaldos con nombre propio y decidir la licencia con el tutor.
+  **Actualización 2026-11-02 — Ola 7 completa:** versión 1.0 congelada y etiquetada (`v1.0`, anotada, en `c44583f`, publicada en `origin`); tres respaldos de la versión 1.0 (local, dev y producción) en `database/hosting_deploy/`, fuera de git. El código desplegado en producción corresponde a `b19a859`. Pendientes opcionales: frente 2 de la Ola 3 (vista de estudiantes sin matrícula en el período activo), opción A (pospuesta), el resto de la Ola 6 (deuda registrada en CLAUDE.md), renombrar dos respaldos con nombre propio y decidir la licencia con el tutor.
 
 La validación TRL5 y el documento académico se tratan en otro chat; la entrega se movió a noviembre o diciembre de 2026.
 
@@ -732,6 +734,7 @@ No se tocó el modal "Completar Matrícula" (`matricular`) — el cambio aplica 
 | `1ac20bb` | docs: describe como históricos los scripts restaurar_check_* y registra el estado real de los CHECK | 2026-11-02 |
 | `af662f5` | docs: cabecera común en los cuatro documentos | 2026-11-02 |
 | `e41352d` | docs: la cabecera común pasa de barras invertidas a una lista | 2026-11-02 |
+| `c44583f` | docs: versión 150 de PROJECT_CONTEXT, tabla de commits al día y Ola 7 en curso (etiqueta `v1.0`) | 2026-11-02 |
 
 ---
 

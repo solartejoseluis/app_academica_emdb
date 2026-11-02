@@ -1,5 +1,5 @@
 # Sistema de Gestión Académica — Escuela de Mecánica Dental Bolaños
-> - Versión de la aplicación: 1.0 (congelada; la etiqueta git `v1.0` se crea al cerrar la Ola 7)
+> - Versión de la aplicación: 1.0 (congelada; etiqueta git `v1.0` en el commit `c44583f`)
 > - Estado: en producción; validación TRL5 realizada del 2026-09-19 al 2026-10-02
 > - Documentos: [README.md](README.md) · [CLAUDE.md](CLAUDE.md) · [CHANGELOG.md](CHANGELOG.md) · [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md)
 
