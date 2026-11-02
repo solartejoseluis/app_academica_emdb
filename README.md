@@ -1,302 +1,235 @@
 # Sistema de Gestión Académica — Escuela de Mecánica Dental Bolaños
 
-Sistema web para la automatización de los procesos de inscripción, matrícula y registro de calificaciones de la Escuela de Mecánica Dental Bolaños (Tuluá, Valle del Cauca). Reemplaza 80 planillas manuales de Google Sheets por un sistema centralizado con acceso por roles.
+Sistema web de inscripción, matrícula y registro de calificaciones con acceso por roles.
 
-> **Estado actual:** Fase de desarrollo — Fases 0 a 2 completadas (infraestructura, módulos base y gestión académica). Fase 3 (validación TRL5) pendiente.
-> Proyecto de grado — Ingeniería de Sistemas, UNAD CEAD Palmira.
+> **Estado:** en producción. La validación TRL5 se realizó del 19 de septiembre al 2 de octubre de 2026. Versión congelada para la entrega del trabajo de grado.
 
 ---
 
-## Stack tecnológico
+## Contexto
 
-| Capa | Tecnología | Versión |
+Proyecto aplicado de Ingeniería de Sistemas (UNAD, CEAD Palmira). Automatiza la gestión académica de una escuela de educación para el trabajo de Tuluá (Valle del Cauca), que antes registraba las notas en planillas de hoja de cálculo separadas por grupo.
+
+Metodología de desarrollo: CDIO (Concebir, Diseñar, Implementar, Operar).
+
+---
+
+## Funcionalidades por módulo
+
+| Módulo | Qué hace |
+|---|---|
+| `01_login` | Inicio de sesión por correo y redirección según el rol. |
+| `02_estudiantes` | Aspirantes, matriculados y retirados; ficha completa (AC-FO-02) con foto; matrícula, avance de semestre, retiro, aplazamiento y reincorporación; requisitos documentales; claves de acceso; link de actualización de datos. |
+| `03_docentes` | Alta, edición, activación y clave de los docentes. |
+| `04_grupos` | Programas, módulos, períodos, cohortes, grupos semestre, grupos módulo y asignación de estudiantes. |
+| `05_calificaciones` | Planilla de notas por grupo módulo; N3 por actividades; exportación Excel y PDF del grupo. |
+| `06_reportes` | Informe de notas del estudiante por programa y período, boletín PDF, reporte por grupo (Excel y PDF), PDF de Ficha de Inscripción y de Hoja de Matrícula (AC-FO-09). |
+| `07_coordinador` | Tablero de seguimiento del estado de las notas por grupo. |
+| `08_admin` | Usuarios administradores y coordinadores. |
+| `09_inscripcion_publica` | Formulario público de inscripción (sin sesión) con reCAPTCHA v2 y detección de duplicados. |
+| `10_ayudas` | Textos de ayuda que aparecen en el panel lateral de cada sección. |
+| `11_actualizacion_datos` | Formulario público por link de un solo uso para que un estudiante proponga cambios a su ficha; el coordinador los aprueba o descarta. |
+| `12_configuracion` | Panel del administrador: datos institucionales y, en un marco, Usuarios, Ayudas, Requisitos, Programas, Módulos, Períodos y Cohortes. |
+| `app/health.php` | Comprobación de disponibilidad: responde 200 si la base de datos contesta y 503 si no, para un monitor externo. |
+
+Las carpetas `00_*` son compartidas: conexión, componentes (`navbar.php`, `helpers.php`, `helpers.js`, `ayuda_sidebar.js`, `estilos.css`) y recursos.
+
+---
+
+## Roles y accesos
+
+| Rol | Entra a | Puede |
 |---|---|---|
-| Backend | PHP | 8.5 |
-| Base de datos | MySQL | 8.0 |
-| Frontend CSS | Bootstrap | 5.3 (CDN) |
-| Frontend íconos | Bootstrap Icons | 1.11.3 (CDN) |
-| Frontend JS | jQuery | 3.7 (CDN) |
-| Tablas interactivas | DataTables | 1.13 (CDN) |
-| Generación PDF | dompdf | vía Composer |
-| Procesamiento de imágenes | GD (extensión PHP) | Dockerfile |
-| Servidor local | Docker (Fedora 44) | PHP 8.5 + Apache + MySQL 8.0 |
-| Zona horaria | America/Bogota | UTC-5, offset fijo (sin horario de verano) |
+| Administrador | `08_admin` | Todo lo del coordinador, más el panel `12_configuracion`: usuarios de rol 1 y 2, ayudas, datos institucionales y catálogo de requisitos. |
+| Coordinador | `07_coordinador` | Estudiantes, docentes, grupos, todas las planillas de notas (cualquier período) y todos los reportes. |
+| Docente | `05_calificaciones` | Solo sus grupos del período activo: registrar notas, configurar actividades N3 y exportar el reporte de su grupo. |
+| Estudiante | `06_reportes` | Solo lectura: sus notas por período, su semestre, su boletín PDF y sus requisitos pendientes. |
+
+Los módulos `09_inscripcion_publica` y `11_actualizacion_datos` no usan sesión: el primero crea aspirantes y el segundo identifica al estudiante con un token de un solo uso.
 
 ---
 
-## Cómo correrlo localmente
+## Stack y entornos
 
-### Requisitos previos
+| Capa | Tecnología |
+|---|---|
+| Backend | PHP 8.5 con Apache |
+| Base de datos | MySQL 8.0 en local; MariaDB en el hosting |
+| Frontend | Bootstrap 5.3.3, Bootstrap Icons 1.11.3, jQuery 3.7 (CDN) |
+| Tablas | DataTables 1.13.6, con Buttons 2.3.6 y JSZip 3.10.1 para Excel (CDN) |
+| PDF | Dompdf 3.1 (Composer) |
+| Imágenes | Extensión GD de PHP |
+| Antispam | Google reCAPTCHA v2 |
 
-- Docker y Docker Compose instalados
-- Git
+No hay `package.json` ni paso de compilación del frontend.
 
-### Pasos
+| Entorno | Detalle |
+|---|---|
+| Local | Docker: `app` (PHP 8.5 + Apache + Composer), `db` (MySQL 8.0) y `phpmyadmin`. Zona horaria America/Bogota. |
+| Hosting (dev y producción) | cPanel con MariaDB, administrado con phpMyAdmin. Cada entorno tiene sus propias credenciales, fuera del repositorio. |
 
-**1. Clonar el repositorio**
+---
+
+## Instalación local
+
+Requisitos: Docker con Docker Compose, y Git.
+
+**1. Clonar**
 ```bash
 git clone https://github.com/solartejoseluis/app_academica_emdb.git
 cd app_academica_emdb
 ```
 
-`docker-compose.yml` y `docker/Dockerfile` ya están incluidos en el repositorio — no hace falta crearlos.
+**2. Crear `app/00_connect/recaptcha_config.php`**
 
-**2. Levantar los contenedores**
+Está en `.gitignore` y la inscripción pública lo necesita (sin él, `09_inscripcion_publica` falla). Define dos constantes PHP:
+
+- `RECAPTCHA_SITE_KEY`: clave pública de un sitio reCAPTCHA v2 ("No soy un robot").
+- `RECAPTCHA_SECRET_KEY`: clave secreta del mismo sitio.
+
+Las claves se obtienen en la consola de administración de Google reCAPTCHA, registrando `localhost` como dominio. Ver la [documentación de reCAPTCHA](https://developers.google.com/recaptcha/docs/display).
+
+**3. Levantar los contenedores**
 ```bash
 docker compose up -d --build
 ```
 
-Esto construye la imagen `app` (PHP 8.5 + Apache) y levanta los 3 servicios: `app` (aplicación), `db` (MySQL 8.0 — importa `database/emdb_academica.sql` automáticamente en el primer arranque) y `phpmyadmin`.
-
-**3. Instalar dependencias de Composer**
+**4. Instalar las dependencias de Composer** (obligatorio: `vendor/` está fuera de git y sin él no se generan los PDF)
 ```bash
-docker compose exec app composer install
+docker compose exec -w /var/www/html/app_academica_emdb app composer install
 ```
+El `-w` es necesario: el proyecto se monta en `/var/www/html/app_academica_emdb`, no en el directorio de trabajo del contenedor.
 
-**4. Verificar la conexión**
-
-El archivo `app/00_connect/pdo.php` ya está configurado para el entorno Docker:
-```php
-$host = '127.0.0.1';
-$dbname = 'emdb_academica';
-$user = 'root';
-$pass = '';
+**5. Permiso de la carpeta de fotos**
+```bash
+chmod 777 uploads/fotos_estudiantes
 ```
+Apache corre en el contenedor con un usuario distinto del que creó la carpeta en el equipo.
 
-> Se usa `127.0.0.1` en vez de `localhost` — con `network_mode: service:app` en `docker-compose.yml`, `localhost` fuerza a PDO a buscar un socket Unix inexistente entre contenedores.
+**6. Entrar**
 
-**5. Acceder al sistema**
-```
-http://localhost:8120/app_academica_emdb/
-```
+| Servicio | Dirección |
+|---|---|
+| Aplicación | `http://localhost:8120/app_academica_emdb/` (redirige al login) |
+| phpMyAdmin | `http://localhost:8121/` |
+| MySQL | `127.0.0.1:3310`, usuario `root` sin contraseña (solo local) |
 
-El sistema redirige automáticamente al login. phpMyAdmin queda disponible en `http://localhost:8121/`.
+**Base de datos inicial.** MySQL importa `database/emdb_academica.sql` solo la primera vez, con el volumen vacío. `docker compose down -v` borra el volumen y todos los datos cargados desde la aplicación. Respalde antes con `mysqldump`.
 
-El usuario administrador inicial ya viene sembrado junto con los datos de configuración (roles, programas ASO y MD, módulos) al importarse `database/emdb_academica.sql`. Para las credenciales, consultar `CLAUDE.md` o solicitarlas al responsable del proyecto.
+El seed trae la estructura completa, los catálogos (roles, programas, módulos, períodos, configuración, ayudas) y datos de ejemplo **anonimizados** (estudiantes, docentes, matrículas y notas ficticios). Las credenciales de los usuarios de ejemplo están en [CLAUDE.md](CLAUDE.md), sección "Entorno de desarrollo".
 
 ---
 
-## Estructura de módulos
+## Estructura de carpetas
 
 ```
 app_academica_emdb/
   app/
-    00_connect/        — Conexión a BD (local y producción)
-    00_selects/        — Consultas SELECT reutilizables para dropdowns
-    00_img/            — Recursos estáticos: logo, iconos
-    00_files/          — Componentes PHP compartidos: `navbar.php` (navbar unificado roles 1 y 2), `estilos.css` (texto-mayus), favicon, robots.txt, .htaccess
-    01_login/          — Autenticación y redirección por rol ✅
-    02_estudiantes/    — Registro, matrícula y ficha completa del estudiante (datos personales + Ficha Familiar AC-FO-02 en un solo modal) con foto y descarga en PDF ✅
-    03_docentes/       — Gestión del cuerpo docente, incluye reseteo de contraseña y edición de correo de acceso ✅
-    04_grupos/         — Programas (CRUD), cohortes, períodos académicos, grupos semestre, catálogo de módulos (CRUD) y asignación de estudiantes ✅
-    05_calificaciones/ — Registro de notas por docente (módulo central) ✅ — la nota N3 ya no se digita directamente: se calcula desde un modal de actividades configurables por el docente
-    06_reportes/       — Informe de calificaciones por programa/período/módulo, ya sea autoconsulta del estudiante o consulta del coordinador a cualquier estudiante (con buscador), con boletín PDF por período; reporte por grupo módulo con exportación Excel/PDF (contexto de curso y docente); PDF de Ficha Familiar; PDF de Hoja de Matrícula (AC-FO-09) ✅
-    07_coordinador/    — Dashboard de seguimiento académico ✅
-    08_admin/          — Gestión de usuarios del sistema ✅
+    00_connect/  00_files/  00_img/  00_selects/   — compartidos
+    01_login/ … 12_configuracion/                   — módulos
+    health.php
   database/
-    emdb_academica.sql — Script DDL completo (16 tablas)
-    seeds/             — Datos iniciales de configuración
-    hosting_deploy/    — Backups con datos reales para subir al hosting (fuera de git, ver scripts/)
-  scripts/
-    export_para_hosting.sh — Genera un backup de la BD listo para importar en phpMyAdmin del hosting
-  CLAUDE.md
-  README.md
-  CHANGELOG.md
+    emdb_academica.sql   — seed anonimizado (24 tablas)
+    hosting_deploy/      — respaldos con datos reales, fuera de git
+  docker/Dockerfile
+  docs/
+  scripts/               — migraciones y correcciones de datos
+  uploads/fotos_estudiantes/   — fotos, fuera de git
+  vendor/                — Composer, fuera de git
+  index.php              — redirige al login
+  docker-compose.yml  composer.json  composer.lock
+  CLAUDE.md  CHANGELOG.md  PROJECT_CONTEXT.md  README.md
 ```
 
----
-
-## Roles de usuario
-
-| Rol | Acceso al sistema | Permisos |
-|---|---|---|
-| **Administrador** | Panel de administración | CRUD de usuarios, configuración global del sistema |
-| **Coordinador** | Dashboard de coordinación | Seguimiento de notas por docente, reportes generales, edición de planillas, generación de PDF |
-| **Docente** | Módulo de calificaciones | Solo sus grupos asignados — ingreso y edición de notas, con descarga del reporte de su grupo en Excel/PDF directamente desde esta misma pantalla |
-| **Estudiante** | Módulo de consulta | Solo lectura de sus propias calificaciones en tiempo real |
-
-**Acceso de estudiantes:** al matricular a un estudiante, el sistema crea su acceso usando el correo electrónico real registrado en su ficha (no un correo interno generado) y una clave inicial autogenerada.
-
-**Acceso de docentes:** al crear un docente se genera su acceso con una contraseña inicial obligatoria; Administrador y Coordinador pueden resetearla en cualquier momento desde "Editar Docente" (campo opcional — vacío no cambia la contraseña actual). El correo electrónico también es editable desde ese mismo modal — es el identificador de login del docente, con validación de unicidad antes de guardar.
+Cada módulo sigue el patrón `*_view.php` (vista con control de sesión), `*_ctrl.js` (controlador jQuery) y `*_mdl.php` (modelo que responde JSON por `?accion=`).
 
 ---
 
 ## Modelo de datos
 
-El sistema organiza la información en torno a tres procesos principales:
+24 tablas, todas en `database/emdb_academica.sql`.
 
-### Proceso de admisión
-```
-programas ──< modulos
-    │
-    └──< cohortes ──< estudiantes ──< matriculas
-                           │
-                           └── fichas_inscripcion  (1:1)
-```
-> La cohorte de ingreso ahora se resuelve por cada matrícula, no de forma
-> única por estudiante — un estudiante que curse más de un programa técnico
-> puede tener una cohorte distinta en cada uno. El diagrama simplifica esta
-> relación mostrando el caso más común (un solo programa por estudiante);
-> matricular a un estudiante en un segundo programa ya es posible desde la
-> interfaz (ver "Estado del proyecto" más abajo).
-
-### Configuración académica por semestre
-```
-gruposemestres (programa + periodo + jornada)
-    │
-    └──< gruposmodulos (modulo + docente + fechas)
-             │
-             └──< grmoestudiantes >── estudiantes
-```
-
-### Registro de calificaciones
-```
-gruposmodulos ──< calificaciones >── estudiantes
-                     │
-                  nota1 (20%)
-                  nota2 (20%)
-                  nota3 (20%)  ← sin supletorio
-                  nota4 (40%)
-                  supletorios (N1, N2, N4)
-                  nota_final       ← siempre calculada, apruebe o no
-                  habilitación     ← manual, solo si nota_final < 3.0
-                  definitiva       ← valor oficial (nota_final o habilitación)
-```
-> La nota 3 ya no se digita directamente: es el promedio de varias
-> actividades que el propio docente define para su grupo desde un modal
-> dedicado, con la columna N3 de la planilla mostrando el resultado
-> como valor de solo lectura.
-
-### Tablas principales
-
-| Tabla | Descripción |
+| Dominio | Tablas |
 |---|---|
-| `usuarios` | Credenciales de acceso. Vinculado 1:1 con docentes o estudiantes |
-| `estudiantes` | Datos personales (la cohorte de ingreso vive en `matriculas`, una por matrícula — no es una columna propia de `estudiantes`) |
-| `docentes` | Datos personales + cédula (opcional, única) + fecha de nacimiento y teléfono (ambos opcionales) + sigla única para códigos de grupo |
-| `programas` | Técnico en ASO y Técnico en MD — con resolución, fecha de aprobación/vencimiento, descripción y estado activo/inactivo |
-| `modulos` | Asignaturas de cada programa (17 en ASO, 19 en MD) |
-| `cohortes` | Grupos de admisión: formato `CH-ASO-2026A` |
-| `gruposemestres` | Instancia de un programa en un período y jornada |
-| `gruposmodulos` | Módulo + docente asignado + fechas dentro de un semestre |
-| `calificaciones` | Notas N1–N4, supletorios, nota final, habilitación y definitiva por estudiante-grupo |
-| `fichas_inscripcion` | Datos familiares (padre/madre/acudiente) y estudios anteriores — formato AC-FO-02 |
+| Personas y acceso | `roles`, `usuarios`, `docentes`, `estudiantes`, `fichas_inscripcion`, `solicitudes_actualizacion` |
+| Académico | `programas`, `modulos`, `programa_modulos`, `periodos`, `cohortes`, `gruposemestres`, `gruposmodulos`, `grmoestudiantes`, `horariosgrupo` |
+| Matrícula y requisitos | `matriculas`, `requisitos_programa`, `requisitos_estudiante` |
+| Calificaciones y N3 | `calificaciones`, `actividadesn3`, `notasn3` |
+| Configuración y soporte | `configuracion`, `ayudas`, `metricasdesempeno` |
+
+La cohorte, el semestre y el estado de cada estudiante viven en `matriculas` (una fila por período y programa). Los estudiantes de un grupo módulo se obtienen de `grmoestudiantes`.
 
 ---
 
-## Programas técnicos
+## Reglas de negocio clave
 
-### Técnico Laboral en Auxiliar en Salud Oral (ASO)
-17 módulos — incluyendo Anatoclusión, Biomateriales, Periodoncia, Radiología, Práctica.
+- **Nota Final** = N1 (20 %) + N2 (20 %) + N3 (20 %) + N4 (40 %), escala 0.0 a 5.0 con un decimal, calculada siempre en el servidor.
+- **Definitiva:** la Nota Final si es 3.0 o más; si no, la habilitación, que se registra a mano.
+- **Supletorios:** solo N1, N2 y N4, y solo reemplazan una nota original de 0.0. N3 nunca tiene supletorio.
+- **N3 por actividades:** el docente define actividades y N3 es su promedio. Ningún endpoint escribe `cali_n3` directamente. En los grupos con N3 histórico sin actividades no se puede crear la primera actividad.
+- **Fechas por nota:** el servidor guarda la última fecha en que cambió cada nota. No se muestran en pantalla.
+- **Retirado:** una matrícula está retirada si y solo si `matr_estado = 'retirado'`. Sale de las planillas del período activo y no recibe notas.
+- **Requisitos:** al avanzar de semestre, la matrícula nueva hereda los requisitos documentales de la anterior.
 
-### Técnico Laboral en Mecánica Dental (MD)
-19 módulos — incluyendo Morfología, Prótesis Total, Prótesis Flexible, Ortopedia, Integradas.
-
----
-
-## Arquitectura
-
-El sistema sigue el patrón **MVC** con tres archivos por módulo funcional:
-
-```
-_view.php   →  Vista PHP con Bootstrap. Verifica sesión al inicio.
-_mdl.php    →  Modelo PHP. Recibe acción vía GET, ejecuta query PDO, retorna JSON.
-_ctrl.js    →  Controlador jQuery. Llama AJAX, parsea respuesta, actualiza DOM/DataTable.
-```
-
-### Flujo de una operación típica
-
-```
-Usuario interactúa con la vista
-    → _ctrl.js recolecta datos del formulario
-    → $.ajax POST a _mdl.php?accion=guardar
-    → _mdl.php valida, ejecuta query PDO parametrizada
-    → retorna { status: 'ok', data: [...] }
-    → _ctrl.js actualiza DataTable o muestra mensaje
-```
-
-### Seguridad
-
-- Todas las vistas verifican sesión y rol en el servidor antes de renderizar
-- Los endpoints `_mdl.php` de los módulos con datos sensibles (`02_estudiantes`, `03_docentes`, `04_grupos`, `05_calificaciones`, `07_coordinador`, `08_admin`) también validan sesión y rol antes de ejecutar cada acción, no solo las vistas — así una acción no puede invocarse directamente sin pasar por el control de acceso
-- Todas las queries usan PDO con parámetros enlazados — sin interpolación directa
-- Contraseñas hasheadas con bcrypt (`password_hash` / `password_verify`)
-- La nota definitiva se recalcula en el servidor antes de persistir — el cliente no define calificaciones
-- Operaciones destructivas (ej. eliminar aspirante en `02_estudiantes`) verifican en el servidor las condiciones de negocio antes de ejecutar el DELETE — no dependen de que el frontend oculte el botón
-- Los textos que vienen de la base de datos se escapan antes de mostrarse en pantalla, para evitar la inyección de código (XSS)
-- Los datos de ejemplo incluidos (seed) son un conjunto anonimizado, y los scripts de datos identifican a una persona con valores que se completan al ejecutar y nunca se guardan en el repositorio
+Las reglas completas están en [CLAUDE.md](CLAUDE.md).
 
 ---
 
-## Contexto del proyecto
+## Seguridad
 
-**Institución beneficiaria:** Escuela de Mecánica Dental Bolaños, Tuluá, Valle del Cauca
-
-**Problema que resuelve:**
-La institución gestionaba 80 planillas individuales de Google Sheets por semestre, requiriendo 10–14 horas de configuración manual al inicio de cada período. Los docentes no tenían un punto centralizado de registro y los estudiantes dependían de WhatsApp para conocer sus calificaciones.
-
-**Impacto esperado (validación TRL5):**
-- Reducción del 90%+ en tiempo de configuración semestral de planillas
-- Acceso en tiempo real a calificaciones para 80 estudiantes
-- Dashboard de seguimiento para la coordinación sin revisar planilla por planilla
-
-**Metodología de desarrollo:** CDIO (Concebir, Diseñar, Implementar, Operar)
-
-**Validación:** TRL5 — operación continua 2 semanas con datos históricos reales, prueba SUS (≥68 puntos) y prueba t de Student (p < 0.05)
+- Consultas PDO con parámetros enlazados, sin interpolar datos en el SQL.
+- Contraseñas guardadas como hash bcrypt.
+- Control de sesión y de rol en cada vista y en cada endpoint `_mdl.php`.
+- Cada petición autenticada comprueba en la base que el usuario siga activo y que su rol no haya cambiado; si no, cierra la sesión.
+- Los textos de la base se escapan antes de mostrarse (XSS).
+- La inscripción pública usa reCAPTCHA v2, verificado en el servidor; la actualización de datos exige un token de un solo uso con vencimiento.
+- Métricas de disponibilidad (`health.php`) y de tiempo de respuesta (`app/00_connect/metrics_prepend.php`, que guarda cada petición en `metricasdesempeno` cuando el `.htaccess` del servidor lo activa).
 
 ---
 
-## Estado del proyecto
+## Despliegue
 
-| Phase | Descripción | Estado |
-|---|---|---|
-| Phase 0 | Setup: estructura, BD, login, admin | ✅ Completado |
-| Phase 1 | Módulos base: estudiantes, docentes, grupos | ✅ Completado |
-| Phase 2 | Gestión académica: calificaciones, reportes, coordinador | ✅ Completado |
-| Phase 3 | Validación TRL5 con usuarios reales | ⬜ Pendiente |
+- Orden en cada entorno (local, dev, producción): respaldo de la base, script de migración, y después el código.
+- Los scripts de migración son idempotentes y se verifican con `SHOW COLUMNS`: en el hosting, `information_schema` no es confiable.
+- Se suben solo los archivos modificados.
+- `app/00_connect/pdo_web.php`, con las credenciales de producción, existe solo en el servidor. Allí se renombra a `pdo.php`.
+- El `.htaccess` de la raíz de producción y la línea de métricas (`auto_prepend_file`) no están versionados: no se sobrescriben.
+- En producción solo se mira. Toda prueba que escribe datos se hace en local o en dev.
 
-> **Formulario público de inscripción:** un aspirante sin cuenta diligencia su inscripción completa (datos personales, familiares y académicos) en una sola pantalla, con verificación reCAPTCHA y detección de duplicados por documento/correo, quedando pendiente de revisión y aprobación del coordinador. Rediseñado a un solo paso el 2026-08-24 — el diseño original en dos pasos (con código temporal para retomar después) fue reemplazado por un único formulario con un solo guardado. El 2026-08-26 se sincronizó además la disposición de campos de la Sección 1 con el modal interno de edición de `02_estudiantes` (mismo formato AC-FO-02, backend propio) — ambos formularios muestran ahora el mismo orden, agrupación y texto de labels.
-
-> **Ficha del estudiante unificada:** los datos personales del estudiante y su Ficha Familiar (AC-FO-02) se editan ahora desde un único modal, con descarga en PDF integrada — antes eran dos pantallas separadas. La matrícula del estudiante (folio, fecha, observaciones, número institucional) y la configuración de la institución (Director, Secretario(a), número de matrícula inicial) alimentan la exportación en PDF de la Hoja de Matrícula (AC-FO-09), con el número de matrícula asignado automáticamente la primera vez que se genera el documento.
-
-> **Grupos Semestre — conteo de estudiantes:** el listado de la pestaña "Grupos Semestre" (`04_grupos`) ahora muestra el número de estudiantes matriculados en cualquiera de sus módulos activos, con un botón que abre un modal de detalle ("Apellidos, Nombres") — mismo patrón ya usado en el conteo de "Módulos" de Matriculados (`02_estudiantes`).
-
-> **Preparación de base de datos — multi-programa:** se amplió el modelo de datos para que un mismo estudiante pueda cursar más de un programa técnico a la vez, cada uno con su propia cohorte de ingreso y su propia condición académica del semestre. La condición académica del semestre ya es visible (de solo lectura) en el informe de calificaciones del estudiante, pero todavía no existe ninguna pantalla para que el coordinador la edite — a diferencia de la matrícula a un segundo programa en sí, que ya sí se gestiona completamente desde la interfaz (ver nota siguiente).
-
-> **Informe de Calificaciones rediseñado:** el estudiante ahora ve sus notas organizadas por programa y por período académico (no módulo por módulo, como antes) — cada período muestra su condición general (en curso, aprobado o reprobado) y permite descargar en un solo PDF todos los módulos cursados en ese período. El coordinador puede consultar el mismo informe para cualquier estudiante mediante un buscador por nombre, apellido o documento, además de conservar el reporte por grupo completo que ya existía (ahora como una pestaña separada dentro de la misma pantalla).
-
-> **Matrícula a un segundo programa técnico:** ya es posible, desde la interfaz, matricular a un estudiante que ya cursa un programa (ej. Mecánica Dental) en un segundo programa distinto (ej. Auxiliar en Salud Oral) — antes esto solo era posible a nivel de base de datos, sin ninguna pantalla que lo permitiera. El coordinador ve, al momento de matricular, qué programas ya cursa el estudiante, y el sistema impide por error matricularlo dos veces en el mismo programa. La ficha del estudiante también muestra ahora un resumen de todos los programas en los que está matriculado. En el listado de Matriculados, un estudiante con más de un programa se identifica de inmediato con una etiqueta junto a su nombre ("🎓 2 programas"), que muestra el detalle al pasar el cursor — antes cada matrícula aparecía como una fila suelta, sin nada que las conectara visualmente como la misma persona.
-
-> **Acciones de Matriculados agrupadas en un menú:** en el listado de Matriculados, los botones de acción por estudiante (antes en línea, uno junto a otro) ahora viven detrás de un único botón con ícono de tuerca, que despliega un menú con las mismas 4 opciones. "Hoja de Matrícula" ahora es accesible con un clic directo desde ese menú, sin necesidad de abrir primero la ficha completa del estudiante. El menú también deshabilita, con una nota explicativa al pasar el cursor, la opción de matricular en otro programa cuando el estudiante ya cursa todos los programas activos disponibles.
-
-> **Acciones de Aspirantes agrupadas en un menú:** el mismo cambio se aplicó al listado de Aspirantes — los 2 botones en línea ("Matricular", "Datos Estudiante") ahora viven detrás del mismo botón con ícono de tuerca, con un menú de 3 opciones. "Ficha de Inscripción" ahora es accesible con un clic directo desde ese menú, sin necesidad de abrir primero la ficha completa del estudiante.
-
-> **Acciones de Docentes agrupadas en un menú:** el listado de Docentes recibió el mismo cambio visual — a diferencia de las dos notas anteriores, aquí no se agrega ninguna funcionalidad nueva ni un acceso directo que antes estuviera escondido en otro lugar. Es una mejora de consistencia visual: la columna de acciones por docente (Editar, más una de Eliminar/Desactivar/Activar según el caso) nunca tuvo tantos botones como para justificar el cambio por sí sola, pero se aplicó igual para que todas las tablas de la aplicación se vean y se comporten de la misma manera.
-
-> **Semestre de la matrícula:** cada matrícula ahora registra en qué semestre del programa va el estudiante, con un límite que depende de la duración real de cada programa técnico (el sistema no deja elegir un semestre que no existe). Ya es visible en el listado de Matriculados, como una columna con formato "3/5" (semestre actual sobre el total del programa) resaltada cuando el estudiante está en su último semestre. El listado de Matriculados, además, ahora está separado en dos pestañas: "Per. Actual" muestra solo a los estudiantes del período académico en curso, y "Per. Anteriores" permite consultar cualquier período ya finalizado eligiéndolo de una lista. El estudiante también puede ver su propio semestre en su reporte de notas y en su boletín en PDF, con el mismo formato "3/5". Cuando un estudiante aprueba su período actual, el coordinador ya puede matricularlo directamente al siguiente semestre del mismo programa con un solo clic, eligiendo el período en el que continuará — el sistema verifica automáticamente que el estudiante haya aprobado y que esté en condiciones de avanzar antes de permitirlo.
-
-> **Actualización de datos por el estudiante:** el coordinador puede generar, desde el listado de Matriculados, un link temporal para que un estudiante actualice sus propios datos personales y familiares sin necesidad de una cuenta en el sistema. El estudiante abre el link, revisa y corrige su información, y la envía — pero el cambio no se aplica de inmediato: queda pendiente de que el coordinador la revise, viendo exactamente qué propone cambiar el estudiante, y decida aprobarla o descartarla. El listado de Matriculados muestra en todo momento si un estudiante tiene un link esperando respuesta, una actualización pendiente de revisión, o la fecha de la última vez que se le aprobó una.
-
-> **Requisitos documentales configurables por programa:** el Administrador puede configurar, por cada programa, qué documentos se le piden a un estudiante para su proceso (ej. copia de diploma, examen médico, carné de salud) desde una ficha "Configurar Requisitos" en la vista de Estudiantes — cada requisito tiene un nombre y una descripción, y puede desactivarse temporalmente sin perder el historial de lo que ya se le pidió a un estudiante en el pasado. Al matricular a un estudiante nuevo, el sistema le asigna automáticamente como pendientes todos los requisitos activos del programa correspondiente, sin intervención manual. El coordinador ve, en el propio listado de Matriculados, cuántos requisitos lleva entregados cada estudiante (ej. "3/10") y puede marcarlos como entregados o pendientes desde un detalle por estudiante, con fecha de entrega. El estudiante, a su vez, ve en su propia vista una alerta con cuántos requisitos le faltan por entregar y el detalle de cada uno, sin poder modificarlos — la actualización siempre la hace el coordinador tras verificar el documento físico.
-
-> **Gestión de claves de acceso:** desde el menú de acciones del listado de Matriculados, el coordinador o administrador ahora puede crear el acceso al sistema de un estudiante que fue matriculado sin clave, o cambiar la clave de uno que ya tiene acceso, sin pasar por el modal de matrícula ni por la ficha completa de edición del estudiante — un atajo directo para esta única operación, con la misma opción de generar una clave automática o asignar una manual que ya existía en esos otros dos flujos.
-
-> **Backup estandarizado para el hosting:** `scripts/export_para_hosting.sh` genera con un solo comando (`./scripts/export_para_hosting.sh`, sin argumentos) un backup de la base de datos listo para importar directamente en phpMyAdmin del hosting (pruebas o producción) — corrige automáticamente una diferencia de colación entre MySQL 8 (el motor del entorno local) y MariaDB (el motor real del hosting) que antes hacía fallar la importación. El repositorio del proyecto es público, así que este backup con datos reales de estudiantes nunca se sube a GitHub — se guarda localmente en `database/hosting_deploy/`, separado por completo del script de estructura de base de datos que sí está versionado (`database/emdb_academica.sql`, sin datos reales).
-
-> **Retirar, aplazar y reincorporar estudiantes:** el coordinador puede registrar, desde el listado de Matriculados, que un estudiante aplaza o se retira definitivamente, indicando el motivo y la fecha. Una nueva pestaña "Retirados" reúne a esos estudiantes. Quien aplazó puede reincorporarse más adelante: el sistema le crea una matrícula nueva en el período vigente, en el mismo programa o en otro, y deja enlazadas ambas matrículas para que el recorrido quede a la vista. Un retiro registrado por error se puede anular. Mientras un estudiante está retirado, deja de aparecer en las planillas de notas del período y el sistema impide registrarle calificaciones; en los reportes del grupo aparece marcado. Cada matrícula conserva el historial de lo que le ha ocurrido.
-
-> **Filtros por período, programa y docente:** el tablero del coordinador, las calificaciones, los grupos y los reportes por grupo permiten filtrar por período, programa y docente, y abren mostrando el período vigente, sin mezclar grupos de semestres anteriores. El tablero del coordinador muestra además cuándo se registró la última nota de cada grupo.
-
-> **Eliminar un grupo semestre vacío:** un grupo semestre creado por error se puede eliminar desde su propia ventana de edición, siempre que todavía no tenga módulos. El sistema también impide quitar un módulo de un grupo cuando ya tiene estudiantes asignados o actividades de nota registradas, para que esa información no se pierda por accidente.
-
-> **Protección contra inyección de código en la interfaz:** todos los textos que el sistema muestra en pantalla (nombres, direcciones, observaciones) se tratan como texto simple antes de mostrarse. Un dato con símbolos especiales, escrito por error o con mala intención en cualquier formulario, incluidos los públicos, se muestra tal cual y no altera el funcionamiento de las pantallas.
-
-> **Jornada con tilde:** la jornada "Sábados" aparece escrita correctamente en las pantallas, los reportes PDF y los archivos de Excel. Las tarjetas de cada grupo en Calificaciones muestran también el grupo semestre, la cohorte, el período y la jornada.
-
-Ver historial detallado de cambios en [CHANGELOG.md](CHANGELOG.md).
+El checklist completo está en [CLAUDE.md](CLAUDE.md), sección "Checklist de deploy a producción".
 
 ---
 
-## Convenciones de desarrollo
+## Scripts
 
-Las convenciones completas de código, base de datos, antipatrones y decisiones arquitectónicas están documentadas en [CLAUDE.md](CLAUDE.md) — ese archivo es la fuente de verdad para el desarrollo.
+| Script | Propósito |
+|---|---|
+| `export_para_hosting.sh` | Respaldo de la base local listo para phpMyAdmin del hosting; corrige la colación de MySQL 8 para MariaDB. |
+| `migracion_matr_origen_id.sql` | Agrega `matriculas.matr_origen_id` (enlace de una reincorporación con su matrícula de origen). |
+| `rollback_matr_origen_id.sql` | Reversa de la migración anterior. |
+| `migracion_fechas_por_nota.sql` | Agrega las 8 columnas de fecha por nota a `calificaciones`; incluye su reversa comentada. |
+| `backfill_requisitos_sucesoras.sql` | Completa los requisitos de las matrículas creadas al avanzar de semestre antes de que se heredaran. |
+| `aplazamiento_reincorporacion_caso1.sql` | Corrección de datos de una reincorporación; la persona se indica con variables al ejecutar. |
+| `restaurar_check_staging.sql` | Restaura los `CHECK` de la base en el hosting de pruebas. |
+| `restaurar_check_produccion.sql` | Restaura los `CHECK` de la base de producción. |
+
+---
+
+## Datos personales y repositorio público
+
+El repositorio es público. Por eso:
+
+- El seed (`database/emdb_academica.sql`) contiene solo datos anonimizados.
+- Los respaldos con datos reales viven en `database/hosting_deploy/`, ignorada por git.
+- Nunca se versionan nombres, documentos ni contactos reales: ni en archivos, ni en nombres de archivo, ni en mensajes de commit.
+- Los scripts que identifican a una persona usan variables que se completan al ejecutar.
+
+El tratamiento de los datos se rige por la Ley 1581 de 2012 (protección de datos personales).
+
+---
+
+## Documentación del proyecto
+
+- [CLAUDE.md](CLAUDE.md): convenciones, arquitectura, reglas de negocio, decisiones, deuda técnica y checklist de despliegue. Es la fuente de verdad para el desarrollo.
+- [CHANGELOG.md](CHANGELOG.md): historial de cambios.
+- [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md): estado de avance, ruta de trabajo y commits.
